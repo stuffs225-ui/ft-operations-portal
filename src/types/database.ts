@@ -110,6 +110,131 @@ export type Database = {
         Update: Record<string, never>;
         Relationships: [];
       };
+      // ── Master data tables (006_master_data.sql) ───────────────────────
+      vehicle_types: {
+        Row: {
+          id: string;
+          name: string;
+          code: string;
+          description: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: { name: string; code: string; description?: string | null; is_active?: boolean };
+        Update: { name?: string; code?: string; description?: string | null; is_active?: boolean };
+        Relationships: [];
+      };
+      material_categories: {
+        Row: {
+          id: string;
+          name: string;
+          requires_serial: boolean;
+          description: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: { name: string; requires_serial?: boolean; description?: string | null; is_active?: boolean };
+        Update: { name?: string; requires_serial?: boolean; description?: string | null; is_active?: boolean };
+        Relationships: [];
+      };
+      supplier_categories: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: { name: string; description?: string | null; is_active?: boolean };
+        Update: { name?: string; description?: string | null; is_active?: boolean };
+        Relationships: [];
+      };
+      document_types: {
+        Row: {
+          id: string;
+          name: string;
+          required_at: string | null;
+          description: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: { name: string; required_at?: string | null; description?: string | null; is_active?: boolean };
+        Update: { name?: string; required_at?: string | null; description?: string | null; is_active?: boolean };
+        Relationships: [];
+      };
+      sla_rules: {
+        Row: {
+          id: string;
+          trigger_event: string;
+          required_action: string;
+          sla_hours: number;
+          escalate_to: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: { trigger_event: string; required_action: string; sla_hours: number; escalate_to?: string | null; is_active?: boolean };
+        Update: { trigger_event?: string; required_action?: string; sla_hours?: number; escalate_to?: string | null; is_active?: boolean };
+        Relationships: [];
+      };
+      root_cause_categories: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: { name: string; description?: string | null; is_active?: boolean };
+        Update: { name?: string; description?: string | null; is_active?: boolean };
+        Relationships: [];
+      };
+      store_locations: {
+        Row: {
+          id: string;
+          name: string;
+          code: string;
+          capacity: string | null;
+          description: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: { name: string; code: string; capacity?: string | null; description?: string | null; is_active?: boolean };
+        Update: { name?: string; code?: string; capacity?: string | null; description?: string | null; is_active?: boolean };
+        Relationships: [];
+      };
+      wo_statuses: {
+        Row: {
+          id: string;
+          name: string;
+          color: string;
+          description: string | null;
+          sort_order: number;
+          is_active: boolean;
+        };
+        Insert: { name: string; color: string; description?: string | null; sort_order?: number; is_active?: boolean };
+        Update: { name?: string; color?: string; description?: string | null; sort_order?: number; is_active?: boolean };
+        Relationships: [];
+      };
+      pn_statuses: {
+        Row: {
+          id: string;
+          name: string;
+          color: string;
+          description: string | null;
+          sort_order: number;
+          is_active: boolean;
+        };
+        Insert: { name: string; color: string; description?: string | null; sort_order?: number; is_active?: boolean };
+        Update: { name?: string; color?: string; description?: string | null; sort_order?: number; is_active?: boolean };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {};

@@ -23,7 +23,11 @@ create trigger profiles_updated_at
   before update on public.profiles
   for each row execute function public.handle_updated_at();
 
--- auto-create profile row when a new auth user is confirmed
+-- auto-create profile row when a new auth user is confirmed.
+-- security definer is intentional: it lets the trigger run with the
+-- function owner's privileges, bypassing the profiles RLS policies.
+-- Without it, the INSERT would be blocked because the new user has no
+-- role yet (chicken-and-egg bootstrapping constraint).
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
