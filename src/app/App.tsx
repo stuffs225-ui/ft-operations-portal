@@ -8,6 +8,8 @@ import { QuotationRequests } from '../pages/QuotationRequests';
 import { Sales } from '../pages/Sales';
 import { SalesCoordinator } from '../pages/SalesCoordinator';
 import { Projects } from '../pages/Projects';
+import { ProjectNew } from '../pages/ProjectNew';
+import { ProjectDetail } from '../pages/ProjectDetail';
 import { AdminApprovals } from '../pages/AdminApprovals';
 import { WoPnGate } from '../pages/WoPnGate';
 import { Procurement } from '../pages/Procurement';
@@ -40,6 +42,8 @@ export function App() {
             <Route path="sales" element={<Sales />} />
             <Route path="sales-coordinator" element={<SalesCoordinator />} />
             <Route path="projects" element={<Projects />} />
+            <Route path="projects/new" element={<ProjectNew />} />
+            <Route path="projects/:id" element={<ProjectDetail />} />
             <Route path="admin-approvals" element={<AdminApprovals />} />
             <Route path="wo-pn-gate" element={<WoPnGate />} />
             <Route path="procurement" element={<Procurement />} />
