@@ -23,24 +23,87 @@ export interface RoleConfig {
 // ─── Project Lifecycle Status ─────────────────────────────────────────────────
 
 export type ProjectStatus =
-  | 'quotation_requested'
-  | 'quotation_pending_estimation'
-  | 'quotation_returned'
-  | 'hot_project'
-  | 'so_pending_approval'
-  | 'so_approved'
-  | 'wo_required'
-  | 'pn_required'
-  | 'wo_entered'
-  | 'pn_entered'
-  | 'in_procurement'
-  | 'in_production'
-  | 'in_qc'
-  | 'release_note_issued'
-  | 'delivered'
-  | 'closed'
-  | 'afs_maintenance';
+  | 'draft'
+  | 'submitted_for_approval'
+  | 'sent_back_for_revision'
+  | 'approved'
+  | 'rejected'
+  | 'active'
+  | 'completed'
+  | 'cancelled';
 
+export type ManufacturingLocation = 'saudi' | 'dubai' | 'not_set';
+export type MedicalItems = 'yes' | 'no' | 'not_set';
+
+export interface Project {
+  id: string;
+  project_code: string;
+  so_number: string;
+  customer_name: string;
+  sales_owner_id: string | null;
+  customer_delivery_date: string;
+  project_status: ProjectStatus;
+  manufacturing_location: ManufacturingLocation;
+  medical_items: MedicalItems;
+  total_sales_value: number;
+  submitted_at: string | null;
+  approved_at: string | null;
+  approved_by: string | null;
+  rejected_at: string | null;
+  rejected_by: string | null;
+  rejection_reason: string | null;
+  revision_reason: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined fields (optional)
+  sales_owner?: { full_name: string | null; email: string } | null;
+  approved_by_profile?: { full_name: string | null } | null;
+}
+
+export interface ProjectVehicleLine {
+  id: string;
+  project_id: string;
+  line_number: number;
+  vehicle_type: string;
+  description: string;
+  quantity: number;
+  unit_sales_value: number;
+  line_total_value: number;
+  line_status: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectDocument {
+  id: string;
+  project_id: string;
+  document_type: string;
+  file_name: string;
+  storage_path: string | null;
+  uploaded_by: string | null;
+  uploaded_at: string;
+  status: string;
+  version: string;
+  remarks: string | null;
+}
+
+export interface ProjectTimelineEvent {
+  id: string;
+  project_id: string;
+  event_type: string;
+  title: string;
+  body: string | null;
+  actor_id: string | null;
+  actor_name: string | null;
+  metadata: Record<string, unknown> | null;
+  is_system: boolean;
+  created_at: string;
+}
+
+// Keep legacy alias for any remaining references
 export type ManufacturingRoute = 'saudi' | 'dubai';
 
 // ─── Procurement ──────────────────────────────────────────────────────────────
