@@ -4,11 +4,12 @@ interface PageHeaderProps {
   title: string;
   subtitle?: string;
   action?: React.ReactNode;
+  icon?: React.ReactNode;
   breadcrumb?: { label: string; path?: string }[];
   className?: string;
 }
 
-export function PageHeader({ title, subtitle, action, breadcrumb, className }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, action, icon, breadcrumb, className }: PageHeaderProps) {
   return (
     <div className={cn('mb-6', className)}>
       {breadcrumb && breadcrumb.length > 0 && (
@@ -24,9 +25,16 @@ export function PageHeader({ title, subtitle, action, breadcrumb, className }: P
         </nav>
       )}
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">{title}</h1>
-          {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+        <div className="flex items-center gap-2.5">
+          {icon && (
+            <div className="w-8 h-8 bg-brand-50 text-brand-700 rounded-lg flex items-center justify-center shrink-0">
+              {icon}
+            </div>
+          )}
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">{title}</h1>
+            {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+          </div>
         </div>
         {action && <div className="shrink-0 ml-4">{action}</div>}
       </div>

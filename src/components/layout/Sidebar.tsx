@@ -2,17 +2,20 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Inbox, FileText, TrendingUp, UserCheck, FolderKanban,
   ShieldCheck, GitBranch, ShoppingCart, Factory, Warehouse, PackageCheck,
-  Truck, Microscope, ClipboardCheck, Plane, Wrench, BarChart3, Settings, Users, X,
+  Truck, Microscope, ClipboardCheck, Plane, Wrench, BarChart3, Settings,
+  Users, X, ScrollText,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { NAV_ITEMS } from '../../data/navigation';
-import type { NavItem } from '../../types';
+import { useAuth } from '../../hooks/useAuth';
+import type { NavItem, UserRole } from '../../types';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard, Inbox, FileText, TrendingUp, UserCheck, FolderKanban,
   ShieldCheck, GitBranch, ShoppingCart, Factory, Warehouse, PackageCheck,
-  Truck, Microscope, ClipboardCheck, Plane, Wrench, BarChart3, Settings, Users,
+  Truck, Microscope, ClipboardCheck, Plane, Wrench, BarChart3, Settings,
+  Users, ScrollText,
 };
 
 interface SidebarProps {
@@ -20,8 +23,38 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+// An item is visible if it has no roles restriction, or the user's role is listed
+function isItemVisible(item: NavItem, role: UserRole | null): boolean {
+  if (!item.roles || item.roles.length === 0) return true;
+  if (!role) return false;
+  if (role === 'admin') return true;
+  return item.roles.includes(role);
+}
+
+// Build the filtered nav list, removing separators that have no visible children
+function buildVisibleNav(role: UserRole | null): NavItem[] {
+  const result: NavItem[] = [];
+  let pendingSeparator: NavItem | null = null;
+
+  for (const item of NAV_ITEMS) {
+    if (item.path === '#') {
+      // Hold the separator — emit it only if a visible child follows
+      pendingSeparator = item;
+    } else {
+      if (isItemVisible(item, role)) {
+        if (pendingSeparator) {
+          result.push(pendingSeparator);
+          pendingSeparator = null;
+        }
+        result.push(item);
+      }
+    }
+  }
+
+  return result;
+}
+
 function NavItemRow({ item, onClose }: { item: NavItem; onClose: () => void }) {
-  // Section separator
   if (item.path === '#') {
     return (
       <div className="px-3 pt-4 pb-1">
@@ -59,6 +92,9 @@ function NavItemRow({ item, onClose }: { item: NavItem; onClose: () => void }) {
 }
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const { role } = useAuth();
+  const visibleItems = buildVisibleNav(role);
+
   return (
     <>
       {/* Mobile overlay */}
@@ -77,7 +113,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           isOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
-        {/* Mobile close button */}
+        {/* Mobile close */}
         <div className="flex items-center justify-between h-14 px-4 border-b border-gray-200 lg:hidden">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-brand-700 rounded-md flex items-center justify-center">
@@ -92,14 +128,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {/* Nav items */}
         <nav className="flex-1 overflow-y-auto py-2 scrollbar-thin">
-          {NAV_ITEMS.map((item) => (
+          {visibleItems.map((item) => (
             <NavItemRow key={item.id} item={item} onClose={onClose} />
           ))}
         </nav>
 
         {/* Footer */}
         <div className="px-4 py-3 border-t border-gray-200 text-[10px] text-gray-400">
-          FT Operations Portal v0.1 — Phase 0
+          FT Operations Portal v0.1 — Phase 1
         </div>
       </aside>
     </>

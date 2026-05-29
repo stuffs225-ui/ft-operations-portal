@@ -177,4 +177,11 @@ export const NAV_ITEMS: NavItem[] = [
     icon: 'Users',
     roles: ['admin'],
   },
+  {
+    id: 'audit-log',
+    label: 'Audit Log',
+    path: '/audit-log',
+    icon: 'ScrollText',
+    roles: ['admin'],
+  },
 ];
