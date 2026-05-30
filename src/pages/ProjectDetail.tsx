@@ -3,7 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import {
   FolderOpen, Loader2, ArrowLeft, Calendar, User, MapPin,
   CheckSquare, AlertCircle, Info, FileText, List, Clock,
-  Shield, Edit2, Check, RotateCcw, X,
+  Shield, Edit2, Check, RotateCcw, X, GitBranch,
+  CheckCircle2, Plus,
 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Badge } from '../components/ui/Badge';
@@ -12,6 +13,7 @@ import { Card } from '../components/ui/Card';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { recordProjectEvent, recordAuditEntry } from '../lib/projectAudit';
+import { fetchProjectReferences, getExecutionGateStatus } from '../lib/executionGate';
 import {
   MOCK_PROJECTS,
   MOCK_VEHICLE_LINES,
@@ -21,6 +23,7 @@ import {
 import type {
   Project, ProjectVehicleLine, ProjectDocument,
   ProjectTimelineEvent, ManufacturingLocation, MedicalItems, UserRole,
+  ExecutionReference,
 } from '../types';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -288,6 +291,231 @@ function ApprovePanel({ project, onSuccess }: ApprovePanelProps) {
   );
 }
 
+// ── WO/PN Gate Card (used in Overview tab) ────────────────────────────────────
+
+interface WoPnGateCardProps {
+  project: Project;
+  references: ExecutionReference[];
+  canAdd: boolean;
+  onReferenceAdded: (ref: ExecutionReference) => void;
+  className?: string;
+}
+
+function WoPnGateCard({ project, references, canAdd, onReferenceAdded, className = '' }: WoPnGateCardProps) {
+  const { profile, role } = useAuth();
+  const gate = getExecutionGateStatus(project, references);
+
+  const [addingType, setAddingType] = useState<'wo' | 'pn' | null>(null);
+  const [refNumber, setRefNumber] = useState('');
+  const [remarks, setRemarks] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  if (!gate.isSaudi && !gate.isDubai) {
+    // Location not set — only show if approved
+    if (!gate.isApproved) return null;
+    return (
+      <Card className={`p-5 bg-gray-50 border-gray-200 ${className}`}>
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <GitBranch size={15} />
+          <span>Manufacturing location not set — WO/PN gate will activate after routing is confirmed.</span>
+        </div>
+      </Card>
+    );
+  }
+
+  if (!gate.isApproved) {
+    return (
+      <Card className={`p-5 bg-gray-50 border-gray-200 ${className}`}>
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <GitBranch size={15} />
+          <span>WO/PN will be required after project approval and route selection.</span>
+        </div>
+      </Card>
+    );
+  }
+
+  const type = gate.isSaudi ? 'wo' : 'pn';
+  const hasRef = gate.isSaudi ? gate.hasActiveWO : gate.hasActivePN;
+  const activeRef = gate.isSaudi ? gate.woReference : gate.pnReference;
+  const isUnlocked = gate.isSaudi ? gate.canStartSaudiFactory : gate.canStartDubaiFollowUp;
+  const gateTitle = gate.isSaudi ? 'WO Required Before Factory Execution' : 'PN Required Before Dubai Follow-up';
+  const label = type === 'wo' ? 'Work Order (WO)' : 'Part Number (PN)';
+
+  async function handleAddRef(e: React.FormEvent) {
+    e.preventDefault();
+    if (!refNumber.trim()) return;
+    setSaving(true);
+    setSaveError(null);
+
+    if (!isSupabaseConfigured || !supabase) {
+      await new Promise<void>((r) => setTimeout(r, 400));
+      const newRef: ExecutionReference = {
+        id: `exref-${Date.now()}`,
+        project_id: project.id,
+        reference_type: type,
+        reference_number: refNumber.trim(),
+        manufacturing_location: type === 'wo' ? 'saudi' : 'dubai',
+        status: 'created',
+        created_by: profile?.id ?? null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        confirmed_by: null,
+        confirmed_at: null,
+        remarks: remarks.trim() || null,
+        project: null,
+        created_by_profile: { full_name: profile?.full_name ?? null, email: profile?.email ?? '' },
+        confirmed_by_profile: null,
+      };
+      setSaving(false);
+      setAddingType(null);
+      setRefNumber('');
+      setRemarks('');
+      onReferenceAdded(newRef);
+      return;
+    }
+
+    try {
+      const { data, error: insertErr } = await supabase
+        .from('project_execution_references')
+        .insert({
+          project_id: project.id,
+          reference_type: type,
+          reference_number: refNumber.trim(),
+          manufacturing_location: type === 'wo' ? 'saudi' : 'dubai',
+          created_by: profile?.id ?? null,
+          remarks: remarks.trim() || null,
+        })
+        .select()
+        .single();
+
+      if (insertErr) throw insertErr;
+
+      await recordProjectEvent(
+        project.id, `${type}_created`,
+        `${type.toUpperCase()} reference created`,
+        `${type.toUpperCase()}: ${refNumber.trim()}`,
+        profile?.id ?? null, profile?.full_name ?? null,
+        { reference_type: type, reference_number: refNumber.trim() },
+      );
+      await recordAuditEntry(
+        `${type}_created`, project.id,
+        `${type.toUpperCase()} ${refNumber.trim()} created for ${project.project_code}`,
+        null, { reference_type: type, reference_number: refNumber.trim() },
+        profile?.id ?? null, profile?.email ?? null, role,
+      );
+
+      setAddingType(null);
+      setRefNumber('');
+      setRemarks('');
+      onReferenceAdded(data as unknown as ExecutionReference);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save');
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card className={`p-5 ${isUnlocked ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'} ${className}`}>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 text-gray-700">
+          <GitBranch size={14} />
+          Execution Gate
+        </h3>
+        {isUnlocked
+          ? <Badge variant="success">Unlocked</Badge>
+          : <Badge variant="warning">Blocked</Badge>
+        }
+      </div>
+
+      <p className="text-sm font-semibold text-gray-900 mb-3">{gateTitle}</p>
+
+      {hasRef && activeRef ? (
+        <div className="flex items-start gap-3">
+          <CheckCircle2 size={18} className="text-green-600 shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <span className="font-mono font-bold text-gray-900">{activeRef.reference_number}</span>
+            <span className="ml-2">
+              <Badge variant={activeRef.status === 'confirmed' ? 'success' : 'info'} size="sm">
+                {activeRef.status}
+              </Badge>
+            </span>
+            {activeRef.remarks && (
+              <p className="text-xs text-gray-500 mt-0.5 italic">{activeRef.remarks}</p>
+            )}
+            <p className="text-xs text-gray-400 mt-0.5">
+              Added {new Date(activeRef.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+              {activeRef.confirmed_at && ` · Confirmed ${new Date(activeRef.confirmed_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-start gap-2 text-sm text-amber-800 mb-3">
+          <Info size={15} className="text-amber-600 shrink-0 mt-0.5" />
+          <span>
+            No {label} has been entered yet.{' '}
+            {gate.isSaudi
+              ? 'Factory execution is blocked until a WO is added.'
+              : 'Dubai follow-up is blocked until a PN is added.'}
+          </span>
+        </div>
+      )}
+
+      {canAdd && !hasRef && addingType !== type && (
+        <Button size="sm" icon={<Plus size={14} />} onClick={() => setAddingType(type)} className="mt-1">
+          Add {type.toUpperCase()}
+        </Button>
+      )}
+
+      {addingType === type && (
+        <form onSubmit={handleAddRef} className="mt-3 space-y-3">
+          {saveError && (
+            <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1">{saveError}</p>
+          )}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              {label} Number <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={refNumber}
+              onChange={(e) => setRefNumber(e.target.value)}
+              placeholder={type === 'wo' ? 'e.g. WO-2025-0042' : 'e.g. PN-2025-0019'}
+              required
+              autoFocus
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Remarks (optional)</label>
+            <input
+              type="text"
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="Any notes…"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button type="submit" size="sm" loading={saving} disabled={!refNumber.trim()}>
+              Save {type.toUpperCase()}
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => { setAddingType(null); setSaveError(null); }} disabled={saving}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {!hasRef && (
+        <p className="mt-3 text-xs text-gray-500">
+          Go to <Link to="/wo-pn-gate" className="text-brand-600 hover:underline">WO / PN Gate</Link> to manage all execution references.
+        </p>
+      )}
+    </Card>
+  );
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export function ProjectDetail() {
@@ -298,6 +526,7 @@ export function ProjectDetail() {
   const [lines, setLines] = useState<ProjectVehicleLine[]>([]);
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [timeline, setTimeline] = useState<ProjectTimelineEvent[]>([]);
+  const [references, setReferences] = useState<ExecutionReference[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
@@ -305,6 +534,7 @@ export function ProjectDetail() {
   const canSeeMoney = role === 'admin' || role === 'operations_manager';
   const canApprove = role ? CAN_APPROVE.includes(role) : false;
   const canAudit = role === 'admin';
+  const canAddRef = role === 'admin' || role === 'operations_manager' || role === 'factory_user';
 
   useEffect(() => {
     if (!id) { setNotFound(true); setLoading(false); return; }
@@ -316,6 +546,7 @@ export function ProjectDetail() {
       setLines(MOCK_VEHICLE_LINES[id] ?? []);
       setDocuments(MOCK_PROJECT_DOCUMENTS[id] ?? []);
       setTimeline(MOCK_TIMELINE_EVENTS[id] ?? []);
+      fetchProjectReferences(id).then(setReferences);
       setLoading(false);
       return;
     }
@@ -329,12 +560,14 @@ export function ProjectDetail() {
       supabase.from('project_vehicle_lines').select('*').eq('project_id', id).order('line_number'),
       supabase.from('project_documents').select('*').eq('project_id', id).order('uploaded_at'),
       supabase.from('project_timeline_events').select('*').eq('project_id', id).order('created_at', { ascending: false }),
-    ]).then(([{ data: proj, error: projErr }, { data: pvl }, { data: docs }, { data: events }]) => {
+      fetchProjectReferences(id),
+    ]).then(([{ data: proj, error: projErr }, { data: pvl }, { data: docs }, { data: events }, refs]) => {
       if (projErr || !proj) { setNotFound(true); setLoading(false); return; }
       setProject(proj as unknown as Project);
       setLines(pvl as unknown as ProjectVehicleLine[] ?? []);
       setDocuments(docs as unknown as ProjectDocument[] ?? []);
       setTimeline(events as unknown as ProjectTimelineEvent[] ?? []);
+      setReferences(refs as ExecutionReference[]);
       setLoading(false);
     });
   }, [id]);
@@ -514,32 +747,14 @@ export function ProjectDetail() {
             </Card>
           )}
 
-          {/* Governance gates */}
-          {project.project_status === 'approved' && (
-            <Card className="p-5 md:col-span-2 bg-sky-50 border-sky-200">
-              <h3 className="text-xs font-semibold text-sky-700 uppercase tracking-wide mb-3">Active Governance Gates</h3>
-              <div className="space-y-2">
-                {project.manufacturing_location === 'saudi' && (
-                  <div className="flex items-start gap-2 text-sm text-sky-800">
-                    <AlertCircle size={15} className="text-sky-500 shrink-0 mt-0.5" />
-                    <span><strong>WO Gate:</strong> Work Order (WO) is mandatory before factory execution can begin.</span>
-                  </div>
-                )}
-                {project.manufacturing_location === 'dubai' && (
-                  <div className="flex items-start gap-2 text-sm text-sky-800">
-                    <AlertCircle size={15} className="text-sky-500 shrink-0 mt-0.5" />
-                    <span><strong>PN Gate:</strong> Part Number (PN) is mandatory before Dubai follow-up can begin.</span>
-                  </div>
-                )}
-                {project.medical_items === 'yes' && (
-                  <div className="flex items-start gap-2 text-sm text-sky-800">
-                    <AlertCircle size={15} className="text-sky-500 shrink-0 mt-0.5" />
-                    <span><strong>Medical Tracking:</strong> Serial number tracking required for all medical items at delivery.</span>
-                  </div>
-                )}
-              </div>
-            </Card>
-          )}
+          {/* WO / PN Gate card */}
+          <WoPnGateCard
+            project={project}
+            references={references}
+            canAdd={canAddRef}
+            onReferenceAdded={(ref) => setReferences((prev) => [...prev, ref])}
+            className="md:col-span-2"
+          />
         </div>
       )}
 

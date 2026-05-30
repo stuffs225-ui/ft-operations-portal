@@ -103,6 +103,49 @@ export interface ProjectTimelineEvent {
   created_at: string;
 }
 
+// ─── Execution Reference (WO / PN Gate) ──────────────────────────────────────
+
+export type ExecutionReferenceType = 'wo' | 'pn';
+
+export type ExecutionReferenceStatus =
+  | 'created'
+  | 'confirmed'
+  | 'superseded'
+  | 'cancelled';
+
+export interface ExecutionReference {
+  id: string;
+  project_id: string;
+  reference_type: ExecutionReferenceType;
+  reference_number: string;
+  manufacturing_location: 'saudi' | 'dubai';
+  status: ExecutionReferenceStatus;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  confirmed_by: string | null;
+  confirmed_at: string | null;
+  remarks: string | null;
+  // Joined fields (optional)
+  project?: Pick<Project, 'project_code' | 'so_number' | 'customer_name' | 'project_status'> | null;
+  created_by_profile?: { full_name: string | null; email: string } | null;
+  confirmed_by_profile?: { full_name: string | null } | null;
+}
+
+export interface ExecutionGateStatus {
+  isApproved: boolean;
+  isSaudi: boolean;
+  isDubai: boolean;
+  requiresWO: boolean;
+  requiresPN: boolean;
+  hasActiveWO: boolean;
+  hasActivePN: boolean;
+  woReference: ExecutionReference | null;
+  pnReference: ExecutionReference | null;
+  canStartSaudiFactory: boolean;
+  canStartDubaiFollowUp: boolean;
+}
+
 // Keep legacy alias for any remaining references
 export type ManufacturingRoute = 'saudi' | 'dubai';
 
