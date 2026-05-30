@@ -78,7 +78,7 @@ export function App() {
             <Route path="factory/raw-material-requests" element={<FactoryRawMaterialRequests />} />
             <Route path="factory/raw-material-requests/new" element={<FactoryRawMaterialRequestNew />} />
             <Route path="factory/monthly-updates" element={<FactoryMonthlyUpdates />} />
-            <Route path="factory/pending-raw-materials" element={<FactoryMonthlyUpdates />} />
+            <Route path="factory/pending-raw-materials" element={<FactoryRawMaterialRequests />} />
             <Route path="store" element={<Store />} />
             <Route path="custody" element={<MaterialCustody />} />
             <Route path="vehicle-receiving" element={<VehicleReceiving />} />
