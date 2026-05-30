@@ -16,6 +16,12 @@ import { AdminApprovals } from '../pages/AdminApprovals';
 import { WoPnGate } from '../pages/WoPnGate';
 import { Procurement } from '../pages/Procurement';
 import { Factory } from '../pages/Factory';
+import { FactoryProjects } from '../pages/FactoryProjects';
+import { FactoryProjectWorkspace } from '../pages/FactoryProjectWorkspace';
+import { FactoryRequirements } from '../pages/FactoryRequirements';
+import { FactoryRawMaterialRequests } from '../pages/FactoryRawMaterialRequests';
+import { FactoryRawMaterialRequestNew } from '../pages/FactoryRawMaterialRequestNew';
+import { FactoryMonthlyUpdates } from '../pages/FactoryMonthlyUpdates';
 import { Store } from '../pages/Store';
 import { MaterialCustody } from '../pages/MaterialCustody';
 import { VehicleReceiving } from '../pages/VehicleReceiving';
@@ -52,6 +58,13 @@ export function App() {
             <Route path="wo-pn-gate" element={<WoPnGate />} />
             <Route path="procurement" element={<Procurement />} />
             <Route path="factory" element={<Factory />} />
+            <Route path="factory/projects" element={<FactoryProjects />} />
+            <Route path="factory/projects/:projectId" element={<FactoryProjectWorkspace />} />
+            <Route path="factory/requirements" element={<FactoryRequirements />} />
+            <Route path="factory/raw-material-requests" element={<FactoryRawMaterialRequests />} />
+            <Route path="factory/raw-material-requests/new" element={<FactoryRawMaterialRequestNew />} />
+            <Route path="factory/monthly-updates" element={<FactoryMonthlyUpdates />} />
+            <Route path="factory/pending-raw-materials" element={<FactoryMonthlyUpdates />} />
             <Route path="store" element={<Store />} />
             <Route path="custody" element={<MaterialCustody />} />
             <Route path="vehicle-receiving" element={<VehicleReceiving />} />

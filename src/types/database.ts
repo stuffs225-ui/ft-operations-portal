@@ -607,6 +607,129 @@ export type Database = {
         Update: Record<string, never>;
         Relationships: [];
       };
+      factory_records: {
+        Row: {
+          id: string; project_id: string; project_vehicle_line_id: string | null;
+          wo_reference_id: string | null;
+          production_status: Database['public']['Enums']['production_status'];
+          progress_percentage: number;
+          expected_completion_date: string | null; actual_completion_date: string | null;
+          monthly_update_required: boolean; last_updated_by: string | null;
+          last_updated_at: string; remarks: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: {
+          project_id: string; project_vehicle_line_id?: string | null;
+          wo_reference_id?: string | null;
+          production_status?: Database['public']['Enums']['production_status'];
+          progress_percentage?: number; expected_completion_date?: string | null;
+          actual_completion_date?: string | null; monthly_update_required?: boolean;
+          last_updated_by?: string | null; remarks?: string | null;
+        };
+        Update: {
+          production_status?: Database['public']['Enums']['production_status'];
+          progress_percentage?: number; expected_completion_date?: string | null;
+          actual_completion_date?: string | null; monthly_update_required?: boolean;
+          last_updated_by?: string | null; last_updated_at?: string; remarks?: string | null;
+        };
+        Relationships: [];
+      };
+      factory_requirement_types: {
+        Row: { id: string; name: string; description: string | null; sort_order: number; is_active: boolean; };
+        Insert: { name: string; description?: string | null; sort_order?: number; is_active?: boolean; };
+        Update: { name?: string; description?: string | null; sort_order?: number; is_active?: boolean; };
+        Relationships: [];
+      };
+      factory_item_requirements: {
+        Row: {
+          id: string; project_id: string; project_vehicle_line_id: string | null;
+          requirement_type_id: string;
+          status: Database['public']['Enums']['factory_req_status'];
+          document_id: string | null; value_text: string | null; value_number: number | null;
+          uploaded_by: string | null; uploaded_at: string | null; remarks: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: {
+          project_id: string; project_vehicle_line_id?: string | null;
+          requirement_type_id: string;
+          status?: Database['public']['Enums']['factory_req_status'];
+          document_id?: string | null; value_text?: string | null; value_number?: number | null;
+          uploaded_by?: string | null; uploaded_at?: string | null; remarks?: string | null;
+        };
+        Update: {
+          status?: Database['public']['Enums']['factory_req_status'];
+          document_id?: string | null; value_text?: string | null; value_number?: number | null;
+          uploaded_by?: string | null; uploaded_at?: string | null; remarks?: string | null;
+        };
+        Relationships: [];
+      };
+      production_raw_material_requests: {
+        Row: {
+          id: string; project_id: string | null; project_vehicle_line_id: string | null;
+          wo_reference_id: string | null;
+          request_type: Database['public']['Enums']['raw_material_request_type'];
+          request_number: string;
+          status: Database['public']['Enums']['raw_material_request_status'];
+          requested_by: string | null; requested_at: string;
+          reviewed_by: string | null; reviewed_at: string | null;
+          sent_to_procurement_at: string | null; remarks: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: {
+          project_id?: string | null; project_vehicle_line_id?: string | null;
+          wo_reference_id?: string | null;
+          request_type: Database['public']['Enums']['raw_material_request_type'];
+          request_number: string;
+          status?: Database['public']['Enums']['raw_material_request_status'];
+          requested_by?: string | null; remarks?: string | null;
+        };
+        Update: {
+          status?: Database['public']['Enums']['raw_material_request_status'];
+          reviewed_by?: string | null; reviewed_at?: string | null;
+          sent_to_procurement_at?: string | null; remarks?: string | null;
+        };
+        Relationships: [];
+      };
+      production_raw_material_request_files: {
+        Row: {
+          id: string; raw_material_request_id: string; file_name: string;
+          storage_path: string | null; file_type: string; uploaded_by: string | null;
+          uploaded_at: string;
+          parsing_status: Database['public']['Enums']['raw_material_parsing_status'];
+          remarks: string | null;
+        };
+        Insert: {
+          raw_material_request_id: string; file_name: string; file_type: string;
+          storage_path?: string | null; uploaded_by?: string | null;
+          parsing_status?: Database['public']['Enums']['raw_material_parsing_status'];
+          remarks?: string | null;
+        };
+        Update: {
+          parsing_status?: Database['public']['Enums']['raw_material_parsing_status'];
+          storage_path?: string | null; remarks?: string | null;
+        };
+        Relationships: [];
+      };
+      production_raw_material_request_items: {
+        Row: {
+          id: string; raw_material_request_id: string;
+          item_code: string | null; item_name: string | null; description: string | null;
+          quantity: number | null; unit: string | null; material_category: string | null;
+          required_for: string | null; vehicle_line_id: string | null; remarks: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: {
+          raw_material_request_id: string;
+          item_code?: string | null; item_name?: string | null; description?: string | null;
+          quantity?: number | null; unit?: string | null; material_category?: string | null;
+          required_for?: string | null; vehicle_line_id?: string | null; remarks?: string | null;
+        };
+        Update: {
+          item_code?: string | null; item_name?: string | null;
+          quantity?: number | null; unit?: string | null; remarks?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {
@@ -672,6 +795,18 @@ export type Database = {
         | 'supporting_document'
         | 'customer_requirement'
         | 'other';
+      production_status:
+        | 'not_started' | 'details_requested' | 'boq_pending' | 'boq_uploaded'
+        | 'ga_drawing_pending' | 'ga_drawing_uploaded' | 'detail_drawings_pending'
+        | 'detail_drawings_uploaded' | 'manhours_pending' | 'manhours_added'
+        | 'pending_raw_materials' | 'in_production' | 'monthly_update_required'
+        | 'production_completed' | 'sent_to_qc' | 'on_hold';
+      factory_req_status: 'pending' | 'in_progress' | 'uploaded' | 'approved' | 'rejected' | 'not_applicable';
+      raw_material_request_status:
+        | 'draft' | 'submitted' | 'under_review' | 'sent_to_procurement'
+        | 'partially_fulfilled' | 'fulfilled' | 'rejected' | 'cancelled';
+      raw_material_request_type: 'project_related' | 'stock';
+      raw_material_parsing_status: 'not_parsed' | 'pending_future_parser' | 'parsed' | 'failed';
     };
   };
 };
