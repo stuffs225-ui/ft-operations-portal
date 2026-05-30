@@ -18,9 +18,9 @@ export async function recordStoreEvent(
     });
   }
   await supabase.from('timeline_events').insert({
+    entity_type: 'store', entity_id: projectId ?? 'global',
     event_type: eventType, title, body,
     actor_id: actorId, actor_name: actorName,
-    related_entity_type: 'store', related_entity_id: null,
     metadata, is_system: true,
   });
 }
@@ -34,6 +34,6 @@ export async function recordStoreAudit(
   if (!isSupabaseConfigured || !supabase) return;
   await supabase.from('audit_log').insert({
     action, entity_type: 'store', entity_id: entityId,
-    description, actor_id: actorId, new_values: null, old_values: null,
+    description, actor_id: actorId,
   });
 }
