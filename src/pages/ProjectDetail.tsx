@@ -4,7 +4,7 @@ import {
   FolderOpen, Loader2, ArrowLeft, Calendar, User, MapPin,
   CheckSquare, AlertCircle, Info, FileText, List, Clock,
   Shield, Edit2, Check, RotateCcw, X, GitBranch,
-  CheckCircle2, Plus,
+  CheckCircle2, Plus, ShoppingCart,
 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Badge } from '../components/ui/Badge';
@@ -20,10 +20,11 @@ import {
   MOCK_PROJECT_DOCUMENTS,
   MOCK_TIMELINE_EVENTS,
 } from '../data/mockProjects';
+import { getMockPRsForProject, getMockPOsForProject } from '../data/mockProcurement';
 import type {
   Project, ProjectVehicleLine, ProjectDocument,
   ProjectTimelineEvent, ManufacturingLocation, MedicalItems, UserRole,
-  ExecutionReference,
+  ExecutionReference, ProcurementRequest, PurchaseOrder,
 } from '../types';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -43,16 +44,17 @@ function formatDateTime(iso: string) {
   });
 }
 
-type TabKey = 'overview' | 'details' | 'lines' | 'documents' | 'approval' | 'timeline' | 'audit';
+type TabKey = 'overview' | 'details' | 'lines' | 'documents' | 'procurement' | 'approval' | 'timeline' | 'audit';
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
-  { key: 'overview',  label: 'Overview',           icon: <FolderOpen size={15} /> },
-  { key: 'details',  label: 'SO Details',          icon: <Edit2 size={15} /> },
-  { key: 'lines',    label: 'Vehicle Lines',       icon: <List size={15} /> },
-  { key: 'documents',label: 'Documents',           icon: <FileText size={15} /> },
-  { key: 'approval', label: 'Approval & Routing',  icon: <CheckSquare size={15} /> },
-  { key: 'timeline', label: 'Timeline',            icon: <Clock size={15} /> },
-  { key: 'audit',    label: 'Audit',               icon: <Shield size={15} /> },
+  { key: 'overview',     label: 'Overview',          icon: <FolderOpen size={15} /> },
+  { key: 'details',      label: 'SO Details',        icon: <Edit2 size={15} /> },
+  { key: 'lines',        label: 'Vehicle Lines',     icon: <List size={15} /> },
+  { key: 'documents',    label: 'Documents',         icon: <FileText size={15} /> },
+  { key: 'procurement',  label: 'Procurement',       icon: <ShoppingCart size={15} /> },
+  { key: 'approval',     label: 'Approval & Routing', icon: <CheckSquare size={15} /> },
+  { key: 'timeline',     label: 'Timeline',          icon: <Clock size={15} /> },
+  { key: 'audit',        label: 'Audit',             icon: <Shield size={15} /> },
 ];
 
 function statusBadge(status: string) {
@@ -527,6 +529,8 @@ export function ProjectDetail() {
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [timeline, setTimeline] = useState<ProjectTimelineEvent[]>([]);
   const [references, setReferences] = useState<ExecutionReference[]>([]);
+  const [procurementPRs, setProcurementPRs] = useState<ProcurementRequest[]>([]);
+  const [procurementPOs, setProcurementPOs] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
@@ -535,6 +539,7 @@ export function ProjectDetail() {
   const canApprove = role ? CAN_APPROVE.includes(role) : false;
   const canAudit = role === 'admin';
   const canAddRef = role === 'admin' || role === 'operations_manager' || role === 'factory_user';
+  const canSeeCost = ['admin', 'operations_manager', 'procurement_user'].includes(role ?? '');
 
   useEffect(() => {
     if (!id) { setNotFound(true); setLoading(false); return; }
@@ -547,6 +552,8 @@ export function ProjectDetail() {
       setDocuments(MOCK_PROJECT_DOCUMENTS[id] ?? []);
       setTimeline(MOCK_TIMELINE_EVENTS[id] ?? []);
       fetchProjectReferences(id).then(setReferences);
+      setProcurementPRs(getMockPRsForProject(id));
+      setProcurementPOs(getMockPOsForProject(id));
       setLoading(false);
       return;
     }
@@ -561,13 +568,17 @@ export function ProjectDetail() {
       supabase.from('project_documents').select('*').eq('project_id', id).order('uploaded_at'),
       supabase.from('project_timeline_events').select('*').eq('project_id', id).order('created_at', { ascending: false }),
       fetchProjectReferences(id),
-    ]).then(([{ data: proj, error: projErr }, { data: pvl }, { data: docs }, { data: events }, refs]) => {
+      supabase.from('procurement_requests').select('*, project:projects(project_code, so_number, customer_name)').eq('project_id', id),
+      supabase.from('purchase_orders_to_supplier').select('*, project:projects(project_code, so_number, customer_name)').eq('project_id', id),
+    ]).then(([{ data: proj, error: projErr }, { data: pvl }, { data: docs }, { data: events }, refs, { data: prs }, { data: pos }]) => {
       if (projErr || !proj) { setNotFound(true); setLoading(false); return; }
       setProject(proj as unknown as Project);
       setLines(pvl as unknown as ProjectVehicleLine[] ?? []);
       setDocuments(docs as unknown as ProjectDocument[] ?? []);
       setTimeline(events as unknown as ProjectTimelineEvent[] ?? []);
       setReferences(refs as ExecutionReference[]);
+      setProcurementPRs((prs as unknown as ProcurementRequest[]) ?? []);
+      setProcurementPOs((pos as unknown as PurchaseOrder[]) ?? []);
       setLoading(false);
     });
   }, [id]);
@@ -885,6 +896,134 @@ export function ProjectDetail() {
               </Card>
             ))
           )}
+        </div>
+      )}
+
+      {/* ── Procurement ───────────────────────────────────────────────────────── */}
+      {activeTab === 'procurement' && (
+        <div className="space-y-5">
+          {/* Purchase Requests */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <FileText size={15} className="text-brand-600" /> Purchase Requests
+            </h3>
+            {procurementPRs.length === 0 ? (
+              <Card className="p-6 text-center text-gray-500 text-sm">No procurement activity for this project</Card>
+            ) : (
+              <Card>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="text-left px-4 py-3 font-semibold text-gray-700">PR Number</th>
+                        <th className="text-left px-4 py-3 font-semibold text-gray-700">Status</th>
+                        <th className="text-left px-4 py-3 font-semibold text-gray-700">Received Date</th>
+                        <th className="text-left px-4 py-3 font-semibold text-gray-700">Source Dept</th>
+                        <th className="text-left px-4 py-3 font-semibold text-gray-700">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {procurementPRs.map((pr) => {
+                        const prStatusMap: Record<string, { label: string; variant: 'neutral' | 'warning' | 'info' | 'success' | 'critical' | 'default' }> = {
+                          draft: { label: 'Draft', variant: 'neutral' },
+                          pr_received: { label: 'PR Received', variant: 'info' },
+                          in_progress: { label: 'In Progress', variant: 'warning' },
+                          partially_ordered: { label: 'Partially Ordered', variant: 'warning' },
+                          fully_ordered: { label: 'Fully Ordered', variant: 'success' },
+                          cancelled: { label: 'Cancelled', variant: 'neutral' },
+                          closed: { label: 'Closed', variant: 'neutral' },
+                        };
+                        const { label, variant } = prStatusMap[pr.status] ?? { label: pr.status, variant: 'neutral' as const };
+                        return (
+                          <tr key={pr.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 font-mono font-semibold text-gray-900">{pr.pr_number}</td>
+                            <td className="px-4 py-3"><Badge variant={variant}>{label}</Badge></td>
+                            <td className="px-4 py-3 text-gray-700">
+                              {pr.received_date ? formatDate(pr.received_date) : '—'}
+                            </td>
+                            <td className="px-4 py-3 text-gray-700">{pr.source_department ?? '—'}</td>
+                            <td className="px-4 py-3">
+                              <Link to={`/procurement/requests/${pr.id}`} className="text-xs font-medium text-brand-600 hover:underline">
+                                View
+                              </Link>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+          </div>
+
+          {/* PO to Supplier */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <ShoppingCart size={15} className="text-brand-600" /> PO to Supplier
+            </h3>
+            {procurementPOs.length === 0 ? (
+              <Card className="p-6 text-center text-gray-500 text-sm">No purchase orders for this project</Card>
+            ) : (
+              <Card>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="text-left px-4 py-3 font-semibold text-gray-700">PO Number</th>
+                        <th className="text-left px-4 py-3 font-semibold text-gray-700">Supplier</th>
+                        <th className="text-left px-4 py-3 font-semibold text-gray-700">PO Date</th>
+                        <th className="text-left px-4 py-3 font-semibold text-gray-700">Status</th>
+                        {canSeeCost && <th className="text-right px-4 py-3 font-semibold text-gray-700">Value</th>}
+                        <th className="text-left px-4 py-3 font-semibold text-gray-700">ETA</th>
+                        <th className="text-left px-4 py-3 font-semibold text-gray-700">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {procurementPOs.map((po) => {
+                        const poStatusMap: Record<string, { label: string; variant: 'neutral' | 'warning' | 'info' | 'success' | 'critical' | 'default' }> = {
+                          draft: { label: 'Draft', variant: 'neutral' },
+                          pending_approval: { label: 'Pending Approval', variant: 'warning' },
+                          approved: { label: 'Approved', variant: 'success' },
+                          rejected: { label: 'Rejected', variant: 'critical' },
+                          sent_to_supplier: { label: 'Sent to Supplier', variant: 'info' },
+                          eta_confirmed: { label: 'ETA Confirmed', variant: 'info' },
+                          in_transit: { label: 'In Transit', variant: 'warning' },
+                          partially_received: { label: 'Partially Received', variant: 'warning' },
+                          fully_received: { label: 'Fully Received', variant: 'success' },
+                          delayed: { label: 'Delayed', variant: 'critical' },
+                          cancelled: { label: 'Cancelled', variant: 'neutral' },
+                          closed: { label: 'Closed', variant: 'neutral' },
+                        };
+                        const { label, variant } = poStatusMap[po.po_status] ?? { label: po.po_status, variant: 'neutral' as const };
+                        return (
+                          <tr key={po.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 font-mono font-semibold text-gray-900">{po.po_number}</td>
+                            <td className="px-4 py-3 text-gray-700">{po.supplier_name}</td>
+                            <td className="px-4 py-3 text-gray-700">{formatDate(po.po_date)}</td>
+                            <td className="px-4 py-3"><Badge variant={variant}>{label}</Badge></td>
+                            {canSeeCost && (
+                              <td className="px-4 py-3 text-right font-medium">
+                                {po.currency} {po.purchase_value.toLocaleString()}
+                              </td>
+                            )}
+                            <td className="px-4 py-3 text-gray-700">
+                              {po.eta_date ? formatDate(po.eta_date) : '—'}
+                            </td>
+                            <td className="px-4 py-3">
+                              <Link to={`/procurement/purchase-orders/${po.id}`} className="text-xs font-medium text-brand-600 hover:underline">
+                                View
+                              </Link>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+          </div>
         </div>
       )}
 
