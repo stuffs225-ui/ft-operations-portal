@@ -149,6 +149,99 @@ export interface ExecutionGateStatus {
 // Keep legacy alias for any remaining references
 export type ManufacturingRoute = 'saudi' | 'dubai';
 
+// ─── Quotation Management ─────────────────────────────────────────────────────
+
+export type QuotationStatus =
+  | 'draft'
+  | 'submitted_by_sales'
+  | 'received_by_coordinator'
+  | 'sent_to_estimation'
+  | 'waiting_for_estimation'
+  | 'need_clarification'
+  | 'quotation_received'
+  | 'returned_to_sales'
+  | 'converted_to_hot_project'
+  | 'converted_to_so'
+  | 'cancelled'
+  | 'closed_lost';
+
+export type QuotationPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export interface QuotationRequest {
+  id: string;
+  quotation_code: string;
+  customer_name: string;
+  customer_contact_name: string | null;
+  customer_email: string | null;
+  customer_phone: string | null;
+  opportunity_source: string | null;
+  linked_hot_project_id: string | null;
+  requested_by: string | null;
+  assigned_coordinator_id: string | null;
+  quotation_status: QuotationStatus;
+  priority: QuotationPriority;
+  required_delivery_expectation: string | null;
+  scope_summary: string | null;
+  sales_remarks: string | null;
+  coordinator_remarks: string | null;
+  quotation_number: string | null;
+  quotation_total_value: number | null;
+  submitted_at: string | null;
+  sent_to_estimation_at: string | null;
+  estimation_contact: string | null;
+  quotation_received_at: string | null;
+  returned_to_sales_at: string | null;
+  converted_to_project_id: string | null;
+  converted_to_hot_project_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined
+  requested_by_profile?: { full_name: string | null; email: string } | null;
+  assigned_coordinator?: { full_name: string | null; email: string } | null;
+}
+
+export interface QuotationRequestLine {
+  id: string;
+  quotation_request_id: string;
+  line_number: number;
+  vehicle_type: string;
+  description: string;
+  quantity: number;
+  estimated_unit_value: number | null;
+  final_quotation_unit_value: number | null;
+  final_quotation_line_value: number | null;
+  remarks: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuotationDocument {
+  id: string;
+  quotation_request_id: string;
+  document_type: string;
+  file_name: string;
+  storage_path: string | null;
+  uploaded_by: string | null;
+  uploaded_at: string;
+  status: string;
+  version: string;
+  remarks: string | null;
+}
+
+export interface QuotationTimelineEvent {
+  id: string;
+  quotation_request_id: string;
+  event_type: string;
+  title: string;
+  body: string | null;
+  actor_id: string | null;
+  actor_name: string | null;
+  metadata: Record<string, unknown> | null;
+  is_system: boolean;
+  created_at: string;
+}
+
 // ─── Procurement ──────────────────────────────────────────────────────────────
 
 export type POStatus =
