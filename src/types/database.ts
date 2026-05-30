@@ -394,9 +394,49 @@ export type Database = {
         Update: Record<string, never>;
         Relationships: [];
       };
+      project_execution_references: {
+        Row: {
+          id: string;
+          project_id: string;
+          reference_type: string;
+          reference_number: string;
+          manufacturing_location: string;
+          status: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+          confirmed_by: string | null;
+          confirmed_at: string | null;
+          remarks: string | null;
+        };
+        Insert: {
+          project_id: string;
+          reference_type: string;
+          reference_number: string;
+          manufacturing_location: string;
+          status?: string;
+          created_by?: string | null;
+          confirmed_by?: string | null;
+          confirmed_at?: string | null;
+          remarks?: string | null;
+        };
+        Update: {
+          reference_number?: string;
+          status?: string;
+          confirmed_by?: string | null;
+          confirmed_at?: string | null;
+          remarks?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
-    Functions: {};
+    Functions: {
+      project_has_wo: { Args: { p_project_id: string }; Returns: boolean };
+      project_has_pn: { Args: { p_project_id: string }; Returns: boolean };
+      can_start_saudi_factory: { Args: { p_project_id: string }; Returns: boolean };
+      can_start_dubai_followup: { Args: { p_project_id: string }; Returns: boolean };
+    };
     Enums: {
       user_role:
         | 'admin'
@@ -432,6 +472,8 @@ export type Database = {
         | 'approved'
         | 'rejected'
         | 'superseded';
+      execution_reference_type: 'wo' | 'pn';
+      execution_reference_status: 'created' | 'confirmed' | 'superseded' | 'cancelled';
     };
   };
 };
