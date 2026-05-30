@@ -4,7 +4,7 @@ import {
   FolderOpen, Loader2, ArrowLeft, Calendar, User, MapPin,
   CheckSquare, AlertCircle, Info, FileText, List, Clock,
   Shield, Edit2, Check, RotateCcw, X, GitBranch,
-  CheckCircle2, Plus, ShoppingCart, Wrench,
+  CheckCircle2, Plus, ShoppingCart, Wrench, Truck, Package,
 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Badge } from '../components/ui/Badge';
@@ -22,11 +22,13 @@ import {
 } from '../data/mockProjects';
 import { getMockPRsForProject, getMockPOsForProject } from '../data/mockProcurement';
 import { getMockFactoryRecordsForProject, getMockRMRsForProject } from '../data/mockFactory';
+import { getMockReceiptsForProject, getMockVehicleReceiptsForProject, getMockCustodyForProject } from '../data/mockStore';
 import type {
   Project, ProjectVehicleLine, ProjectDocument,
   ProjectTimelineEvent, ManufacturingLocation, MedicalItems, UserRole,
   ExecutionReference, ProcurementRequest, PurchaseOrder,
   FactoryRecord, RawMaterialRequest,
+  StoreReceipt, VehicleReceipt, MaterialCustodyRecord,
 } from '../types';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -46,7 +48,7 @@ function formatDateTime(iso: string) {
   });
 }
 
-type TabKey = 'overview' | 'details' | 'lines' | 'documents' | 'procurement' | 'factory' | 'approval' | 'timeline' | 'audit';
+type TabKey = 'overview' | 'details' | 'lines' | 'documents' | 'procurement' | 'factory' | 'store' | 'approval' | 'timeline' | 'audit';
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'overview',     label: 'Overview',           icon: <FolderOpen size={15} /> },
@@ -55,6 +57,7 @@ const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'documents',    label: 'Documents',          icon: <FileText size={15} /> },
   { key: 'procurement',  label: 'Procurement',        icon: <ShoppingCart size={15} /> },
   { key: 'factory',      label: 'Factory',            icon: <Wrench size={15} /> },
+  { key: 'store',        label: 'Store',              icon: <Package size={15} /> },
   { key: 'approval',     label: 'Approval & Routing', icon: <CheckSquare size={15} /> },
   { key: 'timeline',     label: 'Timeline',           icon: <Clock size={15} /> },
   { key: 'audit',        label: 'Audit',              icon: <Shield size={15} /> },
@@ -536,6 +539,9 @@ export function ProjectDetail() {
   const [procurementPOs, setProcurementPOs] = useState<PurchaseOrder[]>([]);
   const [factoryRecords, setFactoryRecords] = useState<FactoryRecord[]>([]);
   const [factoryRmrs, setFactoryRmrs] = useState<RawMaterialRequest[]>([]);
+  const [storeReceipts, setStoreReceipts] = useState<StoreReceipt[]>([]);
+  const [storeVehicleReceipts, setStoreVehicleReceipts] = useState<VehicleReceipt[]>([]);
+  const [storeCustody, setStoreCustody] = useState<MaterialCustodyRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
@@ -561,6 +567,9 @@ export function ProjectDetail() {
       setProcurementPOs(getMockPOsForProject(id));
       setFactoryRecords(getMockFactoryRecordsForProject(id));
       setFactoryRmrs(getMockRMRsForProject(id));
+      setStoreReceipts(getMockReceiptsForProject(id));
+      setStoreVehicleReceipts(getMockVehicleReceiptsForProject(id));
+      setStoreCustody(getMockCustodyForProject(id));
       setLoading(false);
       return;
     }
@@ -590,6 +599,9 @@ export function ProjectDetail() {
       setProcurementPOs((pos as unknown as PurchaseOrder[]) ?? []);
       setFactoryRecords((frs as unknown as FactoryRecord[]) ?? []);
       setFactoryRmrs((frmrs as unknown as RawMaterialRequest[]) ?? []);
+      setStoreReceipts(getMockReceiptsForProject(id ?? ''));
+      setStoreVehicleReceipts(getMockVehicleReceiptsForProject(id ?? ''));
+      setStoreCustody(getMockCustodyForProject(id ?? ''));
       setLoading(false);
     });
   }, [id]);
@@ -1123,6 +1135,175 @@ export function ProjectDetail() {
               </Card>
             </>
           )}
+        </div>
+      )}
+
+      {/* ── Store ─────────────────────────────────────────────────────────────── */}
+      {activeTab === 'store' && (
+        <div className="space-y-5">
+          {/* Summary cards */}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: 'Material Receipts', value: storeReceipts.length, color: 'border-l-sky-400' },
+              { label: 'Vehicle Receipts', value: storeVehicleReceipts.length, color: 'border-l-indigo-400' },
+              { label: 'Custody Records', value: storeCustody.length, color: 'border-l-amber-400' },
+            ].map(k => (
+              <div key={k.label} className={`bg-white rounded-xl border border-gray-200 border-l-4 shadow-sm p-4 ${k.color}`}>
+                <div className="text-2xl font-bold text-gray-900">{k.value}</div>
+                <div className="text-sm text-gray-600 mt-0.5">{k.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Material Receipts */}
+          <Card>
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <ShoppingCart size={15} className="text-sky-500" /> Material Receipts
+              </h3>
+              <Link to="/store/receipts"><Button variant="ghost" size="sm">View All</Button></Link>
+            </div>
+            {storeReceipts.length === 0 ? (
+              <div className="px-5 py-6 text-sm text-gray-400 text-center">No material receipts linked to this project.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Receipt #</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Date</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Supplier</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {storeReceipts.map(r => (
+                      <tr key={r.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2.5 text-sm font-mono text-sky-700">
+                          <Link to={`/store/receipts/${r.id}`} className="hover:underline">{r.receipt_number}</Link>
+                        </td>
+                        <td className="px-4 py-2.5 text-sm text-gray-600">{formatDate(r.received_date)}</td>
+                        <td className="px-4 py-2.5 text-sm text-gray-600">{r.supplier_name ?? '—'}</td>
+                        <td className="px-4 py-2.5">
+                          <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${
+                            r.status === 'received' ? 'bg-green-100 text-green-700' :
+                            r.status === 'pending_material_qc' ? 'bg-amber-100 text-amber-700' :
+                            r.status === 'accepted' ? 'bg-sky-100 text-sky-700' :
+                            'bg-gray-100 text-gray-600'
+                          }`}>{r.status.replace(/_/g, ' ')}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+
+          {/* Vehicle Receipts */}
+          <Card>
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <Truck size={15} className="text-indigo-500" /> Vehicle Receipts
+              </h3>
+              <Link to="/store/vehicle-receiving"><Button variant="ghost" size="sm">View All</Button></Link>
+            </div>
+            {storeVehicleReceipts.length === 0 ? (
+              <div className="px-5 py-6 text-sm text-gray-400 text-center">No vehicle receipts linked to this project.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Vehicle ID</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Date</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Vehicle Type</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Chassis #</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {storeVehicleReceipts.map(v => (
+                      <tr key={v.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2.5 text-sm font-mono text-sky-700">
+                          <Link to={`/store/vehicle-receiving/${v.id}`} className="hover:underline">{v.id.toUpperCase()}</Link>
+                        </td>
+                        <td className="px-4 py-2.5 text-sm text-gray-600">{formatDate(v.received_date)}</td>
+                        <td className="px-4 py-2.5 text-sm text-gray-700">{v.vehicle_type}</td>
+                        <td className="px-4 py-2.5 text-sm font-mono text-gray-600">{v.chassis_number || <span className="text-red-400 text-xs">Missing</span>}</td>
+                        <td className="px-4 py-2.5">
+                          <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${
+                            v.status === 'accepted' ? 'bg-green-100 text-green-700' :
+                            v.status === 'pending_condition_review' ? 'bg-amber-100 text-amber-700' :
+                            v.status === 'damaged' ? 'bg-red-100 text-red-700' :
+                            'bg-gray-100 text-gray-600'
+                          }`}>{v.status.replace(/_/g, ' ')}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+
+          {/* Custody Records */}
+          <Card>
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <List size={15} className="text-amber-500" /> Custody Records
+              </h3>
+              <Link to="/custody"><Button variant="ghost" size="sm">View All</Button></Link>
+            </div>
+            {storeCustody.length === 0 ? (
+              <div className="px-5 py-6 text-sm text-gray-400 text-center">No custody records linked to this project.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Custody #</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Item</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Type</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Issued To</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {storeCustody.map(c => (
+                      <tr key={c.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2.5 text-sm font-mono text-sky-700">
+                          <Link to={`/custody/${c.id}`} className="hover:underline">{c.custody_number}</Link>
+                        </td>
+                        <td className="px-4 py-2.5 text-sm text-gray-700">{c.item?.item_name ?? '—'}</td>
+                        <td className="px-4 py-2.5">
+                          <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${
+                            c.issue_type === 'temporary_custody' ? 'bg-amber-100 text-amber-700' : 'bg-sky-100 text-sky-700'
+                          }`}>{c.issue_type === 'temporary_custody' ? 'Temporary' : 'Assign'}</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-sm text-gray-600">{c.issued_to_role ?? c.issued_to_department ?? '—'}</td>
+                        <td className="px-4 py-2.5">
+                          <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${
+                            c.status === 'in_custody' ? 'bg-blue-100 text-blue-700' :
+                            c.status === 'returned' ? 'bg-gray-100 text-gray-600' :
+                            c.status === 'installed' ? 'bg-green-100 text-green-700' :
+                            c.status === 'pending_approval' ? 'bg-amber-100 text-amber-700' :
+                            'bg-gray-100 text-gray-600'
+                          }`}>{c.status.replace(/_/g, ' ')}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+
+          {/* Phase 8 notice */}
+          <div className="bg-sky-50 border border-sky-200 rounded-xl p-4">
+            <p className="text-xs text-sky-800 font-medium">Phase 8 — Material QC</p>
+            <p className="text-xs text-sky-700 mt-1">Material QC workflow will inspect received materials against specifications. QC module coming in Phase 8.</p>
+          </div>
         </div>
       )}
 
