@@ -244,15 +244,146 @@ export interface QuotationTimelineEvent {
 
 // ─── Procurement ──────────────────────────────────────────────────────────────
 
+export type PRStatus =
+  | 'draft' | 'pr_received' | 'in_progress'
+  | 'partially_ordered' | 'fully_ordered' | 'cancelled' | 'closed';
+
+export type PRItemStatus =
+  | 'pending' | 'waiting_for_po_to_supplier' | 'po_to_supplier_created'
+  | 'eta_confirmed' | 'in_transit' | 'partially_received' | 'fully_received'
+  | 'delayed' | 'cancelled';
+
 export type POStatus =
-  | 'draft'
-  | 'pending_approval'
-  | 'approved'
-  | 'sent_to_supplier'
-  | 'eta_confirmed'
-  | 'partially_received'
-  | 'received'
-  | 'rejected';
+  | 'draft' | 'pending_approval' | 'approved' | 'rejected'
+  | 'sent_to_supplier' | 'eta_confirmed' | 'in_transit'
+  | 'partially_received' | 'fully_received' | 'delayed' | 'cancelled' | 'closed';
+
+export type POApprovalStatus = 'not_required' | 'pending' | 'approved' | 'rejected';
+
+export type SupplierProcurementStatus =
+  | 'draft' | 'pending_review' | 'approved' | 'approved_with_conditions'
+  | 'suspended' | 'blacklisted' | 'inactive';
+
+export type SupplierQCStatus =
+  | 'not_assessed' | 'assessed' | 'approved' | 'approved_with_conditions' | 'rejected';
+
+export interface ProcurementRequest {
+  id: string;
+  project_id: string;
+  pr_number: string;
+  received_date: string | null;
+  requested_by: string | null;
+  source_department: string | null;
+  status: PRStatus;
+  remarks: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  project?: Pick<Project, 'project_code' | 'so_number' | 'customer_name'> | null;
+  requested_by_profile?: { full_name: string | null } | null;
+}
+
+export interface ProcurementRequestItem {
+  id: string;
+  procurement_request_id: string;
+  project_id: string;
+  project_vehicle_line_id: string | null;
+  item_code: string | null;
+  item_name: string;
+  description: string | null;
+  material_category: string | null;
+  quantity_required: number;
+  unit: string;
+  quantity_ordered: number;
+  quantity_received: number;
+  status: PRItemStatus;
+  expected_arrival_date: string | null;
+  remarks: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  project_id: string;
+  procurement_request_id: string | null;
+  po_number: string;
+  supplier_id: string | null;
+  supplier_name: string;
+  po_date: string;
+  purchase_value: number;
+  currency: string;
+  eta_date: string | null;
+  po_status: POStatus;
+  approval_required: boolean;
+  approval_status: POApprovalStatus;
+  submitted_for_approval_at: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  rejected_by: string | null;
+  rejected_at: string | null;
+  rejection_reason: string | null;
+  remarks: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  project?: Pick<Project, 'project_code' | 'so_number' | 'customer_name'> | null;
+  approved_by_profile?: { full_name: string | null } | null;
+}
+
+export interface PurchaseOrderItem {
+  id: string;
+  purchase_order_id: string;
+  procurement_request_item_id: string | null;
+  item_code: string | null;
+  item_name: string;
+  description: string | null;
+  quantity_ordered: number;
+  unit: string;
+  unit_price: number;
+  line_total: number;
+  expected_arrival_date: string | null;
+  status: string;
+  remarks: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EtaChangeHistory {
+  id: string;
+  entity_type: string;
+  entity_id: string;
+  project_id: string | null;
+  old_eta: string | null;
+  new_eta: string | null;
+  changed_by: string | null;
+  changed_at: string;
+  reason: string;
+  remarks: string | null;
+  changed_by_profile?: { full_name: string | null } | null;
+}
+
+export interface ApprovedSupplier {
+  id: string;
+  supplier_name: string;
+  supplier_category: string | null;
+  contact_person: string | null;
+  email: string | null;
+  phone: string | null;
+  materials_supplied: string | null;
+  payment_terms: string | null;
+  procurement_status: SupplierProcurementStatus;
+  qc_status: SupplierQCStatus;
+  quality_rating: number | null;
+  approved_for_medical_items: boolean;
+  approved_for_critical_items: boolean;
+  remarks: string | null;
+  procurement_remarks: string | null;
+  qc_remarks: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 // ─── Material / Custody States ────────────────────────────────────────────────
 
