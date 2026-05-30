@@ -868,6 +868,182 @@ export type Database = {
         };
         Relationships: [];
       };
+      store_receipts: {
+        Row: {
+          id: string; project_id: string | null; purchase_order_id: string | null;
+          procurement_request_id: string | null; receipt_number: string;
+          receipt_type: 'material' | 'vehicle' | 'mixed'; received_date: string;
+          received_by: string; supplier_name: string | null; delivery_note_number: string | null;
+          status: 'draft' | 'received' | 'partially_received' | 'pending_material_qc' | 'accepted' | 'rejected' | 'closed';
+          remarks: string | null; created_by: string | null; created_at: string; updated_at: string;
+        };
+        Insert: {
+          project_id?: string | null; purchase_order_id?: string | null;
+          procurement_request_id?: string | null; receipt_number?: string;
+          receipt_type?: 'material' | 'vehicle' | 'mixed'; received_date: string;
+          received_by: string; supplier_name?: string | null; delivery_note_number?: string | null;
+          status?: 'draft' | 'received' | 'partially_received' | 'pending_material_qc' | 'accepted' | 'rejected' | 'closed';
+          remarks?: string | null; created_by?: string | null;
+        };
+        Update: {
+          project_id?: string | null; purchase_order_id?: string | null;
+          received_date?: string; received_by?: string; supplier_name?: string | null;
+          delivery_note_number?: string | null;
+          status?: 'draft' | 'received' | 'partially_received' | 'pending_material_qc' | 'accepted' | 'rejected' | 'closed';
+          remarks?: string | null;
+        };
+        Relationships: [];
+      };
+      store_receipt_items: {
+        Row: {
+          id: string; store_receipt_id: string; project_id: string | null;
+          project_vehicle_line_id: string | null; purchase_order_item_id: string | null;
+          item_code: string | null; item_name: string; description: string | null;
+          material_category: string; quantity_received: number; unit: string;
+          serial_required: boolean;
+          status: 'received' | 'pending_qc' | 'accepted_by_qc' | 'rejected_by_qc' | 'in_store' | 'issued' | 'in_custody' | 'installed' | 'returned' | 'consumed' | 'lost_or_damaged';
+          storage_location: string | null; condition: string; remarks: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: {
+          store_receipt_id: string; project_id?: string | null;
+          project_vehicle_line_id?: string | null; purchase_order_item_id?: string | null;
+          item_code?: string | null; item_name: string; description?: string | null;
+          material_category?: string; quantity_received: number; unit?: string;
+          serial_required?: boolean;
+          status?: 'received' | 'pending_qc' | 'accepted_by_qc' | 'rejected_by_qc' | 'in_store' | 'issued' | 'in_custody' | 'installed' | 'returned' | 'consumed' | 'lost_or_damaged';
+          storage_location?: string | null; condition?: string; remarks?: string | null;
+        };
+        Update: {
+          item_name?: string; material_category?: string; quantity_received?: number;
+          unit?: string; serial_required?: boolean;
+          status?: 'received' | 'pending_qc' | 'accepted_by_qc' | 'rejected_by_qc' | 'in_store' | 'issued' | 'in_custody' | 'installed' | 'returned' | 'consumed' | 'lost_or_damaged';
+          storage_location?: string | null; condition?: string; remarks?: string | null;
+        };
+        Relationships: [];
+      };
+      medical_serial_numbers: {
+        Row: {
+          id: string; store_receipt_item_id: string; project_id: string | null;
+          serial_number: string; batch_number: string | null; expiry_date: string | null;
+          manufacturer: string | null; supplier_name: string | null;
+          qc_status: 'not_checked' | 'pending_qc' | 'passed' | 'failed';
+          current_status: 'in_store' | 'in_custody' | 'installed' | 'returned' | 'consumed' | 'lost_or_damaged';
+          current_holder_type: string | null; current_holder_id: string | null;
+          installed_on_project_vehicle_line_id: string | null; installed_at: string | null;
+          remarks: string | null; created_by: string | null; created_at: string; updated_at: string;
+        };
+        Insert: {
+          store_receipt_item_id: string; project_id?: string | null;
+          serial_number: string; batch_number?: string | null; expiry_date?: string | null;
+          manufacturer?: string | null; supplier_name?: string | null;
+          qc_status?: 'not_checked' | 'pending_qc' | 'passed' | 'failed';
+          current_status?: 'in_store' | 'in_custody' | 'installed' | 'returned' | 'consumed' | 'lost_or_damaged';
+          current_holder_type?: string | null; current_holder_id?: string | null;
+          installed_on_project_vehicle_line_id?: string | null; installed_at?: string | null;
+          remarks?: string | null; created_by?: string | null;
+        };
+        Update: {
+          qc_status?: 'not_checked' | 'pending_qc' | 'passed' | 'failed';
+          current_status?: 'in_store' | 'in_custody' | 'installed' | 'returned' | 'consumed' | 'lost_or_damaged';
+          current_holder_type?: string | null; current_holder_id?: string | null;
+          installed_on_project_vehicle_line_id?: string | null; installed_at?: string | null;
+          remarks?: string | null;
+        };
+        Relationships: [];
+      };
+      vehicle_receipts: {
+        Row: {
+          id: string; project_id: string | null; project_vehicle_line_id: string | null;
+          chassis_number: string; received_date: string; received_by: string;
+          vehicle_type: string; condition_status: string; mileage: number | null;
+          storage_location: string | null; damage_notes: string | null;
+          status: 'draft' | 'received' | 'pending_condition_review' | 'accepted' | 'damaged' | 'assigned_to_production' | 'assigned_to_afs' | 'closed';
+          remarks: string | null; created_by: string | null; created_at: string; updated_at: string;
+        };
+        Insert: {
+          project_id?: string | null; project_vehicle_line_id?: string | null;
+          chassis_number: string; received_date: string; received_by: string;
+          vehicle_type: string; condition_status?: string; mileage?: number | null;
+          storage_location?: string | null; damage_notes?: string | null;
+          status?: 'draft' | 'received' | 'pending_condition_review' | 'accepted' | 'damaged' | 'assigned_to_production' | 'assigned_to_afs' | 'closed';
+          remarks?: string | null; created_by?: string | null;
+        };
+        Update: {
+          project_id?: string | null; project_vehicle_line_id?: string | null;
+          condition_status?: string; mileage?: number | null; storage_location?: string | null;
+          damage_notes?: string | null;
+          status?: 'draft' | 'received' | 'pending_condition_review' | 'accepted' | 'damaged' | 'assigned_to_production' | 'assigned_to_afs' | 'closed';
+          remarks?: string | null;
+        };
+        Relationships: [];
+      };
+      vehicle_receipt_photos: {
+        Row: {
+          id: string; vehicle_receipt_id: string;
+          photo_type: 'front' | 'rear' | 'left_side' | 'right_side' | 'chassis_plate' | 'damage' | 'other';
+          file_name: string; storage_path: string | null; uploaded_by: string;
+          uploaded_at: string; remarks: string | null;
+        };
+        Insert: {
+          vehicle_receipt_id: string;
+          photo_type: 'front' | 'rear' | 'left_side' | 'right_side' | 'chassis_plate' | 'damage' | 'other';
+          file_name: string; storage_path?: string | null; uploaded_by: string;
+          uploaded_at?: string; remarks?: string | null;
+        };
+        Update: {
+          photo_type?: 'front' | 'rear' | 'left_side' | 'right_side' | 'chassis_plate' | 'damage' | 'other';
+          file_name?: string; storage_path?: string | null; remarks?: string | null;
+        };
+        Relationships: [];
+      };
+      material_custody_records: {
+        Row: {
+          id: string; custody_number: string; project_id: string | null;
+          store_receipt_item_id: string | null; medical_serial_number_id: string | null;
+          issued_to_role: string | null; issued_to_user_id: string | null;
+          issued_to_department: string | null; issue_type: string;
+          approval_required: boolean;
+          approval_status: 'not_required' | 'pending_approval' | 'approved' | 'rejected';
+          approved_by: string | null; approved_at: string | null;
+          rejected_by: string | null; rejected_at: string | null; rejection_reason: string | null;
+          issued_by: string; issued_at: string;
+          accepted_by: string | null; accepted_at: string | null;
+          receiver_decision: 'pending' | 'accepted' | 'rejected';
+          receiver_rejection_reason: string | null; installation_status: string;
+          installed_at: string | null; returned_at: string | null;
+          status: 'draft' | 'pending_approval' | 'approved_for_issue' | 'issued' | 'pending_acceptance' | 'in_custody' | 'installed' | 'returned' | 'consumed_by_project' | 'lost_or_damaged' | 'cancelled';
+          remarks: string | null; created_by: string | null; created_at: string; updated_at: string;
+        };
+        Insert: {
+          project_id?: string | null; store_receipt_item_id?: string | null;
+          medical_serial_number_id?: string | null; issued_to_role?: string | null;
+          issued_to_user_id?: string | null; issued_to_department?: string | null;
+          issue_type: string; approval_required?: boolean;
+          approval_status?: 'not_required' | 'pending_approval' | 'approved' | 'rejected';
+          approved_by?: string | null; approved_at?: string | null;
+          rejected_by?: string | null; rejected_at?: string | null; rejection_reason?: string | null;
+          issued_by: string; issued_at?: string;
+          accepted_by?: string | null; accepted_at?: string | null;
+          receiver_decision?: 'pending' | 'accepted' | 'rejected';
+          receiver_rejection_reason?: string | null; installation_status?: string;
+          installed_at?: string | null; returned_at?: string | null;
+          status?: 'draft' | 'pending_approval' | 'approved_for_issue' | 'issued' | 'pending_acceptance' | 'in_custody' | 'installed' | 'returned' | 'consumed_by_project' | 'lost_or_damaged' | 'cancelled';
+          remarks?: string | null; created_by?: string | null;
+        };
+        Update: {
+          approval_status?: 'not_required' | 'pending_approval' | 'approved' | 'rejected';
+          approved_by?: string | null; approved_at?: string | null;
+          rejected_by?: string | null; rejected_at?: string | null; rejection_reason?: string | null;
+          accepted_by?: string | null; accepted_at?: string | null;
+          receiver_decision?: 'pending' | 'accepted' | 'rejected';
+          receiver_rejection_reason?: string | null; installation_status?: string;
+          installed_at?: string | null; returned_at?: string | null;
+          status?: 'draft' | 'pending_approval' | 'approved_for_issue' | 'issued' | 'pending_acceptance' | 'in_custody' | 'installed' | 'returned' | 'consumed_by_project' | 'lost_or_damaged' | 'cancelled';
+          remarks?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {
@@ -951,6 +1127,16 @@ export type Database = {
         | 'partially_fulfilled' | 'fulfilled' | 'rejected' | 'cancelled';
       raw_material_request_type: 'project_related' | 'stock';
       raw_material_parsing_status: 'not_parsed' | 'pending_future_parser' | 'parsed' | 'failed';
+      receipt_status: 'draft' | 'received' | 'partially_received' | 'pending_material_qc' | 'accepted' | 'rejected' | 'closed';
+      receipt_type: 'material' | 'vehicle' | 'mixed';
+      item_status: 'received' | 'pending_qc' | 'accepted_by_qc' | 'rejected_by_qc' | 'in_store' | 'issued' | 'in_custody' | 'installed' | 'returned' | 'consumed' | 'lost_or_damaged';
+      serial_qc_status: 'not_checked' | 'pending_qc' | 'passed' | 'failed';
+      serial_current_status: 'in_store' | 'in_custody' | 'installed' | 'returned' | 'consumed' | 'lost_or_damaged';
+      vehicle_receipt_status: 'draft' | 'received' | 'pending_condition_review' | 'accepted' | 'damaged' | 'assigned_to_production' | 'assigned_to_afs' | 'closed';
+      photo_type: 'front' | 'rear' | 'left_side' | 'right_side' | 'chassis_plate' | 'damage' | 'other';
+      custody_approval_status: 'not_required' | 'pending_approval' | 'approved' | 'rejected';
+      custody_receiver_decision: 'pending' | 'accepted' | 'rejected';
+      custody_status: 'draft' | 'pending_approval' | 'approved_for_issue' | 'issued' | 'pending_acceptance' | 'in_custody' | 'installed' | 'returned' | 'consumed_by_project' | 'lost_or_damaged' | 'cancelled';
     };
   };
 };

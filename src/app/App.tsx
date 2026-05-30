@@ -32,6 +32,16 @@ import { FactoryMonthlyUpdates } from '../pages/FactoryMonthlyUpdates';
 import { Store } from '../pages/Store';
 import { MaterialCustody } from '../pages/MaterialCustody';
 import { VehicleReceiving } from '../pages/VehicleReceiving';
+import { StoreReceipts } from '../pages/StoreReceipts';
+import { StoreReceiptNew } from '../pages/StoreReceiptNew';
+import { StoreReceiptDetail } from '../pages/StoreReceiptDetail';
+import { StoreVehicleReceiving } from '../pages/StoreVehicleReceiving';
+import { StoreVehicleReceivingNew } from '../pages/StoreVehicleReceivingNew';
+import { StoreVehicleReceivingDetail } from '../pages/StoreVehicleReceivingDetail';
+import { StoreInventory } from '../pages/StoreInventory';
+import { StoreUnallocated } from '../pages/StoreUnallocated';
+import { CustodyNew } from '../pages/CustodyNew';
+import { CustodyDetail } from '../pages/CustodyDetail';
 import { MaterialQC } from '../pages/MaterialQC';
 import { ProjectQC } from '../pages/ProjectQC';
 import { DubaiAFS } from '../pages/DubaiAFS';
@@ -80,7 +90,17 @@ export function App() {
             <Route path="factory/monthly-updates" element={<FactoryMonthlyUpdates />} />
             <Route path="factory/pending-raw-materials" element={<FactoryRawMaterialRequests />} />
             <Route path="store" element={<Store />} />
+            <Route path="store/receipts" element={<StoreReceipts />} />
+            <Route path="store/receipts/new" element={<StoreReceiptNew />} />
+            <Route path="store/receipts/:id" element={<StoreReceiptDetail />} />
+            <Route path="store/vehicle-receiving" element={<StoreVehicleReceiving />} />
+            <Route path="store/vehicle-receiving/new" element={<StoreVehicleReceivingNew />} />
+            <Route path="store/vehicle-receiving/:id" element={<StoreVehicleReceivingDetail />} />
+            <Route path="store/inventory" element={<StoreInventory />} />
+            <Route path="store/unallocated" element={<StoreUnallocated />} />
             <Route path="custody" element={<MaterialCustody />} />
+            <Route path="custody/new" element={<CustodyNew />} />
+            <Route path="custody/:id" element={<CustodyDetail />} />
             <Route path="vehicle-receiving" element={<VehicleReceiving />} />
             <Route path="material-qc" element={<MaterialQC />} />
             <Route path="project-qc" element={<ProjectQC />} />

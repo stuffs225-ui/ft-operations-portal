@@ -586,3 +586,156 @@ export interface InboxTask {
   action: string;
   path: string;
 }
+
+// ─── Store / Warehouse ────────────────────────────────────────────────────────
+
+export type ReceiptStatus = 'draft' | 'received' | 'partially_received' | 'pending_material_qc' | 'accepted' | 'rejected' | 'closed';
+export type ReceiptType = 'material' | 'vehicle' | 'mixed';
+export type ItemStatus = 'received' | 'pending_qc' | 'accepted_by_qc' | 'rejected_by_qc' | 'in_store' | 'issued' | 'in_custody' | 'installed' | 'returned' | 'consumed' | 'lost_or_damaged';
+
+export interface StoreReceipt {
+  id: string;
+  project_id: string | null;
+  purchase_order_id: string | null;
+  procurement_request_id: string | null;
+  receipt_number: string;
+  receipt_type: ReceiptType;
+  received_date: string;
+  received_by: string | null;
+  supplier_name: string | null;
+  delivery_note_number: string | null;
+  status: ReceiptStatus;
+  remarks: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined
+  project?: Pick<Project, 'project_code' | 'so_number' | 'customer_name'> | null;
+  received_by_profile?: { full_name: string | null; email: string } | null;
+  items?: StoreReceiptItem[];
+}
+
+export interface StoreReceiptItem {
+  id: string;
+  store_receipt_id: string;
+  project_id: string | null;
+  project_vehicle_line_id: string | null;
+  purchase_order_item_id: string | null;
+  item_code: string | null;
+  item_name: string;
+  description: string | null;
+  material_category: string;
+  quantity_received: number;
+  unit: string;
+  serial_required: boolean;
+  status: ItemStatus;
+  storage_location: string | null;
+  condition: string;
+  remarks: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined
+  serial_numbers?: MedicalSerialNumber[];
+}
+
+export type SerialQcStatus = 'not_checked' | 'pending_qc' | 'passed' | 'failed';
+export type SerialCurrentStatus = 'in_store' | 'in_custody' | 'installed' | 'returned' | 'consumed' | 'lost_or_damaged';
+
+export interface MedicalSerialNumber {
+  id: string;
+  store_receipt_item_id: string;
+  project_id: string | null;
+  serial_number: string;
+  batch_number: string | null;
+  expiry_date: string | null;
+  manufacturer: string | null;
+  supplier_name: string | null;
+  qc_status: SerialQcStatus;
+  current_status: SerialCurrentStatus;
+  current_holder_type: string | null;
+  current_holder_id: string | null;
+  installed_on_project_vehicle_line_id: string | null;
+  installed_at: string | null;
+  remarks: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type VehicleReceiptStatus = 'draft' | 'received' | 'pending_condition_review' | 'accepted' | 'damaged' | 'assigned_to_production' | 'assigned_to_afs' | 'closed';
+export type PhotoType = 'front' | 'rear' | 'left_side' | 'right_side' | 'chassis_plate' | 'damage' | 'other';
+
+export interface VehicleReceipt {
+  id: string;
+  project_id: string | null;
+  project_vehicle_line_id: string | null;
+  chassis_number: string;
+  received_date: string;
+  received_by: string | null;
+  vehicle_type: string;
+  condition_status: string;
+  mileage: number | null;
+  storage_location: string | null;
+  damage_notes: string | null;
+  status: VehicleReceiptStatus;
+  remarks: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined
+  project?: Pick<Project, 'project_code' | 'so_number' | 'customer_name'> | null;
+  photos?: VehicleReceiptPhoto[];
+}
+
+export interface VehicleReceiptPhoto {
+  id: string;
+  vehicle_receipt_id: string;
+  photo_type: PhotoType;
+  file_name: string;
+  storage_path: string | null;
+  uploaded_by: string | null;
+  uploaded_at: string;
+  remarks: string | null;
+}
+
+export type CustodyApprovalStatus = 'not_required' | 'pending_approval' | 'approved' | 'rejected';
+export type CustodyReceiverDecision = 'pending' | 'accepted' | 'rejected';
+export type CustodyStatus = 'draft' | 'pending_approval' | 'approved_for_issue' | 'issued' | 'pending_acceptance' | 'in_custody' | 'installed' | 'returned' | 'consumed_by_project' | 'lost_or_damaged' | 'cancelled';
+
+export interface MaterialCustodyRecord {
+  id: string;
+  custody_number: string;
+  project_id: string | null;
+  store_receipt_item_id: string | null;
+  medical_serial_number_id: string | null;
+  issued_to_role: string | null;
+  issued_to_user_id: string | null;
+  issued_to_department: string | null;
+  issue_type: string;
+  approval_required: boolean;
+  approval_status: CustodyApprovalStatus;
+  approved_by: string | null;
+  approved_at: string | null;
+  rejected_by: string | null;
+  rejected_at: string | null;
+  rejection_reason: string | null;
+  issued_by: string | null;
+  issued_at: string;
+  accepted_by: string | null;
+  accepted_at: string | null;
+  receiver_decision: CustodyReceiverDecision;
+  receiver_rejection_reason: string | null;
+  installation_status: string;
+  installed_at: string | null;
+  returned_at: string | null;
+  status: CustodyStatus;
+  remarks: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined
+  project?: Pick<Project, 'project_code' | 'so_number' | 'customer_name'> | null;
+  issued_by_profile?: { full_name: string | null } | null;
+  accepted_by_profile?: { full_name: string | null } | null;
+  item?: Pick<StoreReceiptItem, 'item_name' | 'item_code' | 'material_category'> | null;
+}
