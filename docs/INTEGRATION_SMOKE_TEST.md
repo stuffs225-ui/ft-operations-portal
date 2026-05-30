@@ -1,7 +1,7 @@
-# Integration Smoke Test — Phase 6.5
+# Integration Smoke Test — Phase 7
 
 Last updated: 2026-05-30
-Covers: Phases 0–6 (Foundation through Factory/Production)
+Covers: Phases 0–7 (Foundation through Store / Warehouse / Material Custody)
 
 ---
 
@@ -30,7 +30,7 @@ Covers: Phases 0–6 (Foundation through Factory/Production)
 |---|---|---|
 | `/projects` | Projects | ✅ Built |
 | `/projects/new` | ProjectNew | ✅ Built |
-| `/projects/:id` | ProjectDetail | ✅ Built — 9 tabs |
+| `/projects/:id` | ProjectDetail | ✅ Built — 10 tabs (Overview, SO Details, Vehicle Lines, Documents, Procurement, Factory, Store, Approval & Routing, Timeline, Audit) |
 | `/admin-approvals` | AdminApprovals | ✅ Built |
 | `/wo-pn-gate` | WoPnGate | ✅ Built |
 
@@ -58,12 +58,26 @@ Covers: Phases 0–6 (Foundation through Factory/Production)
 | `/factory/monthly-updates` | FactoryMonthlyUpdates | ✅ Built |
 | `/factory/pending-raw-materials` | FactoryRawMaterialRequests | ✅ Mapped |
 
+### Store / Warehouse (Phase 7)
+| Route | Page Component | Status |
+|---|---|---|
+| `/store` | Store | ✅ Built — 8 KPI cards, quick actions, governance rules |
+| `/store/receipts` | StoreReceipts | ✅ Built — filter tabs, search, table |
+| `/store/receipts/new` | StoreReceiptNew | ✅ Built — 3-step wizard |
+| `/store/receipts/:id` | StoreReceiptDetail | ✅ Built — items + serial numbers tabs |
+| `/store/vehicle-receiving` | StoreVehicleReceiving | ✅ Built — photo completeness badges |
+| `/store/vehicle-receiving/new` | StoreVehicleReceivingNew | ✅ Built — 3-step wizard |
+| `/store/vehicle-receiving/:id` | StoreVehicleReceivingDetail | ✅ Built — photo grid, completeness banner |
+| `/store/inventory` | StoreInventory | ✅ Built — cross-receipt inventory, filters |
+| `/store/unallocated` | StoreUnallocated | ✅ Built — unallocated items, assign action |
+| `/custody` | MaterialCustody | ✅ Built — KPI strip, status tabs, full table |
+| `/custody/new` | CustodyNew | ✅ Built — 3-step wizard |
+| `/custody/:id` | CustodyDetail | ✅ Built — approval, receiver, actions, timeline |
+| `/vehicle-receiving` | VehicleReceiving | ✅ Redirect → /store/vehicle-receiving |
+
 ### Future Phases (Placeholder)
 | Route | Module | Target Phase |
 |---|---|---|
-| `/store` | Store / Warehouse | Phase 7 |
-| `/custody` | Material Custody | Phase 7 |
-| `/vehicle-receiving` | Vehicle Receiving | Phase 7 |
 | `/material-qc` | Material QC | Phase 8 |
 | `/project-qc` | Project / Vehicle QC | Phase 8 |
 | `/dubai-afs` | Dubai / AFS | Phase 9 |
@@ -99,6 +113,7 @@ Covers: Phases 0–6 (Foundation through Factory/Production)
 | Documents | DocumentList component; upload placeholder | Phase 2 |
 | Procurement | PR table + PO to Supplier table; cost guarded by canSeeCost | Phase 5 |
 | Factory | Production records + RMRs; Saudi only; Dubai shows AFS message | Phase 6 |
+| Store | Material receipts, vehicle receipts, custody records for this project | Phase 7 |
 | Approval & Routing | Approval history, routing, inline approve/reject for admin | Phase 2 |
 | Timeline | Chronological project events | Phase 2 |
 | Audit | Audit log entries; admin only | Phase 1 |
@@ -125,16 +140,64 @@ Covers: Phases 0–6 (Foundation through Factory/Production)
 - [ ] Factory tab on Dubai projects shows "Dubai / AFS Route" message
 - [ ] PN reference entry available via WO/PN Gate (`/wo-pn-gate`)
 
+### Store / Vehicle Receiving / Custody (Phase 7)
+- [ ] Vehicle receipt incomplete without chassis number AND all 5 required photos
+- [ ] Medical items auto-set `serial_required = true` when category = 'medical'
+- [ ] Temporary custody to Production/AFS requires Admin/Ops approval before issue
+- [ ] Receiver must accept or reject issued material within SLA (1 day)
+- [ ] Store users do NOT see purchase cost values (no cost columns in store pages)
+- [ ] Custody approval actions only visible to admin / operations_manager
+- [ ] Custody number auto-formatted as CUS-YYYY-NNNN
+- [ ] Receipt number auto-formatted as RCP-YYYY-NNNN
+
 ---
 
 ## Key Pages — Manual Test Steps
 
-### Before Phase 7 (Store / Warehouse)
+### Phase 7 — Store / Warehouse
 
-1. **Dashboard** (`/`)
-   - Verify all KPI cards render without errors
-   - Verify clicking a card navigates to the correct route
-   - Confirm governance rules banner displays
+1. **Store Dashboard** (`/store`)
+   - Verify 8 KPI cards render: Material Receipts, Pending QC, Vehicles Received, Missing Photos, Custody Pending Approval, Custody Pending Acceptance, Materials in Custody, Unallocated Materials
+   - Verify clicking each KPI navigates to correct route
+   - Verify governance rules card displays
+
+2. **Material Receipts** (`/store/receipts`)
+   - Verify filter tabs work: All, Received, Pending QC, Accepted, Closed
+   - Click "New Receipt" → verify 3-step wizard loads
+   - Step 1: try to proceed without date → button disabled
+   - Step 2: add an item → appears in list below
+   - Step 3: Dev Mode notice should show when Supabase not configured
+   - Confirm save navigates to /store/receipts
+
+3. **Vehicle Receiving** (`/store/vehicle-receiving`)
+   - Verify completeness badges show: "Photos Complete" vs count of missing photos
+   - Navigate to vrc-002 → should show photos incomplete warning
+   - Navigate to vrc-001 → all 5 photos present, should be marked complete
+   - Check that chassis_number is required for a receipt to be considered complete
+
+4. **Material Custody** (`/custody`)
+   - Verify KPI strip shows Pending Approval, Pending Acceptance, In Custody, Returned counts
+   - Verify status filter tabs work
+   - Sign in as store_user → "Issue Custody" button visible
+   - Sign in as viewer → "Issue Custody" button hidden
+   - Navigate to cus-002 → should show pending approval banner
+
+5. **ProjectDetail Store Tab** (`/projects/proj-005`)
+   - Click Store tab → verify 3 summary cards, material receipts table, vehicle receipts table, custody records table
+   - proj-005 (GACA Saudi) should have store receipts linked
+   - Verify "View All" links go to correct routes
+
+6. **Dashboard** (`/`)
+   - Verify all KPI cards including Store KPIs render without errors
+   - Verify Dashboard ICON_MAP includes: Package, Truck, ShieldAlert, Clock, PackageCheck
+   - Confirm Store KPI cards link to /store or /custody routes
+
+7. **Action Inbox** (`/inbox`)
+   - Sign in as store_user → store tasks visible (vehicle photos, QC, custody)
+   - Sign in as admin → custody pending approval task visible
+   - Sign in as factory_user → custody pending acceptance task visible
+
+### Pre-Phase 7 Regression Check
 
 2. **Sales Workspace** (`/sales`)
    - Sign in as sales_user → should see only own quotations and projects
@@ -169,9 +232,6 @@ Covers: Phases 0–6 (Foundation through Factory/Production)
 
 | Page | Placeholder Content |
 |---|---|
-| `/store` | Store / Warehouse — Phase 7 |
-| `/custody` | Material Custody — Phase 7 |
-| `/vehicle-receiving` | Vehicle Receiving — Phase 7 |
 | `/material-qc` | Material QC — Phase 8 |
 | `/project-qc` | Project QC — Phase 8 |
 | `/dubai-afs` | Dubai / AFS — Phase 9 |
@@ -180,6 +240,8 @@ Covers: Phases 0–6 (Foundation through Factory/Production)
 | Sales → Hot Projects | Hot Projects workflow — future phase |
 | Sales → Invoicing Plan | Invoicing Plan — future phase |
 | Sales → Aging | Aging / Receivables — future phase |
+| ProjectDetail → Store → Phase 8 note | Material QC — Phase 8 |
+| ProjectDetail → Factory → Phase 8 note | QC Handover — Phase 8 |
 
 ---
 
@@ -197,7 +259,7 @@ Covers: Phases 0–6 (Foundation through Factory/Production)
 | Phase 5.5 | Sales Workspace Completion | ✅ Complete |
 | Phase 6 | Factory / Production + Raw Material Requests | ✅ Complete |
 | Phase 6.5 | Integration Stabilization | ✅ Complete |
-| Phase 7 | Store / Warehouse + Vehicle Receiving + Material Custody | 🔲 Next |
+| Phase 7 | Store / Warehouse + Vehicle Receiving + Medical Serials + Material Custody | ✅ Complete |
 | Phase 8 | Material QC + Project QC + Release Note | 🔲 Planned |
 | Phase 9 | Dubai / AFS + After Sales Maintenance | 🔲 Planned |
 | Phase 10 | Reports / Control Tower / SLA / Data Quality | 🔲 Planned |
