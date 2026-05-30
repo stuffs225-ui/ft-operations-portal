@@ -607,6 +607,144 @@ export type Database = {
         Update: Record<string, never>;
         Relationships: [];
       };
+      procurement_requests: {
+        Row: {
+          id: string; project_id: string; pr_number: string;
+          received_date: string | null; requested_by: string | null;
+          source_department: string | null; status: string; remarks: string | null;
+          created_by: string | null; created_at: string; updated_at: string;
+        };
+        Insert: {
+          project_id: string; pr_number: string; received_date?: string | null;
+          requested_by?: string | null; source_department?: string | null;
+          status?: string; remarks?: string | null; created_by?: string | null;
+        };
+        Update: {
+          pr_number?: string; received_date?: string | null; requested_by?: string | null;
+          source_department?: string | null; status?: string; remarks?: string | null;
+        };
+        Relationships: [];
+      };
+      procurement_request_items: {
+        Row: {
+          id: string; procurement_request_id: string; project_id: string;
+          project_vehicle_line_id: string | null; item_code: string | null;
+          item_name: string; description: string | null; material_category: string | null;
+          quantity_required: number; unit: string; quantity_ordered: number;
+          quantity_received: number; status: string;
+          expected_arrival_date: string | null; remarks: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: {
+          procurement_request_id: string; project_id: string;
+          project_vehicle_line_id?: string | null; item_code?: string | null;
+          item_name: string; description?: string | null; material_category?: string | null;
+          quantity_required: number; unit?: string; remarks?: string | null;
+        };
+        Update: {
+          item_code?: string | null; item_name?: string; description?: string | null;
+          material_category?: string | null; quantity_required?: number; unit?: string;
+          quantity_ordered?: number; quantity_received?: number; status?: string;
+          expected_arrival_date?: string | null; remarks?: string | null;
+        };
+        Relationships: [];
+      };
+      purchase_orders_to_supplier: {
+        Row: {
+          id: string; project_id: string; procurement_request_id: string | null;
+          po_number: string; supplier_id: string | null; supplier_name: string;
+          po_date: string; purchase_value: number; currency: string;
+          eta_date: string | null; po_status: string; approval_required: boolean;
+          approval_status: string; submitted_for_approval_at: string | null;
+          approved_by: string | null; approved_at: string | null;
+          rejected_by: string | null; rejected_at: string | null;
+          rejection_reason: string | null; remarks: string | null;
+          created_by: string | null; created_at: string; updated_at: string;
+        };
+        Insert: {
+          project_id: string; procurement_request_id?: string | null;
+          po_number: string; supplier_id?: string | null; supplier_name: string;
+          po_date: string; purchase_value: number; currency?: string;
+          eta_date?: string | null; po_status?: string;
+          approval_required?: boolean; approval_status?: string;
+          remarks?: string | null; created_by?: string | null;
+        };
+        Update: {
+          po_number?: string; supplier_id?: string | null; supplier_name?: string;
+          po_date?: string; purchase_value?: number; currency?: string;
+          eta_date?: string | null; po_status?: string; approval_required?: boolean;
+          approval_status?: string; submitted_for_approval_at?: string | null;
+          approved_by?: string | null; approved_at?: string | null;
+          rejected_by?: string | null; rejected_at?: string | null;
+          rejection_reason?: string | null; remarks?: string | null;
+        };
+        Relationships: [];
+      };
+      purchase_order_items: {
+        Row: {
+          id: string; purchase_order_id: string;
+          procurement_request_item_id: string | null;
+          item_code: string | null; item_name: string; description: string | null;
+          quantity_ordered: number; unit: string; unit_price: number;
+          line_total: number; expected_arrival_date: string | null;
+          status: string; remarks: string | null; created_at: string; updated_at: string;
+        };
+        Insert: {
+          purchase_order_id: string; procurement_request_item_id?: string | null;
+          item_code?: string | null; item_name: string; description?: string | null;
+          quantity_ordered: number; unit?: string; unit_price: number;
+          expected_arrival_date?: string | null; status?: string; remarks?: string | null;
+        };
+        Update: {
+          item_name?: string; description?: string | null; quantity_ordered?: number;
+          unit?: string; unit_price?: number; expected_arrival_date?: string | null;
+          status?: string; remarks?: string | null;
+        };
+        Relationships: [];
+      };
+      eta_change_history: {
+        Row: {
+          id: string; entity_type: string; entity_id: string;
+          project_id: string | null; old_eta: string | null; new_eta: string | null;
+          changed_by: string | null; changed_at: string; reason: string; remarks: string | null;
+        };
+        Insert: {
+          entity_type: string; entity_id: string; project_id?: string | null;
+          old_eta?: string | null; new_eta?: string | null; changed_by?: string | null;
+          reason: string; remarks?: string | null;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      approved_suppliers: {
+        Row: {
+          id: string; supplier_name: string; supplier_category: string | null;
+          contact_person: string | null; email: string | null; phone: string | null;
+          materials_supplied: string | null; payment_terms: string | null;
+          procurement_status: string; qc_status: string; quality_rating: number | null;
+          approved_for_medical_items: boolean; approved_for_critical_items: boolean;
+          remarks: string | null; procurement_remarks: string | null; qc_remarks: string | null;
+          created_by: string | null; created_at: string; updated_at: string;
+        };
+        Insert: {
+          supplier_name: string; supplier_category?: string | null;
+          contact_person?: string | null; email?: string | null; phone?: string | null;
+          materials_supplied?: string | null; payment_terms?: string | null;
+          procurement_status?: string; qc_status?: string; quality_rating?: number | null;
+          approved_for_medical_items?: boolean; approved_for_critical_items?: boolean;
+          remarks?: string | null; procurement_remarks?: string | null;
+          qc_remarks?: string | null; created_by?: string | null;
+        };
+        Update: {
+          supplier_name?: string; supplier_category?: string | null;
+          contact_person?: string | null; email?: string | null; phone?: string | null;
+          materials_supplied?: string | null; payment_terms?: string | null;
+          procurement_status?: string; qc_status?: string; quality_rating?: number | null;
+          approved_for_medical_items?: boolean; approved_for_critical_items?: boolean;
+          remarks?: string | null; procurement_remarks?: string | null; qc_remarks?: string | null;
+        };
+        Relationships: [];
+      };
       factory_records: {
         Row: {
           id: string; project_id: string; project_vehicle_line_id: string | null;
@@ -795,6 +933,12 @@ export type Database = {
         | 'supporting_document'
         | 'customer_requirement'
         | 'other';
+      pr_status: 'draft' | 'pr_received' | 'in_progress' | 'partially_ordered' | 'fully_ordered' | 'cancelled' | 'closed';
+      pr_item_status: 'pending' | 'waiting_for_po_to_supplier' | 'po_to_supplier_created' | 'eta_confirmed' | 'in_transit' | 'partially_received' | 'fully_received' | 'delayed' | 'cancelled';
+      po_supplier_status: 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'sent_to_supplier' | 'eta_confirmed' | 'in_transit' | 'partially_received' | 'fully_received' | 'delayed' | 'cancelled' | 'closed';
+      po_approval_status: 'not_required' | 'pending' | 'approved' | 'rejected';
+      supplier_procurement_status: 'draft' | 'pending_review' | 'approved' | 'approved_with_conditions' | 'suspended' | 'blacklisted' | 'inactive';
+      supplier_qc_status: 'not_assessed' | 'assessed' | 'approved' | 'approved_with_conditions' | 'rejected';
       production_status:
         | 'not_started' | 'details_requested' | 'boq_pending' | 'boq_uploaded'
         | 'ga_drawing_pending' | 'ga_drawing_uploaded' | 'detail_drawings_pending'

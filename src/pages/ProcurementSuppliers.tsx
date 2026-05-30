@@ -1,0 +1,210 @@
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Users, Search, Star } from 'lucide-react';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Badge } from '../components/ui/Badge';
+import { Card } from '../components/ui/Card';
+import { EmptyState } from '../components/ui/EmptyState';
+import { useAuth } from '../hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { MOCK_SUPPLIERS } from '../data/mockProcurement';
+import type { ApprovedSupplier } from '../types';
+
+// suppress unused import warning
+void useAuth;
+
+type ProcurementStatusFilter =
+  | 'all' | 'draft' | 'pending_review' | 'approved' | 'approved_with_conditions'
+  | 'suspended' | 'blacklisted' | 'inactive';
+
+const STATUS_TABS: { key: ProcurementStatusFilter; label: string }[] = [
+  { key: 'all',                    label: 'All' },
+  { key: 'draft',                  label: 'Draft' },
+  { key: 'pending_review',         label: 'Pending Review' },
+  { key: 'approved',               label: 'Approved' },
+  { key: 'approved_with_conditions', label: 'Approved w/ Conditions' },
+  { key: 'suspended',              label: 'Suspended' },
+  { key: 'blacklisted',            label: 'Blacklisted' },
+  { key: 'inactive',               label: 'Inactive' },
+];
+
+function procurementStatusBadge(status: string) {
+  const map: Record<string, { label: string; variant: 'neutral' | 'warning' | 'info' | 'success' | 'critical' | 'default' }> = {
+    approved:                { label: 'Approved',                 variant: 'success' },
+    approved_with_conditions: { label: 'Approved w/ Conditions', variant: 'warning' },
+    suspended:               { label: 'Suspended',               variant: 'critical' },
+    blacklisted:             { label: 'Blacklisted',             variant: 'critical' },
+    pending_review:          { label: 'Pending Review',          variant: 'info' },
+    draft:                   { label: 'Draft',                   variant: 'neutral' },
+    inactive:                { label: 'Inactive',                variant: 'neutral' },
+  };
+  const { label, variant } = map[status] ?? { label: status, variant: 'neutral' as const };
+  return <Badge variant={variant}>{label}</Badge>;
+}
+
+function qcStatusBadge(status: string) {
+  const map: Record<string, { label: string; variant: 'neutral' | 'warning' | 'info' | 'success' | 'critical' | 'default' }> = {
+    approved:                { label: 'Approved',                 variant: 'success' },
+    approved_with_conditions: { label: 'Approved w/ Conditions', variant: 'warning' },
+    rejected:                { label: 'Rejected',                variant: 'critical' },
+    assessed:                { label: 'Assessed',                variant: 'info' },
+    not_assessed:            { label: 'Not Assessed',            variant: 'neutral' },
+  };
+  const { label, variant } = map[status] ?? { label: status, variant: 'neutral' as const };
+  return <Badge variant={variant}>{label}</Badge>;
+}
+
+function StarRating({ rating }: { rating: number | null }) {
+  if (rating === null) return <span className="text-xs text-gray-400">Not rated</span>;
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star
+          key={n}
+          size={12}
+          className={n <= rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300 fill-gray-200'}
+        />
+      ))}
+    </div>
+  );
+}
+
+export function ProcurementSuppliers() {
+  const [suppliers, setSuppliers] = useState<ApprovedSupplier[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeStatus, setActiveStatus] = useState<ProcurementStatusFilter>('all');
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) {
+      setSuppliers(MOCK_SUPPLIERS);
+      setLoading(false);
+      return;
+    }
+    supabase
+      .from('approved_suppliers')
+      .select('*')
+      .order('supplier_name')
+      .then(({ data, error }) => {
+        if (error) console.error(error);
+        setSuppliers((data as unknown as ApprovedSupplier[]) ?? []);
+        setLoading(false);
+      });
+  }, []);
+
+  const filtered = suppliers.filter((s) => {
+    if (activeStatus !== 'all' && s.procurement_status !== activeStatus) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return (
+        s.supplier_name.toLowerCase().includes(q) ||
+        (s.supplier_category ?? '').toLowerCase().includes(q) ||
+        (s.contact_person ?? '').toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
+  return (
+    <div>
+      <PageHeader
+        title="Approved Suppliers"
+        subtitle="Supplier register with procurement and QC status."
+        icon={<Users size={18} />}
+        breadcrumb={[
+          { label: 'Procurement', path: '/procurement' },
+          { label: 'Approved Suppliers' },
+        ]}
+      />
+
+      {/* Search */}
+      <div className="relative mb-4">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search supplier name, category, contact person…"
+          className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+        />
+      </div>
+
+      {/* Status filter tabs */}
+      <div className="flex gap-1 mb-5 overflow-x-auto pb-1 border-b border-gray-200">
+        {STATUS_TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveStatus(tab.key)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors -mb-px ${
+              activeStatus === tab.key
+                ? 'bg-brand-600 text-white'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16 text-gray-400 text-sm">Loading…</div>
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={<Users size={28} />}
+          title="No suppliers found"
+          description={search ? 'Try adjusting your search terms.' : 'No suppliers match the selected filter.'}
+        />
+      ) : (
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Supplier Name</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Category</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Contact</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Procurement Status</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">QC Status</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Quality</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Medical</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Critical</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filtered.map((supplier) => (
+                  <tr key={supplier.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-900">{supplier.supplier_name}</td>
+                    <td className="px-4 py-3 text-gray-700">{supplier.supplier_category ?? '—'}</td>
+                    <td className="px-4 py-3 text-gray-700">{supplier.contact_person ?? '—'}</td>
+                    <td className="px-4 py-3">{procurementStatusBadge(supplier.procurement_status)}</td>
+                    <td className="px-4 py-3">{qcStatusBadge(supplier.qc_status)}</td>
+                    <td className="px-4 py-3"><StarRating rating={supplier.quality_rating} /></td>
+                    <td className="px-4 py-3">
+                      <Badge variant={supplier.approved_for_medical_items ? 'success' : 'neutral'}>
+                        {supplier.approved_for_medical_items ? 'Yes' : 'No'}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant={supplier.approved_for_critical_items ? 'success' : 'neutral'}>
+                        {supplier.approved_for_critical_items ? 'Yes' : 'No'}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link
+                        to={`/procurement/suppliers/${supplier.id}`}
+                        className="text-xs font-medium text-brand-600 hover:underline"
+                      >
+                        View
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}

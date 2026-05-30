@@ -15,6 +15,13 @@ import { ProjectDetail } from '../pages/ProjectDetail';
 import { AdminApprovals } from '../pages/AdminApprovals';
 import { WoPnGate } from '../pages/WoPnGate';
 import { Procurement } from '../pages/Procurement';
+import { ProcurementRequests } from '../pages/ProcurementRequests';
+import { ProcurementRequestDetail } from '../pages/ProcurementRequestDetail';
+import { ProcurementPurchaseOrders } from '../pages/ProcurementPurchaseOrders';
+import { ProcurementPODetail } from '../pages/ProcurementPODetail';
+import { ProcurementSuppliers } from '../pages/ProcurementSuppliers';
+import { ProcurementSupplierDetail } from '../pages/ProcurementSupplierDetail';
+import { ProcurementEtaHistory } from '../pages/ProcurementEtaHistory';
 import { Factory } from '../pages/Factory';
 import { FactoryProjects } from '../pages/FactoryProjects';
 import { FactoryProjectWorkspace } from '../pages/FactoryProjectWorkspace';
@@ -57,6 +64,13 @@ export function App() {
             <Route path="admin-approvals" element={<AdminApprovals />} />
             <Route path="wo-pn-gate" element={<WoPnGate />} />
             <Route path="procurement" element={<Procurement />} />
+            <Route path="procurement/requests" element={<ProcurementRequests />} />
+            <Route path="procurement/requests/:id" element={<ProcurementRequestDetail />} />
+            <Route path="procurement/purchase-orders" element={<ProcurementPurchaseOrders />} />
+            <Route path="procurement/purchase-orders/:id" element={<ProcurementPODetail />} />
+            <Route path="procurement/suppliers" element={<ProcurementSuppliers />} />
+            <Route path="procurement/suppliers/:id" element={<ProcurementSupplierDetail />} />
+            <Route path="procurement/eta-history" element={<ProcurementEtaHistory />} />
             <Route path="factory" element={<Factory />} />
             <Route path="factory/projects" element={<FactoryProjects />} />
             <Route path="factory/projects/:projectId" element={<FactoryProjectWorkspace />} />
