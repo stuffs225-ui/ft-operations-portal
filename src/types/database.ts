@@ -429,6 +429,184 @@ export type Database = {
         };
         Relationships: [];
       };
+      quotation_requests: {
+        Row: {
+          id: string;
+          quotation_code: string;
+          customer_name: string;
+          customer_contact_name: string | null;
+          customer_email: string | null;
+          customer_phone: string | null;
+          opportunity_source: string | null;
+          linked_hot_project_id: string | null;
+          requested_by: string | null;
+          assigned_coordinator_id: string | null;
+          quotation_status: string;
+          priority: string;
+          required_delivery_expectation: string | null;
+          scope_summary: string | null;
+          sales_remarks: string | null;
+          coordinator_remarks: string | null;
+          quotation_number: string | null;
+          quotation_total_value: number | null;
+          submitted_at: string | null;
+          sent_to_estimation_at: string | null;
+          estimation_contact: string | null;
+          quotation_received_at: string | null;
+          returned_to_sales_at: string | null;
+          converted_to_project_id: string | null;
+          converted_to_hot_project_id: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          quotation_code?: string;
+          customer_name: string;
+          customer_contact_name?: string | null;
+          customer_email?: string | null;
+          customer_phone?: string | null;
+          opportunity_source?: string | null;
+          linked_hot_project_id?: string | null;
+          requested_by?: string | null;
+          assigned_coordinator_id?: string | null;
+          quotation_status?: string;
+          priority?: string;
+          required_delivery_expectation?: string | null;
+          scope_summary?: string | null;
+          sales_remarks?: string | null;
+          coordinator_remarks?: string | null;
+          quotation_number?: string | null;
+          quotation_total_value?: number | null;
+          submitted_at?: string | null;
+          sent_to_estimation_at?: string | null;
+          estimation_contact?: string | null;
+          quotation_received_at?: string | null;
+          returned_to_sales_at?: string | null;
+          converted_to_project_id?: string | null;
+          converted_to_hot_project_id?: string | null;
+          created_by?: string | null;
+        };
+        Update: {
+          customer_name?: string;
+          customer_contact_name?: string | null;
+          customer_email?: string | null;
+          customer_phone?: string | null;
+          opportunity_source?: string | null;
+          linked_hot_project_id?: string | null;
+          assigned_coordinator_id?: string | null;
+          quotation_status?: string;
+          priority?: string;
+          required_delivery_expectation?: string | null;
+          scope_summary?: string | null;
+          sales_remarks?: string | null;
+          coordinator_remarks?: string | null;
+          quotation_number?: string | null;
+          quotation_total_value?: number | null;
+          submitted_at?: string | null;
+          sent_to_estimation_at?: string | null;
+          estimation_contact?: string | null;
+          quotation_received_at?: string | null;
+          returned_to_sales_at?: string | null;
+          converted_to_project_id?: string | null;
+          converted_to_hot_project_id?: string | null;
+        };
+        Relationships: [];
+      };
+      quotation_request_lines: {
+        Row: {
+          id: string;
+          quotation_request_id: string;
+          line_number: number;
+          vehicle_type: string;
+          description: string;
+          quantity: number;
+          estimated_unit_value: number | null;
+          final_quotation_unit_value: number | null;
+          final_quotation_line_value: number | null;
+          remarks: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          quotation_request_id: string;
+          line_number: number;
+          vehicle_type: string;
+          description: string;
+          quantity: number;
+          estimated_unit_value?: number | null;
+          final_quotation_unit_value?: number | null;
+          remarks?: string | null;
+        };
+        Update: {
+          vehicle_type?: string;
+          description?: string;
+          quantity?: number;
+          estimated_unit_value?: number | null;
+          final_quotation_unit_value?: number | null;
+          remarks?: string | null;
+        };
+        Relationships: [];
+      };
+      quotation_documents: {
+        Row: {
+          id: string;
+          quotation_request_id: string;
+          document_type: string;
+          file_name: string;
+          storage_path: string | null;
+          uploaded_by: string | null;
+          uploaded_at: string;
+          status: string;
+          version: string;
+          remarks: string | null;
+        };
+        Insert: {
+          quotation_request_id: string;
+          document_type?: string;
+          file_name: string;
+          storage_path?: string | null;
+          uploaded_by?: string | null;
+          status?: string;
+          version?: string;
+          remarks?: string | null;
+        };
+        Update: {
+          document_type?: string;
+          file_name?: string;
+          storage_path?: string | null;
+          status?: string;
+          version?: string;
+          remarks?: string | null;
+        };
+        Relationships: [];
+      };
+      quotation_timeline_events: {
+        Row: {
+          id: string;
+          quotation_request_id: string;
+          event_type: string;
+          title: string;
+          body: string | null;
+          actor_id: string | null;
+          actor_name: string | null;
+          metadata: Record<string, unknown> | null;
+          is_system: boolean;
+          created_at: string;
+        };
+        Insert: {
+          quotation_request_id: string;
+          event_type: string;
+          title: string;
+          body?: string | null;
+          actor_id?: string | null;
+          actor_name?: string | null;
+          metadata?: Record<string, unknown> | null;
+          is_system?: boolean;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {
@@ -474,6 +652,26 @@ export type Database = {
         | 'superseded';
       execution_reference_type: 'wo' | 'pn';
       execution_reference_status: 'created' | 'confirmed' | 'superseded' | 'cancelled';
+      quotation_status:
+        | 'draft'
+        | 'submitted_by_sales'
+        | 'received_by_coordinator'
+        | 'sent_to_estimation'
+        | 'waiting_for_estimation'
+        | 'need_clarification'
+        | 'quotation_received'
+        | 'returned_to_sales'
+        | 'converted_to_hot_project'
+        | 'converted_to_so'
+        | 'cancelled'
+        | 'closed_lost';
+      quotation_priority: 'low' | 'medium' | 'high' | 'urgent';
+      quotation_document_type:
+        | 'specification_file'
+        | 'quotation_pdf'
+        | 'supporting_document'
+        | 'customer_requirement'
+        | 'other';
     };
   };
 };

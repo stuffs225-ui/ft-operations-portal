@@ -4,7 +4,9 @@ import { AppLayout } from '../layouts/AppLayout';
 import { Login } from '../pages/Login';
 import { Dashboard } from '../pages/Dashboard';
 import { ActionInbox } from '../pages/ActionInbox';
-import { QuotationRequests } from '../pages/QuotationRequests';
+import { Quotations } from '../pages/Quotations';
+import { QuotationNew } from '../pages/QuotationNew';
+import { QuotationDetail } from '../pages/QuotationDetail';
 import { Sales } from '../pages/Sales';
 import { SalesCoordinator } from '../pages/SalesCoordinator';
 import { Projects } from '../pages/Projects';
@@ -38,7 +40,9 @@ export function App() {
           <Route path="/" element={<AppLayout />}>
             <Route index element={<Dashboard />} />
             <Route path="inbox" element={<ActionInbox />} />
-            <Route path="quotations" element={<QuotationRequests />} />
+            <Route path="quotations" element={<Quotations />} />
+            <Route path="quotations/new" element={<QuotationNew />} />
+            <Route path="quotations/:id" element={<QuotationDetail />} />
             <Route path="sales" element={<Sales />} />
             <Route path="sales-coordinator" element={<SalesCoordinator />} />
             <Route path="projects" element={<Projects />} />
