@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle, AlertCircle, ShoppingCart, PackageCheck, Truck,
   ClipboardX, ShieldAlert, Package, FileText, TrendingUp, TrendingDown,
-  Minus, ArrowRight, type LucideIcon,
+  Minus, ArrowRight, Send, CheckCircle, Wrench, Calendar, type LucideIcon,
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -12,7 +12,7 @@ import { cn } from '../lib/utils';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   FileText, AlertTriangle, AlertCircle, ShoppingCart, PackageCheck,
-  Truck, ClipboardX, ShieldAlert, Package,
+  Truck, ClipboardX, ShieldAlert, Package, Send, CheckCircle, Wrench, Calendar,
 };
 
 const severityConfig = {

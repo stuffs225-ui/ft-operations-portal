@@ -4,7 +4,7 @@ import {
   FolderOpen, Loader2, ArrowLeft, Calendar, User, MapPin,
   CheckSquare, AlertCircle, Info, FileText, List, Clock,
   Shield, Edit2, Check, RotateCcw, X, GitBranch,
-  CheckCircle2, Plus,
+  CheckCircle2, Plus, Wrench,
 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Badge } from '../components/ui/Badge';
@@ -20,10 +20,11 @@ import {
   MOCK_PROJECT_DOCUMENTS,
   MOCK_TIMELINE_EVENTS,
 } from '../data/mockProjects';
+import { getMockFactoryRecordsForProject, getMockRMRsForProject } from '../data/mockFactory';
 import type {
   Project, ProjectVehicleLine, ProjectDocument,
   ProjectTimelineEvent, ManufacturingLocation, MedicalItems, UserRole,
-  ExecutionReference,
+  ExecutionReference, FactoryRecord, RawMaterialRequest,
 } from '../types';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -43,16 +44,18 @@ function formatDateTime(iso: string) {
   });
 }
 
-type TabKey = 'overview' | 'details' | 'lines' | 'documents' | 'approval' | 'timeline' | 'audit';
+type TabKey = 'overview' | 'details' | 'lines' | 'documents' | 'procurement' | 'factory' | 'approval' | 'timeline' | 'audit';
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
-  { key: 'overview',  label: 'Overview',           icon: <FolderOpen size={15} /> },
-  { key: 'details',  label: 'SO Details',          icon: <Edit2 size={15} /> },
-  { key: 'lines',    label: 'Vehicle Lines',       icon: <List size={15} /> },
-  { key: 'documents',label: 'Documents',           icon: <FileText size={15} /> },
-  { key: 'approval', label: 'Approval & Routing',  icon: <CheckSquare size={15} /> },
-  { key: 'timeline', label: 'Timeline',            icon: <Clock size={15} /> },
-  { key: 'audit',    label: 'Audit',               icon: <Shield size={15} /> },
+  { key: 'overview',    label: 'Overview',           icon: <FolderOpen size={15} /> },
+  { key: 'details',    label: 'SO Details',          icon: <Edit2 size={15} /> },
+  { key: 'lines',      label: 'Vehicle Lines',       icon: <List size={15} /> },
+  { key: 'documents',  label: 'Documents',           icon: <FileText size={15} /> },
+  { key: 'procurement',label: 'Procurement',         icon: <CheckSquare size={15} /> },
+  { key: 'factory',    label: 'Factory',             icon: <Wrench size={15} /> },
+  { key: 'approval',   label: 'Approval & Routing',  icon: <CheckSquare size={15} /> },
+  { key: 'timeline',   label: 'Timeline',            icon: <Clock size={15} /> },
+  { key: 'audit',      label: 'Audit',               icon: <Shield size={15} /> },
 ];
 
 function statusBadge(status: string) {
@@ -527,6 +530,8 @@ export function ProjectDetail() {
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [timeline, setTimeline] = useState<ProjectTimelineEvent[]>([]);
   const [references, setReferences] = useState<ExecutionReference[]>([]);
+  const [factoryRecords, setFactoryRecords] = useState<FactoryRecord[]>([]);
+  const [factoryRmrs, setFactoryRmrs] = useState<RawMaterialRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
@@ -547,6 +552,8 @@ export function ProjectDetail() {
       setDocuments(MOCK_PROJECT_DOCUMENTS[id] ?? []);
       setTimeline(MOCK_TIMELINE_EVENTS[id] ?? []);
       fetchProjectReferences(id).then(setReferences);
+      setFactoryRecords(getMockFactoryRecordsForProject(id));
+      setFactoryRmrs(getMockRMRsForProject(id));
       setLoading(false);
       return;
     }
@@ -561,13 +568,17 @@ export function ProjectDetail() {
       supabase.from('project_documents').select('*').eq('project_id', id).order('uploaded_at'),
       supabase.from('project_timeline_events').select('*').eq('project_id', id).order('created_at', { ascending: false }),
       fetchProjectReferences(id),
-    ]).then(([{ data: proj, error: projErr }, { data: pvl }, { data: docs }, { data: events }, refs]) => {
+      supabase.from('factory_records').select('*').eq('project_id', id),
+      supabase.from('production_raw_material_requests').select('*').eq('project_id', id),
+    ]).then(([{ data: proj, error: projErr }, { data: pvl }, { data: docs }, { data: events }, refs, { data: frs }, { data: frmrs }]) => {
       if (projErr || !proj) { setNotFound(true); setLoading(false); return; }
       setProject(proj as unknown as Project);
       setLines(pvl as unknown as ProjectVehicleLine[] ?? []);
       setDocuments(docs as unknown as ProjectDocument[] ?? []);
       setTimeline(events as unknown as ProjectTimelineEvent[] ?? []);
       setReferences(refs as ExecutionReference[]);
+      setFactoryRecords((frs as unknown as FactoryRecord[]) ?? []);
+      setFactoryRmrs((frmrs as unknown as RawMaterialRequest[]) ?? []);
       setLoading(false);
     });
   }, [id]);
@@ -884,6 +895,120 @@ export function ProjectDetail() {
                 </Badge>
               </Card>
             ))
+          )}
+        </div>
+      )}
+
+      {/* ── Procurement ───────────────────────────────────────────────────────── */}
+      {activeTab === 'procurement' && (
+        <div className="space-y-5">
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-900">Purchase Requests</h3>
+              <Link to="/procurement/requests" className="text-xs text-brand-600 hover:underline">View all PRs</Link>
+            </div>
+            <p className="text-sm text-gray-500 italic">
+              Procurement data for this project can be viewed in the{' '}
+              <Link to="/procurement" className="text-brand-600 hover:underline">Procurement module</Link>.
+            </p>
+          </Card>
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-900">PO to Supplier</h3>
+              <Link to="/procurement/purchase-orders" className="text-xs text-brand-600 hover:underline">View all POs</Link>
+            </div>
+            <p className="text-sm text-gray-500 italic">
+              Purchase Orders for this project can be managed in the{' '}
+              <Link to="/procurement" className="text-brand-600 hover:underline">Procurement module</Link>.
+            </p>
+          </Card>
+        </div>
+      )}
+
+      {/* ── Factory ──────────────────────────────────────────────────────────── */}
+      {activeTab === 'factory' && (
+        <div className="space-y-5">
+          {project.manufacturing_location !== 'saudi' ? (
+            <Card className="p-6 text-center">
+              <Wrench size={32} className="text-gray-300 mx-auto mb-3" />
+              <p className="text-sm font-semibold text-gray-700">Dubai / AFS Route</p>
+              <p className="text-xs text-gray-500 mt-1">Factory module applies to Saudi manufacturing projects only. Dubai projects use the AFS workflow (Phase 9).</p>
+            </Card>
+          ) : (
+            <>
+              {/* Factory Records */}
+              <Card className="p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-900">Production Records</h3>
+                  <Link to={`/factory/projects/${project.id}`} className="text-xs text-brand-600 hover:underline">Open Factory Workspace →</Link>
+                </div>
+                {factoryRecords.length === 0 ? (
+                  <p className="text-sm text-gray-500">No factory records yet. Open the Factory Workspace to set up production.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {factoryRecords.map((fr) => (
+                      <div key={fr.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {fr.vehicle_line ? `${fr.vehicle_line.vehicle_type} — ${fr.vehicle_line.description}` : 'Project-level record'}
+                          </p>
+                          <p className="text-xs text-gray-500">Progress: {fr.progress_percentage}%</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {fr.monthly_update_required && (
+                            <Badge variant="critical">Update Required</Badge>
+                          )}
+                          <Badge variant={
+                            fr.production_status === 'production_completed' || fr.production_status === 'sent_to_qc' ? 'success' :
+                            fr.production_status === 'in_production' ? 'default' :
+                            fr.production_status === 'on_hold' ? 'neutral' :
+                            fr.production_status === 'monthly_update_required' ? 'critical' : 'warning'
+                          }>
+                            {fr.production_status.replace(/_/g, ' ')}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+
+              {/* Raw Material Requests */}
+              <Card className="p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-900">Raw Material Requests</h3>
+                  <Link to="/factory/raw-material-requests" className="text-xs text-brand-600 hover:underline">View all RMRs</Link>
+                </div>
+                {factoryRmrs.length === 0 ? (
+                  <p className="text-sm text-gray-500">No raw material requests for this project.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {factoryRmrs.map((rmr) => (
+                      <div key={rmr.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                        <div>
+                          <p className="text-sm font-mono font-medium text-gray-900">{rmr.request_number}</p>
+                          <p className="text-xs text-gray-500">{new Date(rmr.requested_at).toLocaleDateString('en-GB')}</p>
+                        </div>
+                        <Badge variant={
+                          rmr.status === 'fulfilled' ? 'success' :
+                          rmr.status === 'sent_to_procurement' ? 'info' :
+                          rmr.status === 'rejected' || rmr.status === 'cancelled' ? 'neutral' :
+                          rmr.status === 'draft' ? 'neutral' : 'warning'
+                        }>
+                          {rmr.status.replace(/_/g, ' ')}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+
+              {/* Phase 8 note */}
+              <Card className="p-4 bg-sky-50 border-sky-200">
+                <p className="text-xs text-sky-800 font-medium">Phase 8 — QC Handover</p>
+                <p className="text-xs text-sky-700 mt-1">When production is completed, the "Send to QC" action will be available here. QC module coming in Phase 8.</p>
+              </Card>
+            </>
           )}
         </div>
       )}
