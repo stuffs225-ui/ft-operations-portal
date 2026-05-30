@@ -23,6 +23,12 @@ import { ProcurementSuppliers } from '../pages/ProcurementSuppliers';
 import { ProcurementSupplierDetail } from '../pages/ProcurementSupplierDetail';
 import { ProcurementEtaHistory } from '../pages/ProcurementEtaHistory';
 import { Factory } from '../pages/Factory';
+import { FactoryProjects } from '../pages/FactoryProjects';
+import { FactoryProjectWorkspace } from '../pages/FactoryProjectWorkspace';
+import { FactoryRequirements } from '../pages/FactoryRequirements';
+import { FactoryRawMaterialRequests } from '../pages/FactoryRawMaterialRequests';
+import { FactoryRawMaterialRequestNew } from '../pages/FactoryRawMaterialRequestNew';
+import { FactoryMonthlyUpdates } from '../pages/FactoryMonthlyUpdates';
 import { Store } from '../pages/Store';
 import { MaterialCustody } from '../pages/MaterialCustody';
 import { VehicleReceiving } from '../pages/VehicleReceiving';
@@ -66,6 +72,13 @@ export function App() {
             <Route path="procurement/suppliers/:id" element={<ProcurementSupplierDetail />} />
             <Route path="procurement/eta-history" element={<ProcurementEtaHistory />} />
             <Route path="factory" element={<Factory />} />
+            <Route path="factory/projects" element={<FactoryProjects />} />
+            <Route path="factory/projects/:projectId" element={<FactoryProjectWorkspace />} />
+            <Route path="factory/requirements" element={<FactoryRequirements />} />
+            <Route path="factory/raw-material-requests" element={<FactoryRawMaterialRequests />} />
+            <Route path="factory/raw-material-requests/new" element={<FactoryRawMaterialRequestNew />} />
+            <Route path="factory/monthly-updates" element={<FactoryMonthlyUpdates />} />
+            <Route path="factory/pending-raw-materials" element={<FactoryMonthlyUpdates />} />
             <Route path="store" element={<Store />} />
             <Route path="custody" element={<MaterialCustody />} />
             <Route path="vehicle-receiving" element={<VehicleReceiving />} />

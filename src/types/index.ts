@@ -385,6 +385,118 @@ export interface ApprovedSupplier {
   updated_at: string;
 }
 
+// ─── Factory / Production ─────────────────────────────────────────────────────
+
+export type FactoryProductionStatus =
+  | 'not_started' | 'details_requested' | 'boq_pending' | 'boq_uploaded'
+  | 'ga_drawing_pending' | 'ga_drawing_uploaded' | 'detail_drawings_pending'
+  | 'detail_drawings_uploaded' | 'manhours_pending' | 'manhours_added'
+  | 'pending_raw_materials' | 'in_production' | 'monthly_update_required'
+  | 'production_completed' | 'sent_to_qc' | 'on_hold';
+
+export type FactoryReqStatus =
+  | 'pending' | 'in_progress' | 'uploaded' | 'approved' | 'rejected' | 'not_applicable';
+
+export type RawMaterialRequestStatus =
+  | 'draft' | 'submitted' | 'under_review' | 'sent_to_procurement'
+  | 'partially_fulfilled' | 'fulfilled' | 'rejected' | 'cancelled';
+
+export type RawMaterialRequestType = 'project_related' | 'stock';
+
+export type RawMaterialParsingStatus = 'not_parsed' | 'pending_future_parser' | 'parsed' | 'failed';
+
+export interface FactoryRecord {
+  id: string;
+  project_id: string;
+  project_vehicle_line_id: string | null;
+  wo_reference_id: string | null;
+  production_status: FactoryProductionStatus;
+  progress_percentage: number;
+  expected_completion_date: string | null;
+  actual_completion_date: string | null;
+  monthly_update_required: boolean;
+  last_updated_by: string | null;
+  last_updated_at: string;
+  remarks: string | null;
+  created_at: string;
+  updated_at: string;
+  project?: Pick<Project, 'project_code' | 'so_number' | 'customer_name'> | null;
+  vehicle_line?: Pick<ProjectVehicleLine, 'vehicle_type' | 'description' | 'quantity'> | null;
+}
+
+export interface FactoryRequirementType {
+  id: string;
+  name: string;
+  description: string | null;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export interface FactoryItemRequirement {
+  id: string;
+  project_id: string;
+  project_vehicle_line_id: string | null;
+  requirement_type_id: string;
+  status: FactoryReqStatus;
+  document_id: string | null;
+  value_text: string | null;
+  value_number: number | null;
+  uploaded_by: string | null;
+  uploaded_at: string | null;
+  remarks: string | null;
+  created_at: string;
+  updated_at: string;
+  requirement_type?: FactoryRequirementType | null;
+}
+
+export interface RawMaterialRequest {
+  id: string;
+  project_id: string | null;
+  project_vehicle_line_id: string | null;
+  wo_reference_id: string | null;
+  request_type: RawMaterialRequestType;
+  request_number: string;
+  status: RawMaterialRequestStatus;
+  requested_by: string | null;
+  requested_at: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  sent_to_procurement_at: string | null;
+  remarks: string | null;
+  created_at: string;
+  updated_at: string;
+  project?: Pick<Project, 'project_code' | 'so_number' | 'customer_name'> | null;
+  requested_by_profile?: { full_name: string | null } | null;
+}
+
+export interface RawMaterialRequestFile {
+  id: string;
+  raw_material_request_id: string;
+  file_name: string;
+  storage_path: string | null;
+  file_type: string;
+  uploaded_by: string | null;
+  uploaded_at: string;
+  parsing_status: RawMaterialParsingStatus;
+  remarks: string | null;
+}
+
+export interface RawMaterialRequestItem {
+  id: string;
+  raw_material_request_id: string;
+  item_code: string | null;
+  item_name: string | null;
+  description: string | null;
+  quantity: number | null;
+  unit: string | null;
+  material_category: string | null;
+  required_for: string | null;
+  vehicle_line_id: string | null;
+  remarks: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── Material / Custody States ────────────────────────────────────────────────
 
 export type MaterialStatus =
