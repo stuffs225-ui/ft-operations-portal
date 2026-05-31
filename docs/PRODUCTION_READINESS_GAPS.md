@@ -10,24 +10,20 @@ Each gap: **module · risk · recommendation · priority · effort · blocks rea
 
 ## Priority 1 — Critical before production
 
-### GAP-01 · Cost columns exposed via API (frontend-only protection)
-- **Module:** Procurement, Projects, Quotations (DB-wide).
-- **Risk:** factory/store/qc/afs/viewer/sales can read `purchase_value`,
-  `unit_price`, `line_total`, `unit_sales_value`, quotation totals directly via
-  the Supabase API. UI `canSeeCost` guards hide values visually only. Confirmed
-  in `021:90-95`, `022:43-46`, `010:74-87`.
-- **Recommendation:** security-definer views without cost columns + `REVOKE` base
-  SELECT for restricted roles (or column-level grants / RPC). See `RLS_SECURITY_REVIEW.md`.
-- **Effort:** M–L. **Blocks real users:** YES if any non-admin role is real.
+### ✅ GAP-01 · Cost columns exposed via API — FIXED (security-hardening branch)
+- **Fix:** dropped `po_ops_roles_select` / `poi_ops_roles_select`; created
+  security-definer views `purchase_orders_to_supplier_safe`,
+  `purchase_order_items_safe`, `project_vehicle_lines_safe` that mask cost columns
+  to NULL for restricted roles. `ProjectDetail.tsx` updated to use the safe view.
+  See `SECURITY_HARDENING_COST_PROTECTION.md`.
+- **Residual:** `quotation_total_value` still visible to viewer via API (low priority).
+  Address with `quotation_requests_safe` view in a follow-up.
 
-### GAP-02 · Procurement PO self-approval — no DB guard
-- **Module:** Procurement.
-- **Risk:** a `procurement_user` can approve their own >10,000 SAR PO via the API
-  (`po_procurement_all` is `FOR ALL`, no `WITH CHECK`). Separation of duties is
-  frontend-only.
-- **Recommendation:** add an admin/ops-only UPDATE policy + `WITH CHECK` forbidding
-  procurement from setting `approval_status='approved'`. SQL in `RLS_SECURITY_REVIEW.md`.
-- **Effort:** S. **Blocks real users:** YES (financial control).
+### ✅ GAP-02 · Procurement PO self-approval — FIXED (security-hardening branch)
+- **Fix:** split `po_procurement_all` into targeted INSERT/SELECT/UPDATE/DELETE
+  policies. UPDATE policy has `WITH CHECK (approval_status NOT IN ('approved','rejected'))`.
+  Added `BEFORE UPDATE` trigger `enforce_po_approval_authority()` as belt-and-suspenders.
+  See `PO_APPROVAL_SECURITY_RULES.md`.
 
 ### GAP-03 · Store / QC / Dubai-AFS writes are simulated
 - **Module:** Store, Material QC, Project QC, NCR, Release Notes, Dubai/AFS, Maintenance.
@@ -160,7 +156,7 @@ Each gap: **module · risk · recommendation · priority · effort · blocks rea
 |---|---|
 | Migrations run cleanly on a fresh project? | ✅ Yes (after this branch's fixes) |
 | Auth + RBAC functional in real mode? | ✅ Yes (role mechanism now consistent) |
-| Safe to expose cost data to non-admin roles? | ❌ No — GAP-01/02 must land first |
+| Safe to expose cost data to non-admin roles? | ✅ Yes — GAP-01/02 fixed in security-hardening branch |
 | All modules persist writes? | ❌ No — Store/QC/AFS simulated (GAP-03) |
 | Reports reflect real data? | ❌ No — mock-only (GAP-05) |
 | Ready for real Supabase setup? | ✅ Yes |

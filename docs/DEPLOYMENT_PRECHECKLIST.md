@@ -14,9 +14,10 @@
 > `updated_at` triggers. Three fresh-run blockers were fixed (see
 > `MIGRATION_RISK_REVIEW.md`).
 
-> **Go/No-Go gate (must read):** before exposing cost data to any non-admin role,
-> resolve GAP-01 (DB-level cost protection) and GAP-02 (PO self-approval guard)
-> in `PRODUCTION_READINESS_GAPS.md` — these are currently frontend-only.
+> **Go/No-Go gate:** GAP-01 (cost column protection) and GAP-02 (PO self-approval
+> guard) have been resolved in the `security-hardening-cost-po-approval` branch
+> (migrations 060–061). Merge that branch before creating non-admin users.
+> See `SECURITY_HARDENING_COST_PROTECTION.md` and `PO_APPROVAL_SECURITY_RULES.md`.
 
 ---
 

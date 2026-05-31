@@ -610,7 +610,7 @@ export function ProjectDetail() {
       supabase.from('project_timeline_events').select('*').eq('project_id', id).order('created_at', { ascending: false }),
       fetchProjectReferences(id),
       supabase.from('procurement_requests').select('*, project:projects(project_code, so_number, customer_name)').eq('project_id', id),
-      supabase.from('purchase_orders_to_supplier').select('*, project:projects(project_code, so_number, customer_name)').eq('project_id', id),
+      supabase.from('purchase_orders_to_supplier_safe').select('*').eq('project_id', id),
       supabase.from('factory_records').select('*').eq('project_id', id),
       supabase.from('production_raw_material_requests').select('*').eq('project_id', id),
     ]).then(([{ data: proj, error: projErr }, { data: pvl }, { data: docs }, { data: events }, refs, { data: prs }, { data: pos }, { data: frs }, { data: frmrs }]) => {

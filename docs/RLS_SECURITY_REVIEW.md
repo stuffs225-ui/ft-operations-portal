@@ -7,7 +7,7 @@
 
 ---
 
-## What was fixed in this branch
+## What was fixed — PR #20 (real-supabase-production-readiness)
 
 | # | Issue | Fix |
 |---|---|---|
@@ -17,9 +17,17 @@
 After these fixes the **authorization mechanism is consistent** across all
 migrations: every policy resolves the role through `current_user_role()`.
 
+## What was fixed — security-hardening-cost-po-approval branch
+
+| # | Gap | Fix | Migration |
+|---|---|---|---|
+| GAP-01 | Cost columns (`purchase_value`, `unit_price`, `line_total`, `unit_sales_value`, `line_total_value`) returned to restricted roles via API | Dropped `po_ops_roles_select` + `poi_ops_roles_select`; created security-definer masked views (`purchase_orders_to_supplier_safe`, `purchase_order_items_safe`, `project_vehicle_lines_safe`) | 060 |
+| GAP-02 | `procurement_user` could self-approve POs via API (no `WITH CHECK` on `po_procurement_all`) | Split `po_procurement_all` into targeted policies; UPDATE policy blocks `approval_status IN ('approved','rejected')`; BEFORE UPDATE trigger double-enforces | 061 |
+| GAP-10 (partial) | `qr_coordinator_update` and `qr_sales_update` missing `WITH CHECK` | Added `WITH CHECK` to both; `qr_sales_update` now prevents ownership reassignment | 060 |
+
 ---
 
-## 🔴 CRITICAL — remaining gap: cost protection is frontend-only
+## ✅ RESOLVED — cost protection now at DB level (was frontend-only)
 
 **RLS is row-level, not column-level.** There is no column masking anywhere, and
 the database returns financial columns to roles that should not see them:
@@ -55,7 +63,7 @@ is the **#1 blocker** for handling cost data with untrusted roles.
 
 ---
 
-## 🔴 CRITICAL — procurement self-approval has no DB guard
+## ✅ RESOLVED — procurement self-approval now blocked at DB level
 
 `po_procurement_all` (`021:86-88`) is `FOR ALL` with no `WITH CHECK`. The
 `set_po_approval_required` trigger only sets a flag; nothing stops a

@@ -113,11 +113,14 @@ review, enforcement is split:
 | Viewer is read-only | ✅ Yes | ✅ Yes |
 | Anon has no access | ✅ Yes | n/a |
 | Role write permissions (per module) | ✅ Yes (after this branch's RLS fixes) | partial |
-| **Purchase/sales COST hidden from restricted roles** | ❌ **No — frontend only** | ✅ Yes (visual only) |
+| **Purchase/sales COST hidden from restricted roles** | ✅ **Yes — security-definer views** (migration 060) | ✅ Yes (visual) |
 | Page access by role (route guards) | ❌ No | ⚠️ navigation hiding only (deep-link works) |
-| Procurement cannot approve own high-value PO | ❌ No (no DB guard) | ✅ Yes (approval queue) |
+| Procurement cannot approve own high-value PO | ✅ **Yes — RLS WITH CHECK + trigger** (migration 061) | ✅ Yes (approval queue) |
 
-**Implication:** cost columns and page structure are protected by the UI only.
-A restricted role can read costs and deep-link to hidden pages via the API.
-See `RLS_SECURITY_REVIEW.md` (GAP-01, GAP-02, GAP-07) for remediation. Do not
-treat the cost rows above as a security boundary until the DB-level fix lands.
+**Cost columns are now protected at the DB level** via security-definer views
+(`purchase_orders_to_supplier_safe`, `purchase_order_items_safe`,
+`project_vehicle_lines_safe`). Restricted roles have no SELECT policy on the base
+tables and receive NULL for cost columns when querying the safe views.
+
+See `SECURITY_HARDENING_COST_PROTECTION.md` and `PO_APPROVAL_SECURITY_RULES.md`.
+Page structure (deep-link bypass) remains frontend-only — see GAP-07.
