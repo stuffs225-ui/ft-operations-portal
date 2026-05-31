@@ -1415,7 +1415,51 @@ export type Database = {
         Views: {};
       };
     };
-    Views: {};
+    Views: {
+      // Security-hardened views (migration 060). Cost columns are NULL for restricted roles.
+      purchase_orders_to_supplier_safe: {
+        Row: {
+          id: string; project_id: string; procurement_request_id: string | null;
+          po_number: string; supplier_id: string | null; supplier_name: string;
+          po_date: string;
+          // NULL for factory/store/qc/afs/viewer/sales_user
+          purchase_value: number | null;
+          currency: string; eta_date: string | null; po_status: string;
+          approval_required: boolean; approval_status: string;
+          submitted_for_approval_at: string | null;
+          approved_by: string | null; approved_at: string | null;
+          rejected_by: string | null; rejected_at: string | null;
+          rejection_reason: string | null; remarks: string | null;
+          created_by: string | null; created_at: string; updated_at: string;
+        };
+        Relationships: [];
+      };
+      purchase_order_items_safe: {
+        Row: {
+          id: string; purchase_order_id: string;
+          procurement_request_item_id: string | null;
+          item_code: string | null; item_name: string; description: string | null;
+          quantity_ordered: number; unit: string;
+          // NULL for factory/store/qc/afs/viewer/sales_user
+          unit_price: number | null;
+          line_total: number | null;
+          expected_arrival_date: string | null;
+          status: string; remarks: string | null; created_at: string; updated_at: string;
+        };
+        Relationships: [];
+      };
+      project_vehicle_lines_safe: {
+        Row: {
+          id: string; project_id: string; line_number: number;
+          vehicle_type: string; description: string; quantity: number;
+          // NULL for non-admin/ops/sales_owner
+          unit_sales_value: number | null;
+          line_total_value: number | null;
+          line_status: string; notes: string | null; created_at: string; updated_at: string;
+        };
+        Relationships: [];
+      };
+    };
     Functions: {
       project_has_wo: { Args: { p_project_id: string }; Returns: boolean };
       project_has_pn: { Args: { p_project_id: string }; Returns: boolean };

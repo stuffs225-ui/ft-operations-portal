@@ -40,9 +40,14 @@ Modules with **simulated writes** (verify they read real data, but expect the
 
 ## 4. Security (query via API, not just UI)
 - [ ] factory_user / store_user / qc_user / afs_user / viewer / sales_user query
-      `purchase_orders_to_supplier` and `purchase_order_items` via the API →
-      confirm whether `purchase_value` / `unit_price` are returned.
-      *(Expected today: returned — documented CRITICAL gap.)*
+      `purchase_orders_to_supplier` directly via the API →
+      confirm **0 rows** returned (SELECT policy dropped in migration 060).
+- [ ] Same roles query `purchase_orders_to_supplier_safe` →
+      confirm rows returned for approved projects but `purchase_value` is **NULL**.
+- [ ] Same roles query `purchase_order_items_safe` →
+      confirm `unit_price` and `line_total` are **NULL**.
+- [ ] `procurement_user` attempts to set `approval_status = 'approved'` via API →
+      confirm blocked (0 rows updated or trigger exception).
 - [ ] viewer attempts any INSERT/UPDATE/DELETE via API → denied.
 - [ ] sales_user queries `projects` → only own rows.
 - [ ] factory_user queries another module's tables → confirm RLS scope.
