@@ -1358,6 +1358,13 @@ export type Database = {
         Relationships: [];
         Views: {};
       };
+      sla_rule_templates: {
+        Row: { id: string; trigger_event: string; required_action: string; sla_hours: number; escalate_to: string | null; is_active: boolean; created_at: string; updated_at: string };
+        Insert: { trigger_event: string; required_action: string; sla_hours: number; escalate_to?: string | null; is_active?: boolean };
+        Update: { trigger_event?: string; required_action?: string; sla_hours?: number; escalate_to?: string | null; is_active?: boolean };
+        Relationships: [];
+        Views: {};
+      };
       sla_rules: {
         Row: { id: string; rule_key: string; rule_name: string; module_name: string; trigger_status: string; target_status: string; duration_hours: number; severity: string; applies_to_roles: string[]; escalation_roles: string[]; is_active: boolean; created_at: string; updated_at: string };
         Insert: { rule_key: string; rule_name: string; module_name: string; trigger_status: string; target_status: string; duration_hours: number; [key: string]: unknown };

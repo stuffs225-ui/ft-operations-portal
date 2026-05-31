@@ -62,7 +62,7 @@ export function Dashboard() {
     <div>
       <PageHeader
         title="Operations Control Tower"
-        subtitle="Live operational status — static data, Phase 0"
+        subtitle="Live operational status across all modules"
         breadcrumb={[{ label: 'Dashboard' }]}
         action={
           <div className="flex items-center gap-2 text-xs text-gray-500 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
