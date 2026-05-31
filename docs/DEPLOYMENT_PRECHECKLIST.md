@@ -1,7 +1,22 @@
 # Deployment Pre-Checklist
 
 **Applicable to:** First production deployment of FT Operations Portal  
-**Last updated:** 2026-05-31 (Phase 10.5)
+**Last updated:** 2026-05-31 (Real Supabase Readiness review)
+
+> **Companion docs:** `SUPABASE_REAL_SETUP.md` (master guide),
+> `MIGRATION_EXECUTION_ORDER.md`, `MIGRATION_RISK_REVIEW.md`,
+> `RLS_SECURITY_REVIEW.md`, `FIRST_ADMIN_BOOTSTRAP.md`, `REAL_USERS_SETUP.md`,
+> `STORAGE_SETUP.md`, `ENVIRONMENT_VARIABLES.md`, `REAL_SUPABASE_SMOKE_TEST.md`,
+> `PRODUCTION_READINESS_GAPS.md`.
+
+> **Migration count update:** the schema is now `001`→`059` (was `001`–`057`).
+> `058` creates storage buckets + object RLS; `059` adds indexes + missing
+> `updated_at` triggers. Three fresh-run blockers were fixed (see
+> `MIGRATION_RISK_REVIEW.md`).
+
+> **Go/No-Go gate (must read):** before exposing cost data to any non-admin role,
+> resolve GAP-01 (DB-level cost protection) and GAP-02 (PO self-approval guard)
+> in `PRODUCTION_READINESS_GAPS.md` — these are currently frontend-only.
 
 ---
 

@@ -33,7 +33,7 @@ CREATE POLICY "issues_read" ON operational_issues
 CREATE POLICY "issues_write" ON operational_issues
   FOR ALL TO authenticated
   USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'operations_manager'))
+    public.current_user_role() IN ('admin', 'operations_manager')
     OR owner_id = auth.uid()
   );
 

@@ -22,7 +22,7 @@ CREATE POLICY "saved_views_own" ON saved_report_views
 CREATE POLICY "saved_views_admin_read" ON saved_report_views
   FOR SELECT TO authenticated
   USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+    public.current_user_role() = 'admin'
   );
 
 CREATE INDEX idx_saved_report_views_user ON saved_report_views(user_id);

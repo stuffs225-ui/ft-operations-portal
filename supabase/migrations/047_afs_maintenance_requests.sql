@@ -57,15 +57,15 @@ CREATE TRIGGER trg_amr_updated_at BEFORE UPDATE ON afs_maintenance_requests
 ALTER TABLE afs_maintenance_requests ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY amr_admin_full ON afs_maintenance_requests FOR ALL TO authenticated
-  USING (auth.jwt() ->> 'role' IN ('admin', 'operations_manager'))
-  WITH CHECK (auth.jwt() ->> 'role' IN ('admin', 'operations_manager'));
+  USING (public.current_user_role() IN ('admin', 'operations_manager'))
+  WITH CHECK (public.current_user_role() IN ('admin', 'operations_manager'));
 
 CREATE POLICY amr_afs_write ON afs_maintenance_requests FOR ALL TO authenticated
-  USING (auth.jwt() ->> 'role' = 'afs_user')
-  WITH CHECK (auth.jwt() ->> 'role' = 'afs_user');
+  USING (public.current_user_role() = 'afs_user')
+  WITH CHECK (public.current_user_role() = 'afs_user');
 
 CREATE POLICY amr_sales_select ON afs_maintenance_requests FOR SELECT TO authenticated
-  USING (auth.jwt() ->> 'role' = 'sales_user');
+  USING (public.current_user_role() = 'sales_user');
 
 CREATE POLICY amr_others_select ON afs_maintenance_requests FOR SELECT TO authenticated
-  USING (auth.jwt() ->> 'role' NOT IN ('admin', 'operations_manager', 'afs_user', 'sales_user'));
+  USING (public.current_user_role() NOT IN ('admin', 'operations_manager', 'afs_user', 'sales_user'));

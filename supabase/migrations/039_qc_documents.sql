@@ -24,4 +24,4 @@ CREATE INDEX idx_qcdoc_project ON qc_inspection_documents(project_id);
 ALTER TABLE qc_inspection_documents ENABLE ROW LEVEL SECURITY;
 CREATE POLICY qcdoc_select ON qc_inspection_documents FOR SELECT TO authenticated USING (true);
 CREATE POLICY qcdoc_insert ON qc_inspection_documents FOR INSERT TO authenticated
-  WITH CHECK (auth.jwt() ->> 'role' IN ('admin', 'operations_manager', 'qc_user'));
+  WITH CHECK (public.current_user_role() IN ('admin', 'operations_manager', 'qc_user'));

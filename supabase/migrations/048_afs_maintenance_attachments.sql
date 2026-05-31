@@ -20,12 +20,12 @@ CREATE INDEX idx_ama_request ON afs_maintenance_attachments(maintenance_request_
 ALTER TABLE afs_maintenance_attachments ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY ama_admin_full ON afs_maintenance_attachments FOR ALL TO authenticated
-  USING (auth.jwt() ->> 'role' IN ('admin', 'operations_manager'))
-  WITH CHECK (auth.jwt() ->> 'role' IN ('admin', 'operations_manager'));
+  USING (public.current_user_role() IN ('admin', 'operations_manager'))
+  WITH CHECK (public.current_user_role() IN ('admin', 'operations_manager'));
 
 CREATE POLICY ama_afs_write ON afs_maintenance_attachments FOR ALL TO authenticated
-  USING (auth.jwt() ->> 'role' = 'afs_user')
-  WITH CHECK (auth.jwt() ->> 'role' = 'afs_user');
+  USING (public.current_user_role() = 'afs_user')
+  WITH CHECK (public.current_user_role() = 'afs_user');
 
 CREATE POLICY ama_others_select ON afs_maintenance_attachments FOR SELECT TO authenticated
-  USING (auth.jwt() ->> 'role' NOT IN ('admin', 'operations_manager', 'afs_user'));
+  USING (public.current_user_role() NOT IN ('admin', 'operations_manager', 'afs_user'));

@@ -98,3 +98,26 @@
 | Maintenance closure requires resolution notes | Maintenance close action validation |
 | Medical items require serial number tracking | QC serial number fields (Phase 6+) |
 | Every vehicle needs chassis + photos before delivery | AFS pre-delivery checklist (Phase 9+) |
+
+---
+
+## ⚠️ Enforcement layer — DB RLS vs frontend (read before trusting this matrix)
+
+This matrix describes **intended** visibility. As of the real-Supabase readiness
+review, enforcement is split:
+
+| Control | Enforced at DB (RLS)? | Enforced in frontend? |
+|---|---|---|
+| Authentication required | ✅ Yes | ✅ Yes |
+| Sales sees only own projects/quotations | ✅ Yes | ✅ Yes |
+| Viewer is read-only | ✅ Yes | ✅ Yes |
+| Anon has no access | ✅ Yes | n/a |
+| Role write permissions (per module) | ✅ Yes (after this branch's RLS fixes) | partial |
+| **Purchase/sales COST hidden from restricted roles** | ❌ **No — frontend only** | ✅ Yes (visual only) |
+| Page access by role (route guards) | ❌ No | ⚠️ navigation hiding only (deep-link works) |
+| Procurement cannot approve own high-value PO | ❌ No (no DB guard) | ✅ Yes (approval queue) |
+
+**Implication:** cost columns and page structure are protected by the UI only.
+A restricted role can read costs and deep-link to hidden pages via the API.
+See `RLS_SECURITY_REVIEW.md` (GAP-01, GAP-02, GAP-07) for remediation. Do not
+treat the cost rows above as a security boundary until the DB-level fix lands.

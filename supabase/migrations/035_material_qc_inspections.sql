@@ -44,6 +44,6 @@ ALTER TABLE material_qc_inspections ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY mqc_select ON material_qc_inspections FOR SELECT TO authenticated USING (true);
 CREATE POLICY mqc_insert ON material_qc_inspections FOR INSERT TO authenticated
-  WITH CHECK (auth.jwt() ->> 'role' IN ('admin', 'operations_manager', 'qc_user'));
+  WITH CHECK (public.current_user_role() IN ('admin', 'operations_manager', 'qc_user'));
 CREATE POLICY mqc_update ON material_qc_inspections FOR UPDATE TO authenticated
-  USING (auth.jwt() ->> 'role' IN ('admin', 'operations_manager', 'qc_user'));
+  USING (public.current_user_role() IN ('admin', 'operations_manager', 'qc_user'));

@@ -41,6 +41,6 @@ CREATE TRIGGER trg_rn_number BEFORE INSERT ON release_notes
 ALTER TABLE release_notes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY rn_select ON release_notes FOR SELECT TO authenticated USING (true);
 CREATE POLICY rn_insert ON release_notes FOR INSERT TO authenticated
-  WITH CHECK (auth.jwt() ->> 'role' IN ('admin', 'operations_manager', 'qc_user'));
+  WITH CHECK (public.current_user_role() IN ('admin', 'operations_manager', 'qc_user'));
 CREATE POLICY rn_update ON release_notes FOR UPDATE TO authenticated
-  USING (auth.jwt() ->> 'role' IN ('admin', 'operations_manager', 'qc_user'));
+  USING (public.current_user_role() IN ('admin', 'operations_manager', 'qc_user'));

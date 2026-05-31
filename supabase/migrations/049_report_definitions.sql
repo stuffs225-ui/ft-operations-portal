@@ -26,5 +26,5 @@ CREATE POLICY "report_definitions_select" ON report_definitions
 CREATE POLICY "report_definitions_admin_all" ON report_definitions
   FOR ALL TO authenticated
   USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'operations_manager'))
+    public.current_user_role() IN ('admin', 'operations_manager')
   );

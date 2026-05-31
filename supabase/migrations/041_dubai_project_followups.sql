@@ -46,17 +46,17 @@ ALTER TABLE dubai_project_followups ENABLE ROW LEVEL SECURITY;
 
 -- admin / ops_manager: full access
 CREATE POLICY dpf_admin_full ON dubai_project_followups FOR ALL TO authenticated
-  USING (auth.jwt() ->> 'role' IN ('admin', 'operations_manager'))
-  WITH CHECK (auth.jwt() ->> 'role' IN ('admin', 'operations_manager'));
+  USING (public.current_user_role() IN ('admin', 'operations_manager'))
+  WITH CHECK (public.current_user_role() IN ('admin', 'operations_manager'));
 
 -- afs_user: select
 CREATE POLICY dpf_afs_select ON dubai_project_followups FOR SELECT TO authenticated
-  USING (auth.jwt() ->> 'role' = 'afs_user');
+  USING (public.current_user_role() = 'afs_user');
 
 -- sales_user: select own projects
 CREATE POLICY dpf_sales_select ON dubai_project_followups FOR SELECT TO authenticated
   USING (
-    auth.jwt() ->> 'role' = 'sales_user'
+    public.current_user_role() = 'sales_user'
     AND project_id IN (
       SELECT id FROM projects WHERE sales_owner_id = auth.uid()
     )
@@ -65,7 +65,7 @@ CREATE POLICY dpf_sales_select ON dubai_project_followups FOR SELECT TO authenti
 -- others: select where project is approved/active
 CREATE POLICY dpf_others_select ON dubai_project_followups FOR SELECT TO authenticated
   USING (
-    auth.jwt() ->> 'role' NOT IN ('admin', 'operations_manager', 'afs_user', 'sales_user')
+    public.current_user_role() NOT IN ('admin', 'operations_manager', 'afs_user', 'sales_user')
     AND project_id IN (
       SELECT id FROM projects
       WHERE project_status IN ('approved', 'active', 'completed')

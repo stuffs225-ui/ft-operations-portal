@@ -29,7 +29,7 @@ CREATE POLICY "sla_events_read" ON sla_events
 CREATE POLICY "sla_events_admin_write" ON sla_events
   FOR ALL TO authenticated
   USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'operations_manager'))
+    public.current_user_role() IN ('admin', 'operations_manager')
   );
 
 CREATE INDEX idx_sla_events_status ON sla_events(status);

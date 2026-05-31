@@ -30,7 +30,7 @@ CREATE POLICY "health_scores_read" ON project_health_scores
 CREATE POLICY "health_scores_admin_write" ON project_health_scores
   FOR ALL TO authenticated
   USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'operations_manager'))
+    public.current_user_role() IN ('admin', 'operations_manager')
   );
 
 CREATE INDEX idx_project_health_project ON project_health_scores(project_id);

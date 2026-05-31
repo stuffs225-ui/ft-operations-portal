@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS factory_records (
   id                        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id                uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   project_vehicle_line_id   uuid REFERENCES project_vehicle_lines(id) ON DELETE SET NULL,
-  wo_reference_id           uuid REFERENCES execution_references(id) ON DELETE SET NULL,
+  wo_reference_id           uuid REFERENCES project_execution_references(id) ON DELETE SET NULL,
   production_status         production_status NOT NULL DEFAULT 'not_started',
   progress_percentage       int NOT NULL DEFAULT 0 CHECK (progress_percentage BETWEEN 0 AND 100),
   expected_completion_date  date,
