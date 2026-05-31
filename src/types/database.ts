@@ -1235,6 +1235,130 @@ export type Database = {
         };
         Relationships: [];
       };
+      // Phase 9 tables
+      dubai_project_followups: {
+        Row: {
+          id: string; project_id: string; project_vehicle_line_id: string | null;
+          pn_reference_id: string | null; dubai_po_number: string | null;
+          dubai_po_date: string | null; dubai_status: string; eta_date: string | null;
+          eta_status: string; last_followup_date: string | null;
+          next_followup_date: string | null; followed_by: string | null;
+          remarks: string | null; created_at: string; updated_at: string;
+        };
+        Insert: { project_id: string; dubai_status?: string; eta_status?: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+        Views: {};
+      };
+      dubai_eta_history: {
+        Row: {
+          id: string; dubai_followup_id: string; project_id: string;
+          project_vehicle_line_id: string | null; old_eta: string | null;
+          new_eta: string; changed_by: string; changed_at: string;
+          reason: string; remarks: string | null;
+        };
+        Insert: { dubai_followup_id: string; project_id: string; new_eta: string; changed_by: string; reason: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+        Views: {};
+      };
+      afs_arrival_reports: {
+        Row: {
+          id: string; dubai_followup_id: string; project_id: string;
+          project_vehicle_line_id: string | null; arrival_report_number: string;
+          arrival_date: string; arrival_status: string; received_by: string | null;
+          received_quantity: number; expected_quantity: number;
+          storage_location: string | null; condition_on_arrival: string | null;
+          remarks: string | null; created_by: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: { dubai_followup_id: string; project_id: string; arrival_report_number: string; arrival_date: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+        Views: {};
+      };
+      afs_missing_items: {
+        Row: {
+          id: string; arrival_report_id: string; project_id: string;
+          project_vehicle_line_id: string | null; item_name: string;
+          item_code: string | null; quantity_expected: number;
+          quantity_received: number; missing_item_status: string;
+          severity: string; store_request_id: string | null;
+          notes: string | null; resolved_at: string | null;
+          resolved_by: string | null; created_at: string; updated_at: string;
+        };
+        Insert: { arrival_report_id: string; project_id: string; item_name: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+        Views: {};
+      };
+      afs_predelivery_reports: {
+        Row: {
+          id: string; arrival_report_id: string; project_id: string;
+          project_vehicle_line_id: string | null; predelivery_report_number: string;
+          report_date: string; chassis_number: string | null;
+          readiness_status: string; checklist_items_total: number;
+          checklist_items_passed: number; open_missing_items: number;
+          open_ncrs: number; release_note_issued: boolean;
+          release_note_id: string | null; inspector_id: string | null;
+          inspected_at: string | null; remarks: string | null;
+          ready_for_delivery: boolean; delivery_approved_by: string | null;
+          delivery_approved_at: string | null; created_by: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: { arrival_report_id: string; project_id: string; predelivery_report_number: string; report_date: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+        Views: {};
+      };
+      afs_condition_reports: {
+        Row: {
+          id: string; project_id: string; project_vehicle_line_id: string | null;
+          condition_report_number: string; report_date: string;
+          chassis_number: string | null; overall_condition: string;
+          report_status: string; reported_by: string | null;
+          assigned_to: string | null; description: string;
+          root_cause: string | null; resolution_notes: string | null;
+          resolved_at: string | null; resolved_by: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: { project_id: string; condition_report_number: string; report_date: string; description: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+        Views: {};
+      };
+      afs_maintenance_requests: {
+        Row: {
+          id: string; project_id: string | null; project_vehicle_line_id: string | null;
+          maintenance_request_number: string; customer_name: string;
+          chassis_number: string | null; issue_type: string; priority: string;
+          maintenance_status: string; title: string; description: string;
+          reported_date: string; wo_reference: string | null;
+          pn_reference: string | null; assigned_to: string | null;
+          inspected_by: string | null; inspected_at: string | null;
+          inspection_notes: string | null; parts_required: boolean;
+          parts_notes: string | null; resolution_notes: string | null;
+          resolved_at: string | null; resolved_by: string | null;
+          closed_at: string | null; closed_by: string | null;
+          created_by: string | null; created_at: string; updated_at: string;
+        };
+        Insert: { customer_name: string; maintenance_request_number: string; title: string; description: string; reported_date: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+        Views: {};
+      };
+      afs_maintenance_attachments: {
+        Row: {
+          id: string; maintenance_request_id: string; document_type: string;
+          file_name: string; storage_path: string | null;
+          uploaded_by: string | null; uploaded_at: string;
+          description: string | null;
+        };
+        Insert: { maintenance_request_id: string; file_name: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+        Views: {};
+      };
     };
     Views: {};
     Functions: {
@@ -1341,6 +1465,18 @@ export type Database = {
       qc_document_type_enum: 'material_inspection_report' | 'material_photo' | 'ncr_evidence' | 'vehicle_inspection_report' | 'rework_evidence' | 'release_note' | 'other';
       release_status_enum: 'draft' | 'blocked' | 'ready_to_issue' | 'issued' | 'cancelled';
       release_type_enum: 'project_release' | 'vehicle_line_release' | 'partial_release';
+      // Phase 9 enums
+      dubai_status_enum: 'not_started' | 'pending_dubai_po' | 'dubai_po_sent' | 'under_dubai_production' | 'eta_confirmed' | 'in_transit' | 'arrived_ksa' | 'handed_to_afs' | 'ready_for_pre_delivery' | 'completed' | 'on_hold' | 'cancelled';
+      eta_status_enum: 'not_set' | 'on_track' | 'delayed' | 'changed' | 'arrived';
+      arrival_status_enum: 'pending' | 'arrived' | 'partially_arrived' | 'delayed';
+      missing_item_status_enum: 'open' | 'requested' | 'received' | 'waived' | 'cancelled';
+      missing_item_severity_enum: 'low' | 'medium' | 'high' | 'critical';
+      condition_report_status_enum: 'open' | 'under_review' | 'resolved' | 'closed' | 'cancelled';
+      condition_status_enum: 'good' | 'minor_damage' | 'major_damage' | 'requires_repair';
+      maintenance_issue_type_enum: 'mechanical' | 'electrical' | 'body_damage' | 'software' | 'upholstery' | 'other';
+      maintenance_priority_enum: 'low' | 'medium' | 'high' | 'critical';
+      maintenance_status_enum: 'open' | 'assigned' | 'under_inspection' | 'parts_waiting' | 'in_repair' | 'completed' | 'closed' | 'cancelled';
+      maintenance_document_type_enum: 'photo' | 'inspection_report' | 'parts_request' | 'resolution_report' | 'other';
     };
   };
 };

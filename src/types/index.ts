@@ -903,3 +903,215 @@ export interface ReleaseNote {
   vehicle_line?: Pick<ProjectVehicleLine, 'vehicle_type' | 'description'> | null;
   issued_by_profile?: { full_name: string | null } | null;
 }
+
+// ─── Phase 9: Dubai / AFS ────────────────────────────────────────────────────
+
+export type DubaiStatus =
+  | 'not_started'
+  | 'pending_dubai_po'
+  | 'dubai_po_sent'
+  | 'under_dubai_production'
+  | 'eta_confirmed'
+  | 'in_transit'
+  | 'arrived_ksa'
+  | 'handed_to_afs'
+  | 'ready_for_pre_delivery'
+  | 'completed'
+  | 'on_hold'
+  | 'cancelled';
+
+export type EtaStatus = 'not_set' | 'on_track' | 'delayed' | 'changed' | 'arrived';
+
+export interface DubaiProjectFollowup {
+  id: string;
+  project_id: string;
+  project_vehicle_line_id: string | null;
+  pn_reference_id: string | null;
+  dubai_po_number: string | null;
+  dubai_po_date: string | null;
+  dubai_status: DubaiStatus;
+  eta_date: string | null;
+  eta_status: EtaStatus;
+  last_followup_date: string | null;
+  next_followup_date: string | null;
+  followed_by: string | null;
+  remarks: string | null;
+  created_at: string;
+  updated_at: string;
+  project?: Pick<Project, 'project_code' | 'customer_name' | 'manufacturing_location'> | null;
+  vehicle_line?: Pick<ProjectVehicleLine, 'vehicle_type' | 'description' | 'quantity'> | null;
+  followed_by_profile?: { full_name: string | null } | null;
+}
+
+export interface DubaiEtaHistory {
+  id: string;
+  dubai_followup_id: string;
+  project_id: string;
+  project_vehicle_line_id: string | null;
+  old_eta: string | null;
+  new_eta: string;
+  changed_by: string;
+  changed_at: string;
+  reason: string;
+  remarks: string | null;
+  project?: Pick<Project, 'project_code' | 'customer_name'> | null;
+  changed_by_profile?: { full_name: string | null } | null;
+}
+
+export type ArrivalStatus = 'pending' | 'arrived' | 'partially_arrived' | 'delayed';
+
+export interface AfsArrivalReport {
+  id: string;
+  dubai_followup_id: string;
+  project_id: string;
+  project_vehicle_line_id: string | null;
+  arrival_report_number: string;
+  arrival_date: string;
+  arrival_status: ArrivalStatus;
+  received_by: string | null;
+  received_quantity: number;
+  expected_quantity: number;
+  storage_location: string | null;
+  condition_on_arrival: string | null;
+  remarks: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  project?: Pick<Project, 'project_code' | 'customer_name'> | null;
+  vehicle_line?: Pick<ProjectVehicleLine, 'vehicle_type' | 'description'> | null;
+  received_by_profile?: { full_name: string | null } | null;
+}
+
+export type MissingItemStatus = 'open' | 'requested' | 'received' | 'waived' | 'cancelled';
+export type MissingItemSeverity = 'low' | 'medium' | 'high' | 'critical';
+
+export interface AfsMissingItem {
+  id: string;
+  arrival_report_id: string;
+  project_id: string;
+  project_vehicle_line_id: string | null;
+  item_name: string;
+  item_code: string | null;
+  quantity_expected: number;
+  quantity_received: number;
+  missing_item_status: MissingItemStatus;
+  severity: MissingItemSeverity;
+  store_request_id: string | null;
+  notes: string | null;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AfsPredeliveryReport {
+  id: string;
+  arrival_report_id: string;
+  project_id: string;
+  project_vehicle_line_id: string | null;
+  predelivery_report_number: string;
+  report_date: string;
+  chassis_number: string | null;
+  readiness_status: string;
+  checklist_items_total: number;
+  checklist_items_passed: number;
+  open_missing_items: number;
+  open_ncrs: number;
+  release_note_issued: boolean;
+  release_note_id: string | null;
+  inspector_id: string | null;
+  inspected_at: string | null;
+  remarks: string | null;
+  ready_for_delivery: boolean;
+  delivery_approved_by: string | null;
+  delivery_approved_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  project?: Pick<Project, 'project_code' | 'customer_name'> | null;
+  vehicle_line?: Pick<ProjectVehicleLine, 'vehicle_type' | 'description'> | null;
+}
+
+export type ConditionReportStatus = 'open' | 'under_review' | 'resolved' | 'closed' | 'cancelled';
+export type ConditionStatus = 'good' | 'minor_damage' | 'major_damage' | 'requires_repair';
+
+export interface AfsConditionReport {
+  id: string;
+  project_id: string;
+  project_vehicle_line_id: string | null;
+  condition_report_number: string;
+  report_date: string;
+  chassis_number: string | null;
+  overall_condition: ConditionStatus;
+  report_status: ConditionReportStatus;
+  reported_by: string | null;
+  assigned_to: string | null;
+  description: string;
+  root_cause: string | null;
+  resolution_notes: string | null;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  created_at: string;
+  updated_at: string;
+  project?: Pick<Project, 'project_code' | 'customer_name'> | null;
+  vehicle_line?: Pick<ProjectVehicleLine, 'vehicle_type' | 'description'> | null;
+}
+
+export type MaintenanceIssueType = 'mechanical' | 'electrical' | 'body_damage' | 'software' | 'upholstery' | 'other';
+export type MaintenancePriority = 'low' | 'medium' | 'high' | 'critical';
+export type MaintenanceStatus =
+  | 'open'
+  | 'assigned'
+  | 'under_inspection'
+  | 'parts_waiting'
+  | 'in_repair'
+  | 'completed'
+  | 'closed'
+  | 'cancelled';
+
+export interface AfsMaintenanceRequest {
+  id: string;
+  project_id: string | null;
+  project_vehicle_line_id: string | null;
+  maintenance_request_number: string;
+  customer_name: string;
+  chassis_number: string | null;
+  issue_type: MaintenanceIssueType;
+  priority: MaintenancePriority;
+  maintenance_status: MaintenanceStatus;
+  title: string;
+  description: string;
+  reported_date: string;
+  wo_reference: string | null;
+  pn_reference: string | null;
+  assigned_to: string | null;
+  inspected_by: string | null;
+  inspected_at: string | null;
+  inspection_notes: string | null;
+  parts_required: boolean;
+  parts_notes: string | null;
+  resolution_notes: string | null;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  closed_at: string | null;
+  closed_by: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  project?: Pick<Project, 'project_code' | 'customer_name'> | null;
+  vehicle_line?: Pick<ProjectVehicleLine, 'vehicle_type' | 'description'> | null;
+  assigned_to_profile?: { full_name: string | null } | null;
+}
+
+export type MaintenanceDocumentType = 'photo' | 'inspection_report' | 'parts_request' | 'resolution_report' | 'other';
+
+export interface AfsMaintenanceAttachment {
+  id: string;
+  maintenance_request_id: string;
+  document_type: MaintenanceDocumentType;
+  file_name: string;
+  storage_path: string | null;
+  uploaded_by: string | null;
+  uploaded_at: string;
+  description: string | null;
+}
