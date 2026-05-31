@@ -43,7 +43,17 @@ import { StoreUnallocated } from '../pages/StoreUnallocated';
 import { CustodyNew } from '../pages/CustodyNew';
 import { CustodyDetail } from '../pages/CustodyDetail';
 import { MaterialQC } from '../pages/MaterialQC';
+import { MaterialQcInspections } from '../pages/MaterialQcInspections';
+import { MaterialQcInspectionDetail } from '../pages/MaterialQcInspectionDetail';
+import { MaterialNcrs } from '../pages/MaterialNcrs';
+import { MaterialNcrDetail } from '../pages/MaterialNcrDetail';
 import { ProjectQC } from '../pages/ProjectQC';
+import { ProjectQcInspections } from '../pages/ProjectQcInspections';
+import { ProjectQcInspectionDetail } from '../pages/ProjectQcInspectionDetail';
+import { ProjectQcFindings } from '../pages/ProjectQcFindings';
+import { ProjectQcFindingDetail } from '../pages/ProjectQcFindingDetail';
+import { ProjectQcReleaseNotes } from '../pages/ProjectQcReleaseNotes';
+import { ProjectQcReleaseNoteDetail } from '../pages/ProjectQcReleaseNoteDetail';
 import { DubaiAFS } from '../pages/DubaiAFS';
 import { AfterSales } from '../pages/AfterSales';
 import { Reports } from '../pages/Reports';
@@ -103,7 +113,17 @@ export function App() {
             <Route path="custody/:id" element={<CustodyDetail />} />
             <Route path="vehicle-receiving" element={<VehicleReceiving />} />
             <Route path="material-qc" element={<MaterialQC />} />
+            <Route path="material-qc/inspections" element={<MaterialQcInspections />} />
+            <Route path="material-qc/inspections/:id" element={<MaterialQcInspectionDetail />} />
+            <Route path="material-qc/ncrs" element={<MaterialNcrs />} />
+            <Route path="material-qc/ncrs/:id" element={<MaterialNcrDetail />} />
             <Route path="project-qc" element={<ProjectQC />} />
+            <Route path="project-qc/inspections" element={<ProjectQcInspections />} />
+            <Route path="project-qc/inspections/:id" element={<ProjectQcInspectionDetail />} />
+            <Route path="project-qc/findings" element={<ProjectQcFindings />} />
+            <Route path="project-qc/findings/:id" element={<ProjectQcFindingDetail />} />
+            <Route path="project-qc/release-notes" element={<ProjectQcReleaseNotes />} />
+            <Route path="project-qc/release-notes/:id" element={<ProjectQcReleaseNoteDetail />} />
             <Route path="dubai-afs" element={<DubaiAFS />} />
             <Route path="after-sales" element={<AfterSales />} />
             <Route path="reports" element={<Reports />} />

@@ -1044,6 +1044,197 @@ export type Database = {
         };
         Relationships: [];
       };
+      // ── Phase 8: QC & Release Note tables ────────────────────────────────────
+      material_qc_inspections: {
+        Row: {
+          id: string; project_id: string | null; store_receipt_id: string | null;
+          store_receipt_item_id: string; medical_serial_number_id: string | null;
+          inspection_number: string;
+          inspection_status: Database['public']['Enums']['inspection_status_enum'];
+          inspection_result: Database['public']['Enums']['material_inspection_result_enum'];
+          inspected_by: string | null; inspected_at: string | null;
+          rejection_reason: string | null; remarks: string | null;
+          attachments_count: number; created_by: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: {
+          project_id?: string | null; store_receipt_id?: string | null;
+          store_receipt_item_id: string; medical_serial_number_id?: string | null;
+          inspection_number?: string;
+          inspection_status?: Database['public']['Enums']['inspection_status_enum'];
+          inspection_result?: Database['public']['Enums']['material_inspection_result_enum'];
+          inspected_by?: string | null; inspected_at?: string | null;
+          rejection_reason?: string | null; remarks?: string | null;
+          attachments_count?: number; created_by?: string | null;
+        };
+        Update: {
+          inspection_status?: Database['public']['Enums']['inspection_status_enum'];
+          inspection_result?: Database['public']['Enums']['material_inspection_result_enum'];
+          inspected_by?: string | null; inspected_at?: string | null;
+          rejection_reason?: string | null; remarks?: string | null;
+          attachments_count?: number;
+        };
+        Relationships: [];
+      };
+      material_ncrs: {
+        Row: {
+          id: string; project_id: string | null; material_qc_inspection_id: string;
+          store_receipt_item_id: string | null; medical_serial_number_id: string | null;
+          ncr_number: string;
+          ncr_status: Database['public']['Enums']['ncr_status_enum'];
+          severity: Database['public']['Enums']['ncr_severity_enum'];
+          root_cause_category: string | null; description: string;
+          corrective_action: string | null; preventive_action: string | null;
+          owner_id: string | null; due_date: string | null;
+          closed_by: string | null; closed_at: string | null;
+          closure_evidence_document_id: string | null; remarks: string | null;
+          created_by: string | null; created_at: string; updated_at: string;
+        };
+        Insert: {
+          project_id?: string | null; material_qc_inspection_id: string;
+          store_receipt_item_id?: string | null; medical_serial_number_id?: string | null;
+          ncr_number?: string;
+          ncr_status?: Database['public']['Enums']['ncr_status_enum'];
+          severity?: Database['public']['Enums']['ncr_severity_enum'];
+          root_cause_category?: string | null; description: string;
+          corrective_action?: string | null; preventive_action?: string | null;
+          owner_id?: string | null; due_date?: string | null;
+          closed_by?: string | null; closed_at?: string | null;
+          closure_evidence_document_id?: string | null; remarks?: string | null;
+          created_by?: string | null;
+        };
+        Update: {
+          ncr_status?: Database['public']['Enums']['ncr_status_enum'];
+          severity?: Database['public']['Enums']['ncr_severity_enum'];
+          root_cause_category?: string | null; description?: string;
+          corrective_action?: string | null; preventive_action?: string | null;
+          owner_id?: string | null; due_date?: string | null;
+          closed_by?: string | null; closed_at?: string | null;
+          closure_evidence_document_id?: string | null; remarks?: string | null;
+        };
+        Relationships: [];
+      };
+      project_qc_inspections: {
+        Row: {
+          id: string; project_id: string; project_vehicle_line_id: string | null;
+          factory_record_id: string | null; inspection_number: string;
+          inspection_status: Database['public']['Enums']['inspection_status_enum'];
+          inspection_result: Database['public']['Enums']['project_qc_result_enum'];
+          inspected_by: string | null; inspected_at: string | null;
+          readiness_status: Database['public']['Enums']['readiness_status_enum'];
+          remarks: string | null; created_by: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: {
+          project_id: string; project_vehicle_line_id?: string | null;
+          factory_record_id?: string | null; inspection_number?: string;
+          inspection_status?: Database['public']['Enums']['inspection_status_enum'];
+          inspection_result?: Database['public']['Enums']['project_qc_result_enum'];
+          inspected_by?: string | null; inspected_at?: string | null;
+          readiness_status?: Database['public']['Enums']['readiness_status_enum'];
+          remarks?: string | null; created_by?: string | null;
+        };
+        Update: {
+          inspection_status?: Database['public']['Enums']['inspection_status_enum'];
+          inspection_result?: Database['public']['Enums']['project_qc_result_enum'];
+          inspected_by?: string | null; inspected_at?: string | null;
+          readiness_status?: Database['public']['Enums']['readiness_status_enum'];
+          remarks?: string | null;
+        };
+        Relationships: [];
+      };
+      project_qc_findings: {
+        Row: {
+          id: string; project_qc_inspection_id: string; project_id: string;
+          project_vehicle_line_id: string | null; finding_number: string;
+          finding_type: Database['public']['Enums']['finding_type_enum'];
+          severity: Database['public']['Enums']['ncr_severity_enum'];
+          description: string; required_action: string;
+          owner_role: string | null; owner_id: string | null; due_date: string | null;
+          finding_status: Database['public']['Enums']['finding_status_enum'];
+          rework_required: boolean;
+          rework_completed_by: string | null; rework_completed_at: string | null;
+          closure_notes: string | null; closed_by: string | null; closed_at: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: {
+          project_qc_inspection_id: string; project_id: string;
+          project_vehicle_line_id?: string | null; finding_number?: string;
+          finding_type?: Database['public']['Enums']['finding_type_enum'];
+          severity?: Database['public']['Enums']['ncr_severity_enum'];
+          description: string; required_action: string;
+          owner_role?: string | null; owner_id?: string | null; due_date?: string | null;
+          finding_status?: Database['public']['Enums']['finding_status_enum'];
+          rework_required?: boolean;
+          rework_completed_by?: string | null; rework_completed_at?: string | null;
+          closure_notes?: string | null; closed_by?: string | null; closed_at?: string | null;
+        };
+        Update: {
+          finding_type?: Database['public']['Enums']['finding_type_enum'];
+          severity?: Database['public']['Enums']['ncr_severity_enum'];
+          description?: string; required_action?: string;
+          owner_role?: string | null; owner_id?: string | null; due_date?: string | null;
+          finding_status?: Database['public']['Enums']['finding_status_enum'];
+          rework_required?: boolean;
+          rework_completed_by?: string | null; rework_completed_at?: string | null;
+          closure_notes?: string | null; closed_by?: string | null; closed_at?: string | null;
+        };
+        Relationships: [];
+      };
+      qc_inspection_documents: {
+        Row: {
+          id: string;
+          inspection_type: Database['public']['Enums']['qc_inspection_type_enum'];
+          inspection_id: string | null; project_id: string | null;
+          document_type: Database['public']['Enums']['qc_document_type_enum'];
+          file_name: string; storage_path: string | null;
+          uploaded_by: string; uploaded_at: string;
+          status: string; version: string; remarks: string | null;
+        };
+        Insert: {
+          inspection_type: Database['public']['Enums']['qc_inspection_type_enum'];
+          inspection_id?: string | null; project_id?: string | null;
+          document_type: Database['public']['Enums']['qc_document_type_enum'];
+          file_name: string; storage_path?: string | null;
+          uploaded_by: string; uploaded_at?: string;
+          status?: string; version?: string; remarks?: string | null;
+        };
+        Update: {
+          status?: string; version?: string; remarks?: string | null;
+          storage_path?: string | null;
+        };
+        Relationships: [];
+      };
+      release_notes: {
+        Row: {
+          id: string; project_id: string; project_vehicle_line_id: string | null;
+          release_note_number: string;
+          release_status: Database['public']['Enums']['release_status_enum'];
+          release_type: Database['public']['Enums']['release_type_enum'];
+          issued_by: string | null; issued_at: string | null;
+          approved_by: string | null; approved_at: string | null;
+          document_id: string | null; remarks: string | null;
+          created_by: string | null; created_at: string; updated_at: string;
+        };
+        Insert: {
+          project_id: string; project_vehicle_line_id?: string | null;
+          release_note_number?: string;
+          release_status?: Database['public']['Enums']['release_status_enum'];
+          release_type?: Database['public']['Enums']['release_type_enum'];
+          issued_by?: string | null; issued_at?: string | null;
+          approved_by?: string | null; approved_at?: string | null;
+          document_id?: string | null; remarks?: string | null;
+          created_by?: string | null;
+        };
+        Update: {
+          release_status?: Database['public']['Enums']['release_status_enum'];
+          release_type?: Database['public']['Enums']['release_type_enum'];
+          issued_by?: string | null; issued_at?: string | null;
+          approved_by?: string | null; approved_at?: string | null;
+          document_id?: string | null; remarks?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {
@@ -1137,6 +1328,19 @@ export type Database = {
       custody_approval_status: 'not_required' | 'pending_approval' | 'approved' | 'rejected';
       custody_receiver_decision: 'pending' | 'accepted' | 'rejected';
       custody_status: 'draft' | 'pending_approval' | 'approved_for_issue' | 'issued' | 'pending_acceptance' | 'in_custody' | 'installed' | 'returned' | 'consumed_by_project' | 'lost_or_damaged' | 'cancelled';
+      // Phase 8 enums
+      inspection_status_enum: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+      material_inspection_result_enum: 'pending' | 'accepted' | 'accepted_with_comments' | 'rejected' | 'pending_supplier_clarification' | 'pending_rework';
+      ncr_status_enum: 'open' | 'assigned' | 'corrective_action_in_progress' | 'pending_evidence' | 'closed' | 'rejected_closure' | 'cancelled';
+      ncr_severity_enum: 'low' | 'medium' | 'high' | 'critical';
+      project_qc_result_enum: 'pending' | 'passed' | 'passed_with_comments' | 'failed' | 'rework_required';
+      readiness_status_enum: 'not_ready' | 'pending_rework' | 'ready_for_release' | 'released';
+      finding_status_enum: 'open' | 'assigned' | 'rework_in_progress' | 'pending_reinspection' | 'closed' | 'cancelled';
+      finding_type_enum: 'dimensional' | 'surface_finish' | 'functional' | 'documentation' | 'safety' | 'other';
+      qc_inspection_type_enum: 'material_qc' | 'project_qc' | 'release_note' | 'ncr';
+      qc_document_type_enum: 'material_inspection_report' | 'material_photo' | 'ncr_evidence' | 'vehicle_inspection_report' | 'rework_evidence' | 'release_note' | 'other';
+      release_status_enum: 'draft' | 'blocked' | 'ready_to_issue' | 'issued' | 'cancelled';
+      release_type_enum: 'project_release' | 'vehicle_line_release' | 'partial_release';
     };
   };
 };

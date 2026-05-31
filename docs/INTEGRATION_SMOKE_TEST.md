@@ -1,7 +1,7 @@
-# Integration Smoke Test — Phase 7
+# Integration Smoke Test — Phase 8
 
-Last updated: 2026-05-30
-Covers: Phases 0–7 (Foundation through Store / Warehouse / Material Custody)
+Last updated: 2026-05-31
+Covers: Phases 0–8 (Foundation through Material QC / Project QC / Release Note)
 
 ---
 
@@ -30,7 +30,7 @@ Covers: Phases 0–7 (Foundation through Store / Warehouse / Material Custody)
 |---|---|---|
 | `/projects` | Projects | ✅ Built |
 | `/projects/new` | ProjectNew | ✅ Built |
-| `/projects/:id` | ProjectDetail | ✅ Built — 10 tabs (Overview, SO Details, Vehicle Lines, Documents, Procurement, Factory, Store, Approval & Routing, Timeline, Audit) |
+| `/projects/:id` | ProjectDetail | ✅ Built — 11 tabs (Overview, SO Details, Vehicle Lines, Documents, Procurement, Factory, Store, QC & Release, Approval & Routing, Timeline, Audit) |
 | `/admin-approvals` | AdminApprovals | ✅ Built |
 | `/wo-pn-gate` | WoPnGate | ✅ Built |
 
@@ -75,11 +75,29 @@ Covers: Phases 0–7 (Foundation through Store / Warehouse / Material Custody)
 | `/custody/:id` | CustodyDetail | ✅ Built — approval, receiver, actions, timeline |
 | `/vehicle-receiving` | VehicleReceiving | ✅ Redirect → /store/vehicle-receiving |
 
+### Material QC (Phase 8)
+| Route | Page Component | Status |
+|---|---|---|
+| `/material-qc` | MaterialQC | ✅ Built — 6 KPI cards, NCR summary, governance rules |
+| `/material-qc/inspections` | MaterialQcInspections | ✅ Built — status tabs, result filter, inspection table |
+| `/material-qc/inspections/:id` | MaterialQcInspectionDetail | ✅ Built — item details, QC actions, NCR creation |
+| `/material-qc/ncrs` | MaterialNcrs | ✅ Built — status tabs, severity filter, NCR table |
+| `/material-qc/ncrs/:id` | MaterialNcrDetail | ✅ Built — corrective action, closure workflow |
+
+### Project QC & Release Notes (Phase 8)
+| Route | Page Component | Status |
+|---|---|---|
+| `/project-qc` | ProjectQC | ✅ Built — 7 KPI cards, findings summary, release notes |
+| `/project-qc/inspections` | ProjectQcInspections | ✅ Built — status tabs, result filter, readiness badges |
+| `/project-qc/inspections/:id` | ProjectQcInspectionDetail | ✅ Built — QC actions, inline Add Finding form |
+| `/project-qc/findings` | ProjectQcFindings | ✅ Built — status tabs, rework highlighting |
+| `/project-qc/findings/:id` | ProjectQcFindingDetail | ✅ Built — assignment, rework, closure workflow |
+| `/project-qc/release-notes` | ProjectQcReleaseNotes | ✅ Built — status tabs, blocked highlighting |
+| `/project-qc/release-notes/:id` | ProjectQcReleaseNoteDetail | ✅ Built — readiness checklist, issue action |
+
 ### Future Phases (Placeholder)
 | Route | Module | Target Phase |
 |---|---|---|
-| `/material-qc` | Material QC | Phase 8 |
-| `/project-qc` | Project / Vehicle QC | Phase 8 |
 | `/dubai-afs` | Dubai / AFS | Phase 9 |
 | `/after-sales` | After Sales Maintenance | Phase 9 |
 | `/reports` | Reports / Control Tower | Phase 10 |
@@ -114,6 +132,7 @@ Covers: Phases 0–7 (Foundation through Store / Warehouse / Material Custody)
 | Procurement | PR table + PO to Supplier table; cost guarded by canSeeCost | Phase 5 |
 | Factory | Production records + RMRs; Saudi only; Dubai shows AFS message | Phase 6 |
 | Store | Material receipts, vehicle receipts, custody records for this project | Phase 7 |
+| QC & Release | Material QC, NCRs, Project QC, Findings, Release Notes for this project | Phase 8 |
 | Approval & Routing | Approval history, routing, inline approve/reject for admin | Phase 2 |
 | Timeline | Chronological project events | Phase 2 |
 | Audit | Audit log entries; admin only | Phase 1 |
@@ -149,6 +168,26 @@ Covers: Phases 0–7 (Foundation through Store / Warehouse / Material Custody)
 - [ ] Custody approval actions only visible to admin / operations_manager
 - [ ] Custody number auto-formatted as CUS-YYYY-NNNN
 - [ ] Receipt number auto-formatted as RCP-YYYY-NNNN
+
+### Material QC / NCR (Phase 8)
+- [ ] Rejected material inspection creates NCR automatically
+- [ ] NCR number auto-formatted as NCR-YYYY-NNNN
+- [ ] QC users and factory users do NOT see purchase cost values
+- [ ] Closure of NCR requires corrective_action + closure_notes (non-empty)
+- [ ] Admin/Ops can reject a closure (status → rejected_closure)
+- [ ] Material inspection number auto-formatted as MQC-YYYY-NNNN
+
+### Project QC / Findings / Release Note (Phase 8)
+- [ ] Open NCRs block Release Note issuance (readiness checklist item)
+- [ ] Open findings block Release Note issuance (readiness checklist item)
+- [ ] Incomplete rework blocks Release Note issuance (readiness checklist item)
+- [ ] All QC inspections must be ready_for_release before Release Note can be issued
+- [ ] Release Note cannot be issued when release_status = 'blocked'
+- [ ] Factory can mark rework completed; QC must then close the finding
+- [ ] Only admin/ops/qc_user can issue Release Note
+- [ ] Release Note number auto-formatted as RN-YYYY-NNNN
+- [ ] Finding number auto-formatted as FND-YYYY-NNNN
+- [ ] Project QC inspection number auto-formatted as PQC-YYYY-NNNN
 
 ---
 
@@ -232,16 +271,12 @@ Covers: Phases 0–7 (Foundation through Store / Warehouse / Material Custody)
 
 | Page | Placeholder Content |
 |---|---|
-| `/material-qc` | Material QC — Phase 8 |
-| `/project-qc` | Project QC — Phase 8 |
 | `/dubai-afs` | Dubai / AFS — Phase 9 |
 | `/after-sales` | After Sales Maintenance — Phase 9 |
 | `/reports` | Reports / Control Tower — Phase 10 |
 | Sales → Hot Projects | Hot Projects workflow — future phase |
 | Sales → Invoicing Plan | Invoicing Plan — future phase |
 | Sales → Aging | Aging / Receivables — future phase |
-| ProjectDetail → Store → Phase 8 note | Material QC — Phase 8 |
-| ProjectDetail → Factory → Phase 8 note | QC Handover — Phase 8 |
 
 ---
 
@@ -260,6 +295,6 @@ Covers: Phases 0–7 (Foundation through Store / Warehouse / Material Custody)
 | Phase 6 | Factory / Production + Raw Material Requests | ✅ Complete |
 | Phase 6.5 | Integration Stabilization | ✅ Complete |
 | Phase 7 | Store / Warehouse + Vehicle Receiving + Medical Serials + Material Custody | ✅ Complete |
-| Phase 8 | Material QC + Project QC + Release Note | 🔲 Planned |
+| Phase 8 | Material QC + Project QC + NCR + Rework + Release Note | ✅ Complete |
 | Phase 9 | Dubai / AFS + After Sales Maintenance | 🔲 Planned |
 | Phase 10 | Reports / Control Tower / SLA / Data Quality | 🔲 Planned |

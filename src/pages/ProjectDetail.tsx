@@ -4,7 +4,7 @@ import {
   FolderOpen, Loader2, ArrowLeft, Calendar, User, MapPin,
   CheckSquare, AlertCircle, Info, FileText, List, Clock,
   Shield, Edit2, Check, RotateCcw, X, GitBranch,
-  CheckCircle2, Plus, ShoppingCart, Wrench, Truck, Package,
+  CheckCircle2, Plus, ShoppingCart, Wrench, Truck, Package, FileCheck,
 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Badge } from '../components/ui/Badge';
@@ -23,12 +23,14 @@ import {
 import { getMockPRsForProject, getMockPOsForProject } from '../data/mockProcurement';
 import { getMockFactoryRecordsForProject, getMockRMRsForProject } from '../data/mockFactory';
 import { getMockReceiptsForProject, getMockVehicleReceiptsForProject, getMockCustodyForProject } from '../data/mockStore';
+import { getMockMaterialQcForProject, getMockNcrsForProject, getMockProjectQcForProject, getMockFindingsForProject, getMockReleaseNotesForProject } from '../data/mockQc';
 import type {
   Project, ProjectVehicleLine, ProjectDocument,
   ProjectTimelineEvent, ManufacturingLocation, MedicalItems, UserRole,
   ExecutionReference, ProcurementRequest, PurchaseOrder,
   FactoryRecord, RawMaterialRequest,
   StoreReceipt, VehicleReceipt, MaterialCustodyRecord,
+  MaterialQcInspection, MaterialNcr, ProjectQcInspection, ProjectQcFinding, ReleaseNote,
 } from '../types';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -48,7 +50,7 @@ function formatDateTime(iso: string) {
   });
 }
 
-type TabKey = 'overview' | 'details' | 'lines' | 'documents' | 'procurement' | 'factory' | 'store' | 'approval' | 'timeline' | 'audit';
+type TabKey = 'overview' | 'details' | 'lines' | 'documents' | 'procurement' | 'factory' | 'store' | 'qc_release' | 'approval' | 'timeline' | 'audit';
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'overview',     label: 'Overview',           icon: <FolderOpen size={15} /> },
@@ -58,6 +60,7 @@ const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'procurement',  label: 'Procurement',        icon: <ShoppingCart size={15} /> },
   { key: 'factory',      label: 'Factory',            icon: <Wrench size={15} /> },
   { key: 'store',        label: 'Store',              icon: <Package size={15} /> },
+  { key: 'qc_release',   label: 'QC & Release',       icon: <FileCheck size={15} /> },
   { key: 'approval',     label: 'Approval & Routing', icon: <CheckSquare size={15} /> },
   { key: 'timeline',     label: 'Timeline',           icon: <Clock size={15} /> },
   { key: 'audit',        label: 'Audit',              icon: <Shield size={15} /> },
@@ -542,6 +545,11 @@ export function ProjectDetail() {
   const [storeReceipts, setStoreReceipts] = useState<StoreReceipt[]>([]);
   const [storeVehicleReceipts, setStoreVehicleReceipts] = useState<VehicleReceipt[]>([]);
   const [storeCustody, setStoreCustody] = useState<MaterialCustodyRecord[]>([]);
+  const [qcInspections, setQcInspections] = useState<MaterialQcInspection[]>([]);
+  const [qcNcrs, setQcNcrs] = useState<MaterialNcr[]>([]);
+  const [projectQcInspections, setProjectQcInspections] = useState<ProjectQcInspection[]>([]);
+  const [qcFindings, setQcFindings] = useState<ProjectQcFinding[]>([]);
+  const [releaseNotes, setReleaseNotes] = useState<ReleaseNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
@@ -570,6 +578,11 @@ export function ProjectDetail() {
       setStoreReceipts(getMockReceiptsForProject(id));
       setStoreVehicleReceipts(getMockVehicleReceiptsForProject(id));
       setStoreCustody(getMockCustodyForProject(id));
+      setQcInspections(getMockMaterialQcForProject(id));
+      setQcNcrs(getMockNcrsForProject(id));
+      setProjectQcInspections(getMockProjectQcForProject(id));
+      setQcFindings(getMockFindingsForProject(id));
+      setReleaseNotes(getMockReleaseNotesForProject(id));
       setLoading(false);
       return;
     }
@@ -602,6 +615,11 @@ export function ProjectDetail() {
       setStoreReceipts(getMockReceiptsForProject(id ?? ''));
       setStoreVehicleReceipts(getMockVehicleReceiptsForProject(id ?? ''));
       setStoreCustody(getMockCustodyForProject(id ?? ''));
+      setQcInspections(getMockMaterialQcForProject(id ?? ''));
+      setQcNcrs(getMockNcrsForProject(id ?? ''));
+      setProjectQcInspections(getMockProjectQcForProject(id ?? ''));
+      setQcFindings(getMockFindingsForProject(id ?? ''));
+      setReleaseNotes(getMockReleaseNotesForProject(id ?? ''));
       setLoading(false);
     });
   }, [id]);
@@ -1299,11 +1317,212 @@ export function ProjectDetail() {
             )}
           </Card>
 
-          {/* Phase 8 notice */}
-          <div className="bg-sky-50 border border-sky-200 rounded-xl p-4">
-            <p className="text-xs text-sky-800 font-medium">Phase 8 — Material QC</p>
-            <p className="text-xs text-sky-700 mt-1">Material QC workflow will inspect received materials against specifications. QC module coming in Phase 8.</p>
+        </div>
+      )}
+
+      {/* ── QC & Release ──────────────────────────────────────────────────────── */}
+      {activeTab === 'qc_release' && (
+        <div className="space-y-5">
+          {/* Summary KPIs */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {[
+              { label: 'Material QC', value: qcInspections.length, color: 'border-l-sky-400' },
+              { label: 'Open NCRs', value: qcNcrs.filter(n => n.ncr_status !== 'closed' && n.ncr_status !== 'cancelled').length, color: 'border-l-red-400' },
+              { label: 'Project QC', value: projectQcInspections.length, color: 'border-l-indigo-400' },
+              { label: 'Open Findings', value: qcFindings.filter(f => f.finding_status !== 'closed' && f.finding_status !== 'cancelled').length, color: 'border-l-orange-400' },
+              { label: 'Release Notes', value: releaseNotes.length, color: 'border-l-green-400' },
+            ].map(k => (
+              <div key={k.label} className={`bg-white rounded-xl border border-gray-200 border-l-4 shadow-sm p-4 ${k.color}`}>
+                <div className="text-2xl font-bold text-gray-900">{k.value}</div>
+                <div className="text-xs text-gray-600 mt-0.5">{k.label}</div>
+              </div>
+            ))}
           </div>
+
+          {/* Material QC Inspections */}
+          <Card>
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <FileCheck size={15} className="text-sky-500" /> Material QC Inspections
+              </h3>
+              <Link to="/material-qc/inspections"><Button variant="ghost" size="sm">View All</Button></Link>
+            </div>
+            {qcInspections.length === 0 ? (
+              <div className="px-5 py-6 text-sm text-gray-400 text-center">No material QC inspections for this project.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Inspection #</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Status</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Result</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {qcInspections.map(i => (
+                      <tr key={i.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2.5 font-mono text-sky-700">
+                          <Link to={`/material-qc/inspections/${i.id}`} className="hover:underline">{i.inspection_number}</Link>
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-600 capitalize">{i.inspection_status.replace(/_/g, ' ')}</td>
+                        <td className="px-4 py-2.5 text-gray-600 capitalize">{i.inspection_result.replace(/_/g, ' ')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+
+          {/* NCRs */}
+          <Card>
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <AlertCircle size={15} className="text-red-500" /> Material NCRs
+              </h3>
+              <Link to="/material-qc/ncrs"><Button variant="ghost" size="sm">View All</Button></Link>
+            </div>
+            {qcNcrs.length === 0 ? (
+              <div className="px-5 py-6 text-sm text-gray-400 text-center">No NCRs for this project.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">NCR #</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Severity</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {qcNcrs.map(n => (
+                      <tr key={n.id} className={`hover:bg-gray-50 ${n.ncr_status !== 'closed' && n.ncr_status !== 'cancelled' ? 'border-l-4 border-l-red-400' : ''}`}>
+                        <td className="px-4 py-2.5 font-mono text-sky-700">
+                          <Link to={`/material-qc/ncrs/${n.id}`} className="hover:underline">{n.ncr_number}</Link>
+                        </td>
+                        <td className="px-4 py-2.5 capitalize text-gray-600">{n.severity}</td>
+                        <td className="px-4 py-2.5 capitalize text-gray-600">{n.ncr_status.replace(/_/g, ' ')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+
+          {/* Project QC Inspections */}
+          <Card>
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <FileCheck size={15} className="text-indigo-500" /> Project QC Inspections
+              </h3>
+              <Link to="/project-qc/inspections"><Button variant="ghost" size="sm">View All</Button></Link>
+            </div>
+            {projectQcInspections.length === 0 ? (
+              <div className="px-5 py-6 text-sm text-gray-400 text-center">No project QC inspections yet.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Inspection #</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Status</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Result</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Readiness</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {projectQcInspections.map(i => (
+                      <tr key={i.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2.5 font-mono text-sky-700">
+                          <Link to={`/project-qc/inspections/${i.id}`} className="hover:underline">{i.inspection_number}</Link>
+                        </td>
+                        <td className="px-4 py-2.5 capitalize text-gray-600">{i.inspection_status.replace(/_/g, ' ')}</td>
+                        <td className="px-4 py-2.5 capitalize text-gray-600">{i.inspection_result.replace(/_/g, ' ')}</td>
+                        <td className="px-4 py-2.5 capitalize text-gray-600">{i.readiness_status.replace(/_/g, ' ')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+
+          {/* QC Findings */}
+          <Card>
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <AlertCircle size={15} className="text-orange-500" /> QC Findings
+              </h3>
+              <Link to="/project-qc/findings"><Button variant="ghost" size="sm">View All</Button></Link>
+            </div>
+            {qcFindings.length === 0 ? (
+              <div className="px-5 py-6 text-sm text-gray-400 text-center">No QC findings for this project.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Finding #</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Severity</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Status</th>
+                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Rework</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {qcFindings.map(f => (
+                      <tr key={f.id} className={`hover:bg-gray-50 ${f.rework_required && f.finding_status !== 'closed' ? 'border-l-4 border-l-orange-400' : ''}`}>
+                        <td className="px-4 py-2.5 font-mono text-sky-700">
+                          <Link to={`/project-qc/findings/${f.id}`} className="hover:underline">{f.finding_number}</Link>
+                        </td>
+                        <td className="px-4 py-2.5 capitalize text-gray-600">{f.severity}</td>
+                        <td className="px-4 py-2.5 capitalize text-gray-600">{f.finding_status.replace(/_/g, ' ')}</td>
+                        <td className="px-4 py-2.5 text-gray-600">
+                          {f.rework_required
+                            ? <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${f.rework_completed_at ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                {f.rework_completed_at ? 'Done' : 'Required'}
+                              </span>
+                            : <span className="text-xs text-gray-400">No</span>
+                          }
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+
+          {/* Release Notes */}
+          <Card>
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <FileCheck size={15} className="text-green-500" /> Release Notes
+              </h3>
+              <Link to="/project-qc/release-notes"><Button variant="ghost" size="sm">View All</Button></Link>
+            </div>
+            {releaseNotes.length === 0 ? (
+              <div className="px-5 py-6 text-sm text-gray-400 text-center">No release notes for this project.</div>
+            ) : (
+              <div className="space-y-3 p-4">
+                {releaseNotes.map(rn => (
+                  <div key={rn.id} className={`flex items-center justify-between p-3 rounded-lg border ${rn.release_status === 'issued' ? 'bg-green-50 border-green-200' : rn.release_status === 'blocked' ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
+                    <div>
+                      <p className="text-sm font-mono font-medium text-gray-900">{rn.release_note_number}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 capitalize">{rn.release_type.replace(/_/g, ' ')} · {rn.release_status.replace(/_/g, ' ')}</p>
+                      {rn.release_status === 'issued' && rn.issued_at && (
+                        <p className="text-xs text-green-700 mt-0.5">Issued {new Date(rn.issued_at).toLocaleDateString('en-GB')}</p>
+                      )}
+                    </div>
+                    <Link to={`/project-qc/release-notes/${rn.id}`}>
+                      <Button variant="ghost" size="sm">View</Button>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
         </div>
       )}
 
