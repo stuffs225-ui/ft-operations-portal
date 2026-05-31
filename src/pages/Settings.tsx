@@ -590,7 +590,7 @@ export function Settings() {
       supabase.from('material_categories').select('id,name,requires_serial,description').eq('is_active', true).order('name'),
       supabase.from('supplier_categories').select('id,name,description').eq('is_active', true).order('name'),
       supabase.from('document_types').select('id,name,required_at,description').eq('is_active', true).order('name'),
-      supabase.from('sla_rules').select('id,trigger_event,required_action,sla_hours,escalate_to').eq('is_active', true),
+      supabase.from('sla_rule_templates').select('id,trigger_event,required_action,sla_hours,escalate_to').eq('is_active', true),
       supabase.from('root_cause_categories').select('id,name,description').eq('is_active', true).order('name'),
       supabase.from('store_locations').select('id,name,code,capacity,description').eq('is_active', true).order('name'),
       supabase.from('wo_statuses').select('id,name,color,description,sort_order').eq('is_active', true).order('sort_order'),

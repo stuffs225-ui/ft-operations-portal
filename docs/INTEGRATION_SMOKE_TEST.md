@@ -1,7 +1,7 @@
-# Integration Smoke Test — Phase 9.5
+# Integration Smoke Test — Phase 10.5
 
 Last updated: 2026-05-31
-Covers: Phases 0–9.5 (Foundation through Dubai / AFS / After Sales Integration Stabilization)
+Covers: Phases 0–10.5 (Foundation through Final Integration Stabilization, Architecture Review, and Production Readiness Gap Analysis)
 
 ---
 
@@ -385,6 +385,58 @@ Covers: Phases 0–9.5 (Foundation through Dubai / AFS / After Sales Integration
 - `npm run build` passes with zero TypeScript errors
 - No outdated "Coming in Phase 9" placeholder text in any src/ file
 
+### Phase 10 — Reports & Control Tower
+
+1. **Reports Hub** (`/reports`)
+   - Verify all 15 report cards render in their grouped sections
+   - Sign in as factory_user → financial report cards (Procurement Costs) should not be visible
+   - Sign in as admin → all 15+ cards visible
+
+2. **Control Tower** (`/control-tower`)
+   - Verify stat bar shows correct KPI counts (using mock data)
+   - Verify critical project (proj-007 Abu Dhabi Police) appears in lifecycle health section
+
+3. **SLA Report** (`/reports/sla`)
+   - Verify overdue breaches tab shows events where `due_at` < now
+   - Verify `getSlaStatus` correctly classifies overdue vs due_soon vs within_sla
+
+4. **Health Scores** (`/reports/health-scores`)
+   - Sign in as factory_user → Projects tab should be hidden (financial visibility)
+   - Sign in as admin → all 3 tabs (Projects, Departments, Suppliers) visible
+   - proj-007 should appear as `critical` with score 28
+
+5. **Data Quality Report** (`/reports/data-quality`)
+   - Verify 23 checks load; module filter and severity filter work
+   - Each check shows a "Fix" link that navigates to the correct module route
+
+6. **Issues & CAPA** (`/reports/issues`, `/reports/capa`)
+   - Verify expandable row shows details for iss-001
+   - Close action only visible to admin/operations_manager/qc_user
+   - CAPA effectiveness check only visible when status = `closed`
+
+7. **ProjectDetail Health Card** (`/projects/proj-001`)
+   - Overview tab should show a health card with score + band
+   - "Full Report →" link goes to /reports/projects
+   - proj-007 should show critical band (red)
+
+### Phase 10.5 — Stabilization Verification
+
+**Issues found and fixed:**
+1. **SLA schema conflict** — Migration 006 created `sla_rules` with legacy schema (trigger_event/required_action/sla_hours/escalate_to). Migration 051 now renames the legacy table to `sla_rule_templates` before creating the Phase 10 `sla_rules` table. Settings.tsx updated to query `sla_rule_templates`.
+2. **Orphan file** — `src/pages/QuotationRequests.tsx` was never registered as a route or imported. Deleted.
+3. **Dashboard subtitle** — Stale "static data, Phase 0" text updated to "Live operational status across all modules".
+4. **database.ts** — Added `sla_rule_templates` type definition alongside `sla_rules`.
+
+**Verified clean after Phase 10.5:**
+- `npm run build` passes with zero TypeScript errors
+- All 86 routes registered and page files exist
+- SLA migration conflict fully resolved
+- Settings admin UI still shows legacy SLA rule templates (from `sla_rule_templates` table)
+- Reports SLA page uses Phase 10 `sla_rules` table (new schema)
+- Production readiness gaps documented in `docs/PRODUCTION_READINESS_GAPS.md`
+- Role visibility matrix documented in `docs/ROLE_VISIBILITY_MATRIX.md`
+- Deployment pre-checklist documented in `docs/DEPLOYMENT_PRECHECKLIST.md`
+
 ### Pre-Phase 7 Regression Check
 
 2. **Sales Workspace** (`/sales`)
@@ -420,7 +472,7 @@ Covers: Phases 0–9.5 (Foundation through Dubai / AFS / After Sales Integration
 
 | Page | Placeholder Content |
 |---|---|
-| `/reports` | Reports / Control Tower — Phase 10 |
+| `/reports/sales` → Aging tab | Aging / Receivables full report — Phase 11 |
 | Sales → Hot Projects | Hot Projects workflow — future phase |
 | Sales → Invoicing Plan | Invoicing Plan — future phase |
 | Sales → Aging | Aging / Receivables — future phase |
@@ -447,3 +499,4 @@ Covers: Phases 0–9.5 (Foundation through Dubai / AFS / After Sales Integration
 | Phase 9 | Dubai / AFS + After Sales Maintenance | ✅ Complete |
 | Phase 9.5 | Dubai / AFS / After Sales Integration Stabilization | ✅ Complete |
 | Phase 10 | Reports / Control Tower / SLA / Data Quality / Health Scores / Issues / CAPA | ✅ Complete |
+| Phase 10.5 | Final Integration Stabilization, Architecture Review, Production Readiness | ✅ Complete |
