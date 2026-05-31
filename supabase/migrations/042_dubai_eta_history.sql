@@ -20,13 +20,13 @@ ALTER TABLE dubai_eta_history ENABLE ROW LEVEL SECURITY;
 
 -- admin / ops: read + write
 CREATE POLICY deh_admin_full ON dubai_eta_history FOR ALL TO authenticated
-  USING (auth.jwt() ->> 'role' IN ('admin', 'operations_manager'))
-  WITH CHECK (auth.jwt() ->> 'role' IN ('admin', 'operations_manager'));
+  USING (public.current_user_role() IN ('admin', 'operations_manager'))
+  WITH CHECK (public.current_user_role() IN ('admin', 'operations_manager'));
 
 -- afs_user: read
 CREATE POLICY deh_afs_select ON dubai_eta_history FOR SELECT TO authenticated
-  USING (auth.jwt() ->> 'role' = 'afs_user');
+  USING (public.current_user_role() = 'afs_user');
 
 -- others: read
 CREATE POLICY deh_others_select ON dubai_eta_history FOR SELECT TO authenticated
-  USING (auth.jwt() ->> 'role' NOT IN ('admin', 'operations_manager', 'afs_user'));
+  USING (public.current_user_role() NOT IN ('admin', 'operations_manager', 'afs_user'));

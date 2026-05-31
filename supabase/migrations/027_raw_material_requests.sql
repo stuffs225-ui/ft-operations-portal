@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS production_raw_material_requests (
   id                        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id                uuid REFERENCES projects(id) ON DELETE SET NULL,
   project_vehicle_line_id   uuid REFERENCES project_vehicle_lines(id) ON DELETE SET NULL,
-  wo_reference_id           uuid REFERENCES execution_references(id) ON DELETE SET NULL,
+  wo_reference_id           uuid REFERENCES project_execution_references(id) ON DELETE SET NULL,
   request_type              raw_material_request_type NOT NULL,
   request_number            text NOT NULL UNIQUE,
   status                    raw_material_request_status NOT NULL DEFAULT 'draft',

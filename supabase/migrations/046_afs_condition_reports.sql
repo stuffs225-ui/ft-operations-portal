@@ -39,12 +39,12 @@ CREATE TRIGGER trg_acr_updated_at BEFORE UPDATE ON afs_condition_reports
 ALTER TABLE afs_condition_reports ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY acr_admin_full ON afs_condition_reports FOR ALL TO authenticated
-  USING (auth.jwt() ->> 'role' IN ('admin', 'operations_manager'))
-  WITH CHECK (auth.jwt() ->> 'role' IN ('admin', 'operations_manager'));
+  USING (public.current_user_role() IN ('admin', 'operations_manager'))
+  WITH CHECK (public.current_user_role() IN ('admin', 'operations_manager'));
 
 CREATE POLICY acr_afs_all ON afs_condition_reports FOR ALL TO authenticated
-  USING (auth.jwt() ->> 'role' = 'afs_user')
-  WITH CHECK (auth.jwt() ->> 'role' = 'afs_user');
+  USING (public.current_user_role() = 'afs_user')
+  WITH CHECK (public.current_user_role() = 'afs_user');
 
 CREATE POLICY acr_others_select ON afs_condition_reports FOR SELECT TO authenticated
-  USING (auth.jwt() ->> 'role' NOT IN ('admin', 'operations_manager', 'afs_user'));
+  USING (public.current_user_role() NOT IN ('admin', 'operations_manager', 'afs_user'));

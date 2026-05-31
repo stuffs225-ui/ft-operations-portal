@@ -34,15 +34,15 @@ CREATE INDEX idx_ami_status ON afs_missing_items(missing_item_status);
 ALTER TABLE afs_missing_items ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY ami_admin_full ON afs_missing_items FOR ALL TO authenticated
-  USING (auth.jwt() ->> 'role' IN ('admin', 'operations_manager'))
-  WITH CHECK (auth.jwt() ->> 'role' IN ('admin', 'operations_manager'));
+  USING (public.current_user_role() IN ('admin', 'operations_manager'))
+  WITH CHECK (public.current_user_role() IN ('admin', 'operations_manager'));
 
 CREATE POLICY ami_afs_write ON afs_missing_items FOR ALL TO authenticated
-  USING (auth.jwt() ->> 'role' = 'afs_user')
-  WITH CHECK (auth.jwt() ->> 'role' = 'afs_user');
+  USING (public.current_user_role() = 'afs_user')
+  WITH CHECK (public.current_user_role() = 'afs_user');
 
 CREATE POLICY ami_store_select ON afs_missing_items FOR SELECT TO authenticated
-  USING (auth.jwt() ->> 'role' = 'store_user');
+  USING (public.current_user_role() = 'store_user');
 
 CREATE POLICY ami_others_select ON afs_missing_items FOR SELECT TO authenticated
-  USING (auth.jwt() ->> 'role' NOT IN ('admin', 'operations_manager', 'afs_user', 'store_user'));
+  USING (public.current_user_role() NOT IN ('admin', 'operations_manager', 'afs_user', 'store_user'));

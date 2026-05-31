@@ -23,5 +23,5 @@ CREATE POLICY "supplier_scorecards_read" ON supplier_scorecards
 CREATE POLICY "supplier_scorecards_write" ON supplier_scorecards
   FOR ALL TO authenticated
   USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'operations_manager', 'procurement_user'))
+    public.current_user_role() IN ('admin', 'operations_manager', 'procurement_user')
   );

@@ -38,12 +38,12 @@ CREATE TRIGGER trg_apdr_updated_at BEFORE UPDATE ON afs_predelivery_reports
 ALTER TABLE afs_predelivery_reports ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY apdr_admin_full ON afs_predelivery_reports FOR ALL TO authenticated
-  USING (auth.jwt() ->> 'role' IN ('admin', 'operations_manager'))
-  WITH CHECK (auth.jwt() ->> 'role' IN ('admin', 'operations_manager'));
+  USING (public.current_user_role() IN ('admin', 'operations_manager'))
+  WITH CHECK (public.current_user_role() IN ('admin', 'operations_manager'));
 
 CREATE POLICY apdr_afs_write ON afs_predelivery_reports FOR ALL TO authenticated
-  USING (auth.jwt() ->> 'role' IN ('afs_user', 'qc_user'))
-  WITH CHECK (auth.jwt() ->> 'role' IN ('afs_user', 'qc_user'));
+  USING (public.current_user_role() IN ('afs_user', 'qc_user'))
+  WITH CHECK (public.current_user_role() IN ('afs_user', 'qc_user'));
 
 CREATE POLICY apdr_others_select ON afs_predelivery_reports FOR SELECT TO authenticated
-  USING (auth.jwt() ->> 'role' NOT IN ('admin', 'operations_manager', 'afs_user', 'qc_user'));
+  USING (public.current_user_role() NOT IN ('admin', 'operations_manager', 'afs_user', 'qc_user'));

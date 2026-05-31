@@ -32,7 +32,7 @@ CREATE POLICY "capa_read" ON capa_records
 CREATE POLICY "capa_write" ON capa_records
   FOR ALL TO authenticated
   USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'operations_manager'))
+    public.current_user_role() IN ('admin', 'operations_manager')
     OR owner_id = auth.uid()
   );
 

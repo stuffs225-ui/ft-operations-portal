@@ -21,5 +21,5 @@ CREATE POLICY "dept_health_read" ON department_health_scores
 CREATE POLICY "dept_health_admin_write" ON department_health_scores
   FOR ALL TO authenticated
   USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'operations_manager'))
+    public.current_user_role() IN ('admin', 'operations_manager')
   );

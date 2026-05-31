@@ -41,6 +41,6 @@ CREATE TRIGGER trg_pqc_number BEFORE INSERT ON project_qc_inspections
 ALTER TABLE project_qc_inspections ENABLE ROW LEVEL SECURITY;
 CREATE POLICY pqc_select ON project_qc_inspections FOR SELECT TO authenticated USING (true);
 CREATE POLICY pqc_insert ON project_qc_inspections FOR INSERT TO authenticated
-  WITH CHECK (auth.jwt() ->> 'role' IN ('admin', 'operations_manager', 'qc_user'));
+  WITH CHECK (public.current_user_role() IN ('admin', 'operations_manager', 'qc_user'));
 CREATE POLICY pqc_update ON project_qc_inspections FOR UPDATE TO authenticated
-  USING (auth.jwt() ->> 'role' IN ('admin', 'operations_manager', 'qc_user', 'factory_user'));
+  USING (public.current_user_role() IN ('admin', 'operations_manager', 'qc_user', 'factory_user'));

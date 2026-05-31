@@ -48,6 +48,6 @@ CREATE TRIGGER trg_ncr_number BEFORE INSERT ON material_ncrs
 ALTER TABLE material_ncrs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY ncr_select ON material_ncrs FOR SELECT TO authenticated USING (true);
 CREATE POLICY ncr_insert ON material_ncrs FOR INSERT TO authenticated
-  WITH CHECK (auth.jwt() ->> 'role' IN ('admin', 'operations_manager', 'qc_user'));
+  WITH CHECK (public.current_user_role() IN ('admin', 'operations_manager', 'qc_user'));
 CREATE POLICY ncr_update ON material_ncrs FOR UPDATE TO authenticated
-  USING (auth.jwt() ->> 'role' IN ('admin', 'operations_manager', 'qc_user'));
+  USING (public.current_user_role() IN ('admin', 'operations_manager', 'qc_user'));

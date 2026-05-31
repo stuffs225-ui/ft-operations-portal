@@ -48,6 +48,6 @@ CREATE TRIGGER trg_fnd_number BEFORE INSERT ON project_qc_findings
 ALTER TABLE project_qc_findings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY fnd_select ON project_qc_findings FOR SELECT TO authenticated USING (true);
 CREATE POLICY fnd_insert ON project_qc_findings FOR INSERT TO authenticated
-  WITH CHECK (auth.jwt() ->> 'role' IN ('admin', 'operations_manager', 'qc_user'));
+  WITH CHECK (public.current_user_role() IN ('admin', 'operations_manager', 'qc_user'));
 CREATE POLICY fnd_update ON project_qc_findings FOR UPDATE TO authenticated
-  USING (auth.jwt() ->> 'role' IN ('admin', 'operations_manager', 'qc_user', 'factory_user'));
+  USING (public.current_user_role() IN ('admin', 'operations_manager', 'qc_user', 'factory_user'));
