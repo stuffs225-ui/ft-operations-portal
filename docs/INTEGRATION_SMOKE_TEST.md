@@ -1,7 +1,7 @@
-# Integration Smoke Test — Phase 8
+# Integration Smoke Test — Phase 8.5
 
 Last updated: 2026-05-31
-Covers: Phases 0–8 (Foundation through Material QC / Project QC / Release Note)
+Covers: Phases 0–8.5 (Foundation through QC / Release Integration Stabilization)
 
 ---
 
@@ -236,6 +236,21 @@ Covers: Phases 0–8 (Foundation through Material QC / Project QC / Release Note
    - Sign in as admin → custody pending approval task visible
    - Sign in as factory_user → custody pending acceptance task visible
 
+### Phase 8.5 — Stabilization Verification
+
+**Issues found and fixed:**
+1. **ProjectDetail Factory tab** — Removed outdated "Phase 8 — QC Handover" notice. Replaced with navigation link to QC & Release tab.
+2. **mockQc.ts pqc-001, pqc-002** — Updated readiness_status from `not_ready` to `released` for proj-005 inspections. Without this fix, the Release Note detail for rn-002 would show red checklist items despite the note already being issued.
+
+**Verified clean:**
+- All 12 Phase 8 routes registered and page files exist
+- ProjectDetail has 11 tabs including QC & Release (between Store and Approval & Routing)
+- Release Note blocking logic: 4 conditions checked, all logically correct
+- Material QC governance: rejection reason required, NCR link shown, medical serial section conditional, no purchase cost shown
+- Dashboard: 33 KPI cards, no duplicates, ClipboardCheck + FileCheck in ICON_MAP
+- Action Inbox: 5 QC tasks (task-qc-001 to task-qc-005) present alongside all prior tasks
+- No outdated "Coming in Phase 8" placeholder text in any src/ file
+
 ### Pre-Phase 7 Regression Check
 
 2. **Sales Workspace** (`/sales`)
@@ -296,5 +311,6 @@ Covers: Phases 0–8 (Foundation through Material QC / Project QC / Release Note
 | Phase 6.5 | Integration Stabilization | ✅ Complete |
 | Phase 7 | Store / Warehouse + Vehicle Receiving + Medical Serials + Material Custody | ✅ Complete |
 | Phase 8 | Material QC + Project QC + NCR + Rework + Release Note | ✅ Complete |
+| Phase 8.5 | QC / Release Integration Stabilization | ✅ Complete |
 | Phase 9 | Dubai / AFS + After Sales Maintenance | 🔲 Planned |
 | Phase 10 | Reports / Control Tower / SLA / Data Quality | 🔲 Planned |

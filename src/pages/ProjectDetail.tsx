@@ -1146,10 +1146,12 @@ export function ProjectDetail() {
                 )}
               </Card>
 
-              {/* Phase 8 note */}
               <Card className="p-4 bg-sky-50 border-sky-200">
-                <p className="text-xs text-sky-800 font-medium">Phase 8 — QC Handover</p>
-                <p className="text-xs text-sky-700 mt-1">When production is completed, the "Send to QC" action will be available here. QC module coming in Phase 8.</p>
+                <p className="text-xs text-sky-800 font-medium">QC & Release</p>
+                <p className="text-xs text-sky-700 mt-1">
+                  When production is completed, view QC inspections, findings, and Release Note status in the{' '}
+                  <button onClick={() => setActiveTab('qc_release')} className="underline font-semibold hover:text-sky-900">QC &amp; Release tab</button>.
+                </p>
               </Card>
             </>
           )}
