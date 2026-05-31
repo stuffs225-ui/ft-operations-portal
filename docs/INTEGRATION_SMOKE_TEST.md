@@ -30,7 +30,7 @@ Covers: Phases 0–8.5 (Foundation through QC / Release Integration Stabilizatio
 |---|---|---|
 | `/projects` | Projects | ✅ Built |
 | `/projects/new` | ProjectNew | ✅ Built |
-| `/projects/:id` | ProjectDetail | ✅ Built — 11 tabs (Overview, SO Details, Vehicle Lines, Documents, Procurement, Factory, Store, QC & Release, Approval & Routing, Timeline, Audit) |
+| `/projects/:id` | ProjectDetail | ✅ Built — 12 tabs (Overview, SO Details, Vehicle Lines, Documents, Procurement, Factory, Store, QC & Release, Dubai / AFS, Approval & Routing, Timeline, Audit) |
 | `/admin-approvals` | AdminApprovals | ✅ Built |
 | `/wo-pn-gate` | WoPnGate | ✅ Built |
 
@@ -95,11 +95,31 @@ Covers: Phases 0–8.5 (Foundation through QC / Release Integration Stabilizatio
 | `/project-qc/release-notes` | ProjectQcReleaseNotes | ✅ Built — status tabs, blocked highlighting |
 | `/project-qc/release-notes/:id` | ProjectQcReleaseNoteDetail | ✅ Built — readiness checklist, issue action |
 
+### Dubai / AFS (Phase 9)
+| Route | Page Component | Status |
+|---|---|---|
+| `/dubai-afs` | DubaiAFS | ✅ Built — 8 KPI cards, follow-up list, governance rules |
+| `/dubai-afs/projects` | DubaiAfsProjects | ✅ Built — status tabs, follow-up list |
+| `/dubai-afs/projects/:id` | DubaiAfsProjectDetail | ✅ Built — ETA update, ETA history |
+| `/dubai-afs/eta` | DubaiAfsEta | ✅ Built — ETA tracking table |
+| `/dubai-afs/arrival-reports` | DubaiAfsArrivalReports | ✅ Built — status tabs, arrival list |
+| `/dubai-afs/arrival-reports/:id` | DubaiAfsArrivalReportDetail | ✅ Built — missing items, add item form |
+| `/dubai-afs/missing-items` | DubaiAfsMissingItems | ✅ Built — status tabs, missing items list |
+| `/dubai-afs/predelivery-reports` | DubaiAfsPredeliveryReports | ✅ Built — ready/not-ready tabs |
+| `/dubai-afs/predelivery-reports/:id` | DubaiAfsPredeliveryReportDetail | ✅ Built — readiness checklist, delivery approve |
+| `/dubai-afs/condition-reports` | DubaiAfsConditionReports | ✅ Built — condition report list |
+
+### After Sales Maintenance (Phase 9)
+| Route | Page Component | Status |
+|---|---|---|
+| `/after-sales` | AfterSales | ✅ Built — 6 KPI cards, recent requests |
+| `/after-sales/maintenance` | AfterSalesMaintenance | ✅ Built — status tabs, maintenance list |
+| `/after-sales/maintenance/new` | AfterSalesMaintenanceNew | ✅ Built — 4-step wizard |
+| `/after-sales/maintenance/:id` | AfterSalesMaintenanceDetail | ✅ Built — inspection, parts, resolution actions |
+
 ### Future Phases (Placeholder)
 | Route | Module | Target Phase |
 |---|---|---|
-| `/dubai-afs` | Dubai / AFS | Phase 9 |
-| `/after-sales` | After Sales Maintenance | Phase 9 |
 | `/reports` | Reports / Control Tower | Phase 10 |
 
 ---
@@ -133,6 +153,7 @@ Covers: Phases 0–8.5 (Foundation through QC / Release Integration Stabilizatio
 | Factory | Production records + RMRs; Saudi only; Dubai shows AFS message | Phase 6 |
 | Store | Material receipts, vehicle receipts, custody records for this project | Phase 7 |
 | QC & Release | Material QC, NCRs, Project QC, Findings, Release Notes for this project | Phase 8 |
+| Dubai / AFS | Dubai follow-ups, arrival reports, pre-delivery reports, maintenance requests | Phase 9 |
 | Approval & Routing | Approval history, routing, inline approve/reject for admin | Phase 2 |
 | Timeline | Chronological project events | Phase 2 |
 | Audit | Audit log entries; admin only | Phase 1 |
@@ -312,5 +333,5 @@ Covers: Phases 0–8.5 (Foundation through QC / Release Integration Stabilizatio
 | Phase 7 | Store / Warehouse + Vehicle Receiving + Medical Serials + Material Custody | ✅ Complete |
 | Phase 8 | Material QC + Project QC + NCR + Rework + Release Note | ✅ Complete |
 | Phase 8.5 | QC / Release Integration Stabilization | ✅ Complete |
-| Phase 9 | Dubai / AFS + After Sales Maintenance | 🔲 Planned |
+| Phase 9 | Dubai / AFS + After Sales Maintenance | ✅ Complete |
 | Phase 10 | Reports / Control Tower / SLA / Data Quality | 🔲 Planned |

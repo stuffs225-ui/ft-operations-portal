@@ -55,7 +55,19 @@ import { ProjectQcFindingDetail } from '../pages/ProjectQcFindingDetail';
 import { ProjectQcReleaseNotes } from '../pages/ProjectQcReleaseNotes';
 import { ProjectQcReleaseNoteDetail } from '../pages/ProjectQcReleaseNoteDetail';
 import { DubaiAFS } from '../pages/DubaiAFS';
+import { DubaiAfsProjects } from '../pages/DubaiAfsProjects';
+import { DubaiAfsProjectDetail } from '../pages/DubaiAfsProjectDetail';
+import { DubaiAfsEta } from '../pages/DubaiAfsEta';
+import { DubaiAfsArrivalReports } from '../pages/DubaiAfsArrivalReports';
+import { DubaiAfsArrivalReportDetail } from '../pages/DubaiAfsArrivalReportDetail';
+import { DubaiAfsMissingItems } from '../pages/DubaiAfsMissingItems';
+import { DubaiAfsPredeliveryReports } from '../pages/DubaiAfsPredeliveryReports';
+import { DubaiAfsPredeliveryReportDetail } from '../pages/DubaiAfsPredeliveryReportDetail';
+import { DubaiAfsConditionReports } from '../pages/DubaiAfsConditionReports';
 import { AfterSales } from '../pages/AfterSales';
+import { AfterSalesMaintenance } from '../pages/AfterSalesMaintenance';
+import { AfterSalesMaintenanceNew } from '../pages/AfterSalesMaintenanceNew';
+import { AfterSalesMaintenanceDetail } from '../pages/AfterSalesMaintenanceDetail';
 import { Reports } from '../pages/Reports';
 import { Settings } from '../pages/Settings';
 import { AdminUsers } from '../pages/AdminUsers';
@@ -125,7 +137,19 @@ export function App() {
             <Route path="project-qc/release-notes" element={<ProjectQcReleaseNotes />} />
             <Route path="project-qc/release-notes/:id" element={<ProjectQcReleaseNoteDetail />} />
             <Route path="dubai-afs" element={<DubaiAFS />} />
+            <Route path="dubai-afs/projects" element={<DubaiAfsProjects />} />
+            <Route path="dubai-afs/projects/:id" element={<DubaiAfsProjectDetail />} />
+            <Route path="dubai-afs/eta" element={<DubaiAfsEta />} />
+            <Route path="dubai-afs/arrival-reports" element={<DubaiAfsArrivalReports />} />
+            <Route path="dubai-afs/arrival-reports/:id" element={<DubaiAfsArrivalReportDetail />} />
+            <Route path="dubai-afs/missing-items" element={<DubaiAfsMissingItems />} />
+            <Route path="dubai-afs/predelivery-reports" element={<DubaiAfsPredeliveryReports />} />
+            <Route path="dubai-afs/predelivery-reports/:id" element={<DubaiAfsPredeliveryReportDetail />} />
+            <Route path="dubai-afs/condition-reports" element={<DubaiAfsConditionReports />} />
             <Route path="after-sales" element={<AfterSales />} />
+            <Route path="after-sales/maintenance" element={<AfterSalesMaintenance />} />
+            <Route path="after-sales/maintenance/new" element={<AfterSalesMaintenanceNew />} />
+            <Route path="after-sales/maintenance/:id" element={<AfterSalesMaintenanceDetail />} />
             <Route path="reports" element={<Reports />} />
             <Route path="settings" element={<Settings />} />
             <Route path="admin/users" element={<AdminUsers />} />

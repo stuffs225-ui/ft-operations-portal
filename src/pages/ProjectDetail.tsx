@@ -24,6 +24,7 @@ import { getMockPRsForProject, getMockPOsForProject } from '../data/mockProcurem
 import { getMockFactoryRecordsForProject, getMockRMRsForProject } from '../data/mockFactory';
 import { getMockReceiptsForProject, getMockVehicleReceiptsForProject, getMockCustodyForProject } from '../data/mockStore';
 import { getMockMaterialQcForProject, getMockNcrsForProject, getMockProjectQcForProject, getMockFindingsForProject, getMockReleaseNotesForProject } from '../data/mockQc';
+import { getMockDubaiFollowupsForProject, getMockArrivalReportsForProject, getMockPredeliveryReportsForProject, getMockMaintenanceRequestsForProject } from '../data/mockAfs';
 import type {
   Project, ProjectVehicleLine, ProjectDocument,
   ProjectTimelineEvent, ManufacturingLocation, MedicalItems, UserRole,
@@ -31,6 +32,7 @@ import type {
   FactoryRecord, RawMaterialRequest,
   StoreReceipt, VehicleReceipt, MaterialCustodyRecord,
   MaterialQcInspection, MaterialNcr, ProjectQcInspection, ProjectQcFinding, ReleaseNote,
+  DubaiProjectFollowup, AfsArrivalReport, AfsPredeliveryReport, AfsMaintenanceRequest,
 } from '../types';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -50,7 +52,7 @@ function formatDateTime(iso: string) {
   });
 }
 
-type TabKey = 'overview' | 'details' | 'lines' | 'documents' | 'procurement' | 'factory' | 'store' | 'qc_release' | 'approval' | 'timeline' | 'audit';
+type TabKey = 'overview' | 'details' | 'lines' | 'documents' | 'procurement' | 'factory' | 'store' | 'qc_release' | 'dubai_afs' | 'approval' | 'timeline' | 'audit';
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'overview',     label: 'Overview',           icon: <FolderOpen size={15} /> },
@@ -61,6 +63,7 @@ const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'factory',      label: 'Factory',            icon: <Wrench size={15} /> },
   { key: 'store',        label: 'Store',              icon: <Package size={15} /> },
   { key: 'qc_release',   label: 'QC & Release',       icon: <FileCheck size={15} /> },
+  { key: 'dubai_afs',    label: 'Dubai / AFS',        icon: <Truck size={15} /> },
   { key: 'approval',     label: 'Approval & Routing', icon: <CheckSquare size={15} /> },
   { key: 'timeline',     label: 'Timeline',           icon: <Clock size={15} /> },
   { key: 'audit',        label: 'Audit',              icon: <Shield size={15} /> },
@@ -550,6 +553,10 @@ export function ProjectDetail() {
   const [projectQcInspections, setProjectQcInspections] = useState<ProjectQcInspection[]>([]);
   const [qcFindings, setQcFindings] = useState<ProjectQcFinding[]>([]);
   const [releaseNotes, setReleaseNotes] = useState<ReleaseNote[]>([]);
+  const [dubaiFollowups, setDubaiFollowups] = useState<DubaiProjectFollowup[]>([]);
+  const [afsArrivalReports, setAfsArrivalReports] = useState<AfsArrivalReport[]>([]);
+  const [afsPredeliveryReports, setAfsPredeliveryReports] = useState<AfsPredeliveryReport[]>([]);
+  const [afsMaintenanceRequests, setAfsMaintenanceRequests] = useState<AfsMaintenanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
@@ -583,6 +590,10 @@ export function ProjectDetail() {
       setProjectQcInspections(getMockProjectQcForProject(id));
       setQcFindings(getMockFindingsForProject(id));
       setReleaseNotes(getMockReleaseNotesForProject(id));
+      setDubaiFollowups(getMockDubaiFollowupsForProject(id));
+      setAfsArrivalReports(getMockArrivalReportsForProject(id));
+      setAfsPredeliveryReports(getMockPredeliveryReportsForProject(id));
+      setAfsMaintenanceRequests(getMockMaintenanceRequestsForProject(id));
       setLoading(false);
       return;
     }
@@ -620,6 +631,10 @@ export function ProjectDetail() {
       setProjectQcInspections(getMockProjectQcForProject(id ?? ''));
       setQcFindings(getMockFindingsForProject(id ?? ''));
       setReleaseNotes(getMockReleaseNotesForProject(id ?? ''));
+      setDubaiFollowups(getMockDubaiFollowupsForProject(id ?? ''));
+      setAfsArrivalReports(getMockArrivalReportsForProject(id ?? ''));
+      setAfsPredeliveryReports(getMockPredeliveryReportsForProject(id ?? ''));
+      setAfsMaintenanceRequests(getMockMaintenanceRequestsForProject(id ?? ''));
       setLoading(false);
     });
   }, [id]);
@@ -1520,6 +1535,138 @@ export function ProjectDetail() {
                     <Link to={`/project-qc/release-notes/${rn.id}`}>
                       <Button variant="ghost" size="sm">View</Button>
                     </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* ── Dubai / AFS ──────────────────────────────────────────────────────── */}
+      {activeTab === 'dubai_afs' && (
+        <div className="space-y-5">
+          {project.manufacturing_location !== 'dubai' && (
+            <div className="bg-sky-50 border border-sky-200 rounded-xl px-5 py-4 text-sm text-sky-800">
+              This project is routed through the <strong>Saudi factory</strong> workflow. Dubai / AFS tracking applies to Dubai-route projects only.
+            </div>
+          )}
+
+          {/* KPI strip */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: 'Dubai Follow-ups', value: dubaiFollowups.length, color: 'border-l-sky-400' },
+              { label: 'Arrival Reports', value: afsArrivalReports.length, color: 'border-l-green-400' },
+              { label: 'Pre-Delivery Reports', value: afsPredeliveryReports.length, color: 'border-l-amber-400' },
+              { label: 'Maintenance Requests', value: afsMaintenanceRequests.length, color: 'border-l-purple-400' },
+            ].map(k => (
+              <Card key={k.label} className={`p-4 border-l-4 ${k.color}`}>
+                <div className="text-xl font-bold text-gray-900">{k.value}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{k.label}</div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Dubai Follow-ups */}
+          <Card>
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700">Dubai Follow-ups</h3>
+              <Link to="/dubai-afs/projects"><Button variant="ghost" size="sm">View All</Button></Link>
+            </div>
+            {dubaiFollowups.length === 0 ? (
+              <div className="px-5 py-5 text-sm text-gray-400 text-center">No Dubai follow-ups for this project.</div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {dubaiFollowups.map(f => (
+                  <div key={f.id} className="px-5 py-3 flex items-center justify-between text-sm">
+                    <div>
+                      <span className="text-gray-700">{f.vehicle_line?.vehicle_type ?? 'Project-wide'}</span>
+                      <span className="text-gray-400 ml-2 text-xs">{f.dubai_status.replace(/_/g, ' ')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {f.eta_date && <span className="text-xs text-gray-500">ETA {new Date(f.eta_date).toLocaleDateString('en-GB')}</span>}
+                      <Badge variant={f.eta_status === 'delayed' ? 'warning' : f.eta_status === 'on_track' ? 'success' : 'neutral'}>{f.eta_status.replace(/_/g, ' ')}</Badge>
+                      <Link to={`/dubai-afs/projects/${f.id}`}><Button variant="ghost" size="sm">View</Button></Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          {/* Arrival Reports */}
+          <Card>
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700">Arrival Reports</h3>
+              <Link to="/dubai-afs/arrival-reports"><Button variant="ghost" size="sm">View All</Button></Link>
+            </div>
+            {afsArrivalReports.length === 0 ? (
+              <div className="px-5 py-5 text-sm text-gray-400 text-center">No arrival reports for this project.</div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {afsArrivalReports.map(r => (
+                  <div key={r.id} className="px-5 py-3 flex items-center justify-between text-sm">
+                    <div>
+                      <span className="font-mono text-sky-700 text-xs">{r.arrival_report_number}</span>
+                      <span className="text-gray-500 ml-2">{new Date(r.arrival_date).toLocaleDateString('en-GB')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">{r.received_quantity}/{r.expected_quantity} units</span>
+                      <Badge variant={r.arrival_status === 'arrived' ? 'success' : r.arrival_status === 'delayed' ? 'critical' : 'neutral'}>{r.arrival_status.replace(/_/g, ' ')}</Badge>
+                      <Link to={`/dubai-afs/arrival-reports/${r.id}`}><Button variant="ghost" size="sm">View</Button></Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          {/* Pre-Delivery Reports */}
+          <Card>
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700">Pre-Delivery Reports</h3>
+              <Link to="/dubai-afs/predelivery-reports"><Button variant="ghost" size="sm">View All</Button></Link>
+            </div>
+            {afsPredeliveryReports.length === 0 ? (
+              <div className="px-5 py-5 text-sm text-gray-400 text-center">No pre-delivery reports for this project.</div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {afsPredeliveryReports.map(r => (
+                  <div key={r.id} className="px-5 py-3 flex items-center justify-between text-sm">
+                    <div>
+                      <span className="font-mono text-sky-700 text-xs">{r.predelivery_report_number}</span>
+                      <span className="text-gray-500 ml-2">{new Date(r.report_date).toLocaleDateString('en-GB')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={r.ready_for_delivery ? 'success' : 'warning'}>{r.ready_for_delivery ? 'Ready' : 'Not Ready'}</Badge>
+                      <Link to={`/dubai-afs/predelivery-reports/${r.id}`}><Button variant="ghost" size="sm">View</Button></Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          {/* Maintenance Requests */}
+          <Card>
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700">Maintenance Requests</h3>
+              <Link to="/after-sales/maintenance"><Button variant="ghost" size="sm">View All</Button></Link>
+            </div>
+            {afsMaintenanceRequests.length === 0 ? (
+              <div className="px-5 py-5 text-sm text-gray-400 text-center">No maintenance requests for this project.</div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {afsMaintenanceRequests.map(r => (
+                  <div key={r.id} className="px-5 py-3 flex items-center justify-between text-sm">
+                    <div>
+                      <span className="font-mono text-sky-700 text-xs">{r.maintenance_request_number}</span>
+                      <span className="text-gray-700 ml-2">{r.title.slice(0, 50)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={r.priority === 'critical' ? 'critical' : r.priority === 'high' ? 'warning' : 'neutral'}>{r.priority}</Badge>
+                      <Link to={`/after-sales/maintenance/${r.id}`}><Button variant="ghost" size="sm">View</Button></Link>
+                    </div>
                   </div>
                 ))}
               </div>

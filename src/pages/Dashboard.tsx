@@ -3,18 +3,18 @@ import {
   AlertTriangle, AlertCircle, ShoppingCart, PackageCheck, Truck,
   ClipboardX, ShieldAlert, Package, FileText, TrendingUp, TrendingDown,
   Minus, ArrowRight, Send, CheckCircle, Wrench, Calendar, Clock,
-  ClipboardCheck, FileCheck, type LucideIcon,
+  ClipboardCheck, FileCheck, Plane, FileSearch, type LucideIcon,
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { PageHeader } from '../components/ui/PageHeader';
-import { DASHBOARD_KPI_CARDS, PROJECT_SUMMARY } from '../data/mockDashboard';
+import { DASHBOARD_KPI_CARDS, AFS_KPI_CARDS, PROJECT_SUMMARY } from '../data/mockDashboard';
 import type { KpiCard } from '../types';
 import { cn } from '../lib/utils';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   FileText, AlertTriangle, AlertCircle, ShoppingCart, PackageCheck,
   Truck, ClipboardX, ShieldAlert, Package, Send, CheckCircle, Wrench, Calendar, Clock,
-  ClipboardCheck, FileCheck,
+  ClipboardCheck, FileCheck, Plane, FileSearch,
 };
 
 const severityConfig = {
@@ -99,6 +99,19 @@ export function Dashboard() {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
           {DASHBOARD_KPI_CARDS.map((card) => (
+            <KpiCardItem key={card.id} card={card} />
+          ))}
+        </div>
+      </div>
+
+      {/* Dubai / AFS & After Sales KPIs */}
+      <div className="mb-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <span className="w-1 h-4 bg-sky-600 rounded-full inline-block" />
+          Dubai / AFS &amp; After Sales
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {AFS_KPI_CARDS.map((card) => (
             <KpiCardItem key={card.id} card={card} />
           ))}
         </div>
