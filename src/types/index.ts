@@ -1115,3 +1115,186 @@ export interface AfsMaintenanceAttachment {
   uploaded_at: string;
   description: string | null;
 }
+
+// Phase 10 — Reports, SLA, Health Scores, Issues, CAPA
+
+export type ReportCategory =
+  | 'executive' | 'sales' | 'procurement' | 'factory' | 'store'
+  | 'qc' | 'afs' | 'project' | 'supplier' | 'data_quality' | 'sla' | 'operational_excellence';
+
+export interface ReportDefinition {
+  id: string;
+  report_key: string;
+  report_name: string;
+  report_category: ReportCategory;
+  description: string;
+  default_roles_allowed: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SavedReportView {
+  id: string;
+  user_id: string;
+  view_name: string;
+  report_key: string;
+  filters_json: Record<string, unknown> | null;
+  columns_json: Record<string, unknown> | null;
+  sorting_json: Record<string, unknown> | null;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type SlaSeverity = 'low' | 'medium' | 'high' | 'critical';
+
+export interface SlaRule {
+  id: string;
+  rule_key: string;
+  rule_name: string;
+  module_name: string;
+  trigger_status: string;
+  target_status: string;
+  duration_hours: number;
+  severity: SlaSeverity;
+  applies_to_roles: string[];
+  escalation_roles: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type SlaEventStatus = 'open' | 'acknowledged' | 'escalated' | 'resolved' | 'cancelled';
+
+export interface SlaEvent {
+  id: string;
+  rule_id: string;
+  entity_type: string;
+  entity_id: string;
+  project_id: string | null;
+  triggered_at: string;
+  due_at: string;
+  resolved_at: string | null;
+  status: SlaEventStatus;
+  severity: SlaSeverity;
+  owner_role: string | null;
+  owner_id: string | null;
+  escalation_level: number;
+  remarks: string | null;
+  created_at: string;
+  updated_at: string;
+  rule?: SlaRule;
+}
+
+export type ScoreBand = 'healthy' | 'watch' | 'at_risk' | 'critical';
+
+export interface ProjectHealthScore {
+  id: string;
+  project_id: string;
+  score: number;
+  score_band: ScoreBand;
+  delay_score: number;
+  data_quality_score: number;
+  procurement_score: number;
+  factory_score: number;
+  store_score: number;
+  qc_score: number;
+  afs_score: number;
+  financial_visibility_score: number | null;
+  blockers_count: number;
+  open_risks_count: number;
+  open_issues_count: number;
+  calculated_at: string;
+  created_at: string;
+  project?: { project_code: string; customer_name: string; project_status: string } | null;
+}
+
+export interface DepartmentHealthScore {
+  id: string;
+  department_key: string;
+  score: number;
+  score_band: ScoreBand;
+  open_tasks_count: number;
+  overdue_tasks_count: number;
+  sla_breaches_count: number;
+  average_cycle_time_hours: number | null;
+  calculated_at: string;
+  created_at: string;
+}
+
+export interface SupplierScorecard {
+  id: string;
+  supplier_id: string | null;
+  supplier_name: string;
+  score: number;
+  quality_score: number;
+  delivery_score: number;
+  responsiveness_score: number;
+  ncr_count: number;
+  delayed_po_count: number;
+  total_po_count: number;
+  calculated_at: string;
+  created_at: string;
+}
+
+export type IssueType = 'blocker' | 'risk' | 'action_item' | 'observation' | 'escalation';
+export type IssueSeverity = 'low' | 'medium' | 'high' | 'critical';
+export type OperationalIssueStatus = 'open' | 'assigned' | 'in_progress' | 'waiting_input' | 'resolved' | 'closed' | 'cancelled';
+
+export interface OperationalIssue {
+  id: string;
+  issue_number: string;
+  project_id: string | null;
+  module_name: string;
+  issue_type: IssueType;
+  severity: IssueSeverity;
+  title: string;
+  description: string;
+  owner_role: string | null;
+  owner_id: string | null;
+  status: OperationalIssueStatus;
+  due_date: string | null;
+  closed_by: string | null;
+  closed_at: string | null;
+  closure_notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  project?: { project_code: string; customer_name: string } | null;
+}
+
+export type CapaStatus =
+  | 'draft' | 'assigned' | 'in_progress' | 'pending_effectiveness_check'
+  | 'effective' | 'ineffective' | 'closed' | 'cancelled';
+
+export interface CapaRecord {
+  id: string;
+  issue_id: string | null;
+  ncr_id: string | null;
+  capa_number: string;
+  root_cause: string;
+  corrective_action: string;
+  preventive_action: string;
+  owner_id: string | null;
+  due_date: string | null;
+  status: CapaStatus;
+  effectiveness_check_date: string | null;
+  effectiveness_result: string | null;
+  closed_by: string | null;
+  closed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DataQualityCheck {
+  id: string;
+  check_name: string;
+  module: string;
+  severity: IssueSeverity;
+  count: number;
+  example_ids: string[];
+  owner_role: string;
+  suggested_action: string;
+  fix_path: string;
+}

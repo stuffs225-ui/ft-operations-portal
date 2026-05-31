@@ -166,21 +166,6 @@ export type Database = {
         Update: { name?: string; required_at?: string | null; description?: string | null; is_active?: boolean };
         Relationships: [];
       };
-      sla_rules: {
-        Row: {
-          id: string;
-          trigger_event: string;
-          required_action: string;
-          sla_hours: number;
-          escalate_to: string | null;
-          is_active: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: { trigger_event: string; required_action: string; sla_hours: number; escalate_to?: string | null; is_active?: boolean };
-        Update: { trigger_event?: string; required_action?: string; sla_hours?: number; escalate_to?: string | null; is_active?: boolean };
-        Relationships: [];
-      };
       root_cause_categories: {
         Row: {
           id: string;
@@ -1359,6 +1344,69 @@ export type Database = {
         Relationships: [];
         Views: {};
       };
+      report_definitions: {
+        Row: { id: string; report_key: string; report_name: string; report_category: string; description: string; default_roles_allowed: string[]; is_active: boolean; created_at: string; updated_at: string };
+        Insert: { report_key: string; report_name: string; report_category: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+        Views: {};
+      };
+      saved_report_views: {
+        Row: { id: string; user_id: string; view_name: string; report_key: string; filters_json: Record<string, unknown> | null; columns_json: Record<string, unknown> | null; sorting_json: Record<string, unknown> | null; is_default: boolean; created_at: string; updated_at: string };
+        Insert: { user_id: string; view_name: string; report_key: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+        Views: {};
+      };
+      sla_rules: {
+        Row: { id: string; rule_key: string; rule_name: string; module_name: string; trigger_status: string; target_status: string; duration_hours: number; severity: string; applies_to_roles: string[]; escalation_roles: string[]; is_active: boolean; created_at: string; updated_at: string };
+        Insert: { rule_key: string; rule_name: string; module_name: string; trigger_status: string; target_status: string; duration_hours: number; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+        Views: {};
+      };
+      sla_events: {
+        Row: { id: string; rule_id: string; entity_type: string; entity_id: string; project_id: string | null; triggered_at: string; due_at: string; resolved_at: string | null; status: string; severity: string; owner_role: string | null; owner_id: string | null; escalation_level: number; remarks: string | null; created_at: string; updated_at: string };
+        Insert: { rule_id: string; entity_type: string; entity_id: string; due_at: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+        Views: {};
+      };
+      project_health_scores: {
+        Row: { id: string; project_id: string; score: number; score_band: string; delay_score: number; data_quality_score: number; procurement_score: number; factory_score: number; store_score: number; qc_score: number; afs_score: number; financial_visibility_score: number | null; blockers_count: number; open_risks_count: number; open_issues_count: number; calculated_at: string; created_at: string };
+        Insert: { project_id: string; score: number; score_band: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+        Views: {};
+      };
+      department_health_scores: {
+        Row: { id: string; department_key: string; score: number; score_band: string; open_tasks_count: number; overdue_tasks_count: number; sla_breaches_count: number; average_cycle_time_hours: number | null; calculated_at: string; created_at: string };
+        Insert: { department_key: string; score: number; score_band: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+        Views: {};
+      };
+      supplier_scorecards: {
+        Row: { id: string; supplier_id: string | null; supplier_name: string; score: number; quality_score: number; delivery_score: number; responsiveness_score: number; ncr_count: number; delayed_po_count: number; total_po_count: number; calculated_at: string; created_at: string };
+        Insert: { supplier_name: string; score: number; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+        Views: {};
+      };
+      operational_issues: {
+        Row: { id: string; issue_number: string; project_id: string | null; module_name: string; issue_type: string; severity: string; title: string; description: string; owner_role: string | null; owner_id: string | null; status: string; due_date: string | null; closed_by: string | null; closed_at: string | null; closure_notes: string | null; created_by: string | null; created_at: string; updated_at: string };
+        Insert: { issue_number: string; module_name: string; issue_type: string; severity: string; title: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+        Views: {};
+      };
+      capa_records: {
+        Row: { id: string; issue_id: string | null; ncr_id: string | null; capa_number: string; root_cause: string; corrective_action: string; preventive_action: string; owner_id: string | null; due_date: string | null; status: string; effectiveness_check_date: string | null; effectiveness_result: string | null; closed_by: string | null; closed_at: string | null; created_at: string; updated_at: string };
+        Insert: { capa_number: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+        Views: {};
+      };
     };
     Views: {};
     Functions: {
@@ -1477,6 +1525,14 @@ export type Database = {
       maintenance_priority_enum: 'low' | 'medium' | 'high' | 'critical';
       maintenance_status_enum: 'open' | 'assigned' | 'under_inspection' | 'parts_waiting' | 'in_repair' | 'completed' | 'closed' | 'cancelled';
       maintenance_document_type_enum: 'photo' | 'inspection_report' | 'parts_request' | 'resolution_report' | 'other';
+      report_category_enum: 'executive' | 'sales' | 'procurement' | 'factory' | 'store' | 'qc' | 'afs' | 'project' | 'supplier' | 'data_quality' | 'sla' | 'operational_excellence';
+      sla_severity_enum: 'low' | 'medium' | 'high' | 'critical';
+      sla_event_status_enum: 'open' | 'acknowledged' | 'escalated' | 'resolved' | 'cancelled';
+      score_band_enum: 'healthy' | 'watch' | 'at_risk' | 'critical';
+      issue_type_enum: 'blocker' | 'risk' | 'action_item' | 'observation' | 'escalation';
+      issue_severity_enum: 'low' | 'medium' | 'high' | 'critical';
+      operational_issue_status_enum: 'open' | 'assigned' | 'in_progress' | 'waiting_input' | 'resolved' | 'closed' | 'cancelled';
+      capa_status_enum: 'draft' | 'assigned' | 'in_progress' | 'pending_effectiveness_check' | 'effective' | 'ineffective' | 'closed' | 'cancelled';
     };
   };
 };

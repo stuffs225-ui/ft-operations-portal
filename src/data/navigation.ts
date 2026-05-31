@@ -157,11 +157,18 @@ export const NAV_ITEMS: NavItem[] = [
     icon: '',
   },
   {
+    id: 'control-tower',
+    label: 'Control Tower',
+    path: '/control-tower',
+    icon: 'Activity',
+    roles: ['admin', 'operations_manager', 'viewer'],
+  },
+  {
     id: 'reports',
     label: 'Reports',
     path: '/reports',
-    icon: 'BarChart3',
-    roles: ['admin', 'operations_manager', 'viewer'],
+    icon: 'BarChart2',
+    roles: ['admin', 'operations_manager', 'procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user', 'sales_user', 'sales_coordinator', 'viewer'],
   },
   {
     id: 'settings',

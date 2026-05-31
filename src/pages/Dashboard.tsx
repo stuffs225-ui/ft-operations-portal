@@ -1,9 +1,9 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   AlertTriangle, AlertCircle, ShoppingCart, PackageCheck, Truck,
   ClipboardX, ShieldAlert, Package, FileText, TrendingUp, TrendingDown,
   Minus, ArrowRight, Send, CheckCircle, Wrench, Calendar, Clock,
-  ClipboardCheck, FileCheck, Plane, FileSearch, type LucideIcon,
+  ClipboardCheck, FileCheck, Plane, FileSearch, BarChart2, Activity, type LucideIcon,
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -14,7 +14,7 @@ import { cn } from '../lib/utils';
 const ICON_MAP: Record<string, LucideIcon> = {
   FileText, AlertTriangle, AlertCircle, ShoppingCart, PackageCheck,
   Truck, ClipboardX, ShieldAlert, Package, Send, CheckCircle, Wrench, Calendar, Clock,
-  ClipboardCheck, FileCheck, Plane, FileSearch,
+  ClipboardCheck, FileCheck, Plane, FileSearch, BarChart2, Activity,
 };
 
 const severityConfig = {
@@ -114,6 +114,38 @@ export function Dashboard() {
           {AFS_KPI_CARDS.map((card) => (
             <KpiCardItem key={card.id} card={card} />
           ))}
+        </div>
+      </div>
+
+      {/* Reports & Control Tower Quick Access */}
+      <div className="mb-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <span className="w-1 h-4 bg-purple-600 rounded-full inline-block" />
+          Reports &amp; Control Tower
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Link to="/control-tower" className="group">
+            <div className="bg-white rounded-xl border border-gray-200 border-l-4 border-l-purple-500 shadow-sm p-5 hover:shadow-md hover:border-gray-300 transition-all cursor-pointer">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-purple-50 text-purple-700"><Activity size={18} /></div>
+                <div>
+                  <div className="text-sm font-semibold text-gray-900 group-hover:text-purple-700 transition-colors mb-0.5">Control Tower</div>
+                  <div className="text-xs text-gray-500">Live exceptions, SLA breaches, delivery readiness, and health scores</div>
+                </div>
+              </div>
+            </div>
+          </Link>
+          <Link to="/reports" className="group">
+            <div className="bg-white rounded-xl border border-gray-200 border-l-4 border-l-sky-500 shadow-sm p-5 hover:shadow-md hover:border-gray-300 transition-all cursor-pointer">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-sky-50 text-sky-700"><BarChart2 size={18} /></div>
+                <div>
+                  <div className="text-sm font-semibold text-gray-900 group-hover:text-sky-700 transition-colors mb-0.5">Reports Hub</div>
+                  <div className="text-xs text-gray-500">Operational reports across procurement, factory, QC, AFS, data quality, and more</div>
+                </div>
+              </div>
+            </div>
+          </Link>
         </div>
       </div>
 

@@ -117,10 +117,30 @@ Covers: Phases 0–9.5 (Foundation through Dubai / AFS / After Sales Integration
 | `/after-sales/maintenance/new` | AfterSalesMaintenanceNew | ✅ Built — 4-step wizard |
 | `/after-sales/maintenance/:id` | AfterSalesMaintenanceDetail | ✅ Built — inspection, parts, resolution actions |
 
+### Reports & Control Tower (Phase 10)
+| Route | Page Component | Status |
+|---|---|---|
+| `/reports` | Reports | ✅ Built — hub with 6 grouped sections, role-filtered cards |
+| `/control-tower` | ControlTower | ✅ Built — stat bar + 4 sections (lifecycle, exceptions, readiness, health) |
+| `/reports/executive` | ReportsExecutive | ✅ Built — same 4 sections as Control Tower |
+| `/reports/projects` | ReportsProjects | ✅ Built — status tabs, search, WO/PN status, health score (admin/ops) |
+| `/reports/sales` | ReportsSales | ✅ Built — quotation pipeline, active projects, aging placeholder |
+| `/reports/procurement` | ReportsProcurement | ✅ Built — 6 tabs, cost gated by role |
+| `/reports/factory` | ReportsFactory | ✅ Built — BOQ, GA, monthly updates, ready for QC, RMRs |
+| `/reports/store` | ReportsStore | ✅ Built — receipts, vehicles, custody, serials |
+| `/reports/qc` | ReportsQC | ✅ Built — material QC, NCRs, project QC, findings, release notes |
+| `/reports/afs` | ReportsAFS | ✅ Built — missing PN, ETAs, arrivals, pre-delivery, maintenance |
+| `/reports/suppliers` | ReportsSuppliers | ✅ Built — scorecard table, score bars, formula transparency |
+| `/reports/sla` | ReportsSLA | ✅ Built — 3 tabs, overdue breaches, escalation levels, rules |
+| `/reports/data-quality` | ReportsDataQuality | ✅ Built — 23 checks, module/severity filters, fix links |
+| `/reports/health-scores` | ReportsHealthScores | ✅ Built — projects (admin/ops), departments, suppliers tabs |
+| `/reports/issues` | ReportsIssues | ✅ Built — expandable rows, closure notes, role-gated close action |
+| `/reports/capa` | ReportsCapa | ✅ Built — 5 tabs, effectiveness check UI, role-gated actions |
+
 ### Future Phases (Placeholder)
 | Route | Module | Target Phase |
 |---|---|---|
-| `/reports` | Reports / Control Tower | Phase 10 |
+| `/reports/sales` → Aging tab | Aging / Receivables full report | Phase 11 |
 
 ---
 
@@ -426,4 +446,4 @@ Covers: Phases 0–9.5 (Foundation through Dubai / AFS / After Sales Integration
 | Phase 8.5 | QC / Release Integration Stabilization | ✅ Complete |
 | Phase 9 | Dubai / AFS + After Sales Maintenance | ✅ Complete |
 | Phase 9.5 | Dubai / AFS / After Sales Integration Stabilization | ✅ Complete |
-| Phase 10 | Reports / Control Tower / SLA / Data Quality | 🔲 Planned |
+| Phase 10 | Reports / Control Tower / SLA / Data Quality / Health Scores / Issues / CAPA | ✅ Complete |
