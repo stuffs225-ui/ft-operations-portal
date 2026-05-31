@@ -739,3 +739,167 @@ export interface MaterialCustodyRecord {
   accepted_by_profile?: { full_name: string | null } | null;
   item?: Pick<StoreReceiptItem, 'item_name' | 'item_code' | 'material_category'> | null;
 }
+
+// ── Phase 8: QC & Release Note ───────────────────────────────────────────────
+
+export type InspectionStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+export type MaterialInspectionResult =
+  | 'pending'
+  | 'accepted'
+  | 'accepted_with_comments'
+  | 'rejected'
+  | 'pending_supplier_clarification'
+  | 'pending_rework';
+
+export interface MaterialQcInspection {
+  id: string;
+  project_id: string | null;
+  store_receipt_id: string | null;
+  store_receipt_item_id: string;
+  medical_serial_number_id: string | null;
+  inspection_number: string;
+  inspection_status: InspectionStatus;
+  inspection_result: MaterialInspectionResult;
+  inspected_by: string | null;
+  inspected_at: string | null;
+  rejection_reason: string | null;
+  remarks: string | null;
+  attachments_count: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  item?: Pick<StoreReceiptItem, 'item_name' | 'item_code' | 'material_category' | 'quantity_received' | 'unit'> | null;
+  project?: Pick<Project, 'project_code' | 'customer_name'> | null;
+  inspected_by_profile?: { full_name: string | null } | null;
+}
+
+export type NcrStatus =
+  | 'open'
+  | 'assigned'
+  | 'corrective_action_in_progress'
+  | 'pending_evidence'
+  | 'closed'
+  | 'rejected_closure'
+  | 'cancelled';
+export type NcrSeverity = 'low' | 'medium' | 'high' | 'critical';
+
+export interface MaterialNcr {
+  id: string;
+  project_id: string | null;
+  material_qc_inspection_id: string;
+  store_receipt_item_id: string | null;
+  medical_serial_number_id: string | null;
+  ncr_number: string;
+  ncr_status: NcrStatus;
+  severity: NcrSeverity;
+  root_cause_category: string | null;
+  description: string;
+  corrective_action: string | null;
+  preventive_action: string | null;
+  owner_id: string | null;
+  due_date: string | null;
+  closed_by: string | null;
+  closed_at: string | null;
+  closure_evidence_document_id: string | null;
+  remarks: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  item?: Pick<StoreReceiptItem, 'item_name' | 'material_category'> | null;
+  project?: Pick<Project, 'project_code' | 'customer_name'> | null;
+  owner?: { full_name: string | null } | null;
+}
+
+export type ProjectQcResult =
+  | 'pending'
+  | 'passed'
+  | 'passed_with_comments'
+  | 'failed'
+  | 'rework_required';
+export type ReadinessStatus = 'not_ready' | 'pending_rework' | 'ready_for_release' | 'released';
+
+export interface ProjectQcInspection {
+  id: string;
+  project_id: string;
+  project_vehicle_line_id: string | null;
+  factory_record_id: string | null;
+  inspection_number: string;
+  inspection_status: InspectionStatus;
+  inspection_result: ProjectQcResult;
+  inspected_by: string | null;
+  inspected_at: string | null;
+  readiness_status: ReadinessStatus;
+  remarks: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  project?: Pick<Project, 'project_code' | 'customer_name' | 'manufacturing_location'> | null;
+  vehicle_line?: Pick<ProjectVehicleLine, 'line_number' | 'vehicle_type' | 'description' | 'quantity'> | null;
+  inspected_by_profile?: { full_name: string | null } | null;
+}
+
+export type FindingStatus =
+  | 'open'
+  | 'assigned'
+  | 'rework_in_progress'
+  | 'pending_reinspection'
+  | 'closed'
+  | 'cancelled';
+export type FindingType =
+  | 'dimensional'
+  | 'surface_finish'
+  | 'functional'
+  | 'documentation'
+  | 'safety'
+  | 'other';
+
+export interface ProjectQcFinding {
+  id: string;
+  project_qc_inspection_id: string;
+  project_id: string;
+  project_vehicle_line_id: string | null;
+  finding_number: string;
+  finding_type: FindingType;
+  severity: NcrSeverity;
+  description: string;
+  required_action: string;
+  owner_role: string | null;
+  owner_id: string | null;
+  due_date: string | null;
+  finding_status: FindingStatus;
+  rework_required: boolean;
+  rework_completed_by: string | null;
+  rework_completed_at: string | null;
+  closure_notes: string | null;
+  closed_by: string | null;
+  closed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  owner?: { full_name: string | null } | null;
+  project?: Pick<Project, 'project_code' | 'customer_name'> | null;
+  vehicle_line?: Pick<ProjectVehicleLine, 'vehicle_type' | 'description'> | null;
+}
+
+export type ReleaseStatus = 'draft' | 'blocked' | 'ready_to_issue' | 'issued' | 'cancelled';
+export type ReleaseType = 'project_release' | 'vehicle_line_release' | 'partial_release';
+
+export interface ReleaseNote {
+  id: string;
+  project_id: string;
+  project_vehicle_line_id: string | null;
+  release_note_number: string;
+  release_status: ReleaseStatus;
+  release_type: ReleaseType;
+  issued_by: string | null;
+  issued_at: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  document_id: string | null;
+  remarks: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  project?: Pick<Project, 'project_code' | 'customer_name' | 'manufacturing_location'> | null;
+  vehicle_line?: Pick<ProjectVehicleLine, 'vehicle_type' | 'description'> | null;
+  issued_by_profile?: { full_name: string | null } | null;
+}
