@@ -1548,7 +1548,8 @@ export function ProjectDetail() {
         <div className="space-y-5">
           {project.manufacturing_location !== 'dubai' && (
             <div className="bg-sky-50 border border-sky-200 rounded-xl px-5 py-4 text-sm text-sky-800">
-              This project is routed through the <strong>Saudi factory</strong> workflow. Dubai / AFS tracking applies to Dubai-route projects only.
+              <strong>Dubai follow-up does not apply to this project</strong> — it is routed through the Saudi factory workflow.
+              After-sales maintenance requests are shown below if any exist.
             </div>
           )}
 

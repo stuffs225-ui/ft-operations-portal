@@ -1,7 +1,7 @@
-# Integration Smoke Test — Phase 8.5
+# Integration Smoke Test — Phase 9.5
 
 Last updated: 2026-05-31
-Covers: Phases 0–8.5 (Foundation through QC / Release Integration Stabilization)
+Covers: Phases 0–9.5 (Foundation through Dubai / AFS / After Sales Integration Stabilization)
 
 ---
 
@@ -210,6 +210,30 @@ Covers: Phases 0–8.5 (Foundation through QC / Release Integration Stabilizatio
 - [ ] Finding number auto-formatted as FND-YYYY-NNNN
 - [ ] Project QC inspection number auto-formatted as PQC-YYYY-NNNN
 
+### Dubai / PN Gate (Phase 9)
+- [ ] Dubai projects without confirmed PN show blocking banner in DubaiAfsProjectDetail
+- [ ] PN gate warning displayed on all Dubai follow-up cards and project detail
+- [ ] ETA update form requires both new ETA date AND reason text — button stays disabled if either empty
+- [ ] ETA change history logged per followup; all past ETAs visible in history table
+- [ ] Only admin/operations_manager can update Dubai ETA or confirm PN
+
+### AFS Readiness Blockers (Phase 9)
+- [ ] Pre-delivery readiness checklist enforces 4 blocking items:
+  - Release Note issued (blocking)
+  - No open missing items (`open_missing_items === 0`) (blocking)
+  - No open NCRs (`open_ncrs === 0`) (blocking)
+  - No major open condition reports (`major_damage` or `requires_repair`, not resolved/closed/cancelled) (blocking)
+- [ ] Delivery approve button only visible to admin/operations_manager AND when all blocking items pass
+- [ ] Arrival report + missing items creation logged via afsAudit helpers
+- [ ] Missing items linked to arrival report; severity = high/critical triggers checklist failure
+
+### After Sales Maintenance Governance (Phase 9)
+- [ ] Maintenance request closure requires `resolutionNotes.trim()` — close button disabled if empty
+- [ ] Status flow: open → assigned → under_inspection → parts_waiting / in_repair → completed → closed
+- [ ] Only admin/operations_manager/afs_user can manage maintenance requests
+- [ ] Maintenance number auto-formatted as MNT-YYYY-NNNN
+- [ ] Critical priority maintenance surfaced separately in Dashboard KPIs
+
 ---
 
 ## Key Pages — Manual Test Steps
@@ -257,6 +281,57 @@ Covers: Phases 0–8.5 (Foundation through QC / Release Integration Stabilizatio
    - Sign in as admin → custody pending approval task visible
    - Sign in as factory_user → custody pending acceptance task visible
 
+### Phase 9 — Dubai / AFS + After Sales Maintenance
+
+1. **Dubai AFS Dashboard** (`/dubai-afs`)
+   - Verify 8 KPI cards render (Dubai Missing PN, Delayed ETAs, Arrival Reports Pending, Open Missing Items, Pre-Delivery Blocked, Ready for Delivery, AFS Maintenance Open, Critical Maintenance)
+   - Verify follow-up list shows dpf-001 and dpf-002 (proj-006)
+   - Click each KPI → verify it navigates to correct route
+
+2. **Dubai Follow-up with PN Gate** (`/dubai-afs/projects/dpf-003`)
+   - dpf-003 has `pn_reference_id: null` (proj-007, Abu Dhabi Police)
+   - Verify red PN gate blocking banner appears at top of page
+   - Verify ETA update form requires both date AND reason
+   - Try submitting with reason empty → button should remain disabled
+
+3. **Pre-Delivery Readiness** (`/dubai-afs/predelivery-reports/apdr-001`)
+   - apdr-001 has: `release_note_issued: false`, `open_missing_items: 2`
+   - Verify checklist shows at least 2 red blocking items
+   - Navigate to condition reports — acr-001 is `minor_damage`, which should NOT block
+   - Verify "Approve Delivery" button is hidden (blocking items not passed)
+   - Sign in as afs_user → approve button should also be hidden (wrong role)
+   - Sign in as admin → approve button hidden (blocking items not all passed)
+
+4. **Maintenance Closure** (`/after-sales/maintenance/amr-001`)
+   - amr-001 is `under_inspection` (GACA, high priority)
+   - Advance status to `completed` → "Close" button appears
+   - Try clicking "Close" with empty resolutionNotes → button should be disabled
+   - Enter resolution notes → button enables
+
+5. **New Maintenance Request** (`/after-sales/maintenance/new`)
+   - Sign in as afs_user → wizard loads
+   - Step 1: try "Next" without customer name → blocked
+   - Step 4: Dev Mode notice should show when Supabase not configured
+
+6. **ProjectDetail Dubai/AFS tab — Saudi project** (`/projects/proj-005`)
+   - proj-005 is Saudi (GACA) — navigate to Dubai/AFS tab
+   - Verify blue info banner: "Dubai follow-up does not apply to this project..."
+   - Maintenance requests table should still show (after-sales can exist for Saudi projects)
+
+7. **ProjectDetail Dubai/AFS tab — Dubai project** (`/projects/proj-006`)
+   - proj-006 is Dubai (Civil Defence) — navigate to Dubai/AFS tab
+   - PN gate banner should NOT appear (proj-006 has PN assigned)
+   - Verify KPI strip, 4 tables (Follow-ups, Arrival Reports, Pre-delivery, Maintenance)
+
+8. **Dashboard AFS KPIs** (`/`)
+   - Scroll to "Dubai / AFS & After Sales" section
+   - Verify 8 cards render with icons (Plane, FileSearch must be in ICON_MAP)
+
+9. **Action Inbox role filtering** (`/inbox`)
+   - Sign in as afs_user → should see afs-assigned tasks only
+   - Sign in as operations_manager → should see ops_manager tasks (including Dubai PN task)
+   - Sign in as admin → should see ALL tasks across all roles
+
 ### Phase 8.5 — Stabilization Verification
 
 **Issues found and fixed:**
@@ -271,6 +346,24 @@ Covers: Phases 0–8.5 (Foundation through QC / Release Integration Stabilizatio
 - Dashboard: 33 KPI cards, no duplicates, ClipboardCheck + FileCheck in ICON_MAP
 - Action Inbox: 5 QC tasks (task-qc-001 to task-qc-005) present alongside all prior tasks
 - No outdated "Coming in Phase 8" placeholder text in any src/ file
+
+### Phase 9.5 — AFS / After Sales Integration Stabilization
+
+**Issues found and fixed:**
+1. **ActionInbox role-based filtering** — Admin sees all tasks; all other roles see only tasks assigned to their role (`assignedRole === role`). Previously all tasks were visible to all roles.
+2. **mockDashboard.ts AFS_KPI_CARDS** — Replaced 8 placeholder cards with spec-correct set: `dubai-missing-pn`, `dubai-eta-delayed`, `afs-arrival-reports-open`, `afs-missing-items-open`, `afs-predelivery-not-ready`, `afs-ready-for-delivery`, `afs-maintenance-open`, `afs-critical-maintenance`. Fixed type annotation (`: KpiCard[]`) to resolve TS2322 trend field mismatch.
+3. **mockInbox.ts** — Fixed task-010 path from `/after-sales` to `/after-sales/maintenance/amr-001`. Added 5 new role-appropriate inbox tasks for AFS/maintenance workflows.
+4. **DubaiAfsPredeliveryReportDetail.tsx** — Added 4th blocking checklist item: "No major open condition reports" — checks `MOCK_AFS_CONDITION_REPORTS` for `major_damage` or `requires_repair` status that is not resolved/closed/cancelled. Correctly blocks delivery approval.
+5. **ProjectDetail.tsx Dubai/AFS tab** — Updated Saudi-project banner text to: "Dubai follow-up does not apply to this project — it is routed through the Saudi factory workflow. After-sales maintenance requests are shown below if any exist."
+
+**Verified clean after Phase 9.5:**
+- All 14 Phase 9 routes registered and page files exist
+- ProjectDetail has 12 tabs including Dubai / AFS (between QC & Release and Approval & Routing)
+- AFS readiness checklist: 4 blocking items including condition report check
+- Dashboard: 8 AFS KPI cards render with correct icons (Plane, FileSearch in ICON_MAP)
+- Action Inbox: 10 AFS-related tasks present; role filtering active
+- `npm run build` passes with zero TypeScript errors
+- No outdated "Coming in Phase 9" placeholder text in any src/ file
 
 ### Pre-Phase 7 Regression Check
 
@@ -307,8 +400,6 @@ Covers: Phases 0–8.5 (Foundation through QC / Release Integration Stabilizatio
 
 | Page | Placeholder Content |
 |---|---|
-| `/dubai-afs` | Dubai / AFS — Phase 9 |
-| `/after-sales` | After Sales Maintenance — Phase 9 |
 | `/reports` | Reports / Control Tower — Phase 10 |
 | Sales → Hot Projects | Hot Projects workflow — future phase |
 | Sales → Invoicing Plan | Invoicing Plan — future phase |
@@ -334,4 +425,5 @@ Covers: Phases 0–8.5 (Foundation through QC / Release Integration Stabilizatio
 | Phase 8 | Material QC + Project QC + NCR + Rework + Release Note | ✅ Complete |
 | Phase 8.5 | QC / Release Integration Stabilization | ✅ Complete |
 | Phase 9 | Dubai / AFS + After Sales Maintenance | ✅ Complete |
+| Phase 9.5 | Dubai / AFS / After Sales Integration Stabilization | ✅ Complete |
 | Phase 10 | Reports / Control Tower / SLA / Data Quality | 🔲 Planned |

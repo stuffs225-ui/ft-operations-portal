@@ -4,6 +4,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { useAuth } from '../hooks/useAuth';
 import { INBOX_TASKS } from '../data/mockInbox';
 import { ROLE_CONFIGS } from '../lib/roles';
 import type { InboxTask, TaskPriority, TaskCategory } from '../types';
@@ -82,8 +83,13 @@ function TaskCard({ task }: { task: InboxTask }) {
 }
 
 export function ActionInbox() {
-  const criticalCount = INBOX_TASKS.filter((t) => t.priority === 'critical').length;
-  const overdueCount  = INBOX_TASKS.filter((t) => t.overdueBy !== undefined).length;
+  const { role } = useAuth();
+  // Admin sees all tasks; other roles see only tasks assigned to their role
+  const visibleTasks = INBOX_TASKS.filter(t =>
+    role === 'admin' || t.assignedRole === role
+  );
+  const criticalCount = visibleTasks.filter((t) => t.priority === 'critical').length;
+  const overdueCount  = visibleTasks.filter((t) => t.overdueBy !== undefined).length;
 
   return (
     <div>
@@ -106,7 +112,7 @@ export function ActionInbox() {
       {/* Summary strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {(['critical', 'high', 'medium', 'low'] as TaskPriority[]).map((p) => {
-          const count = INBOX_TASKS.filter((t) => t.priority === p).length;
+          const count = visibleTasks.filter((t) => t.priority === p).length;
           const pc = priorityConfig[p];
           return (
             <Card key={p} padding="sm">
@@ -119,14 +125,18 @@ export function ActionInbox() {
 
       {/* Task list */}
       <div className="space-y-3">
-        {INBOX_TASKS
-          .sort((a, b) => {
-            const order = { critical: 0, high: 1, medium: 2, low: 3 };
-            return order[a.priority] - order[b.priority];
-          })
-          .map((task) => (
-            <TaskCard key={task.id} task={task} />
-          ))}
+        {visibleTasks.length === 0 ? (
+          <div className="text-center py-12 text-sm text-gray-400">No tasks assigned to your role.</div>
+        ) : (
+          visibleTasks
+            .sort((a, b) => {
+              const order = { critical: 0, high: 1, medium: 2, low: 3 };
+              return order[a.priority] - order[b.priority];
+            })
+            .map((task) => (
+              <TaskCard key={task.id} task={task} />
+            ))
+        )}
       </div>
     </div>
   );

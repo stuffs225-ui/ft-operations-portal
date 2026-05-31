@@ -6,7 +6,7 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
-import { MOCK_AFS_PREDELIVERY_REPORTS } from '../data/mockAfs';
+import { MOCK_AFS_PREDELIVERY_REPORTS, MOCK_AFS_CONDITION_REPORTS } from '../data/mockAfs';
 import type { AfsPredeliveryReport, UserRole } from '../types';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { recordAfsEvent, recordAfsAudit } from '../lib/afsAudit';
@@ -17,10 +17,18 @@ const CAN_INSPECT: UserRole[] = ['admin', 'operations_manager', 'afs_user', 'qc_
 type ChecklistItem = { label: string; passed: boolean; blocking: boolean };
 
 function buildChecklist(r: AfsPredeliveryReport): ChecklistItem[] {
+  // Check for open major condition reports for this project/vehicle line
+  const hasMajorCondition = MOCK_AFS_CONDITION_REPORTS.some(
+    cr => cr.project_id === r.project_id
+      && (cr.project_vehicle_line_id === null || cr.project_vehicle_line_id === r.project_vehicle_line_id)
+      && (cr.overall_condition === 'major_damage' || cr.overall_condition === 'requires_repair')
+      && cr.report_status !== 'resolved' && cr.report_status !== 'closed' && cr.report_status !== 'cancelled'
+  );
   return [
     { label: 'Release Note issued', passed: r.release_note_issued, blocking: true },
     { label: 'No open missing items', passed: r.open_missing_items === 0, blocking: true },
     { label: 'No open NCRs', passed: r.open_ncrs === 0, blocking: true },
+    { label: 'No major open condition reports', passed: !hasMajorCondition, blocking: true },
     { label: 'All checklist items passed', passed: r.checklist_items_passed >= r.checklist_items_total && r.checklist_items_total > 0, blocking: false },
     { label: 'Chassis number recorded', passed: !!r.chassis_number, blocking: false },
   ];
