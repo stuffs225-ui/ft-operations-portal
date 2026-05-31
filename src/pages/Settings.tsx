@@ -602,7 +602,7 @@ export function Settings() {
         materialCategories: (mc.data  ?? []) as MaterialCategoryRow[],
         supplierCategories: (sc.data  ?? []) as SupplierCategoryRow[],
         documentTypes:      (dt.data  ?? []) as DocumentTypeRow[],
-        slaRules:           (sla.data ?? []) as SlaRuleRow[],
+        slaRules:           (sla.data ?? []) as unknown as SlaRuleRow[],
         rootCauseCategories:(rcc.data ?? []) as RootCauseCategoryRow[],
         storeLocations:     (sl.data  ?? []) as StoreLocationRow[],
         woStatuses:         (wo.data  ?? []) as StatusRow[],

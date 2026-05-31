@@ -25,6 +25,7 @@ import { getMockFactoryRecordsForProject, getMockRMRsForProject } from '../data/
 import { getMockReceiptsForProject, getMockVehicleReceiptsForProject, getMockCustodyForProject } from '../data/mockStore';
 import { getMockMaterialQcForProject, getMockNcrsForProject, getMockProjectQcForProject, getMockFindingsForProject, getMockReleaseNotesForProject } from '../data/mockQc';
 import { getMockDubaiFollowupsForProject, getMockArrivalReportsForProject, getMockPredeliveryReportsForProject, getMockMaintenanceRequestsForProject } from '../data/mockAfs';
+import { getHealthScoreForProject, getSlaEventsForProject, getIssuesForProject, getOpenSlaBreaches } from '../data/mockReports';
 import type {
   Project, ProjectVehicleLine, ProjectDocument,
   ProjectTimelineEvent, ManufacturingLocation, MedicalItems, UserRole,
@@ -822,6 +823,41 @@ export function ProjectDetail() {
             onReferenceAdded={(ref) => setReferences((prev) => [...prev, ref])}
             className="md:col-span-2"
           />
+
+          {/* Project Health & Reports */}
+          {(() => {
+            const health = getHealthScoreForProject(project.id);
+            const slaBreaches = getSlaEventsForProject(project.id).filter(e => getOpenSlaBreaches().some(b => b.id === e.id));
+            const issues = getIssuesForProject(project.id).filter(i => !['closed','cancelled','resolved'].includes(i.status));
+            if (!health) return null;
+            const bandColor: Record<string, string> = { healthy: 'text-green-700 bg-green-50 border-green-200', watch: 'text-amber-700 bg-amber-50 border-amber-200', at_risk: 'text-orange-700 bg-orange-50 border-orange-200', critical: 'text-red-700 bg-red-50 border-red-200' };
+            return (
+              <Card className={`p-5 md:col-span-2 border ${bandColor[health.score_band] ?? ''}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Project Health & Reports</h3>
+                  <Link to="/reports/projects" className="text-xs text-sky-600 hover:underline">Full Report →</Link>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold ${health.score_band === 'healthy' ? 'text-green-700' : health.score_band === 'watch' ? 'text-amber-700' : health.score_band === 'at_risk' ? 'text-orange-700' : 'text-red-700'}`}>{health.score}</div>
+                    <div className="text-xs text-gray-500 capitalize">{health.score_band.replace('_', ' ')} health</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-red-600">{health.blockers_count}</div>
+                    <div className="text-xs text-gray-500">Blockers</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-amber-600">{slaBreaches.length}</div>
+                    <div className="text-xs text-gray-500">SLA Breaches</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-orange-600">{issues.length}</div>
+                    <div className="text-xs text-gray-500">Open Issues</div>
+                  </div>
+                </div>
+              </Card>
+            );
+          })()}
         </div>
       )}
 

@@ -69,6 +69,21 @@ import { AfterSalesMaintenance } from '../pages/AfterSalesMaintenance';
 import { AfterSalesMaintenanceNew } from '../pages/AfterSalesMaintenanceNew';
 import { AfterSalesMaintenanceDetail } from '../pages/AfterSalesMaintenanceDetail';
 import { Reports } from '../pages/Reports';
+import { ReportsExecutive } from '../pages/ReportsExecutive';
+import { ControlTower } from '../pages/ControlTower';
+import { ReportsProjects } from '../pages/ReportsProjects';
+import { ReportsSales } from '../pages/ReportsSales';
+import { ReportsProcurement } from '../pages/ReportsProcurement';
+import { ReportsFactory } from '../pages/ReportsFactory';
+import { ReportsStore } from '../pages/ReportsStore';
+import { ReportsQC } from '../pages/ReportsQC';
+import { ReportsAFS } from '../pages/ReportsAFS';
+import { ReportsSuppliers } from '../pages/ReportsSuppliers';
+import { ReportsSLA } from '../pages/ReportsSLA';
+import { ReportsDataQuality } from '../pages/ReportsDataQuality';
+import { ReportsHealthScores } from '../pages/ReportsHealthScores';
+import { ReportsIssues } from '../pages/ReportsIssues';
+import { ReportsCapa } from '../pages/ReportsCapa';
 import { Settings } from '../pages/Settings';
 import { AdminUsers } from '../pages/AdminUsers';
 import { AuditLog } from '../pages/AuditLog';
@@ -151,6 +166,21 @@ export function App() {
             <Route path="after-sales/maintenance/new" element={<AfterSalesMaintenanceNew />} />
             <Route path="after-sales/maintenance/:id" element={<AfterSalesMaintenanceDetail />} />
             <Route path="reports" element={<Reports />} />
+            <Route path="reports/executive" element={<ReportsExecutive />} />
+            <Route path="reports/projects" element={<ReportsProjects />} />
+            <Route path="reports/sales" element={<ReportsSales />} />
+            <Route path="reports/procurement" element={<ReportsProcurement />} />
+            <Route path="reports/factory" element={<ReportsFactory />} />
+            <Route path="reports/store" element={<ReportsStore />} />
+            <Route path="reports/qc" element={<ReportsQC />} />
+            <Route path="reports/afs" element={<ReportsAFS />} />
+            <Route path="reports/suppliers" element={<ReportsSuppliers />} />
+            <Route path="reports/sla" element={<ReportsSLA />} />
+            <Route path="reports/data-quality" element={<ReportsDataQuality />} />
+            <Route path="reports/health-scores" element={<ReportsHealthScores />} />
+            <Route path="reports/issues" element={<ReportsIssues />} />
+            <Route path="reports/capa" element={<ReportsCapa />} />
+            <Route path="control-tower" element={<ControlTower />} />
             <Route path="settings" element={<Settings />} />
             <Route path="admin/users" element={<AdminUsers />} />
             <Route path="audit-log" element={<AuditLog />} />
