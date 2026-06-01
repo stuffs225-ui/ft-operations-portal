@@ -2,182 +2,162 @@
 
 **Date:** 2026-06-01
 **Branch:** `enterprise-polish-real-mode-hardening`
-**Scope:** Wave A — real-mode mock-data isolation
-**Status:** Implemented
+**Scope:** Real-mode mock-data isolation — guarantee that mock/sample records NEVER render when Supabase is configured.
 
 ---
 
-## 1. Objective
+## 1. Background
 
-Before this work, a number of pages rendered hard-coded mock records even when
-the application was pointed at a real Supabase backend. This is dangerous in a
-pilot or production context: a user could mistake sample data for real records,
-or make decisions against fabricated numbers.
+A full audit of the FT Operations Portal found that a number of pages rendered
+static mock data unconditionally, including in **live mode** (when a real
+Supabase project is configured via environment variables). This is dangerous:
+operators could mistake sample records for real records, and an empty production
+database would still appear "full".
 
-The rule established by Wave A is simple and absolute:
-
-> **Mock data must NEVER be rendered when Supabase is configured (live mode).**
-
-In live mode, a page with no wired live query shows a clean empty state plus an
-honest "preview / not yet connected" badge. Mock data is reserved exclusively
-for local development (`dev-mock` mode), where it is clearly labelled.
+Wave A introduces a single, explicit data-mode strategy and applies it to every
+leaking page so that **mock data is confined to local development only**.
 
 ---
 
 ## 2. Data-mode strategy
 
-### 2.1 Two modes, one source of truth
+There are two global data modes plus one per-module presentation flag.
 
-`src/lib/dataMode.ts` is the single source of truth for how a page sources data:
+| Mode | Trigger | Behaviour |
+|------|---------|-----------|
+| `live` | `isSupabaseConfigured === true` (env vars present) | Pages query Supabase and show a clean empty state when a table is empty. **Mock data is never rendered.** |
+| `dev-mock` | Supabase not configured (local dev) | Pages render static mock data and surface the Dev Mode badge. |
+| `preview` | Per-module flag (not a global mode) | A module whose real back-end/aggregation is not yet wired shows sample data **only in dev-mock mode**, and a clean "Preview — not yet connected" state in live mode. |
 
-| Mode       | Condition                          | Behaviour                                                                 |
-|------------|------------------------------------|--------------------------------------------------------------------------|
-| `live`     | `isSupabaseConfigured === true`    | Pages query Supabase and show clean empty states. Mock NEVER renders.    |
-| `dev-mock` | Supabase not configured (local dev)| Pages render labelled sample data so the UI is explorable without a DB.  |
+### 2.1 Shared helpers — `src/lib/dataMode.ts`
 
-A third presentation, `preview`, is not a global mode but a per-module flag: a
-module whose real back-end/aggregation is not wired yet shows sample data **only**
-in dev-mock mode, and a clean "not yet connected" state in live mode.
+Single source of truth for mode detection and mock gating:
 
-### 2.2 Helpers (`src/lib/dataMode.ts`)
+- `getDataMode(): 'live' | 'dev-mock'`
+- `isLiveMode(): boolean`
+- `isDevMockMode(): boolean`
+- `mockOrEmpty<T>(mock: T[]): T[]` — returns the mock array in dev, `[]` in live. Use for list/table pages whose live query is not yet wired.
+- `mockOrValue<T>(mock, liveFallback): T` — returns the mock value in dev, the supplied fallback (typically `null`) in live. Use for single-object / scalar sources.
 
-| Export                          | Behaviour                                                              |
-|---------------------------------|-----------------------------------------------------------------------|
-| `getDataMode()`                 | Returns `'live'` or `'dev-mock'`.                                      |
-| `isLiveMode()`                  | `true` when Supabase is configured.                                    |
-| `isDevMockMode()`               | `true` when running on mock data.                                      |
-| `mockOrEmpty<T>(mock): T[]`     | Returns `mock` in dev-mock mode, `[]` in live mode. For list pages.    |
-| `mockOrValue<T>(mock, fallback)`| Returns `mock` in dev-mock mode, `fallback` in live mode. For scalars. |
+### 2.2 DataSourceBadge — `src/components/ui/DataSourceBadge.tsx`
 
-These helpers make the isolation guarantee declarative: a page wraps its mock
-constant in `mockOrEmpty(...)` and is automatically safe in live mode.
+A small inline badge that tells the user exactly where the data on the page
+comes from, so sample data is never mistaken for live records.
 
-### 2.3 DataSourceBadge (`src/components/ui/DataSourceBadge.tsx`)
+- `variant="auto"` — shows **"Live data"** (green) when configured, otherwise **"Dev mode — sample data"** (amber).
+- `variant="preview"` — shows **"Preview — not yet connected"** (indigo) in live mode, **"Dev mode — sample data"** (amber) in dev mode.
 
-A small inline badge that tells the user exactly where the data on the page comes
-from, so sample data is never mistaken for live records.
-
-| Variant   | Live mode                         | Dev-mock mode                |
-|-----------|-----------------------------------|------------------------------|
-| `auto`    | "Live data" (emerald)             | "Dev mode — sample data" (amber) |
-| `preview` | "Preview — not yet connected" (indigo) | "Dev mode — sample data" (amber) |
-
-The 25 fixed pages use `variant="preview"`, because their live query/aggregation
-is not yet wired — the badge promises only "real source pending", never "real".
+Every page fixed in Wave A renders `<DataSourceBadge variant="preview" />` so
+the live-mode empty state is unambiguous.
 
 ---
 
-## 3. Pages fixed in Wave A (25)
+## 3. The rule
 
-Each of the following previously rendered mock records in live mode. Each now
-wraps its mock source in `mockOrEmpty`/`mockOrValue` and renders a
-`<DataSourceBadge variant="preview" />`. In live mode each shows an empty state
-(no mock records) plus the preview badge; in dev-mock mode each still shows
-labelled sample data.
+> **Mock data must NEVER appear in live mode.**
 
-1. `src/pages/ActionInbox.tsx`
-2. `src/pages/AdminNotificationRules.tsx`
-3. `src/pages/AdminReportSubscriptionDetail.tsx`
-4. `src/pages/AfterSales.tsx`
-5. `src/pages/AfterSalesMaintenance.tsx`
-6. `src/pages/ControlTower.tsx`
-7. `src/pages/Dashboard.tsx`
-8. `src/pages/DubaiAFS.tsx`
-9. `src/pages/DubaiAfsArrivalReports.tsx`
-10. `src/pages/DubaiAfsConditionReports.tsx`
-11. `src/pages/DubaiAfsEta.tsx`
-12. `src/pages/DubaiAfsMissingItems.tsx`
-13. `src/pages/DubaiAfsPredeliveryReports.tsx`
-14. `src/pages/DubaiAfsProjects.tsx`
-15. `src/pages/MaterialCustody.tsx`
-16. `src/pages/MaterialNcrs.tsx`
-17. `src/pages/MaterialQcInspections.tsx`
-18. `src/pages/ProjectQcFindings.tsx`
-19. `src/pages/ProjectQcInspections.tsx`
-20. `src/pages/ProjectQcReleaseNotes.tsx`
-21. `src/pages/StoreInventory.tsx`
-22. `src/pages/StoreReceipts.tsx`
-23. `src/pages/StoreVehicleReceiving.tsx`
-24. `src/pages/ReportsAFS.tsx`
-25. `src/pages/NotificationSettings.tsx`
-
-### 3.1 Dashboard & Control Tower
-
-Both `Dashboard` and `ControlTower` aggregate KPIs. Their real aggregation is not
-wired to live data yet. Rather than display fabricated KPI numbers in live mode,
-both now show an explicit **"aggregation not yet connected to live data"** notice
-in live mode, and reserve the sample KPIs for dev-mock mode only.
-
-### 3.2 ProjectDetail in-component sub-tabs
-
-`ProjectDetail.tsx`'s in-component **Store** and **QC** sub-tabs previously
-injected mock rows via `getMock*` helpers. They now render **empty in live mode**
-pending real reads. (This is tracked as GAP-03 — see Remaining Items.)
+Every page that previously rendered mock unconditionally now routes its mock
+source through `mockOrEmpty` / `mockOrValue`. In live mode the data collapses to
+an empty array / null and the page shows its empty state plus the preview badge.
 
 ---
 
-## 4. Cost-view protection fix
+## 4. Pages fixed (25)
 
-`src/pages/ProjectDetail.tsx` now reads vehicle lines from the
-`project_vehicle_lines_safe` view instead of the base `project_vehicle_lines`
-table:
+All 25 pages below previously rendered mock data even in live mode. Each now:
+sources its mock via `mockOrEmpty`/`mockOrValue` (→ empty in live mode) and
+renders `<DataSourceBadge variant="preview" />`.
 
-```
-supabase.from('project_vehicle_lines_safe').select('*').eq('project_id', id).order('line_number')
-```
+| # | Page | Live-mode behaviour now |
+|---|------|-------------------------|
+| 1 | `ActionInbox` | Empty inbox state + preview badge |
+| 2 | `AdminNotificationRules` | Empty rule list + preview badge |
+| 3 | `AdminReportSubscriptionDetail` | Empty detail + preview badge |
+| 4 | `AfterSales` | Empty list + preview badge |
+| 5 | `AfterSalesMaintenance` | Empty list + preview badge |
+| 6 | `ControlTower` | "Aggregation not yet connected to live data" notice instead of fake KPIs |
+| 7 | `Dashboard` | "Aggregation not yet connected to live data" notice instead of fake KPIs |
+| 8 | `DubaiAFS` | Empty list + preview badge |
+| 9 | `DubaiAfsArrivalReports` | Empty list + preview badge |
+| 10 | `DubaiAfsConditionReports` | Empty list + preview badge |
+| 11 | `DubaiAfsEta` | Empty list + preview badge |
+| 12 | `DubaiAfsMissingItems` | Empty list + preview badge |
+| 13 | `DubaiAfsPredeliveryReports` | Empty list + preview badge |
+| 14 | `DubaiAfsProjects` | Empty list + preview badge |
+| 15 | `MaterialCustody` | Empty list + preview badge |
+| 16 | `MaterialNcrs` | Empty list + preview badge |
+| 17 | `MaterialQcInspections` | Empty list + preview badge |
+| 18 | `ProjectQcFindings` | Empty list + preview badge |
+| 19 | `ProjectQcInspections` | Empty list + preview badge |
+| 20 | `ProjectQcReleaseNotes` | Empty list + preview badge |
+| 21 | `StoreInventory` | Empty list + preview badge |
+| 22 | `StoreReceipts` | Empty list + preview badge |
+| 23 | `StoreVehicleReceiving` | Empty list + preview badge |
+| 24 | `ReportsAFS` | Empty analytics + preview badge (was a true leak; fixed) |
+| 25 | `NotificationSettings` | Empty prefs + preview badge (also crash-hardened — see §6) |
 
-The base table exposes `unit_sales_value` / `line_total_value` (revenue) to every
-role with project-participant access — including factory, store, QC, AFS and
-viewer roles that must never see revenue. The `_safe` view strips those columns
-for non-privileged roles, so cost/revenue figures are no longer leaked through
-the project detail page. This complements the existing RLS/column protections.
+### 4.1 Dashboard & ControlTower
 
----
+These two pages previously computed KPIs from mock arrays. In live mode they now
+show an **"aggregation not yet connected to live data"** notice rather than
+fabricated metrics. Real aggregation is a follow-up wave item.
 
-## 5. Pages that were already correct (REAL-GUARDED)
+### 4.2 ProjectDetail Store/QC sub-tabs (GAP-03)
 
-The audit confirmed these pages already queried Supabase and showed clean empty
-states in live mode — no change required:
-
-Projects, Quotations, QuotationDetail, Sales, SalesCoordinator, Procurement and
-sub-pages, the Factory suite (FactoryProjects, FactoryWorkspace,
-FactoryRequirements, RawMaterial*, MonthlyUpdates), Store / StoreReceiptDetail /
-StoreUnallocated / StoreVehicleReceivingDetail, MaterialQC, MaterialNcrDetail,
-MaterialQcInspectionDetail, ProjectQC and its detail pages, Templates and
-Template* pages, Notifications, the Admin suite (AdminUsers, AdminApprovals,
-AdminAccessRequests and detail, AdminReportSubscriptions), ProjectDetail
-(top-level), CustodyDetail / CustodyNew, Dubai*Detail pages, GeneratedDocuments*.
-
----
-
-## 6. Remaining items (deferred)
-
-### 6.1 Reports pages still mock-only (GAP-05 — Wave F)
-
-The following 13 reports pages are **mock-only by design today** and still render
-sample analytics in live mode. They were intentionally left for a later wave
-(Wave F — reports overhaul) and should receive the same `mockOrEmpty` + preview
-badge treatment, or be wired to real aggregation:
-
-ReportsExecutive, ReportsProjects, ReportsSales, ReportsProcurement,
-ReportsFactory, ReportsStore, ReportsQC, ReportsSuppliers, ReportsSLA,
-ReportsDataQuality, ReportsHealthScores, ReportsIssues, ReportsCapa.
-
-> Note: `ReportsAFS` was a true leak (not by-design) and **was fixed in Wave A**.
-
-### 6.2 ProjectDetail Store/QC sub-tabs (GAP-03)
-
-The in-component Store and QC sub-tabs now render empty in live mode. They need
-real reads (and ultimately real writes) wired before pilot. Tracked as GAP-03.
+`ProjectDetail` contains in-component Store and QC sub-tabs that previously
+injected mock via `getMock*` helpers. These now render **empty in live mode**,
+pending real reads. Tracked as **GAP-03** (see §7).
 
 ---
 
-## 7. Verification
+## 5. Cost-view fix
 
-- **Build:** `npm run build` passes (Vite build succeeds; output is a single
-  ~1.5 MB JS chunk — code-splitting is a separate deferred item).
-- **Helper coverage:** `grep -rl "mockOrEmpty\|mockOrValue" src/pages` returns
-  exactly the **25** pages listed in section 3.
-- **Live isolation:** with Supabase configured, the 25 pages render empty states
-  + preview badges and surface no mock records. See
-  `docs/FINAL_ROUTE_TEST_PLAN.md` for the manual confirmation checklist.
+`ProjectDetail.tsx` now queries the `project_vehicle_lines_safe` view instead of
+the base `project_vehicle_lines` table. The base table exposed
+`unit_sales_value` / `line_total_value` (revenue) to **all** project-participant
+roles. The `_safe` view strips revenue columns for non-commercial roles, so
+factory / store / QC / AFS / viewer no longer see revenue figures.
+
+(Reference: `src/pages/ProjectDetail.tsx:608`.)
+
+---
+
+## 6. Crash fix
+
+`NotificationSettings.tsx` removed an unsafe `.find(...)!` non-null assertion
+that would crash when the preferences list was empty (the common live-mode
+case). It now guards with `if (!pref) return null`.
+
+---
+
+## 7. Remaining items (not in Wave A)
+
+| Ref | Item | Status |
+|-----|------|--------|
+| GAP-03 | `ProjectDetail` Store/QC sub-tabs render empty in live mode pending real reads | Open — needs real Supabase reads |
+| GAP-05 | 13 reports pages still show sample analytics in live mode | Open — needs same preview treatment in a later wave (Wave F) |
+
+The 13 mock-only reports pages (deliberately mock today, flagged for Wave F):
+`ReportsExecutive`, `ReportsProjects`, `ReportsSales`, `ReportsProcurement`,
+`ReportsFactory`, `ReportsStore`, `ReportsQC`, `ReportsSuppliers`, `ReportsSLA`,
+`ReportsDataQuality`, `ReportsHealthScores`, `ReportsIssues`, `ReportsCapa`.
+
+> `ReportsAFS` was a true leak and was fixed in Wave A; the 13 above were
+> mock-only-by-design and still need the `mockOrEmpty` + preview treatment.
+
+---
+
+## 8. Verification
+
+- **Build:** `npm run build` passes.
+- **Grep confirms helper adoption in all 25 pages:**
+
+  ```bash
+  grep -rl "mockOrEmpty\|mockOrValue" src/pages | wc -l   # → 25
+  ```
+
+  The 25 files returned match the table in §4 exactly.
+
+- **Cost view:** `grep -n "project_vehicle_lines_safe" src/pages/ProjectDetail.tsx` confirms the `_safe` view is used.
+
+- **Manual smoke:** see `docs/FINAL_ROUTE_TEST_PLAN.md` (Part B — live mode, empty DB, no mock records shown).

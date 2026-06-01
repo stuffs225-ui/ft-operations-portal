@@ -2,108 +2,92 @@
 
 **Date:** 2026-06-01
 **Branch:** `enterprise-polish-real-mode-hardening`
-**Scope:** UX / design-system audit, plus the proposed Wave C plan
-**Status:** Audit complete. Wave C is **DEFERRED** (not implemented in this PR).
+**Scope:** UX / design-system audit and the proposed Wave C plan.
+
+> **Status note.** Wave C (the enterprise UI system) is **DEFERRED** to a
+> follow-up PR by explicit decision. The only UI primitive added in *this* PR is
+> the **`DataSourceBadge`** component (part of Wave A). Everything else below is
+> an audit finding plus a recommendation, **not implemented here**.
 
 ---
 
-## 1. What was done in this PR
+## 1. What WAS done in this PR
 
-Only one UX-facing primitive was added in this PR, in support of Wave A:
+- **`src/components/ui/DataSourceBadge.tsx`** — added (Wave A). Inline badge that
+  declares whether on-screen data is live, dev-mock sample, or preview/not-yet-connected.
 
-- **`src/components/ui/DataSourceBadge.tsx`** — a small inline badge that labels
-  the data source on a page ("Live data" / "Dev mode — sample data" /
-  "Preview — not yet connected"). **This WAS added.**
-
-Everything else in this document is **audit findings and a deferred plan
-(Wave C)**. No other UI components, restyling, or refactors were shipped here.
+Nothing else in this document is implemented in this PR.
 
 ---
 
 ## 2. Audit findings
 
-### 2.1 Component reuse is inconsistent
+### 2.1 Badge status→variant duplication
 
-The app has reusable primitives (`Card`, `Badge`, `EmptyState`, etc.) but they
-are applied unevenly. Several pages bypass them and hand-roll equivalent markup,
-which produces visual drift and makes a future restyle expensive.
+The mapping from a domain status (e.g. `approved`, `pending`, `rejected`,
+`in_progress`) to a badge colour/variant is **duplicated across 15+ pages**.
+Each page hand-rolls its own switch/lookup. This drifts over time and produces
+inconsistent colours for the same status across modules.
 
-### 2.2 Badge status → variant mapping is duplicated (15+ pages)
+**Recommendation (Wave C):** a central `src/lib/statusVariants.ts` exporting a
+single status→variant map (and small helpers per domain where statuses overlap),
+consumed by every `Badge`.
 
-The same "status string → badge colour/variant" logic is re-implemented inline
-across **15+ pages**. There is no central mapping, so the same status can render
-differently on different pages, and adding a status means editing many files.
+### 2.2 No shared Table / DataTable component
 
-**Recommendation (Wave C):** introduce a central
-**`src/lib/statusVariants.ts`** that maps every domain status to a single badge
-variant, and have all pages import from it. One status → one colour, everywhere.
+**20+ pages hand-roll their own `<table>`** markup (headers, row striping,
+empty-state, sorting). There is no shared `Table`/`DataTable` primitive, so
+spacing, empty states, and responsive behaviour are inconsistent.
 
-### 2.3 No shared Table / DataTable component (20+ pages)
+**Recommendation (Wave C):** a shared `DataTable` component (columns config,
+built-in empty state, consistent density) to replace the hand-rolled tables.
 
-**20+ pages** hand-roll their own `<table>` markup (headers, row striping, empty
-rows, alignment). This is the largest single source of inconsistency and the most
-repetitive code in the UI.
+### 2.3 EmptyState under-used
 
-**Recommendation (Wave C):** build a shared **`Table` / `DataTable`** component
-(columns config, empty state, loading state, consistent density) and migrate the
-hand-rolled tables onto it.
+An `EmptyState` component exists but is inconsistently applied. Several pages
+render a bare "no data" string or nothing at all. Now that Wave A makes
+empty-in-live-mode the common case, a consistent empty state matters more.
 
-### 2.4 EmptyState is under-used
+**Recommendation (Wave C):** adopt `EmptyState` everywhere a list can be empty,
+including the 25 Wave A pages.
 
-The `EmptyState` component exists but many pages either show nothing or an ad-hoc
-empty message. With Wave A creating many more empty-in-live-mode states, a
-consistent `EmptyState` (icon + headline + hint, plus the `DataSourceBadge`)
-should become the standard.
+### 2.4 Settings & AuditLog inconsistency
 
-### 2.5 Settings and AuditLog are off-pattern
+`Settings` and `AuditLog` do **not** use the shared `Card` / `Badge` primitives;
+they render ad-hoc layout. They look visibly different from the rest of the app.
 
-`Settings` and `AuditLog` do **not** use the shared `Card`/`Badge` primitives, so
-they look visually different from the rest of the app. They should be brought
-onto the standard layout primitives.
+**Recommendation (Wave C):** refactor both onto `Card`/`Badge`.
 
-### 2.6 Dashboard is not role-aware
+### 2.5 ProjectDetail monolith
 
-The Dashboard shows identical content to every role (see also
-`docs/ROLE_WORKSPACE_REDESIGN.md`). `ActionInbox`, by contrast, **is**
-role-filtered and is the right model to follow. Role-aware landing surfaces are
-covered as Wave E.
+`ProjectDetail.tsx` is **1,813 lines** with **12 tabs** in a single component.
+It mixes data fetching, cost logic, and per-tab UI. It is hard to maintain and
+is the largest single contributor to the bundle for its route.
 
-### 2.7 ProjectDetail is monolithic
+**Recommendation (Wave C / dedicated split wave):** break each tab into its own
+lazy-loaded sub-component; lift shared fetch into a hook.
 
-`src/pages/ProjectDetail.tsx` is ~1,813 lines with 12 tabs in a single file. It
-is hard to read, hard to test, and slow to change.
+### 2.6 Repeated `isSupabaseConfigured` branching
 
-**Recommendation (Wave G):** split ProjectDetail into per-tab child components
-with a thin container. (Tracked separately from Wave C.)
+~27 pages repeat the same `isSupabaseConfigured ? query : mock` branching.
 
----
-
-## 3. Wave C plan (DEFERRED — not in this PR)
-
-The enterprise UI-system work is intentionally deferred to a follow-up PR.
-Planned scope, in priority order:
-
-1. **`src/lib/statusVariants.ts`** — central status → badge-variant mapping;
-   migrate the 15+ pages off inline mappings.
-2. **Shared `Table` / `DataTable`** — one component; migrate the 20+ hand-rolled
-   tables.
-3. **EmptyState standardisation** — adopt `EmptyState` + `DataSourceBadge`
-   everywhere a list can be empty.
-4. **Settings / AuditLog** — bring onto `Card`/`Badge` primitives.
-
-> ProjectDetail split (Wave G), navigation restructure (Wave D), role workspaces
-> (Wave E) and reports overhaul (Wave F) are tracked in their own documents.
+**Recommendation (Wave C):** a `useSupabaseQuery` hook that encapsulates the
+mode branching, loading, and error handling. (Also referenced in the
+security/architecture review.)
 
 ---
 
-## 4. Summary
+## 3. Deferred — Wave C summary
 
-| Item                                   | Status in this PR |
-|----------------------------------------|-------------------|
-| DataSourceBadge component              | **Added**         |
-| Central `statusVariants.ts`            | Deferred (Wave C) |
-| Shared Table / DataTable               | Deferred (Wave C) |
-| EmptyState standardisation             | Deferred (Wave C) |
-| Settings / AuditLog onto primitives    | Deferred (Wave C) |
-| Role-aware Dashboard                   | Deferred (Wave E) |
-| ProjectDetail split                    | Deferred (Wave G) |
+| Item | Status |
+|------|--------|
+| Central `src/lib/statusVariants.ts` | DEFERRED |
+| Shared `DataTable` component | DEFERRED |
+| Consistent `EmptyState` adoption | DEFERRED |
+| Settings / AuditLog onto Card/Badge | DEFERRED |
+| ProjectDetail tab split | DEFERRED |
+| `useSupabaseQuery` hook | DEFERRED |
+| `DataSourceBadge` | **DONE (Wave A)** |
+
+See `docs/PRE_PILOT_READINESS_REVIEW.md` for how these deferrals affect pilot
+readiness.
