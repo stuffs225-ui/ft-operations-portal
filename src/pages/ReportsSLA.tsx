@@ -7,6 +7,8 @@ import { Badge } from '../components/ui/Badge';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_SLA_RULES, MOCK_SLA_EVENTS, getOpenSlaBreaches } from '../data/mockReports';
 import { getSlaStatus, isOverdue, getSlaSeverityBadge, formatDuration, getSlaDueLabel } from '../lib/slaEngine';
+import { ReportExportBar } from '../components/features/ReportExportBar';
+import { exportRowsToCsv } from '../lib/reportExport';
 import type { SlaEvent } from '../types';
 
 type Tab = 'Open Breaches' | 'All Events' | 'SLA Rules';
@@ -58,11 +60,34 @@ export function ReportsSLA() {
       return (order[a.severity] ?? 4) - (order[b.severity] ?? 4);
     });
 
+  function handleExportCsv() {
+    exportRowsToCsv(
+      'sla-events',
+      MOCK_SLA_EVENTS,
+      [
+        { key: 'id', header: 'ID', value: e => e.id },
+        { key: 'rule_id', header: 'Rule ID', value: e => e.rule_id },
+        { key: 'entity_type', header: 'Entity Type', value: e => e.entity_type },
+        { key: 'entity_id', header: 'Entity ID', value: e => e.entity_id },
+        { key: 'severity', header: 'Severity', value: e => e.severity },
+        { key: 'status', header: 'Status', value: e => e.status },
+        { key: 'triggered_at', header: 'Triggered At', value: e => e.triggered_at },
+        { key: 'due_at', header: 'Due At', value: e => e.due_at },
+      ]
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="report-print-root space-y-6">
       <PageHeader
         title="SLA & Escalations"
         subtitle="Service level rules, open breaches, and escalation tracking"
+      />
+
+      <ReportExportBar
+        reportKey="sla"
+        reportTitle="SLA & Escalations"
+        onExportCsv={handleExportCsv}
       />
 
       {!isSupabaseConfigured && (

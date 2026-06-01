@@ -171,6 +171,20 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'operations_manager', 'procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user', 'sales_user', 'sales_coordinator', 'viewer'],
   },
   {
+    id: 'templates',
+    label: 'Document Templates',
+    path: '/templates',
+    icon: 'FileStack',
+    roles: ['admin', 'operations_manager', 'sales_user', 'procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user'],
+  },
+  {
+    id: 'notifications',
+    label: 'Notifications',
+    path: '/notifications',
+    icon: 'Bell',
+    roles: ['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user', 'viewer'],
+  },
+  {
     id: 'settings',
     label: 'Settings',
     path: '/settings',
@@ -183,6 +197,27 @@ export const NAV_ITEMS: NavItem[] = [
     path: '/admin/users',
     icon: 'Users',
     roles: ['admin'],
+  },
+  {
+    id: 'admin-access-requests',
+    label: 'Access Requests',
+    path: '/admin/access-requests',
+    icon: 'UserPlus',
+    roles: ['admin', 'operations_manager'],
+  },
+  {
+    id: 'admin-notification-rules',
+    label: 'Notification Rules',
+    path: '/admin/notification-rules',
+    icon: 'BellRing',
+    roles: ['admin', 'operations_manager'],
+  },
+  {
+    id: 'admin-report-subscriptions',
+    label: 'Report Subscriptions',
+    path: '/admin/report-subscriptions',
+    icon: 'CalendarClock',
+    roles: ['admin', 'operations_manager'],
   },
   {
     id: 'audit-log',

@@ -87,14 +87,30 @@ import { ReportsCapa } from '../pages/ReportsCapa';
 import { Settings } from '../pages/Settings';
 import { AdminUsers } from '../pages/AdminUsers';
 import { AuditLog } from '../pages/AuditLog';
+import { RequestAccess } from '../pages/RequestAccess';
+import { Templates } from '../pages/Templates';
+import { TemplateNew } from '../pages/TemplateNew';
+import { TemplateDetail } from '../pages/TemplateDetail';
+import { TemplateApprovals } from '../pages/TemplateApprovals';
+import { TemplateGenerate } from '../pages/TemplateGenerate';
+import { GeneratedDocuments } from '../pages/GeneratedDocuments';
+import { GeneratedDocumentDetail } from '../pages/GeneratedDocumentDetail';
+import { AdminAccessRequests } from '../pages/AdminAccessRequests';
+import { AdminAccessRequestDetail } from '../pages/AdminAccessRequestDetail';
+import { Notifications } from '../pages/Notifications';
+import { NotificationSettings } from '../pages/NotificationSettings';
+import { AdminNotificationRules } from '../pages/AdminNotificationRules';
+import { AdminReportSubscriptions } from '../pages/AdminReportSubscriptions';
+import { AdminReportSubscriptionDetail } from '../pages/AdminReportSubscriptionDetail';
 
 export function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Public route — must be OUTSIDE the protected AppLayout */}
+          {/* Public routes — must be OUTSIDE the protected AppLayout */}
           <Route path="/login" element={<Login />} />
+          <Route path="/request-access" element={<RequestAccess />} />
 
           {/* Protected routes — AppLayout wraps with ProtectedRoute */}
           <Route path="/" element={<AppLayout />}>
@@ -184,6 +200,20 @@ export function App() {
             <Route path="settings" element={<Settings />} />
             <Route path="admin/users" element={<AdminUsers />} />
             <Route path="audit-log" element={<AuditLog />} />
+            <Route path="templates" element={<Templates />} />
+            <Route path="templates/new" element={<TemplateNew />} />
+            <Route path="templates/approvals" element={<TemplateApprovals />} />
+            <Route path="templates/generated" element={<GeneratedDocuments />} />
+            <Route path="templates/generated/:id" element={<GeneratedDocumentDetail />} />
+            <Route path="templates/generate/:id" element={<TemplateGenerate />} />
+            <Route path="templates/:id" element={<TemplateDetail />} />
+            <Route path="admin/access-requests" element={<AdminAccessRequests />} />
+            <Route path="admin/access-requests/:id" element={<AdminAccessRequestDetail />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="notifications/settings" element={<NotificationSettings />} />
+            <Route path="admin/notification-rules" element={<AdminNotificationRules />} />
+            <Route path="admin/report-subscriptions" element={<AdminReportSubscriptions />} />
+            <Route path="admin/report-subscriptions/:id" element={<AdminReportSubscriptionDetail />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

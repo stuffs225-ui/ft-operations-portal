@@ -1298,3 +1298,265 @@ export interface DataQualityCheck {
   suggested_action: string;
   fix_path: string;
 }
+
+// ─── Pre-launch: User Profile / Access Requests ──────────────────────────────
+
+export type AccountStatus = 'pending' | 'active' | 'suspended' | 'inactive';
+
+export type AccessRequestStatus =
+  | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'cancelled';
+
+export interface AccessRequest {
+  id: string;
+  employee_number: string | null;
+  joining_date: string | null;
+  job_title: string | null;
+  full_name: string;
+  email: string;
+  mobile_number: string | null;
+  extension_number: string | null;
+  department: string | null;
+  direct_manager_name: string | null;
+  notes: string | null;
+  requested_role: UserRole | null;
+  request_status: AccessRequestStatus;
+  admin_review_notes: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  approved_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserAccount {
+  id: string;
+  full_name: string | null;
+  email: string;
+  employee_number: string | null;
+  joining_date: string | null;
+  job_title: string | null;
+  mobile_number: string | null;
+  extension_number: string | null;
+  department: string | null;
+  direct_manager_name: string | null;
+  account_status: AccountStatus;
+  role: UserRole;
+  created_at: string;
+  updated_at: string;
+}
+
+// Future detailed-permission foundation (role remains the live mechanism).
+export const PERMISSION_KEYS = [
+  'can_view_costs',
+  'can_approve_po',
+  'can_approve_templates',
+  'can_manage_users',
+  'can_export_reports',
+  'can_issue_release_note',
+  'can_approve_custody',
+  'can_manage_sla',
+  'can_manage_capa',
+] as const;
+export type PermissionKey = (typeof PERMISSION_KEYS)[number];
+
+// ─── Pre-launch: Template Management ─────────────────────────────────────────
+
+export type TemplateType =
+  | 'letter' | 'report' | 'form' | 'checklist' | 'pdf_template'
+  | 'word_template' | 'email_template' | 'operational' | 'other';
+
+export type TemplateFormat =
+  | 'rich_text' | 'plain_text' | 'html' | 'file' | 'pdf' | 'docx' | 'other';
+
+export type TemplateApprovalStatus =
+  | 'draft' | 'submitted_for_approval' | 'approved' | 'rejected' | 'archived';
+
+export type TemplateVisibilityScope = 'department' | 'all_departments' | 'admin_only';
+
+export type TemplateFieldType =
+  | 'text' | 'number' | 'date' | 'email' | 'phone' | 'dropdown' | 'textarea'
+  | 'project_selector' | 'customer_selector' | 'vehicle_selector' | 'employee_selector';
+
+export type GeneratedDocumentStatus = 'draft' | 'generated' | 'exported' | 'archived';
+
+export interface DocumentTemplate {
+  id: string;
+  template_code: string;
+  template_name: string;
+  template_type: TemplateType;
+  department: string | null;
+  description: string | null;
+  file_name: string | null;
+  storage_path: string | null;
+  template_body: string | null;
+  template_format: TemplateFormat;
+  approval_status: TemplateApprovalStatus;
+  submitted_by: string | null;
+  submitted_at: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  rejected_by: string | null;
+  rejected_at: string | null;
+  rejection_reason: string | null;
+  version: string;
+  is_active: boolean;
+  visibility_scope: TemplateVisibilityScope;
+  created_at: string;
+  updated_at: string;
+  submitted_by_profile?: { full_name: string | null } | null;
+  fields?: TemplateField[];
+}
+
+export interface TemplateField {
+  id: string;
+  template_id: string;
+  field_key: string;
+  field_label: string;
+  field_type: TemplateFieldType;
+  is_required: boolean;
+  default_value: string | null;
+  help_text: string | null;
+  display_order: number;
+  options_json: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GeneratedDocument {
+  id: string;
+  template_id: string | null;
+  generated_document_number: string;
+  project_id: string | null;
+  related_module: string | null;
+  generated_by: string | null;
+  generated_at: string;
+  output_title: string;
+  filled_values_json: Record<string, string>;
+  rendered_content: string | null;
+  exported_file_path: string | null;
+  status: GeneratedDocumentStatus;
+  remarks: string | null;
+  created_at: string;
+  updated_at: string;
+  template?: Pick<DocumentTemplate, 'template_name' | 'template_code' | 'template_type'> | null;
+}
+
+// ─── Pre-launch: Notifications ───────────────────────────────────────────────
+
+export type NotificationSeverity = 'routine' | 'important' | 'critical';
+export type NotificationChannel = 'in_app' | 'email' | 'sms';
+export type NotificationDeliveryStatus =
+  | 'pending' | 'sent' | 'failed' | 'skipped' | 'read';
+
+export interface NotificationEvent {
+  id: string;
+  event_key: string;
+  event_name: string;
+  module_name: string;
+  severity: NotificationSeverity;
+  default_channels: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NotificationPreference {
+  id: string;
+  user_id: string;
+  event_key: string;
+  in_app_enabled: boolean;
+  email_enabled: boolean;
+  sms_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  module_name: string | null;
+  event_key: string | null;
+  related_entity_type: string | null;
+  related_entity_id: string | null;
+  severity: NotificationSeverity;
+  channel: NotificationChannel;
+  delivery_status: NotificationDeliveryStatus;
+  read_at: string | null;
+  sent_at: string | null;
+  created_at: string;
+}
+
+export interface NotificationEscalationRule {
+  id: string;
+  rule_key: string;
+  module_name: string;
+  trigger_condition: string;
+  first_level_roles: string[];
+  second_level_roles: string[];
+  escalation_after_hours: number;
+  channels: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─── Pre-launch: Report Snapshots / Scheduled Reports ────────────────────────
+
+export type ReportFrequency = 'daily' | 'weekly' | 'monthly' | 'manual';
+export type ReportSnapshotStatus = 'generated' | 'exported' | 'shared' | 'archived';
+
+export interface ReportSnapshot {
+  id: string;
+  report_key: string;
+  report_title: string;
+  department: string | null;
+  date_range_from: string | null;
+  date_range_to: string | null;
+  filters_json: Record<string, unknown>;
+  summary_json: Record<string, unknown>;
+  metrics_json: Record<string, unknown>;
+  rows_json: unknown[];
+  notes: string | null;
+  status: ReportSnapshotStatus;
+  generated_by: string | null;
+  generated_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ScheduledReportSubscription {
+  id: string;
+  report_key: string;
+  department: string | null;
+  recipients_json: { name?: string; email?: string; role?: string }[];
+  frequency: ReportFrequency;
+  channels: string[];
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReportDeliveryLog {
+  id: string;
+  subscription_id: string | null;
+  report_key: string;
+  generated_at: string;
+  delivery_channel: string;
+  delivery_status: NotificationDeliveryStatus;
+  recipients_json: { name?: string; email?: string }[];
+  error_message: string | null;
+  created_at: string;
+}
+
+// ─── Pre-launch: Department report registry (shared by export foundation) ────
+
+export interface DepartmentReportDef {
+  report_key: string;
+  title: string;
+  department: string;
+  description: string;
+  roles: UserRole[];
+}

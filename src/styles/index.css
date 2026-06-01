@@ -19,6 +19,29 @@
   }
 }
 
+/* ── Report print support ──────────────────────────────────────────────────
+   When printing, hide everything except the active report area. Report pages
+   mark their printable region with `.report-print-root`. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .report-print-root,
+  .report-print-root * {
+    visibility: visible;
+  }
+  .report-print-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
