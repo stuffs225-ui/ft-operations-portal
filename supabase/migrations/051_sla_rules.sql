@@ -45,5 +45,5 @@ CREATE POLICY "sla_rules_select" ON public.sla_rules
 CREATE POLICY "sla_rules_admin_write" ON public.sla_rules
   FOR ALL TO authenticated
   USING (
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'operations_manager'))
+    public.current_user_role() IN ('admin', 'operations_manager')
   );
