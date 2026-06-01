@@ -12,6 +12,8 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { mockOrEmpty } from '../lib/dataMode';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import {
   MOCK_DUBAI_FOLLOWUPS,
   MOCK_DUBAI_ETA_HISTORY,
@@ -90,8 +92,14 @@ type Tab = typeof TABS[number];
 export function ReportsAFS() {
   const [activeTab, setActiveTab] = useState<Tab>('Missing PN');
 
-  const missingPn = MOCK_DUBAI_FOLLOWUPS.filter((f) => !f.pn_reference_id);
-  const delayedEtas = MOCK_DUBAI_ETA_HISTORY;
+  // Live mode has no wired aggregation for this report — never render mock rows.
+  const followups = mockOrEmpty(MOCK_DUBAI_FOLLOWUPS);
+  const arrivalReports = mockOrEmpty(MOCK_AFS_ARRIVAL_REPORTS);
+  const missingItems = mockOrEmpty(MOCK_AFS_MISSING_ITEMS);
+  const predeliveryReports = mockOrEmpty(MOCK_AFS_PREDELIVERY_REPORTS);
+  const maintenanceRequests = mockOrEmpty(MOCK_AFS_MAINTENANCE_REQUESTS);
+  const missingPn = followups.filter((f) => !f.pn_reference_id);
+  const delayedEtas = mockOrEmpty(MOCK_DUBAI_ETA_HISTORY);
 
   return (
     <div className="p-6 space-y-6">
@@ -99,6 +107,7 @@ export function ReportsAFS() {
         title="Dubai / AFS Reports"
         subtitle="PN gate, ETA tracking, arrival, pre-delivery, and maintenance status"
         breadcrumb={[{ label: 'Reports', path: '/reports' }, { label: 'Dubai / AFS' }]}
+        action={<DataSourceBadge variant="preview" />}
       />
 
       {!isSupabaseConfigured && (
@@ -267,7 +276,7 @@ export function ReportsAFS() {
           <div className="p-4 border-b border-gray-100 flex items-center gap-2">
             <Truck className="w-4 h-4 text-gray-400" />
             <span className="font-semibold text-sm text-gray-700">
-              Arrival Reports ({MOCK_AFS_ARRIVAL_REPORTS.length})
+              Arrival Reports ({arrivalReports.length})
             </span>
           </div>
           <div className="overflow-x-auto">
@@ -284,7 +293,7 @@ export function ReportsAFS() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {MOCK_AFS_ARRIVAL_REPORTS.map((ar) => (
+                {arrivalReports.map((ar) => (
                   <tr key={ar.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {ar.arrival_report_number}
@@ -314,7 +323,7 @@ export function ReportsAFS() {
                     </td>
                   </tr>
                 ))}
-                {MOCK_AFS_ARRIVAL_REPORTS.length === 0 && (
+                {arrivalReports.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
                       No arrival reports found
@@ -333,7 +342,7 @@ export function ReportsAFS() {
           <div className="p-4 border-b border-gray-100 flex items-center gap-2">
             <Package className="w-4 h-4 text-gray-400" />
             <span className="font-semibold text-sm text-gray-700">
-              Missing Items ({MOCK_AFS_MISSING_ITEMS.length})
+              Missing Items ({missingItems.length})
             </span>
           </div>
           <div className="overflow-x-auto">
@@ -350,7 +359,7 @@ export function ReportsAFS() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {MOCK_AFS_MISSING_ITEMS.map((mi) => (
+                {missingItems.map((mi) => (
                   <tr key={mi.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-mono text-xs text-gray-700">
                       {mi.item_code ?? '—'}
@@ -373,7 +382,7 @@ export function ReportsAFS() {
                     </td>
                   </tr>
                 ))}
-                {MOCK_AFS_MISSING_ITEMS.length === 0 && (
+                {missingItems.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
                       No missing items recorded
@@ -392,7 +401,7 @@ export function ReportsAFS() {
           <div className="p-4 border-b border-gray-100 flex items-center gap-2">
             <FileText className="w-4 h-4 text-gray-400" />
             <span className="font-semibold text-sm text-gray-700">
-              Pre-Delivery Reports ({MOCK_AFS_PREDELIVERY_REPORTS.length})
+              Pre-Delivery Reports ({predeliveryReports.length})
             </span>
           </div>
           <div className="overflow-x-auto">
@@ -409,7 +418,7 @@ export function ReportsAFS() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {MOCK_AFS_PREDELIVERY_REPORTS.map((pdr) => (
+                {predeliveryReports.map((pdr) => (
                   <tr key={pdr.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {pdr.predelivery_report_number}
@@ -449,7 +458,7 @@ export function ReportsAFS() {
                     </td>
                   </tr>
                 ))}
-                {MOCK_AFS_PREDELIVERY_REPORTS.length === 0 && (
+                {predeliveryReports.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
                       No pre-delivery reports found
@@ -468,7 +477,7 @@ export function ReportsAFS() {
           <div className="p-4 border-b border-gray-100 flex items-center gap-2">
             <Wrench className="w-4 h-4 text-gray-400" />
             <span className="font-semibold text-sm text-gray-700">
-              Maintenance Requests ({MOCK_AFS_MAINTENANCE_REQUESTS.length})
+              Maintenance Requests ({maintenanceRequests.length})
             </span>
           </div>
           <div className="overflow-x-auto">
@@ -486,7 +495,7 @@ export function ReportsAFS() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {MOCK_AFS_MAINTENANCE_REQUESTS.map((mr) => (
+                {maintenanceRequests.map((mr) => (
                   <tr key={mr.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {mr.maintenance_request_number}
@@ -519,7 +528,7 @@ export function ReportsAFS() {
                     </td>
                   </tr>
                 ))}
-                {MOCK_AFS_MAINTENANCE_REQUESTS.length === 0 && (
+                {maintenanceRequests.length === 0 && (
                   <tr>
                     <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
                       No maintenance requests found

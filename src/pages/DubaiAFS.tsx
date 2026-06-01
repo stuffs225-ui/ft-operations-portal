@@ -4,6 +4,8 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { MOCK_DUBAI_FOLLOWUPS, MOCK_AFS_ARRIVAL_REPORTS, MOCK_AFS_MISSING_ITEMS, MOCK_AFS_PREDELIVERY_REPORTS } from '../data/mockAfs';
+import { mockOrEmpty } from '../lib/dataMode';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 
 function KpiCard({ icon, label, value, sub, to, variant }: {
   icon: React.ReactNode; label: string; value: number | string;
@@ -29,10 +31,10 @@ function KpiCard({ icon, label, value, sub, to, variant }: {
 }
 
 export function DubaiAFS() {
-  const followups = MOCK_DUBAI_FOLLOWUPS;
-  const arrivalReports = MOCK_AFS_ARRIVAL_REPORTS;
-  const missingItems = MOCK_AFS_MISSING_ITEMS;
-  const predeliveryReports = MOCK_AFS_PREDELIVERY_REPORTS;
+  const followups = mockOrEmpty(MOCK_DUBAI_FOLLOWUPS);
+  const arrivalReports = mockOrEmpty(MOCK_AFS_ARRIVAL_REPORTS);
+  const missingItems = mockOrEmpty(MOCK_AFS_MISSING_ITEMS);
+  const predeliveryReports = mockOrEmpty(MOCK_AFS_PREDELIVERY_REPORTS);
 
   const activeFollowups = followups.filter(f => !['completed', 'cancelled'].includes(f.dubai_status)).length;
   const delayedEta = followups.filter(f => f.eta_status === 'delayed').length;
@@ -44,6 +46,7 @@ export function DubaiAFS() {
   return (
     <div className="space-y-6">
       <PageHeader title="Dubai / AFS" subtitle="Dubai project follow-up, AFS arrival, pre-delivery and condition tracking" />
+      <DataSourceBadge variant="preview" />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard icon={<TrendingUp size={18} className="text-sky-600" />} label="Active Follow-ups" value={activeFollowups} to="/dubai-afs/projects" />

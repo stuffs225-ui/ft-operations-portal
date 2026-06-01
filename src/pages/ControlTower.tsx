@@ -16,6 +16,8 @@ import {
 import { MOCK_PROJECTS } from '../data/mockProjects';
 import { MOCK_EXECUTION_REFERENCES } from '../data/mockExecutionReferences';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { mockOrEmpty, isLiveMode } from '../lib/dataMode';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -75,41 +77,49 @@ function issuePath(moduleName: string): string {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function ControlTower() {
+  // Live mode has no wired aggregation yet — never compute from mock records.
+  const projects = mockOrEmpty(MOCK_PROJECTS);
+  const execRefs = mockOrEmpty(MOCK_EXECUTION_REFERENCES);
+  const operationalIssues = mockOrEmpty(MOCK_OPERATIONAL_ISSUES);
+  const dqChecks = mockOrEmpty(MOCK_DATA_QUALITY_CHECKS);
+  const projectHealthScores = mockOrEmpty(MOCK_PROJECT_HEALTH_SCORES);
+  const departmentHealthScores = mockOrEmpty(MOCK_DEPARTMENT_HEALTH_SCORES);
+
   // ── Top bar stats ──────────────────────────────────────────────────────────
-  const openSlaBreaches = getOpenSlaBreaches();
+  const openSlaBreaches = isLiveMode() ? [] : getOpenSlaBreaches();
   const openSlaCount = openSlaBreaches.length;
 
-  const criticalIssues = MOCK_OPERATIONAL_ISSUES.filter(
+  const criticalIssues = operationalIssues.filter(
     i => i.severity === 'critical' && !['closed', 'cancelled', 'resolved'].includes(i.status),
   );
   const criticalIssueCount = criticalIssues.length;
 
-  const criticalDqCount = MOCK_DATA_QUALITY_CHECKS.filter(
+  const criticalDqCount = dqChecks.filter(
     c => c.severity === 'critical',
   ).length;
 
   // ── Section 1: Project Lifecycle Counts ────────────────────────────────────
   const activeStatuses = ['active', 'approved', 'submitted_for_approval'];
-  const totalActive = MOCK_PROJECTS.filter(p => activeStatuses.includes(p.project_status)).length;
-  const pendingApproval = MOCK_PROJECTS.filter(p => p.project_status === 'submitted_for_approval').length;
-  const approvedCount = MOCK_PROJECTS.filter(p => p.project_status === 'approved').length;
+  const totalActive = projects.filter(p => activeStatuses.includes(p.project_status)).length;
+  const pendingApproval = projects.filter(p => p.project_status === 'submitted_for_approval').length;
+  const approvedCount = projects.filter(p => p.project_status === 'approved').length;
 
-  const saudiApproved = MOCK_PROJECTS.filter(
+  const saudiApproved = projects.filter(
     p => p.manufacturing_location === 'saudi' && p.project_status === 'approved',
   );
   const missingWo = saudiApproved.filter(p => {
-    const hasWo = MOCK_EXECUTION_REFERENCES.some(
+    const hasWo = execRefs.some(
       r => r.project_id === p.id && r.reference_type === 'wo'
         && r.status !== 'cancelled' && r.status !== 'superseded',
     );
     return !hasWo;
   }).length;
 
-  const dubaiApproved = MOCK_PROJECTS.filter(
+  const dubaiApproved = projects.filter(
     p => p.manufacturing_location === 'dubai' && p.project_status === 'approved',
   );
   const missingPn = dubaiApproved.filter(p => {
-    const hasPn = MOCK_EXECUTION_REFERENCES.some(
+    const hasPn = execRefs.some(
       r => r.project_id === p.id && r.reference_type === 'pn'
         && r.status !== 'cancelled' && r.status !== 'superseded',
     );
@@ -144,7 +154,7 @@ export function ControlTower() {
     path: entityPath(e.entity_type, e.entity_id),
   }));
 
-  const openIssues = MOCK_OPERATIONAL_ISSUES.filter(
+  const openIssues = operationalIssues.filter(
     i => !['closed', 'cancelled', 'resolved'].includes(i.status),
   );
   const issueExceptions: ExceptionItem[] = openIssues.map(i => ({
@@ -161,7 +171,7 @@ export function ControlTower() {
   const bands = ['healthy', 'watch', 'at_risk', 'critical'] as const;
   const bandCounts = bands.map(band => ({
     band,
-    count: MOCK_PROJECT_HEALTH_SCORES.filter(s => s.score_band === band).length,
+    count: projectHealthScores.filter(s => s.score_band === band).length,
   }));
 
   const bandLabels: Record<string, string> = {
@@ -192,7 +202,15 @@ export function ControlTower() {
         subtitle="Live operational monitoring — exceptions, blockers, and delivery status"
         icon={<Radio size={18} />}
         breadcrumb={[{ label: 'Control Tower' }]}
+        action={<DataSourceBadge variant="preview" />}
       />
+
+      {isLiveMode() && (
+        <div className="text-xs bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-lg px-4 py-2">
+          Control Tower aggregation is not yet connected to live data — figures populate once the
+          aggregation layer is wired. Use module pages and Reports for current status.
+        </div>
+      )}
 
       {/* Top bar: summary stats */}
       <div className="flex flex-wrap gap-3">
@@ -336,7 +354,7 @@ export function ControlTower() {
           <Card>
             <CardHeader title="Department Health" />
             <div className="space-y-2">
-              {MOCK_DEPARTMENT_HEALTH_SCORES.map(dept => (
+              {departmentHealthScores.map(dept => (
                 <div key={dept.id} className="flex items-center justify-between">
                   <span className="text-sm text-gray-700">
                     {deptLabels[dept.department_key] ?? dept.department_key}

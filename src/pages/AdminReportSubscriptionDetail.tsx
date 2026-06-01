@@ -5,8 +5,10 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { getReportDef } from '../data/departmentReports';
 import { getMockSubscription, MOCK_DELIVERY_LOGS } from '../data/mockReportSubscriptions';
+import { isDevMockMode, mockOrEmpty } from '../lib/dataMode';
 import { EMAIL_PROVIDER_CONFIGURED, SMS_PROVIDER_CONFIGURED } from '../lib/notifications';
 import type {
   NotificationDeliveryStatus,
@@ -32,7 +34,8 @@ function channelStatus(channel: string): NotificationDeliveryStatus {
 
 export function AdminReportSubscriptionDetail() {
   const { id } = useParams<{ id: string }>();
-  const base = id ? getMockSubscription(id) : undefined;
+  // Live mode has no wired query for this detail page yet — never seed mock.
+  const base = id && isDevMockMode() ? getMockSubscription(id) : undefined;
 
   const [subscription, setSubscription] = useState<ScheduledReportSubscription | undefined>(base);
   const [simulatedLogs, setSimulatedLogs] = useState<ReportDeliveryLog[]>([]);
@@ -84,7 +87,7 @@ export function AdminReportSubscriptionDetail() {
     flash('Manual run simulated — in-app delivered; email/SMS skipped pending provider.');
   }
 
-  const persistedLogs = MOCK_DELIVERY_LOGS.filter((l) => l.subscription_id === subscription.id);
+  const persistedLogs = mockOrEmpty(MOCK_DELIVERY_LOGS).filter((l) => l.subscription_id === subscription.id);
   const allLogs = [...simulatedLogs, ...persistedLogs];
 
   return (
@@ -102,6 +105,7 @@ export function AdminReportSubscriptionDetail() {
           icon={<CalendarClock size={20} />}
           action={
             <div className="flex items-center gap-2">
+              <DataSourceBadge variant="preview" />
               <Button
                 size="sm"
                 variant={subscription.is_active ? 'secondary' : 'primary'}

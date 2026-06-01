@@ -5,6 +5,8 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
+import { mockOrEmpty } from '../lib/dataMode';
 import { MOCK_MATERIAL_NCRS } from '../data/mockQc';
 import type { NcrStatus, NcrSeverity } from '../types';
 
@@ -45,7 +47,7 @@ export function MaterialNcrs() {
   const [statusTab, setStatusTab] = useState<StatusTab>('all');
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all');
 
-  const filtered = MOCK_MATERIAL_NCRS.filter(n => {
+  const filtered = mockOrEmpty(MOCK_MATERIAL_NCRS).filter(n => {
     if (statusTab !== 'all' && n.ncr_status !== statusTab) return false;
     if (severityFilter !== 'all' && n.severity !== severityFilter) return false;
     return true;
@@ -54,6 +56,8 @@ export function MaterialNcrs() {
   return (
     <div className="space-y-5">
       <PageHeader title="Material NCRs" subtitle="Non-Conformance Reports for rejected or non-compliant materials" />
+
+      <DataSourceBadge variant="preview" />
 
       <div className="flex flex-wrap gap-3 items-center">
         <div className="flex items-center gap-2">

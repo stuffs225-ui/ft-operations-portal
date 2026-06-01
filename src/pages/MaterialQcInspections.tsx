@@ -5,7 +5,9 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { useAuth } from '../hooks/useAuth';
+import { mockOrEmpty } from '../lib/dataMode';
 import { MOCK_MATERIAL_QC_INSPECTIONS } from '../data/mockQc';
 import type { InspectionStatus, MaterialInspectionResult, UserRole } from '../types';
 
@@ -48,7 +50,7 @@ export function MaterialQcInspections() {
   const [statusTab, setStatusTab] = useState<StatusTab>('all');
   const [resultFilter, setResultFilter] = useState<ResultFilter>('all');
 
-  const filtered = MOCK_MATERIAL_QC_INSPECTIONS.filter(i => {
+  const filtered = mockOrEmpty(MOCK_MATERIAL_QC_INSPECTIONS).filter(i => {
     if (statusTab !== 'all' && i.inspection_status !== statusTab) return false;
     if (resultFilter !== 'all' && i.inspection_result !== resultFilter) return false;
     return true;
@@ -67,6 +69,8 @@ export function MaterialQcInspections() {
           ) : undefined
         }
       />
+
+      <DataSourceBadge variant="preview" />
 
       <div className="flex flex-wrap gap-3 items-center">
         <div className="flex items-center gap-2">

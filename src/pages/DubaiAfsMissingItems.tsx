@@ -4,6 +4,8 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { MOCK_AFS_MISSING_ITEMS } from '../data/mockAfs';
+import { mockOrEmpty } from '../lib/dataMode';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import type { MissingItemStatus } from '../types';
 
 type Tab = 'all' | MissingItemStatus;
@@ -32,13 +34,14 @@ function severityVariant(s: string): 'neutral' | 'warning' | 'critical' | 'info'
 export function DubaiAfsMissingItems() {
   const [tab, setTab] = useState<Tab>('all');
 
-  const items = MOCK_AFS_MISSING_ITEMS.filter(i =>
+  const items = mockOrEmpty(MOCK_AFS_MISSING_ITEMS).filter(i =>
     tab === 'all' ? true : i.missing_item_status === tab
   );
 
   return (
     <div className="space-y-5">
       <PageHeader title="Missing Items" subtitle="Track all missing items from AFS arrival inspections" />
+      <DataSourceBadge variant="preview" />
 
       <div className="flex gap-1 border-b border-gray-100">
         {TABS.map(t => (

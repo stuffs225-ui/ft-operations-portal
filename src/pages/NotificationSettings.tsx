@@ -6,7 +6,13 @@ import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_NOTIFICATION_EVENTS } from '../data/mockNotifications';
+import { mockOrEmpty } from '../lib/dataMode';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { EMAIL_PROVIDER_CONFIGURED, SMS_PROVIDER_CONFIGURED } from '../lib/notifications';
+
+// Event catalog is seeded server-side; show it only in dev mode until the live
+// catalog query is wired, so mock rows never appear in a real session.
+const NOTIFICATION_EVENTS = mockOrEmpty(MOCK_NOTIFICATION_EVENTS);
 import type { NotificationSeverity } from '../types';
 
 interface PrefRow {
@@ -45,7 +51,7 @@ export function NotificationSettings() {
   const { profile } = useAuth();
 
   const [prefs, setPrefs] = useState<PrefRow[]>(() =>
-    MOCK_NOTIFICATION_EVENTS.map((evt) => ({
+    NOTIFICATION_EVENTS.map((evt) => ({
       event_key: evt.event_key,
       in_app: evt.default_channels.includes('in_app'),
       email: evt.default_channels.includes('email'),
@@ -111,9 +117,12 @@ export function NotificationSettings() {
           { label: 'Preferences' },
         ]}
         action={
-          <Button variant="primary" size="sm" loading={saving} disabled={saving} onClick={handleSave}>
-            Save Preferences
-          </Button>
+          <div className="flex items-center gap-2">
+            <DataSourceBadge variant="preview" />
+            <Button variant="primary" size="sm" loading={saving} disabled={saving} onClick={handleSave}>
+              Save Preferences
+            </Button>
+          </div>
         }
       />
 
@@ -154,8 +163,9 @@ export function NotificationSettings() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {MOCK_NOTIFICATION_EVENTS.map((evt) => {
-              const pref = prefs.find((p) => p.event_key === evt.event_key)!;
+            {NOTIFICATION_EVENTS.map((evt) => {
+              const pref = prefs.find((p) => p.event_key === evt.event_key);
+              if (!pref) return null;
               return (
                 <tr key={evt.event_key} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">

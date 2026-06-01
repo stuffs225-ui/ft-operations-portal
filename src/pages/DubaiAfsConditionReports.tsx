@@ -5,6 +5,8 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { MOCK_AFS_CONDITION_REPORTS } from '../data/mockAfs';
+import { mockOrEmpty } from '../lib/dataMode';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import type { ConditionReportStatus } from '../types';
 
 type Tab = 'all' | ConditionReportStatus;
@@ -33,13 +35,14 @@ function overallVariant(s: string): 'neutral' | 'warning' | 'success' | 'critica
 export function DubaiAfsConditionReports() {
   const [tab, setTab] = useState<Tab>('all');
 
-  const reports = MOCK_AFS_CONDITION_REPORTS.filter(r =>
+  const reports = mockOrEmpty(MOCK_AFS_CONDITION_REPORTS).filter(r =>
     tab === 'all' ? true : r.report_status === tab
   );
 
   return (
     <div className="space-y-5">
       <PageHeader title="Condition Reports" subtitle="Post-arrival vehicle condition assessments" />
+      <DataSourceBadge variant="preview" />
 
       <div className="flex gap-1 border-b border-gray-100">
         {TABS.map(t => (

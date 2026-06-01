@@ -5,6 +5,8 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
+import { mockOrEmpty } from '../lib/dataMode';
 import { MOCK_PROJECT_QC_FINDINGS } from '../data/mockQc';
 import type { FindingStatus } from '../types';
 
@@ -41,7 +43,7 @@ function formatDate(iso: string) {
 export function ProjectQcFindings() {
   const [statusTab, setStatusTab] = useState<StatusTab>('all');
 
-  const filtered = MOCK_PROJECT_QC_FINDINGS.filter(f => {
+  const filtered = mockOrEmpty(MOCK_PROJECT_QC_FINDINGS).filter(f => {
     if (statusTab !== 'all' && f.finding_status !== statusTab) return false;
     return true;
   });
@@ -49,6 +51,8 @@ export function ProjectQcFindings() {
   return (
     <div className="space-y-5">
       <PageHeader title="QC Findings" subtitle="Findings raised during project and vehicle QC inspections" />
+
+      <DataSourceBadge variant="preview" />
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div className="flex items-center gap-1 px-4 pt-3 overflow-x-auto border-b border-gray-100">

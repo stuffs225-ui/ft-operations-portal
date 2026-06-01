@@ -5,7 +5,9 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { useAuth } from '../hooks/useAuth';
+import { mockOrEmpty } from '../lib/dataMode';
 import { MOCK_RELEASE_NOTES } from '../data/mockQc';
 import type { ReleaseStatus, UserRole } from '../types';
 
@@ -44,7 +46,7 @@ export function ProjectQcReleaseNotes() {
   const canCreate = role ? CAN_CREATE.includes(role) : false;
   const [statusTab, setStatusTab] = useState<StatusTab>('all');
 
-  const filtered = MOCK_RELEASE_NOTES.filter(r => {
+  const filtered = mockOrEmpty(MOCK_RELEASE_NOTES).filter(r => {
     if (statusTab !== 'all' && r.release_status !== statusTab) return false;
     return true;
   });
@@ -62,6 +64,8 @@ export function ProjectQcReleaseNotes() {
           ) : undefined
         }
       />
+
+      <DataSourceBadge variant="preview" />
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div className="flex items-center gap-1 px-4 pt-3 overflow-x-auto border-b border-gray-100">

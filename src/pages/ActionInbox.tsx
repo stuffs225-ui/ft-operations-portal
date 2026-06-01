@@ -6,6 +6,8 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import { INBOX_TASKS } from '../data/mockInbox';
+import { mockOrEmpty } from '../lib/dataMode';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { ROLE_CONFIGS } from '../lib/roles';
 import type { InboxTask, TaskPriority, TaskCategory } from '../types';
 import { cn } from '../lib/utils';
@@ -84,8 +86,9 @@ function TaskCard({ task }: { task: InboxTask }) {
 
 export function ActionInbox() {
   const { role } = useAuth();
-  // Admin sees all tasks; other roles see only tasks assigned to their role
-  const visibleTasks = INBOX_TASKS.filter(t =>
+  // Admin sees all tasks; other roles see only tasks assigned to their role.
+  // Inbox has no wired live source yet — show nothing (not mock) in live mode.
+  const visibleTasks = mockOrEmpty(INBOX_TASKS).filter(t =>
     role === 'admin' || t.assignedRole === role
   );
   const criticalCount = visibleTasks.filter((t) => t.priority === 'critical').length;
@@ -99,6 +102,7 @@ export function ActionInbox() {
         breadcrumb={[{ label: 'Inbox' }]}
         action={
           <div className="flex items-center gap-2 text-xs">
+            <DataSourceBadge variant="preview" />
             <span className="bg-red-100 text-red-700 rounded-full px-2 py-1 font-semibold">
               {criticalCount} Critical
             </span>

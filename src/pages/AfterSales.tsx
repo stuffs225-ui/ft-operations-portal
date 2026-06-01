@@ -6,6 +6,8 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import { MOCK_AFS_MAINTENANCE_REQUESTS } from '../data/mockAfs';
+import { mockOrEmpty } from '../lib/dataMode';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import type { UserRole } from '../types';
 
 const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'sales_user', 'afs_user'];
@@ -47,7 +49,7 @@ function KpiCard({ icon, label, value, to, variant }: {
 export function AfterSales() {
   const { role } = useAuth();
   const canCreate = role ? CAN_CREATE.includes(role) : false;
-  const requests = MOCK_AFS_MAINTENANCE_REQUESTS;
+  const requests = mockOrEmpty(MOCK_AFS_MAINTENANCE_REQUESTS);
 
   const open = requests.filter(r => r.maintenance_status === 'open').length;
   const inProgress = requests.filter(r => ['assigned', 'under_inspection', 'in_repair'].includes(r.maintenance_status)).length;
@@ -67,6 +69,7 @@ export function AfterSales() {
           </Link>
         ) : undefined}
       />
+      <DataSourceBadge variant="preview" />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard icon={<AlertTriangle size={18} className="text-red-600" />} label="Open Requests" value={open} to="/after-sales/maintenance" variant={open > 0 ? 'critical' : 'default'} />

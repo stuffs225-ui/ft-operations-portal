@@ -4,6 +4,8 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { ROLE_CONFIGS } from '../lib/roles';
 import { MOCK_NOTIFICATION_EVENTS, MOCK_ESCALATION_RULES } from '../data/mockNotifications';
+import { mockOrEmpty } from '../lib/dataMode';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import type { NotificationSeverity, UserRole } from '../types';
 
 function severityBadge(severity: NotificationSeverity) {
@@ -16,6 +18,9 @@ function roleLabel(key: string): string {
 }
 
 export function AdminNotificationRules() {
+  const events = mockOrEmpty(MOCK_NOTIFICATION_EVENTS);
+  const escalationRules = mockOrEmpty(MOCK_ESCALATION_RULES);
+
   return (
     <div>
       <PageHeader
@@ -23,15 +28,18 @@ export function AdminNotificationRules() {
         subtitle="Notification events and escalation governance"
         icon={<SlidersHorizontal size={18} />}
         action={
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={<Plus size={14} />}
-            disabled
-            title="Configuration UI — foundation"
-          >
-            Add Rule
-          </Button>
+          <div className="flex items-center gap-2">
+            <DataSourceBadge variant="preview" />
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<Plus size={14} />}
+              disabled
+              title="Configuration UI — foundation"
+            >
+              Add Rule
+            </Button>
+          </div>
         }
       />
 
@@ -60,7 +68,10 @@ export function AdminNotificationRules() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {MOCK_NOTIFICATION_EVENTS.map((evt) => (
+              {events.length === 0 && (
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-xs text-gray-400">No events to display in live mode — the events catalog is seeded server-side.</td></tr>
+              )}
+              {events.map((evt) => (
                 <tr key={evt.event_key} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3 text-xs text-gray-600 font-mono">{evt.event_key}</td>
                   <td className="px-4 py-3 text-xs font-medium text-gray-900">{evt.event_name}</td>
@@ -105,7 +116,10 @@ export function AdminNotificationRules() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {MOCK_ESCALATION_RULES.map((rule) => (
+              {escalationRules.length === 0 && (
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-xs text-gray-400">No escalation rules to display in live mode — rules are managed server-side.</td></tr>
+              )}
+              {escalationRules.map((rule) => (
                 <tr key={rule.rule_key} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3 text-xs text-gray-600 font-mono">{rule.rule_key}</td>
                   <td className="px-4 py-3 hidden md:table-cell">

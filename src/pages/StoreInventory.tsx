@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
+import { mockOrEmpty } from '../lib/dataMode';
 import { MOCK_STORE_RECEIPTS, MOCK_RECEIPT_ITEMS } from '../data/mockStore';
 import type { ItemStatus, StoreReceiptItem } from '../types';
 
@@ -22,7 +24,7 @@ export function StoreInventory() {
   // Collect all items across all receipts
   const allItems: (StoreReceiptItem & { receipt_number: string })[] = useMemo(() => {
     const result: (StoreReceiptItem & { receipt_number: string })[] = [];
-    MOCK_STORE_RECEIPTS.forEach(r => {
+    mockOrEmpty(MOCK_STORE_RECEIPTS).forEach(r => {
       const items = MOCK_RECEIPT_ITEMS[r.id] ?? [];
       items.forEach(item => result.push({ ...item, receipt_number: r.receipt_number }));
     });
@@ -57,6 +59,8 @@ export function StoreInventory() {
   return (
     <div className="space-y-5">
       <PageHeader title="Store Inventory" subtitle="All received materials and their current status" />
+
+      <DataSourceBadge variant="preview" />
 
       {/* Summary strip */}
       <div className="grid grid-cols-3 gap-3">

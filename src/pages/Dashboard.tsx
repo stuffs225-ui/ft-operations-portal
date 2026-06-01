@@ -7,9 +7,16 @@ import {
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { PageHeader } from '../components/ui/PageHeader';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { DASHBOARD_KPI_CARDS, AFS_KPI_CARDS, PROJECT_SUMMARY } from '../data/mockDashboard';
+import { mockOrEmpty, mockOrValue, isLiveMode } from '../lib/dataMode';
 import type { KpiCard } from '../types';
 import { cn } from '../lib/utils';
+
+const EMPTY_SUMMARY: typeof PROJECT_SUMMARY = {
+  totalActive: 0, saudi: 0, dubai: 0, withWO: 0,
+  withPN: 0, inProduction: 0, inQC: 0, readyToDeliver: 0,
+};
 
 const ICON_MAP: Record<string, LucideIcon> = {
   FileText, AlertTriangle, AlertCircle, ShoppingCart, PackageCheck,
@@ -58,31 +65,41 @@ function KpiCardItem({ card }: { card: KpiCard }) {
 }
 
 export function Dashboard() {
+  const summary = mockOrValue(PROJECT_SUMMARY, EMPTY_SUMMARY);
+  const dashboardCards = mockOrEmpty(DASHBOARD_KPI_CARDS);
+  const afsCards = mockOrEmpty(AFS_KPI_CARDS);
+
   return (
     <div>
       <PageHeader
         title="Operations Control Tower"
         subtitle="Live operational status across all modules"
         breadcrumb={[{ label: 'Dashboard' }]}
-        action={
-          <div className="flex items-center gap-2 text-xs text-gray-500 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
-            <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-            Static Demo Data
-          </div>
-        }
+        action={<DataSourceBadge variant="preview" />}
       />
+
+      {isLiveMode() && (
+        <div className="flex items-start gap-2 bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-3 mb-6 text-xs text-indigo-800">
+          <Activity size={15} className="shrink-0 mt-0.5" />
+          <span>
+            Dashboard aggregation is not yet connected to live data. Use the module pages and
+            Reports for current figures; summary cards here will populate once the aggregation
+            layer is wired.
+          </span>
+        </div>
+      )}
 
       {/* Project Summary Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
         {[
-          { label: 'Active Projects', value: PROJECT_SUMMARY.totalActive, color: 'text-brand-700' },
-          { label: 'Saudi Route', value: PROJECT_SUMMARY.saudi, color: 'text-blue-700' },
-          { label: 'Dubai Route', value: PROJECT_SUMMARY.dubai, color: 'text-sky-700' },
-          { label: 'With WO', value: PROJECT_SUMMARY.withWO, color: 'text-green-700' },
-          { label: 'With PN', value: PROJECT_SUMMARY.withPN, color: 'text-teal-700' },
-          { label: 'In Production', value: PROJECT_SUMMARY.inProduction, color: 'text-amber-700' },
-          { label: 'In QC', value: PROJECT_SUMMARY.inQC, color: 'text-purple-700' },
-          { label: 'Ready to Deliver', value: PROJECT_SUMMARY.readyToDeliver, color: 'text-green-600' },
+          { label: 'Active Projects', value: summary.totalActive, color: 'text-brand-700' },
+          { label: 'Saudi Route', value: summary.saudi, color: 'text-blue-700' },
+          { label: 'Dubai Route', value: summary.dubai, color: 'text-sky-700' },
+          { label: 'With WO', value: summary.withWO, color: 'text-green-700' },
+          { label: 'With PN', value: summary.withPN, color: 'text-teal-700' },
+          { label: 'In Production', value: summary.inProduction, color: 'text-amber-700' },
+          { label: 'In QC', value: summary.inQC, color: 'text-purple-700' },
+          { label: 'Ready to Deliver', value: summary.readyToDeliver, color: 'text-green-600' },
         ].map((item) => (
           <div key={item.label} className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center">
             <div className={cn('text-xl font-bold', item.color)}>{item.value}</div>
@@ -98,7 +115,7 @@ export function Dashboard() {
           Critical Operational Indicators
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
-          {DASHBOARD_KPI_CARDS.map((card) => (
+          {dashboardCards.map((card) => (
             <KpiCardItem key={card.id} card={card} />
           ))}
         </div>
@@ -111,7 +128,7 @@ export function Dashboard() {
           Dubai / AFS &amp; After Sales
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {AFS_KPI_CARDS.map((card) => (
+          {afsCards.map((card) => (
             <KpiCardItem key={card.id} card={card} />
           ))}
         </div>

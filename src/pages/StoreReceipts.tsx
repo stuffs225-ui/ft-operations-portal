@@ -5,7 +5,9 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { useAuth } from '../hooks/useAuth';
+import { mockOrEmpty } from '../lib/dataMode';
 import { MOCK_STORE_RECEIPTS } from '../data/mockStore';
 import type { StoreReceipt, ReceiptStatus, UserRole } from '../types';
 
@@ -40,7 +42,7 @@ export function StoreReceipts() {
   const [statusTab, setStatusTab] = useState<'all' | ReceiptStatus>('all');
   const [search, setSearch] = useState('');
 
-  const receipts: StoreReceipt[] = MOCK_STORE_RECEIPTS;
+  const receipts: StoreReceipt[] = mockOrEmpty(MOCK_STORE_RECEIPTS);
   const canCreate = role ? CAN_CREATE.includes(role) : false;
 
   const filtered = useMemo(() => {
@@ -72,6 +74,8 @@ export function StoreReceipts() {
           ) : undefined
         }
       />
+
+      <DataSourceBadge variant="preview" />
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         {/* Tabs */}

@@ -5,7 +5,9 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { useAuth } from '../hooks/useAuth';
+import { mockOrEmpty } from '../lib/dataMode';
 import { MOCK_CUSTODY_RECORDS } from '../data/mockStore';
 import type { CustodyStatus, CustodyApprovalStatus, CustodyReceiverDecision, UserRole } from '../types';
 
@@ -41,15 +43,17 @@ export function MaterialCustody() {
   const [statusTab, setStatusTab] = useState<'all' | CustodyStatus>('all');
   const canCreate = role ? CAN_CREATE.includes(role) : false;
 
-  const filtered = useMemo(() => {
-    if (statusTab === 'all') return MOCK_CUSTODY_RECORDS;
-    return MOCK_CUSTODY_RECORDS.filter(c => c.status === statusTab);
-  }, [statusTab]);
+  const records = useMemo(() => mockOrEmpty(MOCK_CUSTODY_RECORDS), []);
 
-  const pendingApproval = MOCK_CUSTODY_RECORDS.filter(c => c.approval_status === 'pending_approval').length;
-  const pendingAcceptance = MOCK_CUSTODY_RECORDS.filter(c => c.receiver_decision === 'pending' && c.status === 'issued').length;
-  const inCustody = MOCK_CUSTODY_RECORDS.filter(c => c.status === 'in_custody').length;
-  const returned = MOCK_CUSTODY_RECORDS.filter(c => c.status === 'returned').length;
+  const filtered = useMemo(() => {
+    if (statusTab === 'all') return records;
+    return records.filter(c => c.status === statusTab);
+  }, [statusTab, records]);
+
+  const pendingApproval = records.filter(c => c.approval_status === 'pending_approval').length;
+  const pendingAcceptance = records.filter(c => c.receiver_decision === 'pending' && c.status === 'issued').length;
+  const inCustody = records.filter(c => c.status === 'in_custody').length;
+  const returned = records.filter(c => c.status === 'returned').length;
 
   return (
     <div className="space-y-5">
@@ -64,6 +68,8 @@ export function MaterialCustody() {
           ) : undefined
         }
       />
+
+      <DataSourceBadge variant="preview" />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[

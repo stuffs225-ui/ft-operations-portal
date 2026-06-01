@@ -5,6 +5,8 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { MOCK_DUBAI_FOLLOWUPS } from '../data/mockAfs';
+import { mockOrEmpty } from '../lib/dataMode';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 
 function etaVariant(s: string): 'neutral' | 'warning' | 'success' | 'info' | 'critical' | 'default' {
   if (s === 'delayed') return 'warning';
@@ -15,7 +17,7 @@ function etaVariant(s: string): 'neutral' | 'warning' | 'success' | 'info' | 'cr
 }
 
 export function DubaiAfsEta() {
-  const followups = [...MOCK_DUBAI_FOLLOWUPS].sort((a, b) => {
+  const followups = [...mockOrEmpty(MOCK_DUBAI_FOLLOWUPS)].sort((a, b) => {
     if (!a.eta_date) return 1;
     if (!b.eta_date) return -1;
     return a.eta_date.localeCompare(b.eta_date);
@@ -24,6 +26,7 @@ export function DubaiAfsEta() {
   return (
     <div className="space-y-5">
       <PageHeader title="ETA Tracking" subtitle="Monitor vehicle arrival ETAs and delay status for all Dubai follow-ups" />
+      <DataSourceBadge variant="preview" />
 
       <Card>
         {followups.length === 0 ? (
