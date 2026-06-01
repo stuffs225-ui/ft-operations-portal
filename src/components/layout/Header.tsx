@@ -1,4 +1,5 @@
 import { Bell, Menu, Search, ChevronDown, LogOut } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { ROLE_CONFIGS } from '../../lib/roles';
 
@@ -59,10 +60,10 @@ export function Header({ onMenuToggle }: HeaderProps) {
       )}
 
       {/* Notifications */}
-      <button className="relative p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
+      <Link to="/notifications" className="relative p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
         <Bell size={18} />
         <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-      </button>
+      </Link>
 
       {/* User chip */}
       <div className="flex items-center gap-2 pl-3 border-l border-gray-200">

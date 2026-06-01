@@ -1,8 +1,18 @@
 # Production Readiness Gaps
 
 **Date:** 2026-05-31
-**Reviewed:** full codebase + all migrations (`001`–`059`) for real-Supabase readiness.
+**Reviewed:** full codebase + all migrations (`001`–`066`) for real-Supabase readiness.
 **Legend — Priority:** 1 = Critical before production · 2 = Important before pilot · 3 = Nice to have · 4 = Future.
+
+> **Update — Security Hardening branch:** GAP-01 (cost exposure) and GAP-02 (PO
+> self-approval) are FIXED (migrations 060/061).
+>
+> **Update — Pre-launch support layer (migrations 062–066):** added department
+> reporting/export, template management + fillable documents, employee
+> access-request workflow, user-profile/role admin, an in-app notification system
+> with email/SMS *foundation* (provider-gated — nothing sends from the browser),
+> and scheduled-report subscriptions + escalation rules. New launch-relevant
+> gaps are tracked below as GAP-24…GAP-27.
 
 Each gap: **module · risk · recommendation · priority · effort · blocks real users?**
 
@@ -137,6 +147,34 @@ Each gap: **module · risk · recommendation · priority · effort · blocks rea
 - **Effort:** M. **Blocks real users:** NO.
 
 ---
+
+## Pre-launch support layer — known gaps (provider / future work)
+
+### GAP-24 · Email / SMS delivery requires a server-side provider
+- **Module:** Notifications, scheduled reports, escalations.
+- **Risk:** email/SMS notifications are recorded as `skipped` until a Supabase Edge
+  Function + provider key (server-side) is configured. In-app works now.
+- **Recommendation:** implement `dispatch-notifications` Edge Function per
+  `EMAIL_SMS_INTEGRATION_PLAN.md`. **Blocks:** external alerting only.
+
+### GAP-25 · Approved-access-request → auth user creation is manual
+- **Module:** Access requests.
+- **Risk:** approving records the decision/role; an admin must still create/link
+  the Supabase Auth user (service-role, server-side). No browser auto-creation.
+- **Recommendation:** admin-authenticated Edge Function to automate provisioning.
+  **Blocks:** onboarding speed, not safety. See `ACCESS_REQUEST_WORKFLOW_DESIGN.md`.
+
+### GAP-26 · Detailed permission flags are foundation-only
+- **Module:** User profile (`permissions_json`, `PERMISSION_KEYS`).
+- **Risk:** fine-grained permissions are defined but **not enforced**; role remains
+  the live mechanism. No false sense of security — flags do nothing yet.
+- **Recommendation:** wire checks + RLS for specific flags in a later phase.
+
+### GAP-27 · Notification dispatch + scheduled reports are not auto-triggered
+- **Module:** Notifications, scheduled reports.
+- **Risk:** workflow code does not yet *call* `createNotification` at every event;
+  scheduled subscriptions run only via manual "Generate Now". No pg_cron/triggers.
+- **Recommendation:** add insert/trigger hooks + `pg_cron`; reuse the foundation.
 
 ## Priority 4 — Future
 

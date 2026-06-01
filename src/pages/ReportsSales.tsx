@@ -8,6 +8,9 @@ import { Button } from '../components/ui/Button';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_QUOTATIONS } from '../data/mockQuotations';
 import { MOCK_PROJECTS } from '../data/mockProjects';
+import { ReportExportBar } from '../components/features/ReportExportBar';
+import { exportRowsToCsv } from '../lib/reportExport';
+import type { ReportColumn } from '../lib/reportExport';
 import type { QuotationStatus } from '../types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -205,6 +208,16 @@ function AgingTab() {
 export function ReportsSales() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('Quotations');
 
+  function handleExportCsv() {
+    const columns: ReportColumn<typeof MOCK_QUOTATIONS[number]>[] = [
+      { key: 'quotation_code', header: 'Quotation #', value: (q) => q.quotation_code },
+      { key: 'customer_name', header: 'Customer', value: (q) => q.customer_name },
+      { key: 'quotation_status', header: 'Status', value: (q) => q.quotation_status },
+      { key: 'submitted_at', header: 'Submitted', value: (q) => q.submitted_at ?? '' },
+    ];
+    exportRowsToCsv('sales_project', MOCK_QUOTATIONS, columns);
+  }
+
   return (
     <div className="space-y-6">
       {!isSupabaseConfigured && (
@@ -219,6 +232,14 @@ export function ReportsSales() {
         breadcrumb={[{ label: 'Reports', path: '/reports' }, { label: 'Sales' }]}
       />
 
+      <ReportExportBar
+        reportKey="sales_project"
+        reportTitle="Sales Project Report"
+        department="Sales"
+        onExportCsv={handleExportCsv}
+      />
+
+      <div className="report-print-root space-y-6">
       {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200">
         {TABS.map(tab => (
@@ -240,6 +261,7 @@ export function ReportsSales() {
       {activeTab === 'Quotations' && <QuotationsTab />}
       {activeTab === 'Active Projects' && <ActiveProjectsTab />}
       {activeTab === 'Aging' && <AgingTab />}
+      </div>
     </div>
   );
 }

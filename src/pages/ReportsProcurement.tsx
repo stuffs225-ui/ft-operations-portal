@@ -10,6 +10,9 @@ import {
   MOCK_PURCHASE_ORDERS,
 } from '../data/mockProcurement';
 import { MOCK_SUPPLIER_SCORECARDS } from '../data/mockReports';
+import { ReportExportBar } from '../components/features/ReportExportBar';
+import { exportRowsToCsv } from '../lib/reportExport';
+import type { ReportColumn } from '../lib/reportExport';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -81,6 +84,18 @@ export function ReportsProcurement() {
     (po) => po.eta_date && new Date(po.eta_date) < now,
   );
 
+  function handleExportCsv() {
+    const columns: ReportColumn<typeof MOCK_PURCHASE_ORDERS[number]>[] = [
+      { key: 'po_number', header: 'PO Number', value: (po) => po.po_number },
+      { key: 'supplier_name', header: 'Supplier', value: (po) => po.supplier_name },
+      { key: 'po_status', header: 'PO Status', value: (po) => po.po_status ?? '' },
+    ];
+    if (canSeeCost) {
+      columns.push({ key: 'purchase_value', header: 'Purchase Value', value: (po) => po.purchase_value });
+    }
+    exportRowsToCsv('procurement_pr_po', MOCK_PURCHASE_ORDERS, columns);
+  }
+
   return (
     <div className="p-6 space-y-6">
       <PageHeader
@@ -95,6 +110,14 @@ export function ReportsProcurement() {
         </div>
       )}
 
+      <ReportExportBar
+        reportKey="procurement_pr_po"
+        reportTitle="Procurement PR / PO Report"
+        department="Procurement"
+        onExportCsv={handleExportCsv}
+      />
+
+      <div className="report-print-root space-y-6">
       {/* Tab bar */}
       <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">
         {TABS.map((tab) => (
@@ -443,6 +466,7 @@ export function ReportsProcurement() {
           </div>
         </Card>
       )}
+      </div>
     </div>
   );
 }

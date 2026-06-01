@@ -500,3 +500,16 @@ Covers: Phases 0–10.5 (Foundation through Final Integration Stabilization, Arc
 | Phase 9.5 | Dubai / AFS / After Sales Integration Stabilization | ✅ Complete |
 | Phase 10 | Reports / Control Tower / SLA / Data Quality / Health Scores / Issues / CAPA | ✅ Complete |
 | Phase 10.5 | Final Integration Stabilization, Architecture Review, Production Readiness | ✅ Complete |
+| Security Hardening | DB-level cost protection (GAP-01) + PO self-approval guard (GAP-02) — migrations 060/061 | ✅ Complete |
+| Pre-launch Support Layer | Dept reporting/export, templates + fillable docs, access requests, user/role admin, notifications, scheduled reports — migrations 062–066 | ✅ Complete |
+
+## Pre-launch support layer — smoke checklist
+See `PRE_LAUNCH_FEATURE_TEST_PLAN.md` for the full plan. Quick gate:
+- [ ] New routes load in dev mode without crashing: `/templates`, `/templates/new`,
+      `/templates/approvals`, `/templates/generated`, `/request-access` (public),
+      `/admin/access-requests`, `/notifications`, `/notifications/settings`,
+      `/admin/notification-rules`, `/admin/report-subscriptions`.
+- [ ] Header bell shows unread notification count.
+- [ ] Report pages (Procurement/Factory/Sales/SLA) show the export bar; CSV + print work.
+- [ ] No email/SMS is sent from the browser; provider badges read "not configured".
+- [ ] `npm run build` passes with zero TypeScript errors.

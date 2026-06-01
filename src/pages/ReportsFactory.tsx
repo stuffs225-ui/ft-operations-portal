@@ -9,6 +9,9 @@ import {
   MOCK_FACTORY_REQUIREMENTS,
   MOCK_RAW_MATERIAL_REQUESTS,
 } from '../data/mockFactory';
+import { ReportExportBar } from '../components/features/ReportExportBar';
+import { exportRowsToCsv } from '../lib/reportExport';
+import type { ReportColumn } from '../lib/reportExport';
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string | null | undefined): string {
@@ -97,6 +100,17 @@ export function ReportsFactory() {
   const monthlyUpdateRequired = getMonthlyUpdateRequired();
   const readyForQc = getReadyForQc();
 
+  function handleExportCsv() {
+    const columns: ReportColumn<typeof MOCK_FACTORY_RECORDS[number]>[] = [
+      { key: 'project', header: 'Project', value: (fr) => fr.project?.project_code ?? fr.project_id },
+      { key: 'vehicle_line', header: 'Vehicle Line', value: (fr) => fr.vehicle_line?.vehicle_type ?? '' },
+      { key: 'production_status', header: 'Production Status', value: (fr) => fr.production_status },
+      { key: 'progress', header: 'Progress %', value: (fr) => fr.progress_percentage },
+      { key: 'expected_completion', header: 'Expected Completion', value: (fr) => fr.expected_completion_date ?? '' },
+    ];
+    exportRowsToCsv('factory_progress', MOCK_FACTORY_RECORDS, columns);
+  }
+
   return (
     <div className="p-6 space-y-6">
       <PageHeader
@@ -111,6 +125,14 @@ export function ReportsFactory() {
         </div>
       )}
 
+      <ReportExportBar
+        reportKey="factory_progress"
+        reportTitle="Factory Progress Report"
+        department="Factory"
+        onExportCsv={handleExportCsv}
+      />
+
+      <div className="report-print-root space-y-6">
       {/* Tab bar */}
       <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">
         {TABS.map((tab) => (
@@ -451,6 +473,7 @@ export function ReportsFactory() {
           </div>
         </Card>
       )}
+      </div>
     </div>
   );
 }

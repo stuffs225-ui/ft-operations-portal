@@ -1414,6 +1414,72 @@ export type Database = {
         Relationships: [];
         Views: {};
       };
+      access_requests: {
+        Row: { id: string; employee_number: string | null; joining_date: string | null; job_title: string | null; full_name: string; email: string; mobile_number: string | null; extension_number: string | null; department: string | null; direct_manager_name: string | null; notes: string | null; requested_role: string | null; request_status: string; admin_review_notes: string | null; reviewed_by: string | null; reviewed_at: string | null; approved_user_id: string | null; created_at: string; updated_at: string };
+        Insert: { full_name: string; email: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+      };
+      document_templates: {
+        Row: { id: string; template_code: string; template_name: string; template_type: string; department: string | null; description: string | null; file_name: string | null; storage_path: string | null; template_body: string | null; template_format: string; approval_status: string; submitted_by: string | null; submitted_at: string | null; approved_by: string | null; approved_at: string | null; rejected_by: string | null; rejected_at: string | null; rejection_reason: string | null; version: string; is_active: boolean; visibility_scope: string; created_at: string; updated_at: string };
+        Insert: { template_code: string; template_name: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+      };
+      template_fields: {
+        Row: { id: string; template_id: string; field_key: string; field_label: string; field_type: string; is_required: boolean; default_value: string | null; help_text: string | null; display_order: number; options_json: Record<string, unknown> | null; created_at: string; updated_at: string };
+        Insert: { template_id: string; field_key: string; field_label: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+      };
+      generated_documents: {
+        Row: { id: string; template_id: string | null; generated_document_number: string; project_id: string | null; related_module: string | null; generated_by: string | null; generated_at: string; output_title: string; filled_values_json: Record<string, unknown>; rendered_content: string | null; exported_file_path: string | null; status: string; remarks: string | null; created_at: string; updated_at: string };
+        Insert: { generated_document_number: string; output_title: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+      };
+      notification_events: {
+        Row: { id: string; event_key: string; event_name: string; module_name: string; severity: string; default_channels: string[]; is_active: boolean; created_at: string; updated_at: string };
+        Insert: { event_key: string; event_name: string; module_name: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+      };
+      notification_preferences: {
+        Row: { id: string; user_id: string; event_key: string; in_app_enabled: boolean; email_enabled: boolean; sms_enabled: boolean; created_at: string; updated_at: string };
+        Insert: { user_id: string; event_key: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+      };
+      notifications: {
+        Row: { id: string; user_id: string; title: string; message: string; module_name: string | null; event_key: string | null; related_entity_type: string | null; related_entity_id: string | null; severity: string; channel: string; delivery_status: string; read_at: string | null; sent_at: string | null; created_at: string };
+        Insert: { user_id: string; title: string; message: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+      };
+      notification_escalation_rules: {
+        Row: { id: string; rule_key: string; module_name: string; trigger_condition: string; first_level_roles: string[]; second_level_roles: string[]; escalation_after_hours: number; channels: string[]; is_active: boolean; created_at: string; updated_at: string };
+        Insert: { rule_key: string; module_name: string; trigger_condition: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+      };
+      report_snapshots: {
+        Row: { id: string; report_key: string; report_title: string; department: string | null; date_range_from: string | null; date_range_to: string | null; filters_json: Record<string, unknown>; summary_json: Record<string, unknown>; metrics_json: Record<string, unknown>; rows_json: unknown[]; notes: string | null; status: string; generated_by: string | null; generated_at: string; created_at: string; updated_at: string };
+        Insert: { report_key: string; report_title: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+      };
+      scheduled_report_subscriptions: {
+        Row: { id: string; report_key: string; department: string | null; recipients_json: unknown[]; frequency: string; channels: string[]; is_active: boolean; created_by: string | null; created_at: string; updated_at: string };
+        Insert: { report_key: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+      };
+      report_delivery_logs: {
+        Row: { id: string; subscription_id: string | null; report_key: string; generated_at: string; delivery_channel: string; delivery_status: string; recipients_json: unknown[]; error_message: string | null; created_at: string };
+        Insert: { report_key: string; [key: string]: unknown };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+      };
     };
     Views: {
       // Security-hardened views (migration 060). Cost columns are NULL for restricted roles.
