@@ -7,6 +7,8 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import { MOCK_AFS_MAINTENANCE_REQUESTS } from '../data/mockAfs';
+import { mockOrEmpty } from '../lib/dataMode';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import type { MaintenanceStatus, UserRole } from '../types';
 
 const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'sales_user', 'afs_user'];
@@ -40,7 +42,7 @@ export function AfterSalesMaintenance() {
   const canCreate = role ? CAN_CREATE.includes(role) : false;
   const [tab, setTab] = useState<Tab>('all');
 
-  const requests = MOCK_AFS_MAINTENANCE_REQUESTS.filter(r =>
+  const requests = mockOrEmpty(MOCK_AFS_MAINTENANCE_REQUESTS).filter(r =>
     tab === 'all' ? true : r.maintenance_status === tab
   );
 
@@ -55,6 +57,7 @@ export function AfterSalesMaintenance() {
           </Link>
         ) : undefined}
       />
+      <DataSourceBadge variant="preview" />
 
       <div className="flex gap-1 border-b border-gray-100 overflow-x-auto">
         {TABS.map(t => (

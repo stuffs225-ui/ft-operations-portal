@@ -6,6 +6,8 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { MOCK_AFS_ARRIVAL_REPORTS } from '../data/mockAfs';
+import { mockOrEmpty } from '../lib/dataMode';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import type { ArrivalStatus } from '../types';
 
 type Tab = 'all' | ArrivalStatus;
@@ -28,13 +30,14 @@ function arrivalVariant(s: ArrivalStatus): 'neutral' | 'success' | 'warning' | '
 export function DubaiAfsArrivalReports() {
   const [tab, setTab] = useState<Tab>('all');
 
-  const reports = MOCK_AFS_ARRIVAL_REPORTS.filter(r =>
+  const reports = mockOrEmpty(MOCK_AFS_ARRIVAL_REPORTS).filter(r =>
     tab === 'all' ? true : r.arrival_status === tab
   );
 
   return (
     <div className="space-y-5">
       <PageHeader title="Arrival Reports" subtitle="AFS vehicle arrival registrations and condition on arrival" />
+      <DataSourceBadge variant="preview" />
 
       <div className="flex gap-1 border-b border-gray-100">
         {TABS.map(t => (

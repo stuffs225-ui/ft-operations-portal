@@ -6,6 +6,8 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { MOCK_DUBAI_FOLLOWUPS } from '../data/mockAfs';
+import { mockOrEmpty } from '../lib/dataMode';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import type { DubaiStatus } from '../types';
 
 type Tab = 'all' | 'active' | 'delayed' | 'arrived' | 'completed';
@@ -36,7 +38,7 @@ function etaVariant(s: string): 'neutral' | 'warning' | 'success' | 'critical' |
 export function DubaiAfsProjects() {
   const [tab, setTab] = useState<Tab>('all');
 
-  const filtered = MOCK_DUBAI_FOLLOWUPS.filter(f => {
+  const filtered = mockOrEmpty(MOCK_DUBAI_FOLLOWUPS).filter(f => {
     if (tab === 'active') return !['completed', 'cancelled', 'arrived_ksa', 'handed_to_afs', 'ready_for_pre_delivery'].includes(f.dubai_status);
     if (tab === 'delayed') return f.eta_status === 'delayed';
     if (tab === 'arrived') return ['arrived_ksa', 'handed_to_afs', 'ready_for_pre_delivery'].includes(f.dubai_status);
@@ -47,6 +49,7 @@ export function DubaiAfsProjects() {
   return (
     <div className="space-y-5">
       <PageHeader title="Dubai Follow-ups" subtitle="Track vehicle ETA and Dubai project progress" />
+      <DataSourceBadge variant="preview" />
 
       <div className="flex gap-1 border-b border-gray-100 pb-0">
         {TABS.map(t => (

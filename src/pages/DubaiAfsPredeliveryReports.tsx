@@ -6,6 +6,8 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { MOCK_AFS_PREDELIVERY_REPORTS } from '../data/mockAfs';
+import { mockOrEmpty } from '../lib/dataMode';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 
 type Tab = 'all' | 'ready' | 'not_ready';
 const TABS: { key: Tab; label: string }[] = [
@@ -17,7 +19,7 @@ const TABS: { key: Tab; label: string }[] = [
 export function DubaiAfsPredeliveryReports() {
   const [tab, setTab] = useState<Tab>('all');
 
-  const reports = MOCK_AFS_PREDELIVERY_REPORTS.filter(r => {
+  const reports = mockOrEmpty(MOCK_AFS_PREDELIVERY_REPORTS).filter(r => {
     if (tab === 'ready') return r.ready_for_delivery;
     if (tab === 'not_ready') return !r.ready_for_delivery;
     return true;
@@ -26,6 +28,7 @@ export function DubaiAfsPredeliveryReports() {
   return (
     <div className="space-y-5">
       <PageHeader title="Pre-Delivery Reports" subtitle="AFS pre-delivery readiness checks and delivery approval" />
+      <DataSourceBadge variant="preview" />
 
       <div className="flex gap-1 border-b border-gray-100">
         {TABS.map(t => (

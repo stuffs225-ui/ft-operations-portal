@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '../context/AuthContext';
 import { AppLayout } from '../layouts/AppLayout';
+import { RequireRole } from '../components/auth/RequireRole';
 import { Login } from '../pages/Login';
 import { Dashboard } from '../pages/Dashboard';
 import { ActionInbox } from '../pages/ActionInbox';
@@ -124,8 +125,8 @@ export function App() {
             <Route path="projects" element={<Projects />} />
             <Route path="projects/new" element={<ProjectNew />} />
             <Route path="projects/:id" element={<ProjectDetail />} />
-            <Route path="admin-approvals" element={<AdminApprovals />} />
-            <Route path="wo-pn-gate" element={<WoPnGate />} />
+            <Route path="admin-approvals" element={<RequireRole roles={['operations_manager']}><AdminApprovals /></RequireRole>} />
+            <Route path="wo-pn-gate" element={<RequireRole roles={['operations_manager', 'factory_user']}><WoPnGate /></RequireRole>} />
             <Route path="procurement" element={<Procurement />} />
             <Route path="procurement/requests" element={<ProcurementRequests />} />
             <Route path="procurement/requests/:id" element={<ProcurementRequestDetail />} />
@@ -197,23 +198,23 @@ export function App() {
             <Route path="reports/issues" element={<ReportsIssues />} />
             <Route path="reports/capa" element={<ReportsCapa />} />
             <Route path="control-tower" element={<ControlTower />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="admin/users" element={<AdminUsers />} />
-            <Route path="audit-log" element={<AuditLog />} />
+            <Route path="settings" element={<RequireRole roles={['admin']}><Settings /></RequireRole>} />
+            <Route path="admin/users" element={<RequireRole roles={['admin']}><AdminUsers /></RequireRole>} />
+            <Route path="audit-log" element={<RequireRole roles={['admin']}><AuditLog /></RequireRole>} />
             <Route path="templates" element={<Templates />} />
             <Route path="templates/new" element={<TemplateNew />} />
-            <Route path="templates/approvals" element={<TemplateApprovals />} />
+            <Route path="templates/approvals" element={<RequireRole roles={['operations_manager']}><TemplateApprovals /></RequireRole>} />
             <Route path="templates/generated" element={<GeneratedDocuments />} />
             <Route path="templates/generated/:id" element={<GeneratedDocumentDetail />} />
             <Route path="templates/generate/:id" element={<TemplateGenerate />} />
             <Route path="templates/:id" element={<TemplateDetail />} />
-            <Route path="admin/access-requests" element={<AdminAccessRequests />} />
-            <Route path="admin/access-requests/:id" element={<AdminAccessRequestDetail />} />
+            <Route path="admin/access-requests" element={<RequireRole roles={['operations_manager']}><AdminAccessRequests /></RequireRole>} />
+            <Route path="admin/access-requests/:id" element={<RequireRole roles={['operations_manager']}><AdminAccessRequestDetail /></RequireRole>} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="notifications/settings" element={<NotificationSettings />} />
-            <Route path="admin/notification-rules" element={<AdminNotificationRules />} />
-            <Route path="admin/report-subscriptions" element={<AdminReportSubscriptions />} />
-            <Route path="admin/report-subscriptions/:id" element={<AdminReportSubscriptionDetail />} />
+            <Route path="admin/notification-rules" element={<RequireRole roles={['operations_manager']}><AdminNotificationRules /></RequireRole>} />
+            <Route path="admin/report-subscriptions" element={<RequireRole roles={['operations_manager']}><AdminReportSubscriptions /></RequireRole>} />
+            <Route path="admin/report-subscriptions/:id" element={<RequireRole roles={['operations_manager']}><AdminReportSubscriptionDetail /></RequireRole>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

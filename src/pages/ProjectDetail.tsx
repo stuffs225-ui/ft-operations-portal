@@ -605,7 +605,7 @@ export function ProjectDetail() {
         .select('*, sales_owner:profiles!projects_sales_owner_id_fkey(full_name, email), approved_by_profile:profiles!projects_approved_by_fkey(full_name)')
         .eq('id', id)
         .single(),
-      supabase.from('project_vehicle_lines').select('*').eq('project_id', id).order('line_number'),
+      supabase.from('project_vehicle_lines_safe').select('*').eq('project_id', id).order('line_number'),
       supabase.from('project_documents').select('*').eq('project_id', id).order('uploaded_at'),
       supabase.from('project_timeline_events').select('*').eq('project_id', id).order('created_at', { ascending: false }),
       fetchProjectReferences(id),
@@ -624,14 +624,16 @@ export function ProjectDetail() {
       setProcurementPOs((pos as unknown as PurchaseOrder[]) ?? []);
       setFactoryRecords((frs as unknown as FactoryRecord[]) ?? []);
       setFactoryRmrs((frmrs as unknown as RawMaterialRequest[]) ?? []);
-      setStoreReceipts(getMockReceiptsForProject(id ?? ''));
-      setStoreVehicleReceipts(getMockVehicleReceiptsForProject(id ?? ''));
-      setStoreCustody(getMockCustodyForProject(id ?? ''));
-      setQcInspections(getMockMaterialQcForProject(id ?? ''));
-      setQcNcrs(getMockNcrsForProject(id ?? ''));
-      setProjectQcInspections(getMockProjectQcForProject(id ?? ''));
-      setQcFindings(getMockFindingsForProject(id ?? ''));
-      setReleaseNotes(getMockReleaseNotesForProject(id ?? ''));
+      // Store / QC sub-modules have no wired live read yet (GAP-03). Never show
+      // mock records in live mode — present empty until those reads are built.
+      setStoreReceipts([]);
+      setStoreVehicleReceipts([]);
+      setStoreCustody([]);
+      setQcInspections([]);
+      setQcNcrs([]);
+      setProjectQcInspections([]);
+      setQcFindings([]);
+      setReleaseNotes([]);
       setDubaiFollowups(getMockDubaiFollowupsForProject(id ?? ''));
       setAfsArrivalReports(getMockArrivalReportsForProject(id ?? ''));
       setAfsPredeliveryReports(getMockPredeliveryReportsForProject(id ?? ''));

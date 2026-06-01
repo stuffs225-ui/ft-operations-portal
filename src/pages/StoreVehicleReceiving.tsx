@@ -5,7 +5,9 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { useAuth } from '../hooks/useAuth';
+import { mockOrEmpty } from '../lib/dataMode';
 import { MOCK_VEHICLE_RECEIPTS, MOCK_VEHICLE_PHOTOS } from '../data/mockStore';
 import type { VehicleReceiptStatus, UserRole } from '../types';
 
@@ -45,7 +47,7 @@ export function StoreVehicleReceiving() {
   const canCreate = role ? CAN_CREATE.includes(role) : false;
 
   const filtered = useMemo(() => {
-    let list = MOCK_VEHICLE_RECEIPTS;
+    let list = mockOrEmpty(MOCK_VEHICLE_RECEIPTS);
     if (statusTab !== 'all') list = list.filter(v => v.status === statusTab);
     if (search) {
       const q = search.toLowerCase();
@@ -73,6 +75,8 @@ export function StoreVehicleReceiving() {
           ) : undefined
         }
       />
+
+      <DataSourceBadge variant="preview" />
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div className="flex items-center gap-1 px-4 pt-3 overflow-x-auto border-b border-gray-100">
