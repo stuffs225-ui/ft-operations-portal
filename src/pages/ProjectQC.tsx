@@ -13,6 +13,7 @@ import {
 } from '../data/mockQc';
 import type { UserRole } from '../types';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { mockOrEmpty } from '../lib/dataMode';
 
 const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'qc_user'];
 
@@ -44,9 +45,9 @@ export function ProjectQC() {
   const { role } = useAuth();
   const canCreate = role ? CAN_CREATE.includes(role) : false;
 
-  const inspections = MOCK_PROJECT_QC_INSPECTIONS;
-  const findings = MOCK_PROJECT_QC_FINDINGS;
-  const releaseNotes = MOCK_RELEASE_NOTES;
+  const inspections = mockOrEmpty(MOCK_PROJECT_QC_INSPECTIONS);
+  const findings = mockOrEmpty(MOCK_PROJECT_QC_FINDINGS);
+  const releaseNotes = mockOrEmpty(MOCK_RELEASE_NOTES);
 
   const pendingQc = inspections.filter(i => i.inspection_status === 'pending').length;
   const inProgress = inspections.filter(i => i.inspection_status === 'in_progress').length;

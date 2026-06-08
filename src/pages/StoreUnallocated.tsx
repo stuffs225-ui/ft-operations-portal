@@ -9,6 +9,7 @@ import { useAuth } from '../hooks/useAuth';
 import { MOCK_STORE_RECEIPTS, MOCK_RECEIPT_ITEMS } from '../data/mockStore';
 import type { UserRole } from '../types';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { mockOrEmpty } from '../lib/dataMode';
 
 const CAN_ASSIGN: UserRole[] = ['admin', 'operations_manager', 'store_user'];
 
@@ -20,8 +21,8 @@ export function StoreUnallocated() {
 
   const canAssign = role ? CAN_ASSIGN.includes(role) : false;
 
-  // Find unallocated receipts and their items
-  const unallocatedReceipts = MOCK_STORE_RECEIPTS.filter(r => !r.project_id);
+  // Find unallocated receipts and their items — empty in live mode to prevent mock data in production
+  const unallocatedReceipts = mockOrEmpty(MOCK_STORE_RECEIPTS).filter(r => !r.project_id);
   const unallocatedItems = unallocatedReceipts.flatMap(r =>
     (MOCK_RECEIPT_ITEMS[r.id] ?? []).map(item => ({ ...item, receipt_number: r.receipt_number, received_date: r.received_date }))
   );

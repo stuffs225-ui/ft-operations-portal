@@ -7,6 +7,7 @@ import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import { MOCK_PROJECTS } from '../data/mockProjects';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { mockOrEmpty } from '../lib/dataMode';
 import type { MaintenanceIssueType, MaintenancePriority } from '../types';
 
 const ISSUE_TYPES: MaintenanceIssueType[] = ['mechanical', 'electrical', 'body_damage', 'software', 'upholstery', 'other'];
@@ -36,7 +37,7 @@ export function AfterSalesMaintenanceNew() {
   const [partsRequired, setPartsRequired] = useState(false);
   const [partsNotes, setPartsNotes] = useState('');
 
-  const projects = MOCK_PROJECTS.filter(p => p.project_status === 'approved' || p.project_status === 'active' || p.project_status === 'completed');
+  const projects = mockOrEmpty(MOCK_PROJECTS).filter(p => p.project_status === 'approved' || p.project_status === 'active' || p.project_status === 'completed');
 
   const canProceedStep1 = customerName.trim() && title.trim() && reportedDate;
   const canProceedStep2 = description.trim();
