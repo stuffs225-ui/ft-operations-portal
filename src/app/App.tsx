@@ -115,73 +115,24 @@ export function App() {
 
           {/* Protected routes — AppLayout wraps with ProtectedRoute */}
           <Route path="/" element={<AppLayout />}>
+            {/* ── Sales-accessible routes (any authenticated user) ── */}
             <Route index element={<Dashboard />} />
             <Route path="inbox" element={<ActionInbox />} />
             <Route path="quotations" element={<Quotations />} />
             <Route path="quotations/new" element={<QuotationNew />} />
             <Route path="quotations/:id" element={<QuotationDetail />} />
             <Route path="sales" element={<Sales />} />
-            <Route path="sales-coordinator" element={<SalesCoordinator />} />
             <Route path="projects" element={<Projects />} />
             <Route path="projects/new" element={<ProjectNew />} />
             <Route path="projects/:id" element={<ProjectDetail />} />
-            <Route path="admin-approvals" element={<RequireRole roles={['operations_manager']}><AdminApprovals /></RequireRole>} />
-            <Route path="wo-pn-gate" element={<RequireRole roles={['operations_manager', 'factory_user']}><WoPnGate /></RequireRole>} />
-            <Route path="procurement" element={<Procurement />} />
-            <Route path="procurement/requests" element={<ProcurementRequests />} />
-            <Route path="procurement/requests/:id" element={<ProcurementRequestDetail />} />
-            <Route path="procurement/purchase-orders" element={<ProcurementPurchaseOrders />} />
-            <Route path="procurement/purchase-orders/:id" element={<ProcurementPODetail />} />
-            <Route path="procurement/suppliers" element={<ProcurementSuppliers />} />
-            <Route path="procurement/suppliers/:id" element={<ProcurementSupplierDetail />} />
-            <Route path="procurement/eta-history" element={<ProcurementEtaHistory />} />
-            <Route path="factory" element={<Factory />} />
-            <Route path="factory/projects" element={<FactoryProjects />} />
-            <Route path="factory/projects/:projectId" element={<FactoryProjectWorkspace />} />
-            <Route path="factory/requirements" element={<FactoryRequirements />} />
-            <Route path="factory/raw-material-requests" element={<FactoryRawMaterialRequests />} />
-            <Route path="factory/raw-material-requests/new" element={<FactoryRawMaterialRequestNew />} />
-            <Route path="factory/monthly-updates" element={<FactoryMonthlyUpdates />} />
-            <Route path="factory/pending-raw-materials" element={<FactoryRawMaterialRequests />} />
-            <Route path="store" element={<Store />} />
-            <Route path="store/receipts" element={<StoreReceipts />} />
-            <Route path="store/receipts/new" element={<StoreReceiptNew />} />
-            <Route path="store/receipts/:id" element={<StoreReceiptDetail />} />
-            <Route path="store/vehicle-receiving" element={<StoreVehicleReceiving />} />
-            <Route path="store/vehicle-receiving/new" element={<StoreVehicleReceivingNew />} />
-            <Route path="store/vehicle-receiving/:id" element={<StoreVehicleReceivingDetail />} />
-            <Route path="store/inventory" element={<StoreInventory />} />
-            <Route path="store/unallocated" element={<StoreUnallocated />} />
-            <Route path="custody" element={<MaterialCustody />} />
-            <Route path="custody/new" element={<CustodyNew />} />
-            <Route path="custody/:id" element={<CustodyDetail />} />
-            <Route path="vehicle-receiving" element={<VehicleReceiving />} />
-            <Route path="material-qc" element={<MaterialQC />} />
-            <Route path="material-qc/inspections" element={<MaterialQcInspections />} />
-            <Route path="material-qc/inspections/:id" element={<MaterialQcInspectionDetail />} />
-            <Route path="material-qc/ncrs" element={<MaterialNcrs />} />
-            <Route path="material-qc/ncrs/:id" element={<MaterialNcrDetail />} />
-            <Route path="project-qc" element={<ProjectQC />} />
-            <Route path="project-qc/inspections" element={<ProjectQcInspections />} />
-            <Route path="project-qc/inspections/:id" element={<ProjectQcInspectionDetail />} />
-            <Route path="project-qc/findings" element={<ProjectQcFindings />} />
-            <Route path="project-qc/findings/:id" element={<ProjectQcFindingDetail />} />
-            <Route path="project-qc/release-notes" element={<ProjectQcReleaseNotes />} />
-            <Route path="project-qc/release-notes/:id" element={<ProjectQcReleaseNoteDetail />} />
-            <Route path="dubai-afs" element={<DubaiAFS />} />
-            <Route path="dubai-afs/projects" element={<DubaiAfsProjects />} />
-            <Route path="dubai-afs/projects/:id" element={<DubaiAfsProjectDetail />} />
-            <Route path="dubai-afs/eta" element={<DubaiAfsEta />} />
-            <Route path="dubai-afs/arrival-reports" element={<DubaiAfsArrivalReports />} />
-            <Route path="dubai-afs/arrival-reports/:id" element={<DubaiAfsArrivalReportDetail />} />
-            <Route path="dubai-afs/missing-items" element={<DubaiAfsMissingItems />} />
-            <Route path="dubai-afs/predelivery-reports" element={<DubaiAfsPredeliveryReports />} />
-            <Route path="dubai-afs/predelivery-reports/:id" element={<DubaiAfsPredeliveryReportDetail />} />
-            <Route path="dubai-afs/condition-reports" element={<DubaiAfsConditionReports />} />
-            <Route path="after-sales" element={<AfterSales />} />
-            <Route path="after-sales/maintenance" element={<AfterSalesMaintenance />} />
-            <Route path="after-sales/maintenance/new" element={<AfterSalesMaintenanceNew />} />
-            <Route path="after-sales/maintenance/:id" element={<AfterSalesMaintenanceDetail />} />
+            <Route path="templates" element={<Templates />} />
+            <Route path="templates/new" element={<TemplateNew />} />
+            <Route path="templates/generated" element={<GeneratedDocuments />} />
+            <Route path="templates/generated/:id" element={<GeneratedDocumentDetail />} />
+            <Route path="templates/generate/:id" element={<TemplateGenerate />} />
+            <Route path="templates/:id" element={<TemplateDetail />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="notifications/settings" element={<NotificationSettings />} />
             <Route path="reports" element={<Reports />} />
             <Route path="reports/executive" element={<ReportsExecutive />} />
             <Route path="reports/projects" element={<ReportsProjects />} />
@@ -197,24 +148,95 @@ export function App() {
             <Route path="reports/health-scores" element={<ReportsHealthScores />} />
             <Route path="reports/issues" element={<ReportsIssues />} />
             <Route path="reports/capa" element={<ReportsCapa />} />
-            <Route path="control-tower" element={<ControlTower />} />
+
+            {/* ── Sales coordinator only ── */}
+            <Route path="sales-coordinator" element={<RequireRole roles={['sales_coordinator', 'operations_manager']}><SalesCoordinator /></RequireRole>} />
+
+            {/* ── Operations manager only ── */}
+            <Route path="admin-approvals" element={<RequireRole roles={['operations_manager']}><AdminApprovals /></RequireRole>} />
+            <Route path="wo-pn-gate" element={<RequireRole roles={['operations_manager', 'factory_user']}><WoPnGate /></RequireRole>} />
+            <Route path="control-tower" element={<RequireRole roles={['operations_manager', 'viewer']}><ControlTower /></RequireRole>} />
+
+            {/* ── Procurement ── */}
+            <Route path="procurement" element={<RequireRole roles={['procurement_user', 'operations_manager']}><Procurement /></RequireRole>} />
+            <Route path="procurement/requests" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementRequests /></RequireRole>} />
+            <Route path="procurement/requests/:id" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementRequestDetail /></RequireRole>} />
+            <Route path="procurement/purchase-orders" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementPurchaseOrders /></RequireRole>} />
+            <Route path="procurement/purchase-orders/:id" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementPODetail /></RequireRole>} />
+            <Route path="procurement/suppliers" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementSuppliers /></RequireRole>} />
+            <Route path="procurement/suppliers/:id" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementSupplierDetail /></RequireRole>} />
+            <Route path="procurement/eta-history" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementEtaHistory /></RequireRole>} />
+
+            {/* ── Factory ── */}
+            <Route path="factory" element={<RequireRole roles={['factory_user', 'operations_manager']}><Factory /></RequireRole>} />
+            <Route path="factory/projects" element={<RequireRole roles={['factory_user', 'operations_manager']}><FactoryProjects /></RequireRole>} />
+            <Route path="factory/projects/:projectId" element={<RequireRole roles={['factory_user', 'operations_manager']}><FactoryProjectWorkspace /></RequireRole>} />
+            <Route path="factory/requirements" element={<RequireRole roles={['factory_user', 'operations_manager']}><FactoryRequirements /></RequireRole>} />
+            <Route path="factory/raw-material-requests" element={<RequireRole roles={['factory_user', 'operations_manager']}><FactoryRawMaterialRequests /></RequireRole>} />
+            <Route path="factory/raw-material-requests/new" element={<RequireRole roles={['factory_user', 'operations_manager']}><FactoryRawMaterialRequestNew /></RequireRole>} />
+            <Route path="factory/monthly-updates" element={<RequireRole roles={['factory_user', 'operations_manager']}><FactoryMonthlyUpdates /></RequireRole>} />
+            <Route path="factory/pending-raw-materials" element={<RequireRole roles={['factory_user', 'operations_manager']}><FactoryRawMaterialRequests /></RequireRole>} />
+
+            {/* ── Store / Warehouse ── */}
+            <Route path="store" element={<RequireRole roles={['store_user', 'operations_manager']}><Store /></RequireRole>} />
+            <Route path="store/receipts" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreReceipts /></RequireRole>} />
+            <Route path="store/receipts/new" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreReceiptNew /></RequireRole>} />
+            <Route path="store/receipts/:id" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreReceiptDetail /></RequireRole>} />
+            <Route path="store/vehicle-receiving" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreVehicleReceiving /></RequireRole>} />
+            <Route path="store/vehicle-receiving/new" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreVehicleReceivingNew /></RequireRole>} />
+            <Route path="store/vehicle-receiving/:id" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreVehicleReceivingDetail /></RequireRole>} />
+            <Route path="store/inventory" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreInventory /></RequireRole>} />
+            <Route path="store/unallocated" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreUnallocated /></RequireRole>} />
+            <Route path="custody" element={<RequireRole roles={['store_user', 'factory_user', 'afs_user', 'operations_manager']}><MaterialCustody /></RequireRole>} />
+            <Route path="custody/new" element={<RequireRole roles={['store_user', 'factory_user', 'afs_user', 'operations_manager']}><CustodyNew /></RequireRole>} />
+            <Route path="custody/:id" element={<RequireRole roles={['store_user', 'factory_user', 'afs_user', 'operations_manager']}><CustodyDetail /></RequireRole>} />
+            <Route path="vehicle-receiving" element={<RequireRole roles={['store_user', 'operations_manager']}><VehicleReceiving /></RequireRole>} />
+
+            {/* ── Quality Control ── */}
+            <Route path="material-qc" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialQC /></RequireRole>} />
+            <Route path="material-qc/inspections" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialQcInspections /></RequireRole>} />
+            <Route path="material-qc/inspections/:id" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialQcInspectionDetail /></RequireRole>} />
+            <Route path="material-qc/ncrs" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialNcrs /></RequireRole>} />
+            <Route path="material-qc/ncrs/:id" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialNcrDetail /></RequireRole>} />
+            <Route path="project-qc" element={<RequireRole roles={['qc_user', 'operations_manager']}><ProjectQC /></RequireRole>} />
+            <Route path="project-qc/inspections" element={<RequireRole roles={['qc_user', 'operations_manager']}><ProjectQcInspections /></RequireRole>} />
+            <Route path="project-qc/inspections/:id" element={<RequireRole roles={['qc_user', 'operations_manager']}><ProjectQcInspectionDetail /></RequireRole>} />
+            <Route path="project-qc/findings" element={<RequireRole roles={['qc_user', 'operations_manager']}><ProjectQcFindings /></RequireRole>} />
+            <Route path="project-qc/findings/:id" element={<RequireRole roles={['qc_user', 'operations_manager']}><ProjectQcFindingDetail /></RequireRole>} />
+            <Route path="project-qc/release-notes" element={<RequireRole roles={['qc_user', 'operations_manager']}><ProjectQcReleaseNotes /></RequireRole>} />
+            <Route path="project-qc/release-notes/:id" element={<RequireRole roles={['qc_user', 'operations_manager']}><ProjectQcReleaseNoteDetail /></RequireRole>} />
+
+            {/* ── Dubai / AFS ── */}
+            <Route path="dubai-afs" element={<RequireRole roles={['afs_user', 'operations_manager']}><DubaiAFS /></RequireRole>} />
+            <Route path="dubai-afs/projects" element={<RequireRole roles={['afs_user', 'operations_manager']}><DubaiAfsProjects /></RequireRole>} />
+            <Route path="dubai-afs/projects/:id" element={<RequireRole roles={['afs_user', 'operations_manager']}><DubaiAfsProjectDetail /></RequireRole>} />
+            <Route path="dubai-afs/eta" element={<RequireRole roles={['afs_user', 'operations_manager']}><DubaiAfsEta /></RequireRole>} />
+            <Route path="dubai-afs/arrival-reports" element={<RequireRole roles={['afs_user', 'operations_manager']}><DubaiAfsArrivalReports /></RequireRole>} />
+            <Route path="dubai-afs/arrival-reports/:id" element={<RequireRole roles={['afs_user', 'operations_manager']}><DubaiAfsArrivalReportDetail /></RequireRole>} />
+            <Route path="dubai-afs/missing-items" element={<RequireRole roles={['afs_user', 'operations_manager']}><DubaiAfsMissingItems /></RequireRole>} />
+            <Route path="dubai-afs/predelivery-reports" element={<RequireRole roles={['afs_user', 'operations_manager']}><DubaiAfsPredeliveryReports /></RequireRole>} />
+            <Route path="dubai-afs/predelivery-reports/:id" element={<RequireRole roles={['afs_user', 'operations_manager']}><DubaiAfsPredeliveryReportDetail /></RequireRole>} />
+            <Route path="dubai-afs/condition-reports" element={<RequireRole roles={['afs_user', 'operations_manager']}><DubaiAfsConditionReports /></RequireRole>} />
+
+            {/* ── After Sales / Maintenance ── */}
+            <Route path="after-sales" element={<RequireRole roles={['afs_user', 'operations_manager']}><AfterSales /></RequireRole>} />
+            <Route path="after-sales/maintenance" element={<RequireRole roles={['afs_user', 'operations_manager']}><AfterSalesMaintenance /></RequireRole>} />
+            <Route path="after-sales/maintenance/new" element={<RequireRole roles={['afs_user', 'operations_manager']}><AfterSalesMaintenanceNew /></RequireRole>} />
+            <Route path="after-sales/maintenance/:id" element={<RequireRole roles={['afs_user', 'operations_manager']}><AfterSalesMaintenanceDetail /></RequireRole>} />
+
+            {/* ── Admin only ── */}
             <Route path="settings" element={<RequireRole roles={['admin']}><Settings /></RequireRole>} />
             <Route path="admin/users" element={<RequireRole roles={['admin']}><AdminUsers /></RequireRole>} />
             <Route path="audit-log" element={<RequireRole roles={['admin']}><AuditLog /></RequireRole>} />
-            <Route path="templates" element={<Templates />} />
-            <Route path="templates/new" element={<TemplateNew />} />
+
+            {/* ── Admin / Operations Manager ── */}
             <Route path="templates/approvals" element={<RequireRole roles={['operations_manager']}><TemplateApprovals /></RequireRole>} />
-            <Route path="templates/generated" element={<GeneratedDocuments />} />
-            <Route path="templates/generated/:id" element={<GeneratedDocumentDetail />} />
-            <Route path="templates/generate/:id" element={<TemplateGenerate />} />
-            <Route path="templates/:id" element={<TemplateDetail />} />
             <Route path="admin/access-requests" element={<RequireRole roles={['operations_manager']}><AdminAccessRequests /></RequireRole>} />
             <Route path="admin/access-requests/:id" element={<RequireRole roles={['operations_manager']}><AdminAccessRequestDetail /></RequireRole>} />
-            <Route path="notifications" element={<Notifications />} />
-            <Route path="notifications/settings" element={<NotificationSettings />} />
             <Route path="admin/notification-rules" element={<RequireRole roles={['operations_manager']}><AdminNotificationRules /></RequireRole>} />
             <Route path="admin/report-subscriptions" element={<RequireRole roles={['operations_manager']}><AdminReportSubscriptions /></RequireRole>} />
             <Route path="admin/report-subscriptions/:id" element={<RequireRole roles={['operations_manager']}><AdminReportSubscriptionDetail /></RequireRole>} />
+
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
