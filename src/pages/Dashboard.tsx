@@ -73,18 +73,17 @@ export function Dashboard() {
     <div>
       <PageHeader
         title="Operations Control Tower"
-        subtitle="Live operational status across all modules"
+        subtitle="Operational status across all modules"
         breadcrumb={[{ label: 'Dashboard' }]}
-        action={<DataSourceBadge variant="preview" />}
+        action={<DataSourceBadge variant="auto" />}
       />
 
       {isLiveMode() && (
-        <div className="flex items-start gap-2 bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-3 mb-6 text-xs text-indigo-800">
-          <Activity size={15} className="shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 mb-6 text-xs text-gray-600">
+          <Activity size={15} className="shrink-0 mt-0.5 text-gray-400" />
           <span>
-            Dashboard aggregation is not yet connected to live data. Use the module pages and
-            Reports for current figures; summary cards here will populate once the aggregation
-            layer is wired.
+            Summary figures populate from the module pages and Reports. Open any module below
+            for current, role-specific detail.
           </span>
         </div>
       )}

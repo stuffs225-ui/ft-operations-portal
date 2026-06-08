@@ -61,11 +61,12 @@ export function Login() {
       <div className="relative w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-brand-600 rounded-2xl mb-4 shadow-lg">
-            <span className="text-white text-2xl font-bold">FT</span>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl mb-4 shadow-lg p-2.5">
+            <img src="/naffco-logo.svg" alt="NAFFCO" className="w-full h-full" />
           </div>
-          <h1 className="text-2xl font-bold text-white">FT Operations Portal</h1>
-          <p className="text-brand-300 text-sm mt-1">Operations Control Tower</p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">NAFFCO</h1>
+          <p className="text-white/90 text-sm font-medium mt-0.5">Fire Trucks Department</p>
+          <p className="text-brand-300 text-xs mt-1">Operations Portal</p>
         </div>
 
         {/* Card */}
@@ -166,7 +167,7 @@ export function Login() {
         </div>
 
         <p className="text-center text-xs text-brand-400 mt-6">
-          FT Operations Portal v0.1 · Phase 1
+          NAFFCO Fire Trucks — Operations Portal
         </p>
       </div>
     </div>

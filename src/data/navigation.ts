@@ -12,7 +12,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'My Action Inbox',
     path: '/inbox',
     icon: 'Inbox',
-    badge: 6,
+    // No static badge: counts must be derived from real data only (see Sidebar).
   },
   {
     id: 'sep-1',
@@ -59,7 +59,6 @@ export const NAV_ITEMS: NavItem[] = [
     path: '/admin-approvals',
     icon: 'ShieldCheck',
     roles: ['admin', 'operations_manager'],
-    badge: 3,
   },
   {
     id: 'wo-pn-gate',
@@ -67,7 +66,6 @@ export const NAV_ITEMS: NavItem[] = [
     path: '/wo-pn-gate',
     icon: 'GitBranch',
     roles: ['admin', 'operations_manager', 'factory_user'],
-    badge: 2,
   },
   {
     id: 'sep-3',
@@ -168,7 +166,9 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Reports',
     path: '/reports',
     icon: 'BarChart2',
-    roles: ['admin', 'operations_manager', 'procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user', 'sales_user', 'sales_coordinator', 'viewer'],
+    // Sales reach their sales-specific figures via the Sales Workspace; the mixed
+    // Reports hub is reserved for management/operational roles to keep Sales focused.
+    roles: ['admin', 'operations_manager', 'procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user', 'sales_coordinator', 'viewer'],
   },
   {
     id: 'templates',

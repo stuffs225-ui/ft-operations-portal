@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  NAFFCO Fire Trucks — portal brand mark (placeholder).
+  This is a neutral, in-house angular "N" mark in NAFFCO red so the portal ships
+  with no broken image and no third-party/copyrighted asset.
+
+  To use the OFFICIAL NAFFCO logo:
+    1. Drop the official file into this folder as `public/naffco-logo.svg`
+       (overwrite this file) or `public/naffco-logo.png`.
+    2. If you use a .png, open `src/components/ui/BrandLogo.tsx` and change the
+       `LOGO_SRC` constant from '/naffco-logo.svg' to '/naffco-logo.png'.
+    Nothing else needs to change — the header and sidebar read from one place.
+-->
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NAFFCO">
+  <rect width="64" height="64" rx="12" fill="#cf1f29"/>
+  <path d="M18 46V18h6.6l14.8 17.4V18H46v28h-6.6L24.6 28.6V46H18Z" fill="#ffffff"/>
+</svg>

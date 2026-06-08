@@ -10,6 +10,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
+import { Drawer } from '../components/ui/Drawer';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_QUOTATIONS } from '../data/mockQuotations';
@@ -70,21 +71,24 @@ interface SalesKpi {
   icon: React.ReactNode;
 }
 
-function KpiStrip({ kpis }: { kpis: SalesKpi[] }) {
+function KpiStrip({ kpis, onSelect }: { kpis: SalesKpi[]; onSelect: (id: string) => void }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
       {kpis.map(k => (
-        <div
+        <button
           key={k.id}
-          className={`bg-white rounded-xl border border-gray-200 border-l-4 shadow-sm p-4 ${k.borderColor}`}
+          type="button"
+          onClick={() => onSelect(k.id)}
+          className={`text-left bg-white rounded-xl border border-gray-200 border-l-4 shadow-sm p-4 ${k.borderColor} hover:shadow-md hover:border-gray-300 transition-all focus:outline-none focus:ring-2 focus:ring-brand-400`}
         >
           <div className="flex items-center justify-between mb-2">
             <div className="text-gray-400">{k.icon}</div>
+            <ChevronRight size={14} className="text-gray-300" />
           </div>
           <div className="text-2xl font-bold text-gray-900">{k.value}</div>
           <div className="text-sm font-semibold text-gray-700 mt-0.5">{k.label}</div>
           <div className="text-xs text-gray-500 mt-0.5 leading-snug">{k.sub}</div>
-        </div>
+        </button>
       ))}
     </div>
   );
@@ -160,6 +164,7 @@ export function Sales() {
   const [loading, setLoading] = useState(false);
   const [qSearch, setQSearch] = useState('');
   const [pSearch, setPSearch] = useState('');
+  const [activeKpi, setActiveKpi] = useState<string | null>(null);
 
   const isBroadView = role ? BROAD_VIEW.includes(role) : false;
   const canCreateSO = role ? CAN_CREATE_SO.includes(role) : false;
@@ -293,6 +298,28 @@ export function Sales() {
     );
   }, [projects, pSearch]);
 
+  // ── KPI drawer: resolve the records behind the selected summary card ─────────
+  const kpiDetail = useMemo(() => {
+    if (!activeKpi) return null;
+    const open = ['draft', 'submitted_by_sales', 'received_by_coordinator',
+      'sent_to_estimation', 'waiting_for_estimation', 'need_clarification',
+      'quotation_received'];
+    type Detail =
+      | { title: string; subtitle: string; kind: 'quotation'; items: QuotationRequest[] }
+      | { title: string; subtitle: string; kind: 'project'; items: Project[] };
+    const map: Record<string, Detail> = {
+      'active-projects':      { title: 'Active Projects', subtitle: 'Approved & in progress', kind: 'project', items: projects.filter(p => ['approved', 'active'].includes(p.project_status)) },
+      'open-quotations':      { title: 'Open Quotations', subtitle: 'In the quotation pipeline', kind: 'quotation', items: quotations.filter(q => open.includes(q.quotation_status)) },
+      'returned-quotations':  { title: 'Returned to Sales', subtitle: 'Ready for your action — review and convert to SO', kind: 'quotation', items: quotations.filter(q => q.quotation_status === 'returned_to_sales') },
+      'so-drafts':            { title: 'SO Drafts', subtitle: 'Not yet submitted for approval', kind: 'project', items: projects.filter(p => p.project_status === 'draft') },
+      'pending-approval':     { title: 'Pending Approval', subtitle: 'Awaiting admin review', kind: 'project', items: projects.filter(p => p.project_status === 'submitted_for_approval') },
+      'approved-projects':    { title: 'Approved Projects', subtitle: 'Approved / active / completed', kind: 'project', items: projects.filter(p => ['approved', 'active', 'completed'].includes(p.project_status)) },
+      'sent-back':            { title: 'Sent Back for Revision', subtitle: 'Needs your changes and resubmission', kind: 'project', items: projects.filter(p => p.project_status === 'sent_back_for_revision') },
+      'clarification':        { title: 'Need Clarification', subtitle: 'Coordinator requested more information', kind: 'quotation', items: quotations.filter(q => q.quotation_status === 'need_clarification') },
+    };
+    return map[activeKpi] ?? null;
+  }, [activeKpi, quotations, projects]);
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
@@ -324,7 +351,7 @@ export function Sales() {
           <Loader2 size={16} className="animate-spin" /> Loading workspace data…
         </div>
       ) : (
-        <KpiStrip kpis={kpis} />
+        <KpiStrip kpis={kpis} onSelect={setActiveKpi} />
       )}
 
       {/* Quick Actions */}
@@ -545,6 +572,71 @@ export function Sales() {
           </div>
         </div>
       </Card>
+
+      {/* KPI detail drawer — opens when a summary card is clicked */}
+      <Drawer
+        open={kpiDetail !== null}
+        onClose={() => setActiveKpi(null)}
+        title={kpiDetail?.title ?? ''}
+        subtitle={kpiDetail?.subtitle}
+      >
+        {kpiDetail && kpiDetail.items.length === 0 ? (
+          <EmptyState
+            icon={<FileText size={24} className="text-gray-400" />}
+            title="Nothing here yet"
+            description="There are no records in this category right now."
+          />
+        ) : kpiDetail?.kind === 'quotation' ? (
+          <ul className="divide-y divide-gray-100">
+            {kpiDetail.items.map(q => {
+              const sm = QUOTATION_STATUS_MAP[q.quotation_status] ?? { label: q.quotation_status, variant: 'neutral' as const };
+              return (
+                <li key={q.id}>
+                  <Link
+                    to={`/quotations/${q.id}`}
+                    onClick={() => setActiveKpi(null)}
+                    className="flex items-center justify-between gap-3 py-3 px-1 hover:bg-gray-50 rounded-lg transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-mono font-medium text-brand-700">{q.quotation_code}</p>
+                      <p className="text-sm text-gray-800 truncate">{q.customer_name}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant={sm.variant}>{sm.label}</Badge>
+                      <ChevronRight size={15} className="text-gray-400" />
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        ) : kpiDetail?.kind === 'project' ? (
+          <ul className="divide-y divide-gray-100">
+            {kpiDetail.items.map(p => {
+              const sm = PROJECT_STATUS_MAP[p.project_status] ?? { label: p.project_status, variant: 'neutral' as const };
+              return (
+                <li key={p.id}>
+                  <Link
+                    to={`/projects/${p.id}`}
+                    onClick={() => setActiveKpi(null)}
+                    className="flex items-center justify-between gap-3 py-3 px-1 hover:bg-gray-50 rounded-lg transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-mono font-medium text-brand-700">{p.project_code}</p>
+                      <p className="text-sm text-gray-800 truncate">{p.customer_name}</p>
+                      <p className="text-xs text-gray-400 font-mono">{p.so_number}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant={sm.variant}>{sm.label}</Badge>
+                      <ChevronRight size={15} className="text-gray-400" />
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+      </Drawer>
     </div>
   );
 }

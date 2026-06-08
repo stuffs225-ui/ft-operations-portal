@@ -1,7 +1,8 @@
-import { Bell, Menu, Search, ChevronDown, LogOut } from 'lucide-react';
+import { Bell, Menu, ChevronDown, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { ROLE_CONFIGS } from '../../lib/roles';
+import { BrandLogo } from '../ui/BrandLogo';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -30,26 +31,12 @@ export function Header({ onMenuToggle }: HeaderProps) {
         <Menu size={20} />
       </button>
 
-      {/* Logo */}
-      <div className="flex items-center gap-2 mr-4">
-        <div className="w-7 h-7 bg-brand-700 rounded-md flex items-center justify-center">
-          <span className="text-white text-xs font-bold">FT</span>
-        </div>
-        <span className="font-bold text-gray-900 text-sm hidden sm:block">Operations Portal</span>
-      </div>
+      {/* Brand lockup — NAFFCO Fire Trucks Department · Operations Portal */}
+      <Link to="/" className="mr-4 shrink-0">
+        <BrandLogo size={30} withWordmark tagline="Operations Portal" />
+      </Link>
 
-      {/* Search */}
-      <div className="flex-1 max-w-md hidden md:block">
-        <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search projects, SO, WO, PN…"
-            className="w-full pl-9 pr-4 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-          />
-        </div>
-      </div>
-
+      {/* Global search will return here once the search index is wired. */}
       <div className="flex-1" />
 
       {/* Dev mode indicator */}
@@ -59,10 +46,10 @@ export function Header({ onMenuToggle }: HeaderProps) {
         </span>
       )}
 
-      {/* Notifications */}
-      <Link to="/notifications" className="relative p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
+      {/* Notifications — the unread dot is intentionally omitted until a real
+          unread count is wired, so the UI never implies fake activity. */}
+      <Link to="/notifications" className="relative p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors" aria-label="Notifications">
         <Bell size={18} />
-        <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
       </Link>
 
       {/* User chip */}
