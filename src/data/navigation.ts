@@ -148,7 +148,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'After Sales Maintenance',
     path: '/after-sales',
     icon: 'Wrench',
-    roles: ['admin', 'operations_manager', 'sales_user', 'afs_user'],
+    roles: ['admin', 'operations_manager', 'afs_user'],
   },
   {
     id: 'sep-6',

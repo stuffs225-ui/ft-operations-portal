@@ -350,11 +350,6 @@ export function Sales() {
               </Button>
             </Link>
           )}
-          <Link to="/admin-approvals">
-            <Button variant="secondary" size="sm">
-              <Clock size={14} className="mr-1" /> Approval Queue
-            </Button>
-          </Link>
           <Link to="/projects">
             <Button variant="secondary" size="sm">
               <AlertCircle size={14} className="mr-1" /> Sent-Back SOs
