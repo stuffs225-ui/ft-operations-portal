@@ -4,9 +4,15 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
-import { MOCK_STORE_RECEIPTS, MOCK_VEHICLE_RECEIPTS, MOCK_CUSTODY_RECORDS, MOCK_VEHICLE_PHOTOS } from '../data/mockStore';
+import { MOCK_STORE_RECEIPTS as MOCK_STORE_RECEIPTS_RAW, MOCK_VEHICLE_RECEIPTS as MOCK_VEHICLE_RECEIPTS_RAW, MOCK_CUSTODY_RECORDS as MOCK_CUSTODY_RECORDS_RAW, MOCK_VEHICLE_PHOTOS } from '../data/mockStore';
 import type { UserRole } from '../types';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { mockOrEmpty } from '../lib/dataMode';
+
+// Guard: in live mode these are empty — mock records must not appear in production
+const MOCK_STORE_RECEIPTS = mockOrEmpty(MOCK_STORE_RECEIPTS_RAW);
+const MOCK_VEHICLE_RECEIPTS = mockOrEmpty(MOCK_VEHICLE_RECEIPTS_RAW);
+const MOCK_CUSTODY_RECORDS = mockOrEmpty(MOCK_CUSTODY_RECORDS_RAW);
 
 const REQUIRED_PHOTOS = ['front', 'rear', 'left_side', 'right_side', 'chassis_plate'];
 const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'store_user'];

@@ -7,11 +7,16 @@ import { Badge } from '../components/ui/Badge';
 import { useAuth } from '../hooks/useAuth';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
-  MOCK_PROJECT_HEALTH_SCORES,
-  MOCK_DEPARTMENT_HEALTH_SCORES,
-  MOCK_SUPPLIER_SCORECARDS,
+  MOCK_PROJECT_HEALTH_SCORES as MOCK_PROJECT_HEALTH_SCORES_RAW,
+  MOCK_DEPARTMENT_HEALTH_SCORES as MOCK_DEPARTMENT_HEALTH_SCORES_RAW,
+  MOCK_SUPPLIER_SCORECARDS as MOCK_SUPPLIER_SCORECARDS_RAW,
 } from '../data/mockReports';
+import { mockOrEmpty } from '../lib/dataMode';
 import type { ProjectHealthScore, DepartmentHealthScore, SupplierScorecard, ScoreBand } from '../types';
+
+const MOCK_PROJECT_HEALTH_SCORES = mockOrEmpty(MOCK_PROJECT_HEALTH_SCORES_RAW);
+const MOCK_DEPARTMENT_HEALTH_SCORES = mockOrEmpty(MOCK_DEPARTMENT_HEALTH_SCORES_RAW);
+const MOCK_SUPPLIER_SCORECARDS = mockOrEmpty(MOCK_SUPPLIER_SCORECARDS_RAW);
 
 type Tab = 'Projects' | 'Departments' | 'Suppliers';
 

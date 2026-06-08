@@ -5,12 +5,21 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
-  MOCK_STORE_RECEIPTS,
-  MOCK_VEHICLE_RECEIPTS,
-  MOCK_CUSTODY_RECORDS,
-  MOCK_MEDICAL_SERIALS,
-  MOCK_RECEIPT_ITEMS,
+  MOCK_STORE_RECEIPTS as MOCK_STORE_RECEIPTS_RAW,
+  MOCK_VEHICLE_RECEIPTS as MOCK_VEHICLE_RECEIPTS_RAW,
+  MOCK_CUSTODY_RECORDS as MOCK_CUSTODY_RECORDS_RAW,
+  MOCK_MEDICAL_SERIALS as MOCK_MEDICAL_SERIALS_RAW,
+  MOCK_RECEIPT_ITEMS as MOCK_RECEIPT_ITEMS_RAW,
 } from '../data/mockStore';
+import { mockOrEmpty } from '../lib/dataMode';
+
+const MOCK_STORE_RECEIPTS = mockOrEmpty(MOCK_STORE_RECEIPTS_RAW);
+const MOCK_VEHICLE_RECEIPTS = mockOrEmpty(MOCK_VEHICLE_RECEIPTS_RAW);
+const MOCK_CUSTODY_RECORDS = mockOrEmpty(MOCK_CUSTODY_RECORDS_RAW);
+const MOCK_MEDICAL_SERIALS = mockOrEmpty(MOCK_MEDICAL_SERIALS_RAW);
+const MOCK_RECEIPT_ITEMS = Object.fromEntries(
+  Object.entries(MOCK_RECEIPT_ITEMS_RAW).map(([k, v]) => [k, mockOrEmpty(v)])
+);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

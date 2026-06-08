@@ -10,8 +10,15 @@ import { Badge } from '../components/ui/Badge';
 import { useAuth } from '../hooks/useAuth';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
-  MOCK_PROCUREMENT_REQUESTS, MOCK_PURCHASE_ORDERS, MOCK_SUPPLIERS,
+  MOCK_PROCUREMENT_REQUESTS as MOCK_PROCUREMENT_REQUESTS_RAW,
+  MOCK_PURCHASE_ORDERS as MOCK_PURCHASE_ORDERS_RAW,
+  MOCK_SUPPLIERS as MOCK_SUPPLIERS_RAW,
 } from '../data/mockProcurement';
+import { mockOrEmpty } from '../lib/dataMode';
+
+const MOCK_PROCUREMENT_REQUESTS = mockOrEmpty(MOCK_PROCUREMENT_REQUESTS_RAW);
+const MOCK_PURCHASE_ORDERS = mockOrEmpty(MOCK_PURCHASE_ORDERS_RAW);
+const MOCK_SUPPLIERS = mockOrEmpty(MOCK_SUPPLIERS_RAW);
 
 interface KpiItem {
   label: string;

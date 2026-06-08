@@ -5,12 +5,19 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
-  MOCK_MATERIAL_QC_INSPECTIONS,
-  MOCK_MATERIAL_NCRS,
-  MOCK_PROJECT_QC_INSPECTIONS,
-  MOCK_PROJECT_QC_FINDINGS,
-  MOCK_RELEASE_NOTES,
+  MOCK_MATERIAL_QC_INSPECTIONS as MOCK_MATERIAL_QC_INSPECTIONS_RAW,
+  MOCK_MATERIAL_NCRS as MOCK_MATERIAL_NCRS_RAW,
+  MOCK_PROJECT_QC_INSPECTIONS as MOCK_PROJECT_QC_INSPECTIONS_RAW,
+  MOCK_PROJECT_QC_FINDINGS as MOCK_PROJECT_QC_FINDINGS_RAW,
+  MOCK_RELEASE_NOTES as MOCK_RELEASE_NOTES_RAW,
 } from '../data/mockQc';
+import { mockOrEmpty } from '../lib/dataMode';
+
+const MOCK_MATERIAL_QC_INSPECTIONS = mockOrEmpty(MOCK_MATERIAL_QC_INSPECTIONS_RAW);
+const MOCK_MATERIAL_NCRS = mockOrEmpty(MOCK_MATERIAL_NCRS_RAW);
+const MOCK_PROJECT_QC_INSPECTIONS = mockOrEmpty(MOCK_PROJECT_QC_INSPECTIONS_RAW);
+const MOCK_PROJECT_QC_FINDINGS = mockOrEmpty(MOCK_PROJECT_QC_FINDINGS_RAW);
+const MOCK_RELEASE_NOTES = mockOrEmpty(MOCK_RELEASE_NOTES_RAW);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

@@ -11,6 +11,7 @@ import {
 } from '../data/mockQc';
 import type { UserRole } from '../types';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { mockOrEmpty } from '../lib/dataMode';
 
 const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'qc_user'];
 
@@ -46,8 +47,8 @@ export function MaterialQC() {
   const { role } = useAuth();
   const canCreate = role ? CAN_CREATE.includes(role) : false;
 
-  const inspections = MOCK_MATERIAL_QC_INSPECTIONS;
-  const ncrs = MOCK_MATERIAL_NCRS;
+  const inspections = mockOrEmpty(MOCK_MATERIAL_QC_INSPECTIONS);
+  const ncrs = mockOrEmpty(MOCK_MATERIAL_NCRS);
 
   const pending = inspections.filter(i => i.inspection_status === 'pending').length;
   const inProgress = inspections.filter(i => i.inspection_status === 'in_progress').length;

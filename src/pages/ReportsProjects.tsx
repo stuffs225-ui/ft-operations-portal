@@ -7,9 +7,13 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { MOCK_PROJECTS } from '../data/mockProjects';
+import { MOCK_PROJECTS as MOCK_PROJECTS_RAW } from '../data/mockProjects';
 import { getHealthScoreForProject } from '../data/mockReports';
-import { MOCK_EXECUTION_REFERENCES } from '../data/mockExecutionReferences';
+import { MOCK_EXECUTION_REFERENCES as MOCK_EXECUTION_REFERENCES_RAW } from '../data/mockExecutionReferences';
+import { mockOrEmpty } from '../lib/dataMode';
+
+const MOCK_PROJECTS = mockOrEmpty(MOCK_PROJECTS_RAW);
+const MOCK_EXECUTION_REFERENCES = mockOrEmpty(MOCK_EXECUTION_REFERENCES_RAW);
 import type { Project, ProjectStatus } from '../types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────

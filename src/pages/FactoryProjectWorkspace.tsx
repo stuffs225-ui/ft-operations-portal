@@ -15,8 +15,10 @@ import {
   getMockFactoryRecordsForProject,
   getMockRequirementsForProject,
   getMockRMRsForProject,
-  MOCK_REQUIREMENT_TYPES,
+  MOCK_REQUIREMENT_TYPES as MOCK_REQUIREMENT_TYPES_RAW,
 } from '../data/mockFactory';
+import { mockOrEmpty } from '../lib/dataMode';
+const MOCK_REQUIREMENT_TYPES = mockOrEmpty(MOCK_REQUIREMENT_TYPES_RAW);
 import { MOCK_PROJECTS, MOCK_VEHICLE_LINES } from '../data/mockProjects';
 import { fetchProjectReferences } from '../lib/executionGate';
 import type {

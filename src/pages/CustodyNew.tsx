@@ -6,7 +6,10 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { MOCK_STORE_RECEIPTS, MOCK_RECEIPT_ITEMS } from '../data/mockStore';
+import { MOCK_STORE_RECEIPTS as MOCK_STORE_RECEIPTS_RAW, MOCK_RECEIPT_ITEMS } from '../data/mockStore';
+import { mockOrEmpty } from '../lib/dataMode';
+
+const MOCK_STORE_RECEIPTS = mockOrEmpty(MOCK_STORE_RECEIPTS_RAW);
 import type { StoreReceiptItem } from '../types';
 
 export function CustodyNew() {

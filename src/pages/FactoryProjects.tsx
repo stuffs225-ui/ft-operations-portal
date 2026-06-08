@@ -6,8 +6,12 @@ import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { MOCK_FACTORY_RECORDS } from '../data/mockFactory';
-import { MOCK_PROJECTS } from '../data/mockProjects';
+import { MOCK_FACTORY_RECORDS as MOCK_FACTORY_RECORDS_RAW } from '../data/mockFactory';
+import { MOCK_PROJECTS as MOCK_PROJECTS_RAW } from '../data/mockProjects';
+import { mockOrEmpty } from '../lib/dataMode';
+
+const MOCK_FACTORY_RECORDS = mockOrEmpty(MOCK_FACTORY_RECORDS_RAW);
+const MOCK_PROJECTS = mockOrEmpty(MOCK_PROJECTS_RAW);
 import type { Project, FactoryRecord, FactoryProductionStatus } from '../types';
 
 function formatDate(iso: string) {

@@ -4,7 +4,9 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { MOCK_SUPPLIER_SCORECARDS } from '../data/mockReports';
+import { MOCK_SUPPLIER_SCORECARDS as MOCK_SUPPLIER_SCORECARDS_RAW } from '../data/mockReports';
+import { mockOrEmpty } from '../lib/dataMode';
+const MOCK_SUPPLIER_SCORECARDS = mockOrEmpty(MOCK_SUPPLIER_SCORECARDS_RAW);
 import type { SupplierScorecard, ScoreBand } from '../types';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 

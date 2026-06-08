@@ -6,10 +6,15 @@ import { Badge } from '../components/ui/Badge';
 import { useAuth } from '../hooks/useAuth';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
-  MOCK_PROCUREMENT_REQUESTS,
-  MOCK_PURCHASE_ORDERS,
+  MOCK_PROCUREMENT_REQUESTS as MOCK_PROCUREMENT_REQUESTS_RAW,
+  MOCK_PURCHASE_ORDERS as MOCK_PURCHASE_ORDERS_RAW,
 } from '../data/mockProcurement';
-import { MOCK_SUPPLIER_SCORECARDS } from '../data/mockReports';
+import { MOCK_SUPPLIER_SCORECARDS as MOCK_SUPPLIER_SCORECARDS_RAW } from '../data/mockReports';
+import { mockOrEmpty } from '../lib/dataMode';
+
+const MOCK_PROCUREMENT_REQUESTS = mockOrEmpty(MOCK_PROCUREMENT_REQUESTS_RAW);
+const MOCK_PURCHASE_ORDERS = mockOrEmpty(MOCK_PURCHASE_ORDERS_RAW);
+const MOCK_SUPPLIER_SCORECARDS = mockOrEmpty(MOCK_SUPPLIER_SCORECARDS_RAW);
 import { ReportExportBar } from '../components/features/ReportExportBar';
 import { exportRowsToCsv } from '../lib/reportExport';
 import type { ReportColumn } from '../lib/reportExport';
