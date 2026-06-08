@@ -47,9 +47,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // If Supabase is not configured, boot into dev mode immediately
+  // If Supabase is not configured, boot into dev mode immediately.
+  // In production builds (import.meta.env.PROD), skip the dev admin injection so
+  // AppLayout can render a clear "Supabase not configured" error instead of showing
+  // a mock admin session with fake data.
   useEffect(() => {
     if (!isSupabaseConfigured) {
+      if (import.meta.env.PROD) {
+        // Production build without Supabase env vars — surface a config error, not mock data.
+        setLoading(false);
+        return;
+      }
       setProfile(DEV_PROFILE);
       setRole('admin');
       setLoading(false);
@@ -118,6 +126,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signIn(email: string, password: string): Promise<{ error: string | null }> {
     if (!isSupabaseConfigured) {
+      if (import.meta.env.PROD) {
+        return { error: 'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel environment variables.' };
+      }
       // Dev mode: accept any credentials
       setProfile({ ...DEV_PROFILE, email });
       setRole('admin');
