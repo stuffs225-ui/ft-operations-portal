@@ -1531,6 +1531,10 @@ export type Database = {
       project_has_pn: { Args: { p_project_id: string }; Returns: boolean };
       can_start_saudi_factory: { Args: { p_project_id: string }; Returns: boolean };
       can_start_dubai_followup: { Args: { p_project_id: string }; Returns: boolean };
+      convert_quotation_to_so: {
+        Args: { p_quotation_id: string };
+        Returns: { project_id: string; project_code: string; so_number: string }[];
+      };
     };
     Enums: {
       user_role:

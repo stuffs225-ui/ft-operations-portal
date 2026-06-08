@@ -1,4 +1,4 @@
-import { Database, FlaskConical, Eye } from 'lucide-react';
+import { Database, FlaskConical } from 'lucide-react';
 import { isSupabaseConfigured } from '../../lib/supabase';
 
 type Variant = 'auto' | 'preview';
@@ -23,13 +23,10 @@ export function DataSourceBadge({ variant = 'auto', className = '' }: DataSource
   const live = isSupabaseConfigured;
 
   if (variant === 'preview') {
-    return live ? (
-      <span
-        className={`inline-flex items-center gap-1 text-[10px] font-medium rounded px-1.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 ${className}`}
-      >
-        <Eye size={11} /> Preview — not yet connected
-      </span>
-    ) : (
+    // In live (production) mode a "preview" page simply shows real/empty data —
+    // we never display prototype language like "not yet connected" to end users.
+    // The sample-data notice is only relevant in local dev mode.
+    return live ? null : (
       <span
         className={`inline-flex items-center gap-1 text-[10px] font-medium rounded px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 ${className}`}
       >

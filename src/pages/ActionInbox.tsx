@@ -1,13 +1,13 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Clock, AlertTriangle } from 'lucide-react';
+import { ArrowRight, Clock, AlertTriangle, Inbox as InboxIcon } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../hooks/useAuth';
 import { INBOX_TASKS } from '../data/mockInbox';
 import { mockOrEmpty } from '../lib/dataMode';
-import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { ROLE_CONFIGS } from '../lib/roles';
 import type { InboxTask, TaskPriority, TaskCategory } from '../types';
 import { cn } from '../lib/utils';
@@ -93,55 +93,70 @@ export function ActionInbox() {
   );
   const criticalCount = visibleTasks.filter((t) => t.priority === 'critical').length;
   const overdueCount  = visibleTasks.filter((t) => t.overdueBy !== undefined).length;
+  const hasTasks = visibleTasks.length > 0;
 
   return (
     <div>
       <PageHeader
         title="My Action Inbox"
-        subtitle="Tasks requiring your attention across all active workflows"
+        subtitle="Tasks requiring your attention across active workflows"
         breadcrumb={[{ label: 'Inbox' }]}
         action={
-          <div className="flex items-center gap-2 text-xs">
-            <DataSourceBadge variant="preview" />
-            <span className="bg-red-100 text-red-700 rounded-full px-2 py-1 font-semibold">
-              {criticalCount} Critical
-            </span>
-            <span className="bg-amber-100 text-amber-700 rounded-full px-2 py-1 font-semibold">
-              {overdueCount} Overdue
-            </span>
-          </div>
+          // Only surface counters when they reflect real, non-zero work.
+          (criticalCount > 0 || overdueCount > 0) ? (
+            <div className="flex items-center gap-2 text-xs">
+              {criticalCount > 0 && (
+                <span className="bg-red-100 text-red-700 rounded-full px-2 py-1 font-semibold">
+                  {criticalCount} Critical
+                </span>
+              )}
+              {overdueCount > 0 && (
+                <span className="bg-amber-100 text-amber-700 rounded-full px-2 py-1 font-semibold">
+                  {overdueCount} Overdue
+                </span>
+              )}
+            </div>
+          ) : undefined
         }
       />
 
-      {/* Summary strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        {(['critical', 'high', 'medium', 'low'] as TaskPriority[]).map((p) => {
-          const count = visibleTasks.filter((t) => t.priority === p).length;
-          const pc = priorityConfig[p];
-          return (
-            <Card key={p} padding="sm">
-              <div className="text-xl font-bold text-gray-900">{count}</div>
-              <Badge variant={pc.badge} className="mt-1">{pc.label} Priority</Badge>
-            </Card>
-          );
-        })}
-      </div>
+      {/* Priority summary — shown only when there are real tasks to summarise */}
+      {hasTasks && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {(['critical', 'high', 'medium', 'low'] as TaskPriority[]).map((p) => {
+            const count = visibleTasks.filter((t) => t.priority === p).length;
+            const pc = priorityConfig[p];
+            return (
+              <Card key={p} padding="sm">
+                <div className="text-xl font-bold text-gray-900">{count}</div>
+                <Badge variant={pc.badge} className="mt-1">{pc.label} Priority</Badge>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {/* Task list */}
-      <div className="space-y-3">
-        {visibleTasks.length === 0 ? (
-          <div className="text-center py-12 text-sm text-gray-400">No tasks assigned to your role.</div>
-        ) : (
-          visibleTasks
+      {hasTasks ? (
+        <div className="space-y-3">
+          {visibleTasks
             .sort((a, b) => {
               const order = { critical: 0, high: 1, medium: 2, low: 3 };
               return order[a.priority] - order[b.priority];
             })
             .map((task) => (
               <TaskCard key={task.id} task={task} />
-            ))
-        )}
-      </div>
+            ))}
+        </div>
+      ) : (
+        <Card className="py-12">
+          <EmptyState
+            icon={<InboxIcon size={26} className="text-gray-400" />}
+            title="No actions assigned to you yet"
+            description="New workflow actions will appear here once they are assigned to you."
+          />
+        </Card>
+      )}
     </div>
   );
 }

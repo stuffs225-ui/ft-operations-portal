@@ -82,6 +82,27 @@ const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
 const COORDINATOR_ROLES: UserRole[] = ['admin', 'operations_manager', 'sales_coordinator'];
 const CAN_CONVERT: UserRole[] = ['admin', 'operations_manager', 'sales_user'];
 
+// Map a raw Supabase/Postgres error to a clear, business-friendly message.
+function humanizeConvertError(error: { message?: string; code?: string }): string {
+  const msg = (error?.message ?? '').toLowerCase();
+  if (msg.includes('could not find the function') || msg.includes('does not exist')) {
+    return 'The conversion service is not available yet. Please ask an administrator to apply the latest database migration (067_convert_quotation_to_so), then try again.';
+  }
+  if (msg.includes('returned to sales')) {
+    return 'This quotation is not ready to convert. It must be returned to Sales with a completed quotation response first.';
+  }
+  if (msg.includes('only convert your own')) {
+    return 'You can only convert quotations that you own.';
+  }
+  if (msg.includes('not permitted')) {
+    return 'Your role is not permitted to convert quotations to SO. Please contact Operations.';
+  }
+  if (msg.includes('not authenticated')) {
+    return 'Your session has expired. Please sign in again and retry.';
+  }
+  return 'Could not convert this quotation to SO. Please review the required fields or contact Operations.';
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function QuotationDetail() {
@@ -102,6 +123,7 @@ export function QuotationDetail() {
   const [clarification, setClarification] = useState('');
   const [saving, setSaving] = useState(false);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Response form state
   const [quotationNumber, setQuotationNumber] = useState('');
@@ -288,47 +310,60 @@ export function QuotationDetail() {
   }
 
   async function handleConvertToSO() {
-    if (!id || !quotation) return;
+    if (!id || !quotation || saving) return; // guard against double-click
+
+    // Already converted — go straight to the linked project instead of re-creating.
+    if (quotation.converted_to_project_id) {
+      navigate(`/projects/${quotation.converted_to_project_id}`);
+      return;
+    }
+
     setSaving(true);
+    setActionMsg(null);
+    setActionError(null);
 
     if (!isSupabaseConfigured || !supabase) {
       await new Promise<void>((r) => setTimeout(r, 400));
-      // In dev mode, just mark as converted and link to existing mock project
+      // In dev mode, just mark as converted and link to an existing mock project
       setQuotation((prev) => prev ? { ...prev, quotation_status: 'converted_to_so', converted_to_project_id: 'proj-005' } : prev);
       setSaving(false);
       navigate('/projects/proj-005');
       return;
     }
 
-    // Insert a draft project from this quotation
-    const { data: proj } = await supabase
-      .from('projects')
-      .insert({
-        so_number: `SO-FROM-${quotation.quotation_code}`,
-        customer_name: quotation.customer_name,
-        customer_delivery_date: quotation.required_delivery_expectation ?? new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        project_status: 'draft',
-        notes: `Converted from quotation ${quotation.quotation_code}`,
-        created_by: profile?.id ?? null,
-      })
-      .select()
-      .single();
+    // Atomic, authorization-checked conversion via SECURITY DEFINER RPC.
+    // (Direct client insert fails RLS project-code generation — see migration 067.)
+    const { data, error } = await supabase.rpc('convert_quotation_to_so', {
+      p_quotation_id: id,
+    });
 
-    if (proj) {
-      const projId = (proj as { id: string }).id;
-      await supabase
-        .from('quotation_requests')
-        .update({ quotation_status: 'converted_to_so', converted_to_project_id: projId })
-        .eq('id', id);
+    if (error) {
+      // Never swallow the real cause — log it for support, show a helpful message.
+      console.error('[convert_quotation_to_so] failed:', error);
+      setActionError(humanizeConvertError(error));
+      setSaving(false);
+      return;
+    }
 
+    const row = Array.isArray(data) ? data[0] : data;
+    const projId = (row as { project_id?: string } | null)?.project_id;
+    if (!projId) {
+      setActionError('Could not convert this quotation to SO. Please review the required fields or contact Operations.');
+      setSaving(false);
+      return;
+    }
+
+    // Best-effort timeline + audit; failures here must not block navigation.
+    try {
       await recordQuotationEvent(id, 'quotation_converted_to_so', 'Quotation converted to Sales Order', null, profile?.id ?? null, profile?.full_name ?? null, { project_id: projId });
       await recordQuotationAuditEntry('converted_to_so', id, 'Quotation converted to SO', null, { project_id: projId }, profile?.id ?? null, profile?.email ?? null, role);
-      setSaving(false);
-      navigate(`/projects/${projId}`);
-    } else {
-      setActionMsg('Failed to create project. Please try again.');
-      setSaving(false);
+    } catch (e) {
+      console.warn('[convert_quotation_to_so] audit/timeline logging failed (non-fatal):', e);
     }
+
+    setQuotation((prev) => prev ? { ...prev, quotation_status: 'converted_to_so', converted_to_project_id: projId } : prev);
+    setSaving(false);
+    navigate(`/projects/${projId}`);
   }
 
   async function handleSaveLineValues() {
@@ -422,10 +457,18 @@ export function QuotationDetail() {
         }
       />
 
-      {/* Action message */}
+      {/* Action message (success / info) */}
       {actionMsg && (
         <div className="p-3 bg-sky-50 border border-sky-200 rounded-lg text-sm text-sky-800 flex items-center gap-2">
           <CheckCircle2 size={15} />{actionMsg}
+        </div>
+      )}
+
+      {/* Action error (failure) */}
+      {actionError && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800 flex items-start gap-2">
+          <AlertTriangle size={15} className="mt-0.5 shrink-0" />
+          <span>{actionError}</span>
         </div>
       )}
 

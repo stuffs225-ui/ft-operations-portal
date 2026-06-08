@@ -9,6 +9,7 @@ import {
 import { cn } from '../../lib/utils';
 import { NAV_ITEMS } from '../../data/navigation';
 import { useAuth } from '../../hooks/useAuth';
+import { BrandLogo } from '../ui/BrandLogo';
 import type { NavItem, UserRole } from '../../types';
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -115,12 +116,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       >
         {/* Mobile close */}
         <div className="flex items-center justify-between h-14 px-4 border-b border-gray-200 lg:hidden">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-brand-700 rounded-md flex items-center justify-center">
-              <span className="text-white text-xs font-bold">FT</span>
-            </div>
-            <span className="font-bold text-gray-900 text-sm">Operations Portal</span>
-          </div>
+          <BrandLogo size={28} withWordmark tagline="Operations Portal" />
           <button onClick={onClose} className="p-1 rounded text-gray-400 hover:text-gray-600">
             <X size={18} />
           </button>
@@ -135,7 +131,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {/* Footer */}
         <div className="px-4 py-3 border-t border-gray-200 text-[10px] text-gray-400">
-          FT Operations Portal v0.1 — Phase 1
+          NAFFCO Fire Trucks — Operations Portal
         </div>
       </aside>
     </>
