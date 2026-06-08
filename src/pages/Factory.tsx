@@ -6,8 +6,14 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { useAuth } from '../hooks/useAuth';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { MOCK_FACTORY_RECORDS, MOCK_FACTORY_REQUIREMENTS, MOCK_RAW_MATERIAL_REQUESTS } from '../data/mockFactory';
-import { MOCK_PROJECTS } from '../data/mockProjects';
+import { MOCK_FACTORY_RECORDS as MOCK_FACTORY_RECORDS_RAW, MOCK_FACTORY_REQUIREMENTS as MOCK_FACTORY_REQUIREMENTS_RAW, MOCK_RAW_MATERIAL_REQUESTS as MOCK_RAW_MATERIAL_REQUESTS_RAW } from '../data/mockFactory';
+import { MOCK_PROJECTS as MOCK_PROJECTS_RAW } from '../data/mockProjects';
+import { mockOrEmpty } from '../lib/dataMode';
+
+const MOCK_FACTORY_RECORDS = mockOrEmpty(MOCK_FACTORY_RECORDS_RAW);
+const MOCK_FACTORY_REQUIREMENTS = mockOrEmpty(MOCK_FACTORY_REQUIREMENTS_RAW);
+const MOCK_RAW_MATERIAL_REQUESTS = mockOrEmpty(MOCK_RAW_MATERIAL_REQUESTS_RAW);
+const MOCK_PROJECTS = mockOrEmpty(MOCK_PROJECTS_RAW);
 import type { UserRole } from '../types';
 
 const FACTORY_ROLES: UserRole[] = ['admin', 'operations_manager', 'factory_user'];

@@ -5,7 +5,12 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { MOCK_SLA_RULES, MOCK_SLA_EVENTS, getOpenSlaBreaches } from '../data/mockReports';
+import { MOCK_SLA_RULES as MOCK_SLA_RULES_RAW, MOCK_SLA_EVENTS as MOCK_SLA_EVENTS_RAW, getOpenSlaBreaches as getOpenSlaBreachesRaw } from '../data/mockReports';
+import { mockOrEmpty, isLiveMode } from '../lib/dataMode';
+
+const MOCK_SLA_RULES = mockOrEmpty(MOCK_SLA_RULES_RAW);
+const MOCK_SLA_EVENTS = mockOrEmpty(MOCK_SLA_EVENTS_RAW);
+function getOpenSlaBreaches() { return isLiveMode() ? [] : getOpenSlaBreachesRaw(); }
 import { getSlaStatus, isOverdue, getSlaSeverityBadge, formatDuration, getSlaDueLabel } from '../lib/slaEngine';
 import { ReportExportBar } from '../components/features/ReportExportBar';
 import { exportRowsToCsv } from '../lib/reportExport';

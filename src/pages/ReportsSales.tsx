@@ -6,8 +6,12 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { MOCK_QUOTATIONS } from '../data/mockQuotations';
-import { MOCK_PROJECTS } from '../data/mockProjects';
+import { MOCK_QUOTATIONS as MOCK_QUOTATIONS_RAW } from '../data/mockQuotations';
+import { MOCK_PROJECTS as MOCK_PROJECTS_RAW } from '../data/mockProjects';
+import { mockOrEmpty } from '../lib/dataMode';
+
+const MOCK_QUOTATIONS = mockOrEmpty(MOCK_QUOTATIONS_RAW);
+const MOCK_PROJECTS = mockOrEmpty(MOCK_PROJECTS_RAW);
 import { ReportExportBar } from '../components/features/ReportExportBar';
 import { exportRowsToCsv } from '../lib/reportExport';
 import type { ReportColumn } from '../lib/reportExport';

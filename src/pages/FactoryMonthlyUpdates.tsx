@@ -7,7 +7,9 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { MOCK_FACTORY_RECORDS } from '../data/mockFactory';
+import { MOCK_FACTORY_RECORDS as MOCK_FACTORY_RECORDS_RAW } from '../data/mockFactory';
+import { mockOrEmpty } from '../lib/dataMode';
+const MOCK_FACTORY_RECORDS = mockOrEmpty(MOCK_FACTORY_RECORDS_RAW);
 import type { FactoryRecord, FactoryProductionStatus } from '../types';
 
 function formatDate(iso: string) {

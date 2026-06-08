@@ -8,14 +8,22 @@ import { Card, CardHeader } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import {
-  MOCK_PROJECT_HEALTH_SCORES,
-  MOCK_DEPARTMENT_HEALTH_SCORES,
-  MOCK_OPERATIONAL_ISSUES,
-  getOpenSlaBreaches,
+  MOCK_PROJECT_HEALTH_SCORES as MOCK_PROJECT_HEALTH_SCORES_RAW,
+  MOCK_DEPARTMENT_HEALTH_SCORES as MOCK_DEPARTMENT_HEALTH_SCORES_RAW,
+  MOCK_OPERATIONAL_ISSUES as MOCK_OPERATIONAL_ISSUES_RAW,
+  getOpenSlaBreaches as getOpenSlaBreachesRaw,
 } from '../data/mockReports';
-import { MOCK_PROJECTS } from '../data/mockProjects';
-import { MOCK_EXECUTION_REFERENCES } from '../data/mockExecutionReferences';
+import { MOCK_PROJECTS as MOCK_PROJECTS_RAW } from '../data/mockProjects';
+import { MOCK_EXECUTION_REFERENCES as MOCK_EXECUTION_REFERENCES_RAW } from '../data/mockExecutionReferences';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { mockOrEmpty, isLiveMode } from '../lib/dataMode';
+
+const MOCK_PROJECT_HEALTH_SCORES = mockOrEmpty(MOCK_PROJECT_HEALTH_SCORES_RAW);
+const MOCK_DEPARTMENT_HEALTH_SCORES = mockOrEmpty(MOCK_DEPARTMENT_HEALTH_SCORES_RAW);
+const MOCK_OPERATIONAL_ISSUES = mockOrEmpty(MOCK_OPERATIONAL_ISSUES_RAW);
+const MOCK_PROJECTS = mockOrEmpty(MOCK_PROJECTS_RAW);
+const MOCK_EXECUTION_REFERENCES = mockOrEmpty(MOCK_EXECUTION_REFERENCES_RAW);
+function getOpenSlaBreaches() { return isLiveMode() ? [] : getOpenSlaBreachesRaw(); }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

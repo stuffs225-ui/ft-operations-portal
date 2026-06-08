@@ -5,7 +5,9 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { MOCK_DATA_QUALITY_CHECKS } from '../data/mockReports';
+import { MOCK_DATA_QUALITY_CHECKS as MOCK_DATA_QUALITY_CHECKS_RAW } from '../data/mockReports';
+import { mockOrEmpty } from '../lib/dataMode';
+const MOCK_DATA_QUALITY_CHECKS = mockOrEmpty(MOCK_DATA_QUALITY_CHECKS_RAW);
 import type { DataQualityCheck, IssueSeverity } from '../types';
 
 type ModuleFilter = 'All' | 'Projects' | 'Procurement' | 'Factory' | 'Store' | 'QC' | 'AFS';

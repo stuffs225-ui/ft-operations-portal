@@ -12,7 +12,9 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { isQuotationOverdue, getOverdueDays, getQuotationSlaStatus } from '../lib/quotationSla';
-import { MOCK_QUOTATIONS } from '../data/mockQuotations';
+import { MOCK_QUOTATIONS as MOCK_QUOTATIONS_RAW } from '../data/mockQuotations';
+import { mockOrEmpty } from '../lib/dataMode';
+const MOCK_QUOTATIONS = mockOrEmpty(MOCK_QUOTATIONS_RAW);
 import type { QuotationRequest } from '../types';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
