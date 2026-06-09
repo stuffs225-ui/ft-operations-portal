@@ -1699,6 +1699,10 @@ export type Database = {
         Args: { p_quotation_id: string };
         Returns: { project_id: string; project_code: string; so_number: string }[];
       };
+      link_quotation_to_project: {
+        Args: { p_quotation_id: string; p_project_id: string };
+        Returns: { project_id: string; project_code: string; quotation_code: string }[];
+      };
     };
     Enums: {
       user_role:
