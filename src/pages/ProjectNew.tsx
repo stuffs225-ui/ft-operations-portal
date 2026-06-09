@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   FolderPlus, ChevronRight, ChevronLeft, Check,
-  Plus, Trash2, FileText, Info, AlertCircle, Loader2, ExternalLink, ArrowRight,
+  Plus, Trash2, FileText, Info, AlertCircle, Loader2, ExternalLink, ArrowRight, Upload,
 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Button } from '../components/ui/Button';
@@ -27,6 +27,7 @@ interface DocumentEntry {
   document_type: string;
   file_name: string;
   remarks: string;
+  file?: File;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -57,6 +58,8 @@ function formatSAR(value: number) {
 function uid() {
   return Math.random().toString(36).slice(2, 9);
 }
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 const STEPS = ['Basic Info', 'Documents', 'Vehicle Lines', 'Review & Submit'];
 
@@ -251,6 +254,9 @@ export function ProjectNew() {
     } else if (d.file_name.trim() === '' && documents.length > 1) {
       step2Errors.push(`Document ${i + 1}: File name is required when multiple documents are listed`);
     }
+    if (d.file && d.file.size > MAX_FILE_SIZE) {
+      step2Errors.push(`Document ${i + 1}: File "${d.file.name}" exceeds the 10 MB size limit`);
+    }
   });
 
   const step3Errors: string[] = [];
@@ -274,8 +280,16 @@ export function ProjectNew() {
     setDocuments((d) => d.filter((x) => x.id !== id));
   }
 
-  function updateDocument(id: string, field: keyof DocumentEntry, value: string) {
+  function updateDocument(id: string, field: keyof Omit<DocumentEntry, 'id' | 'file'>, value: string) {
     setDocuments((d) => d.map((x) => (x.id === id ? { ...x, [field]: value } : x)));
+  }
+
+  function setDocumentFile(id: string, file: File | undefined) {
+    setDocuments((d) =>
+      d.map((x) =>
+        x.id !== id ? x : { ...x, file, file_name: file ? file.name : x.file_name },
+      ),
+    );
   }
 
   // ── Line helpers ─────────────────────────────────────────────────────────────
@@ -362,18 +376,37 @@ export function ProjectNew() {
         }
       }
 
-      // Insert documents (only non-empty entries)
-      const filledDocs = documents.filter((d) => d.file_name.trim());
-      if (filledDocs.length > 0) {
-        await supabase.from('project_documents').insert(
-          filledDocs.map((d) => ({
-            project_id: projectId,
-            document_type: d.document_type,
-            file_name: d.file_name.trim(),
-            uploaded_by: profile?.id ?? null,
-            remarks: d.remarks.trim() || null,
-          })),
-        );
+      // Upload files and insert document records (only non-empty entries)
+      const filledDocs = documents.filter((d) => d.file_name.trim() || d.file);
+      for (const doc of filledDocs) {
+        let storagePath: string | null = null;
+
+        if (doc.file) {
+          const safeName = doc.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const uploadPath = `${projectId}/${doc.document_type}/${Date.now()}_${safeName}`;
+          const { data: uploadData, error: uploadErr } = await supabase.storage
+            .from('project-documents')
+            .upload(uploadPath, doc.file, { upsert: false });
+
+          if (uploadErr) {
+            console.error('[ProjectNew] file upload failed:', {
+              name: doc.file.name,
+              error: uploadErr.message,
+            });
+            // Non-fatal: insert metadata record without storage_path
+          } else {
+            storagePath = uploadData?.path ?? null;
+          }
+        }
+
+        await supabase.from('project_documents').insert({
+          project_id: projectId,
+          document_type: doc.document_type,
+          file_name: doc.file?.name ?? doc.file_name.trim(),
+          uploaded_by: profile?.id ?? null,
+          remarks: doc.remarks.trim() || null,
+          storage_path: storagePath,
+        });
       }
 
       await recordProjectEvent(
@@ -619,18 +652,19 @@ export function ProjectNew() {
       {/* ── Step 2: Documents ──────────────────────────────────────────────────── */}
       {step === 1 && (
         <Card className="p-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-2">Document References</h2>
+          <h2 className="text-base font-semibold text-gray-900 mb-2">Documents</h2>
           <p className="text-sm text-gray-500 mb-5">
-            Optional for draft creation. Record document names for tracking purposes. Actual file upload will be supported in a future release.
-            Customer PO / Contract is required before SO approval — it will be checked at the approval stage, not here.
+            Optional for draft creation. Attach files directly (PDF, Office, images — max 10 MB) or enter a file name for reference only.
+            Customer PO / Contract is required before SO approval — it will be enforced at the approval stage.
           </p>
 
           <div className="flex items-start gap-2 bg-sky-50 border border-sky-200 rounded-lg p-3 mb-5">
             <Info size={14} className="text-sky-600 shrink-0 mt-0.5" />
             <p className="text-xs text-sky-800">
               <span className="font-semibold">Documents are optional for draft.</span>{' '}
-              Enter document names for reference. You can skip this step and add documents later via the Project detail page.
-              Required documents (Customer PO, Customer Contract) will be enforced at the approval stage.
+              {isSupabaseConfigured
+                ? 'Attach files now or enter document names for reference. You can also add documents later on the Project detail page.'
+                : 'Enter document names for reference. File upload is unavailable in dev mode.'}
             </p>
           </div>
 
@@ -662,7 +696,7 @@ export function ProjectNew() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">File Name</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">File Name / Reference</label>
                     <input
                       type="text"
                       value={doc.file_name}
@@ -672,6 +706,50 @@ export function ProjectNew() {
                     />
                   </div>
                 </div>
+
+                {/* File attachment — only when Supabase Storage is available */}
+                {isSupabaseConfigured && (
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Attach File (optional — PDF, Word, Excel, JPG, PNG — max 10 MB)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-colors flex-1 min-w-0">
+                        <Upload size={14} className={doc.file ? 'text-brand-500 shrink-0' : 'text-gray-400 shrink-0'} />
+                        <span className={`text-xs truncate ${doc.file ? 'text-brand-700 font-medium' : 'text-gray-400'}`}>
+                          {doc.file
+                            ? `${doc.file.name} (${(doc.file.size / 1024 / 1024).toFixed(1)} MB)`
+                            : 'Click to choose a file…'}
+                        </span>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            setDocumentFile(doc.id, f ?? undefined);
+                          }}
+                        />
+                      </label>
+                      {doc.file && (
+                        <button
+                          type="button"
+                          onClick={() => setDocumentFile(doc.id, undefined)}
+                          className="text-red-400 hover:text-red-600 transition-colors shrink-0"
+                          title="Remove attached file"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+                    {doc.file && doc.file.size > MAX_FILE_SIZE && (
+                      <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                        <AlertCircle size={11} /> File exceeds the 10 MB limit — please choose a smaller file.
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <div className="mt-3">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Remarks (optional)</label>
                   <input
@@ -913,17 +991,22 @@ export function ProjectNew() {
           {/* Documents summary */}
           <Card className="p-5">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">
-              Documents ({documents.filter((d) => d.file_name.trim()).length} entered)
+              Documents ({documents.filter((d) => d.file_name.trim() || d.file).length} entered)
             </h3>
-            {documents.filter((d) => d.file_name.trim()).length === 0 ? (
+            {documents.filter((d) => d.file_name.trim() || d.file).length === 0 ? (
               <p className="text-sm text-gray-400 italic">No documents entered — can be added after creation.</p>
             ) : (
               <div className="space-y-2">
-                {documents.filter((d) => d.file_name.trim()).map((doc, i) => (
+                {documents.filter((d) => d.file_name.trim() || d.file).map((doc, i) => (
                   <div key={doc.id} className="flex items-center gap-2 text-sm">
-                    <FileText size={14} className="text-gray-400 shrink-0" />
+                    {doc.file ? (
+                      <Upload size={14} className="text-brand-500 shrink-0" />
+                    ) : (
+                      <FileText size={14} className="text-gray-400 shrink-0" />
+                    )}
                     <span className="text-gray-600">{DOCUMENT_TYPE_OPTIONS.find((o) => o.value === doc.document_type)?.label}</span>
-                    <span className="text-gray-900 font-medium">{doc.file_name || `(doc ${i + 1} — no filename)`}</span>
+                    <span className="text-gray-900 font-medium">{(doc.file?.name ?? doc.file_name) || `(doc ${i + 1} — no filename)`}</span>
+                    {doc.file && <span className="text-xs text-brand-600 font-medium">· file attached</span>}
                   </div>
                 ))}
               </div>
