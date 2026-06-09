@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Inbox, FileText, TrendingUp, UserCheck, FolderKanban,
   ShieldCheck, GitBranch, ShoppingCart, Factory, Warehouse, PackageCheck,
   Truck, Microscope, ClipboardCheck, Plane, Wrench, BarChart3, Settings,
-  Users, X, ScrollText, FileStack, Bell, UserPlus, BellRing, CalendarClock, Activity,
+  Users, X, ScrollText, FileStack, Bell, UserPlus, BellRing, CalendarClock, Activity, Flame,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -16,7 +16,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard, Inbox, FileText, TrendingUp, UserCheck, FolderKanban,
   ShieldCheck, GitBranch, ShoppingCart, Factory, Warehouse, PackageCheck,
   Truck, Microscope, ClipboardCheck, Plane, Wrench, BarChart3, Settings,
-  Users, ScrollText, FileStack, Bell, UserPlus, BellRing, CalendarClock, Activity,
+  Users, ScrollText, FileStack, Bell, UserPlus, BellRing, CalendarClock, Activity, Flame,
 };
 
 interface SidebarProps {

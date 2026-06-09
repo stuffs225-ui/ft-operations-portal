@@ -35,6 +35,13 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'operations_manager', 'sales_user', 'viewer'],
   },
   {
+    id: 'hot-projects',
+    label: 'Hot Projects',
+    path: '/hot-projects',
+    icon: 'Flame',
+    roles: ['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'viewer'],
+  },
+  {
     id: 'sales-coordinator',
     label: 'Sales Coordinator',
     path: '/sales-coordinator',
@@ -153,6 +160,13 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'MANAGEMENT',
     path: '#',
     icon: '',
+  },
+  {
+    id: 'receivables',
+    label: 'Receivables',
+    path: '/receivables',
+    icon: 'BarChart3',
+    roles: ['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'viewer'],
   },
   {
     id: 'control-tower',

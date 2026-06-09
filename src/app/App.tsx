@@ -105,6 +105,11 @@ const NotificationSettings = lazy(() => import('../pages/NotificationSettings').
 const AdminNotificationRules = lazy(() => import('../pages/AdminNotificationRules').then((m) => ({ default: m.AdminNotificationRules })));
 const AdminReportSubscriptions = lazy(() => import('../pages/AdminReportSubscriptions').then((m) => ({ default: m.AdminReportSubscriptions })));
 const AdminReportSubscriptionDetail = lazy(() => import('../pages/AdminReportSubscriptionDetail').then((m) => ({ default: m.AdminReportSubscriptionDetail })));
+const HotProjects = lazy(() => import('../pages/HotProjects').then((m) => ({ default: m.HotProjects })));
+const HotProjectNew = lazy(() => import('../pages/HotProjectNew').then((m) => ({ default: m.HotProjectNew })));
+const HotProjectDetail = lazy(() => import('../pages/HotProjectDetail').then((m) => ({ default: m.HotProjectDetail })));
+const ProjectInvoicing = lazy(() => import('../pages/ProjectInvoicing').then((m) => ({ default: m.ProjectInvoicing })));
+const Receivables = lazy(() => import('../pages/Receivables').then((m) => ({ default: m.Receivables })));
 
 export function App() {
   return (
@@ -125,9 +130,13 @@ export function App() {
             <Route path="quotations/new" element={<QuotationNew />} />
             <Route path="quotations/:id" element={<QuotationDetail />} />
             <Route path="sales" element={<Sales />} />
+            <Route path="hot-projects" element={<RequireRole roles={['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'viewer']}><HotProjects /></RequireRole>} />
+            <Route path="hot-projects/new" element={<RequireRole roles={['admin', 'operations_manager', 'sales_user']}><HotProjectNew /></RequireRole>} />
+            <Route path="hot-projects/:id" element={<RequireRole roles={['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'viewer']}><HotProjectDetail /></RequireRole>} />
             <Route path="projects" element={<Projects />} />
             <Route path="projects/new" element={<ProjectNew />} />
             <Route path="projects/:id" element={<ProjectDetail />} />
+            <Route path="projects/:projectId/invoicing" element={<RequireRole roles={['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'viewer']}><ProjectInvoicing /></RequireRole>} />
             <Route path="templates" element={<Templates />} />
             <Route path="templates/new" element={<TemplateNew />} />
             <Route path="templates/generated" element={<GeneratedDocuments />} />
@@ -153,6 +162,8 @@ export function App() {
             <Route path="reports/health-scores" element={<RequireRole roles={['operations_manager', 'viewer']}><ReportsHealthScores /></RequireRole>} />
             <Route path="reports/issues" element={<RequireRole roles={['operations_manager', 'viewer', 'qc_user']}><ReportsIssues /></RequireRole>} />
             <Route path="reports/capa" element={<RequireRole roles={['operations_manager', 'qc_user']}><ReportsCapa /></RequireRole>} />
+
+            <Route path="receivables" element={<RequireRole roles={['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'viewer']}><Receivables /></RequireRole>} />
 
             {/* ── Sales coordinator only ── */}
             <Route path="sales-coordinator" element={<RequireRole roles={['sales_coordinator', 'operations_manager']}><SalesCoordinator /></RequireRole>} />

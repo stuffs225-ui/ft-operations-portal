@@ -498,6 +498,143 @@ export type Database = {
         };
         Relationships: [];
       };
+      hot_projects: {
+        Row: {
+          id: string;
+          hot_project_code: string;
+          title: string;
+          customer_name: string;
+          customer_contact_name: string | null;
+          customer_email: string | null;
+          customer_phone: string | null;
+          opportunity_source: string | null;
+          stage: string;
+          probability: number;
+          estimated_value: number | null;
+          expected_close_date: string | null;
+          linked_quotation_id: string | null;
+          linked_project_id: string | null;
+          sales_owner_id: string | null;
+          notes: string | null;
+          lost_reason: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          hot_project_code?: string;
+          title: string;
+          customer_name: string;
+          customer_contact_name?: string | null;
+          customer_email?: string | null;
+          customer_phone?: string | null;
+          opportunity_source?: string | null;
+          stage?: string;
+          probability?: number;
+          estimated_value?: number | null;
+          expected_close_date?: string | null;
+          linked_quotation_id?: string | null;
+          linked_project_id?: string | null;
+          sales_owner_id?: string | null;
+          notes?: string | null;
+          lost_reason?: string | null;
+          created_by?: string | null;
+        };
+        Update: {
+          title?: string;
+          customer_name?: string;
+          customer_contact_name?: string | null;
+          customer_email?: string | null;
+          customer_phone?: string | null;
+          opportunity_source?: string | null;
+          stage?: string;
+          probability?: number;
+          estimated_value?: number | null;
+          expected_close_date?: string | null;
+          linked_quotation_id?: string | null;
+          linked_project_id?: string | null;
+          sales_owner_id?: string | null;
+          notes?: string | null;
+          lost_reason?: string | null;
+        };
+        Relationships: [];
+      };
+      project_invoicing_plans: {
+        Row: {
+          id: string;
+          project_id: string;
+          total_contract_value: number;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          project_id: string;
+          total_contract_value?: number;
+          notes?: string | null;
+          created_by?: string | null;
+        };
+        Update: {
+          total_contract_value?: number;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
+      project_invoice_milestones: {
+        Row: {
+          id: string;
+          plan_id: string;
+          project_id: string;
+          milestone_name: string;
+          milestone_status: string;
+          percentage: number | null;
+          amount: number;
+          due_date: string | null;
+          invoice_number: string | null;
+          submitted_at: string | null;
+          approved_at: string | null;
+          paid_at: string | null;
+          paid_amount: number | null;
+          notes: string | null;
+          sort_order: number;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          plan_id: string;
+          project_id: string;
+          milestone_name: string;
+          milestone_status?: string;
+          percentage?: number | null;
+          amount?: number;
+          due_date?: string | null;
+          invoice_number?: string | null;
+          submitted_at?: string | null;
+          approved_at?: string | null;
+          paid_at?: string | null;
+          paid_amount?: number | null;
+          notes?: string | null;
+          sort_order?: number;
+          created_by?: string | null;
+        };
+        Update: {
+          milestone_name?: string;
+          milestone_status?: string;
+          percentage?: number | null;
+          amount?: number;
+          due_date?: string | null;
+          invoice_number?: string | null;
+          submitted_at?: string | null;
+          approved_at?: string | null;
+          paid_at?: string | null;
+          paid_amount?: number | null;
+          notes?: string | null;
+          sort_order?: number;
+        };
+        Relationships: [];
+      };
       quotation_request_lines: {
         Row: {
           id: string;
@@ -1525,6 +1662,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      receivables_aging_view: {
+        Row: {
+          milestone_id: string;
+          plan_id: string;
+          project_id: string;
+          milestone_name: string;
+          milestone_status: string;
+          amount: number;
+          paid_amount: number;
+          outstanding_amount: number;
+          due_date: string | null;
+          invoice_number: string | null;
+          submitted_at: string | null;
+          approved_at: string | null;
+          paid_at: string | null;
+          sort_order: number;
+          project_code: string;
+          so_number: string;
+          customer_name: string;
+          sales_owner_id: string | null;
+          project_status: string;
+          total_contract_value: number;
+          aging_bucket: string;
+          days_overdue: number;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       project_has_wo: { Args: { p_project_id: string }; Returns: boolean };
@@ -1634,6 +1798,9 @@ export type Database = {
       qc_document_type_enum: 'material_inspection_report' | 'material_photo' | 'ncr_evidence' | 'vehicle_inspection_report' | 'rework_evidence' | 'release_note' | 'other';
       release_status_enum: 'draft' | 'blocked' | 'ready_to_issue' | 'issued' | 'cancelled';
       release_type_enum: 'project_release' | 'vehicle_line_release' | 'partial_release';
+      // Phase financial modules enums
+      hot_project_stage: 'lead' | 'qualified' | 'proposal_required' | 'quotation_requested' | 'negotiation' | 'won' | 'lost' | 'cancelled';
+      milestone_status: 'planned' | 'ready_to_invoice' | 'submitted' | 'approved' | 'paid' | 'overdue' | 'cancelled';
       // Phase 9 enums
       dubai_status_enum: 'not_started' | 'pending_dubai_po' | 'dubai_po_sent' | 'under_dubai_production' | 'eta_confirmed' | 'in_transit' | 'arrived_ksa' | 'handed_to_afs' | 'ready_for_pre_delivery' | 'completed' | 'on_hold' | 'cancelled';
       eta_status_enum: 'not_set' | 'on_track' | 'delayed' | 'changed' | 'arrived';
