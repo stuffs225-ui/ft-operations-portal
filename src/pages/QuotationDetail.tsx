@@ -70,26 +70,6 @@ const STATUS_VARIANT: Record<QuotationStatus, 'neutral' | 'warning' | 'info' | '
 const COORDINATOR_ROLES: UserRole[] = ['admin', 'operations_manager', 'sales_coordinator'];
 const CAN_CONVERT: UserRole[] = ['admin', 'operations_manager', 'sales_user'];
 
-function humanizeConvertError(error: { message?: string; code?: string }): string {
-  const msg = (error?.message ?? '').toLowerCase();
-  if (msg.includes('could not find the function') || msg.includes('does not exist')) {
-    return 'The SO conversion service is unavailable on this database instance. Please contact your system administrator.';
-  }
-  if (msg.includes('returned to sales')) {
-    return 'This quotation is not ready to convert. It must be returned to Sales with a completed quotation response first.';
-  }
-  if (msg.includes('only convert your own')) {
-    return 'You can only convert quotations that you own.';
-  }
-  if (msg.includes('not permitted')) {
-    return 'Your role is not permitted to convert quotations to SO. Please contact Operations.';
-  }
-  if (msg.includes('not authenticated')) {
-    return 'Your session has expired. Please sign in again and retry.';
-  }
-  return 'Could not convert this quotation to SO. Please review the required fields or contact Operations.';
-}
-
 // ── Accordion section ─────────────────────────────────────────────────────────
 
 function Section({
@@ -128,13 +108,11 @@ function NextActionBanner({
   quotation,
   isCoordinator,
   canConvert,
-  saving,
   onConvertToSO,
 }: {
   quotation: QuotationRequest;
   isCoordinator: boolean;
   canConvert: boolean;
-  saving: boolean;
   onConvertToSO: () => void;
 }) {
   const s = quotation.quotation_status;
@@ -162,17 +140,20 @@ function NextActionBanner({
         <div className="flex items-start gap-3">
           <ArrowRight size={18} className="text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-amber-900">Quotation Returned — Ready to Convert</p>
-            <p className="text-xs text-amber-700">The Sales Coordinator has returned this quotation with a response. Review the quotation value below, then convert to SO.</p>
+            <p className="text-sm font-semibold text-amber-900">Quotation Returned — Ready to Register Sales Order</p>
+            <p className="text-xs text-amber-700">
+              The Sales Coordinator has returned this quotation with a completed response. Review the quotation values below,
+              then open the SO registration form. Available quotation data will be prefilled — you will need to supply the
+              SO Number and confirm any missing fields before submitting.
+            </p>
           </div>
         </div>
         <Button
           size="sm"
-          loading={saving}
           onClick={onConvertToSO}
           icon={<ArrowRight size={14} />}
         >
-          Convert to Sales Order
+          Register Sales Order
         </Button>
       </div>
     );
@@ -273,7 +254,6 @@ export function QuotationDetail() {
   const [clarification, setClarification] = useState('');
   const [saving, setSaving] = useState(false);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
 
   // Response form state
   const [quotationNumber, setQuotationNumber] = useState('');
@@ -459,54 +439,19 @@ export function QuotationDetail() {
     setSavingResponse(false);
   }
 
-  async function handleConvertToSO() {
-    if (!id || !quotation || saving) return;
+  function handleConvertToSO() {
+    if (!id || !quotation) return;
 
+    // Already converted — navigate directly to the project
     if (quotation.converted_to_project_id) {
       navigate(`/projects/${quotation.converted_to_project_id}`);
       return;
     }
 
-    setSaving(true);
-    setActionMsg(null);
-    setActionError(null);
-
-    if (!isSupabaseConfigured || !supabase) {
-      await new Promise<void>((r) => setTimeout(r, 400));
-      setQuotation((prev) => prev ? { ...prev, quotation_status: 'converted_to_so', converted_to_project_id: 'proj-005' } : prev);
-      setSaving(false);
-      navigate('/projects/proj-005');
-      return;
-    }
-
-    const { data, error } = await supabase.rpc('convert_quotation_to_so', { p_quotation_id: id });
-
-    if (error) {
-      console.error('[convert_quotation_to_so] failed:', error);
-      setActionError(humanizeConvertError(error));
-      setSaving(false);
-      return;
-    }
-
-    const row = Array.isArray(data) ? data[0] : data;
-    const projId = (row as { project_id?: string } | null)?.project_id;
-
-    if (!projId) {
-      setActionError('Could not convert this quotation to SO. Please review the required fields or contact Operations.');
-      setSaving(false);
-      return;
-    }
-
-    try {
-      await recordQuotationEvent(id, 'quotation_converted_to_so', 'Quotation converted to Sales Order', null, profile?.id ?? null, profile?.full_name ?? null, { project_id: projId });
-      await recordQuotationAuditEntry('converted_to_so', id, 'Quotation converted to SO', null, { project_id: projId }, profile?.id ?? null, profile?.email ?? null, role);
-    } catch (e) {
-      console.warn('[convert_quotation_to_so] audit/timeline logging failed (non-fatal):', e);
-    }
-
-    setQuotation((prev) => prev ? { ...prev, quotation_status: 'converted_to_so', converted_to_project_id: projId } : prev);
-    setSaving(false);
-    navigate(`/projects/${projId}`);
+    // Navigate to the SO registration wizard prefilled from this quotation.
+    // The wizard handles field completion, validation, and calls
+    // link_quotation_to_project() after the project is created.
+    navigate(`/projects/new?fromQuotationId=${id}`);
   }
 
   async function handleSaveLineValues() {
@@ -612,20 +557,12 @@ export function QuotationDetail() {
           <CheckCircle2 size={15} />{actionMsg}
         </div>
       )}
-      {actionError && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800 flex items-start gap-2">
-          <AlertTriangle size={15} className="mt-0.5 shrink-0" />
-          <span>{actionError}</span>
-        </div>
-      )}
-
       {/* ── Next Action banner ── */}
       <NextActionBanner
         quotation={quotation}
         isCoordinator={isCoordinator}
         canConvert={canConvert}
-        saving={saving}
-        onConvertToSO={() => void handleConvertToSO()}
+        onConvertToSO={handleConvertToSO}
       />
 
       {/* ── Key Info strip ── */}
