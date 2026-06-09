@@ -6,6 +6,8 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Dashboard',
     path: '/',
     icon: 'LayoutDashboard',
+    // Sales users land on /sales instead; Dashboard is for management roles
+    roles: ['admin', 'operations_manager', 'sales_coordinator', 'procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user', 'viewer'],
   },
   {
     id: 'inbox',
