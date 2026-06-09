@@ -1,113 +1,116 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { PageLoader } from '../components/ui/PageLoader';
 import { AuthProvider } from '../context/AuthContext';
 import { AppLayout } from '../layouts/AppLayout';
 import { RequireRole } from '../components/auth/RequireRole';
 import { Login } from '../pages/Login';
-import { Dashboard } from '../pages/Dashboard';
-import { ActionInbox } from '../pages/ActionInbox';
-import { Quotations } from '../pages/Quotations';
-import { QuotationNew } from '../pages/QuotationNew';
-import { QuotationDetail } from '../pages/QuotationDetail';
-import { Sales } from '../pages/Sales';
-import { SalesCoordinator } from '../pages/SalesCoordinator';
-import { Projects } from '../pages/Projects';
-import { ProjectNew } from '../pages/ProjectNew';
-import { ProjectDetail } from '../pages/ProjectDetail';
-import { AdminApprovals } from '../pages/AdminApprovals';
-import { WoPnGate } from '../pages/WoPnGate';
-import { Procurement } from '../pages/Procurement';
-import { ProcurementRequests } from '../pages/ProcurementRequests';
-import { ProcurementRequestDetail } from '../pages/ProcurementRequestDetail';
-import { ProcurementPurchaseOrders } from '../pages/ProcurementPurchaseOrders';
-import { ProcurementPODetail } from '../pages/ProcurementPODetail';
-import { ProcurementSuppliers } from '../pages/ProcurementSuppliers';
-import { ProcurementSupplierDetail } from '../pages/ProcurementSupplierDetail';
-import { ProcurementEtaHistory } from '../pages/ProcurementEtaHistory';
-import { Factory } from '../pages/Factory';
-import { FactoryProjects } from '../pages/FactoryProjects';
-import { FactoryProjectWorkspace } from '../pages/FactoryProjectWorkspace';
-import { FactoryRequirements } from '../pages/FactoryRequirements';
-import { FactoryRawMaterialRequests } from '../pages/FactoryRawMaterialRequests';
-import { FactoryRawMaterialRequestNew } from '../pages/FactoryRawMaterialRequestNew';
-import { FactoryMonthlyUpdates } from '../pages/FactoryMonthlyUpdates';
-import { Store } from '../pages/Store';
-import { MaterialCustody } from '../pages/MaterialCustody';
-import { VehicleReceiving } from '../pages/VehicleReceiving';
-import { StoreReceipts } from '../pages/StoreReceipts';
-import { StoreReceiptNew } from '../pages/StoreReceiptNew';
-import { StoreReceiptDetail } from '../pages/StoreReceiptDetail';
-import { StoreVehicleReceiving } from '../pages/StoreVehicleReceiving';
-import { StoreVehicleReceivingNew } from '../pages/StoreVehicleReceivingNew';
-import { StoreVehicleReceivingDetail } from '../pages/StoreVehicleReceivingDetail';
-import { StoreInventory } from '../pages/StoreInventory';
-import { StoreUnallocated } from '../pages/StoreUnallocated';
-import { CustodyNew } from '../pages/CustodyNew';
-import { CustodyDetail } from '../pages/CustodyDetail';
-import { MaterialQC } from '../pages/MaterialQC';
-import { MaterialQcInspections } from '../pages/MaterialQcInspections';
-import { MaterialQcInspectionDetail } from '../pages/MaterialQcInspectionDetail';
-import { MaterialNcrs } from '../pages/MaterialNcrs';
-import { MaterialNcrDetail } from '../pages/MaterialNcrDetail';
-import { ProjectQC } from '../pages/ProjectQC';
-import { ProjectQcInspections } from '../pages/ProjectQcInspections';
-import { ProjectQcInspectionDetail } from '../pages/ProjectQcInspectionDetail';
-import { ProjectQcFindings } from '../pages/ProjectQcFindings';
-import { ProjectQcFindingDetail } from '../pages/ProjectQcFindingDetail';
-import { ProjectQcReleaseNotes } from '../pages/ProjectQcReleaseNotes';
-import { ProjectQcReleaseNoteDetail } from '../pages/ProjectQcReleaseNoteDetail';
-import { DubaiAFS } from '../pages/DubaiAFS';
-import { DubaiAfsProjects } from '../pages/DubaiAfsProjects';
-import { DubaiAfsProjectDetail } from '../pages/DubaiAfsProjectDetail';
-import { DubaiAfsEta } from '../pages/DubaiAfsEta';
-import { DubaiAfsArrivalReports } from '../pages/DubaiAfsArrivalReports';
-import { DubaiAfsArrivalReportDetail } from '../pages/DubaiAfsArrivalReportDetail';
-import { DubaiAfsMissingItems } from '../pages/DubaiAfsMissingItems';
-import { DubaiAfsPredeliveryReports } from '../pages/DubaiAfsPredeliveryReports';
-import { DubaiAfsPredeliveryReportDetail } from '../pages/DubaiAfsPredeliveryReportDetail';
-import { DubaiAfsConditionReports } from '../pages/DubaiAfsConditionReports';
-import { AfterSales } from '../pages/AfterSales';
-import { AfterSalesMaintenance } from '../pages/AfterSalesMaintenance';
-import { AfterSalesMaintenanceNew } from '../pages/AfterSalesMaintenanceNew';
-import { AfterSalesMaintenanceDetail } from '../pages/AfterSalesMaintenanceDetail';
-import { Reports } from '../pages/Reports';
-import { ReportsExecutive } from '../pages/ReportsExecutive';
-import { ControlTower } from '../pages/ControlTower';
-import { ReportsProjects } from '../pages/ReportsProjects';
-import { ReportsSales } from '../pages/ReportsSales';
-import { ReportsProcurement } from '../pages/ReportsProcurement';
-import { ReportsFactory } from '../pages/ReportsFactory';
-import { ReportsStore } from '../pages/ReportsStore';
-import { ReportsQC } from '../pages/ReportsQC';
-import { ReportsAFS } from '../pages/ReportsAFS';
-import { ReportsSuppliers } from '../pages/ReportsSuppliers';
-import { ReportsSLA } from '../pages/ReportsSLA';
-import { ReportsDataQuality } from '../pages/ReportsDataQuality';
-import { ReportsHealthScores } from '../pages/ReportsHealthScores';
-import { ReportsIssues } from '../pages/ReportsIssues';
-import { ReportsCapa } from '../pages/ReportsCapa';
-import { Settings } from '../pages/Settings';
-import { AdminUsers } from '../pages/AdminUsers';
-import { AuditLog } from '../pages/AuditLog';
+const Dashboard = lazy(() => import('../pages/Dashboard').then((m) => ({ default: m.Dashboard })));
+const ActionInbox = lazy(() => import('../pages/ActionInbox').then((m) => ({ default: m.ActionInbox })));
+const Quotations = lazy(() => import('../pages/Quotations').then((m) => ({ default: m.Quotations })));
+const QuotationNew = lazy(() => import('../pages/QuotationNew').then((m) => ({ default: m.QuotationNew })));
+const QuotationDetail = lazy(() => import('../pages/QuotationDetail').then((m) => ({ default: m.QuotationDetail })));
+const Sales = lazy(() => import('../pages/Sales').then((m) => ({ default: m.Sales })));
+const SalesCoordinator = lazy(() => import('../pages/SalesCoordinator').then((m) => ({ default: m.SalesCoordinator })));
+const Projects = lazy(() => import('../pages/Projects').then((m) => ({ default: m.Projects })));
+const ProjectNew = lazy(() => import('../pages/ProjectNew').then((m) => ({ default: m.ProjectNew })));
+const ProjectDetail = lazy(() => import('../pages/ProjectDetail').then((m) => ({ default: m.ProjectDetail })));
+const AdminApprovals = lazy(() => import('../pages/AdminApprovals').then((m) => ({ default: m.AdminApprovals })));
+const WoPnGate = lazy(() => import('../pages/WoPnGate').then((m) => ({ default: m.WoPnGate })));
+const Procurement = lazy(() => import('../pages/Procurement').then((m) => ({ default: m.Procurement })));
+const ProcurementRequests = lazy(() => import('../pages/ProcurementRequests').then((m) => ({ default: m.ProcurementRequests })));
+const ProcurementRequestDetail = lazy(() => import('../pages/ProcurementRequestDetail').then((m) => ({ default: m.ProcurementRequestDetail })));
+const ProcurementPurchaseOrders = lazy(() => import('../pages/ProcurementPurchaseOrders').then((m) => ({ default: m.ProcurementPurchaseOrders })));
+const ProcurementPODetail = lazy(() => import('../pages/ProcurementPODetail').then((m) => ({ default: m.ProcurementPODetail })));
+const ProcurementSuppliers = lazy(() => import('../pages/ProcurementSuppliers').then((m) => ({ default: m.ProcurementSuppliers })));
+const ProcurementSupplierDetail = lazy(() => import('../pages/ProcurementSupplierDetail').then((m) => ({ default: m.ProcurementSupplierDetail })));
+const ProcurementEtaHistory = lazy(() => import('../pages/ProcurementEtaHistory').then((m) => ({ default: m.ProcurementEtaHistory })));
+const Factory = lazy(() => import('../pages/Factory').then((m) => ({ default: m.Factory })));
+const FactoryProjects = lazy(() => import('../pages/FactoryProjects').then((m) => ({ default: m.FactoryProjects })));
+const FactoryProjectWorkspace = lazy(() => import('../pages/FactoryProjectWorkspace').then((m) => ({ default: m.FactoryProjectWorkspace })));
+const FactoryRequirements = lazy(() => import('../pages/FactoryRequirements').then((m) => ({ default: m.FactoryRequirements })));
+const FactoryRawMaterialRequests = lazy(() => import('../pages/FactoryRawMaterialRequests').then((m) => ({ default: m.FactoryRawMaterialRequests })));
+const FactoryRawMaterialRequestNew = lazy(() => import('../pages/FactoryRawMaterialRequestNew').then((m) => ({ default: m.FactoryRawMaterialRequestNew })));
+const FactoryMonthlyUpdates = lazy(() => import('../pages/FactoryMonthlyUpdates').then((m) => ({ default: m.FactoryMonthlyUpdates })));
+const Store = lazy(() => import('../pages/Store').then((m) => ({ default: m.Store })));
+const MaterialCustody = lazy(() => import('../pages/MaterialCustody').then((m) => ({ default: m.MaterialCustody })));
+const VehicleReceiving = lazy(() => import('../pages/VehicleReceiving').then((m) => ({ default: m.VehicleReceiving })));
+const StoreReceipts = lazy(() => import('../pages/StoreReceipts').then((m) => ({ default: m.StoreReceipts })));
+const StoreReceiptNew = lazy(() => import('../pages/StoreReceiptNew').then((m) => ({ default: m.StoreReceiptNew })));
+const StoreReceiptDetail = lazy(() => import('../pages/StoreReceiptDetail').then((m) => ({ default: m.StoreReceiptDetail })));
+const StoreVehicleReceiving = lazy(() => import('../pages/StoreVehicleReceiving').then((m) => ({ default: m.StoreVehicleReceiving })));
+const StoreVehicleReceivingNew = lazy(() => import('../pages/StoreVehicleReceivingNew').then((m) => ({ default: m.StoreVehicleReceivingNew })));
+const StoreVehicleReceivingDetail = lazy(() => import('../pages/StoreVehicleReceivingDetail').then((m) => ({ default: m.StoreVehicleReceivingDetail })));
+const StoreInventory = lazy(() => import('../pages/StoreInventory').then((m) => ({ default: m.StoreInventory })));
+const StoreUnallocated = lazy(() => import('../pages/StoreUnallocated').then((m) => ({ default: m.StoreUnallocated })));
+const CustodyNew = lazy(() => import('../pages/CustodyNew').then((m) => ({ default: m.CustodyNew })));
+const CustodyDetail = lazy(() => import('../pages/CustodyDetail').then((m) => ({ default: m.CustodyDetail })));
+const MaterialQC = lazy(() => import('../pages/MaterialQC').then((m) => ({ default: m.MaterialQC })));
+const MaterialQcInspections = lazy(() => import('../pages/MaterialQcInspections').then((m) => ({ default: m.MaterialQcInspections })));
+const MaterialQcInspectionDetail = lazy(() => import('../pages/MaterialQcInspectionDetail').then((m) => ({ default: m.MaterialQcInspectionDetail })));
+const MaterialNcrs = lazy(() => import('../pages/MaterialNcrs').then((m) => ({ default: m.MaterialNcrs })));
+const MaterialNcrDetail = lazy(() => import('../pages/MaterialNcrDetail').then((m) => ({ default: m.MaterialNcrDetail })));
+const ProjectQC = lazy(() => import('../pages/ProjectQC').then((m) => ({ default: m.ProjectQC })));
+const ProjectQcInspections = lazy(() => import('../pages/ProjectQcInspections').then((m) => ({ default: m.ProjectQcInspections })));
+const ProjectQcInspectionDetail = lazy(() => import('../pages/ProjectQcInspectionDetail').then((m) => ({ default: m.ProjectQcInspectionDetail })));
+const ProjectQcFindings = lazy(() => import('../pages/ProjectQcFindings').then((m) => ({ default: m.ProjectQcFindings })));
+const ProjectQcFindingDetail = lazy(() => import('../pages/ProjectQcFindingDetail').then((m) => ({ default: m.ProjectQcFindingDetail })));
+const ProjectQcReleaseNotes = lazy(() => import('../pages/ProjectQcReleaseNotes').then((m) => ({ default: m.ProjectQcReleaseNotes })));
+const ProjectQcReleaseNoteDetail = lazy(() => import('../pages/ProjectQcReleaseNoteDetail').then((m) => ({ default: m.ProjectQcReleaseNoteDetail })));
+const DubaiAFS = lazy(() => import('../pages/DubaiAFS').then((m) => ({ default: m.DubaiAFS })));
+const DubaiAfsProjects = lazy(() => import('../pages/DubaiAfsProjects').then((m) => ({ default: m.DubaiAfsProjects })));
+const DubaiAfsProjectDetail = lazy(() => import('../pages/DubaiAfsProjectDetail').then((m) => ({ default: m.DubaiAfsProjectDetail })));
+const DubaiAfsEta = lazy(() => import('../pages/DubaiAfsEta').then((m) => ({ default: m.DubaiAfsEta })));
+const DubaiAfsArrivalReports = lazy(() => import('../pages/DubaiAfsArrivalReports').then((m) => ({ default: m.DubaiAfsArrivalReports })));
+const DubaiAfsArrivalReportDetail = lazy(() => import('../pages/DubaiAfsArrivalReportDetail').then((m) => ({ default: m.DubaiAfsArrivalReportDetail })));
+const DubaiAfsMissingItems = lazy(() => import('../pages/DubaiAfsMissingItems').then((m) => ({ default: m.DubaiAfsMissingItems })));
+const DubaiAfsPredeliveryReports = lazy(() => import('../pages/DubaiAfsPredeliveryReports').then((m) => ({ default: m.DubaiAfsPredeliveryReports })));
+const DubaiAfsPredeliveryReportDetail = lazy(() => import('../pages/DubaiAfsPredeliveryReportDetail').then((m) => ({ default: m.DubaiAfsPredeliveryReportDetail })));
+const DubaiAfsConditionReports = lazy(() => import('../pages/DubaiAfsConditionReports').then((m) => ({ default: m.DubaiAfsConditionReports })));
+const AfterSales = lazy(() => import('../pages/AfterSales').then((m) => ({ default: m.AfterSales })));
+const AfterSalesMaintenance = lazy(() => import('../pages/AfterSalesMaintenance').then((m) => ({ default: m.AfterSalesMaintenance })));
+const AfterSalesMaintenanceNew = lazy(() => import('../pages/AfterSalesMaintenanceNew').then((m) => ({ default: m.AfterSalesMaintenanceNew })));
+const AfterSalesMaintenanceDetail = lazy(() => import('../pages/AfterSalesMaintenanceDetail').then((m) => ({ default: m.AfterSalesMaintenanceDetail })));
+const Reports = lazy(() => import('../pages/Reports').then((m) => ({ default: m.Reports })));
+const ReportsExecutive = lazy(() => import('../pages/ReportsExecutive').then((m) => ({ default: m.ReportsExecutive })));
+const ControlTower = lazy(() => import('../pages/ControlTower').then((m) => ({ default: m.ControlTower })));
+const ReportsProjects = lazy(() => import('../pages/ReportsProjects').then((m) => ({ default: m.ReportsProjects })));
+const ReportsSales = lazy(() => import('../pages/ReportsSales').then((m) => ({ default: m.ReportsSales })));
+const ReportsProcurement = lazy(() => import('../pages/ReportsProcurement').then((m) => ({ default: m.ReportsProcurement })));
+const ReportsFactory = lazy(() => import('../pages/ReportsFactory').then((m) => ({ default: m.ReportsFactory })));
+const ReportsStore = lazy(() => import('../pages/ReportsStore').then((m) => ({ default: m.ReportsStore })));
+const ReportsQC = lazy(() => import('../pages/ReportsQC').then((m) => ({ default: m.ReportsQC })));
+const ReportsAFS = lazy(() => import('../pages/ReportsAFS').then((m) => ({ default: m.ReportsAFS })));
+const ReportsSuppliers = lazy(() => import('../pages/ReportsSuppliers').then((m) => ({ default: m.ReportsSuppliers })));
+const ReportsSLA = lazy(() => import('../pages/ReportsSLA').then((m) => ({ default: m.ReportsSLA })));
+const ReportsDataQuality = lazy(() => import('../pages/ReportsDataQuality').then((m) => ({ default: m.ReportsDataQuality })));
+const ReportsHealthScores = lazy(() => import('../pages/ReportsHealthScores').then((m) => ({ default: m.ReportsHealthScores })));
+const ReportsIssues = lazy(() => import('../pages/ReportsIssues').then((m) => ({ default: m.ReportsIssues })));
+const ReportsCapa = lazy(() => import('../pages/ReportsCapa').then((m) => ({ default: m.ReportsCapa })));
+const Settings = lazy(() => import('../pages/Settings').then((m) => ({ default: m.Settings })));
+const AdminUsers = lazy(() => import('../pages/AdminUsers').then((m) => ({ default: m.AdminUsers })));
+const AuditLog = lazy(() => import('../pages/AuditLog').then((m) => ({ default: m.AuditLog })));
 import { RequestAccess } from '../pages/RequestAccess';
-import { Templates } from '../pages/Templates';
-import { TemplateNew } from '../pages/TemplateNew';
-import { TemplateDetail } from '../pages/TemplateDetail';
-import { TemplateApprovals } from '../pages/TemplateApprovals';
-import { TemplateGenerate } from '../pages/TemplateGenerate';
-import { GeneratedDocuments } from '../pages/GeneratedDocuments';
-import { GeneratedDocumentDetail } from '../pages/GeneratedDocumentDetail';
-import { AdminAccessRequests } from '../pages/AdminAccessRequests';
-import { AdminAccessRequestDetail } from '../pages/AdminAccessRequestDetail';
-import { Notifications } from '../pages/Notifications';
-import { NotificationSettings } from '../pages/NotificationSettings';
-import { AdminNotificationRules } from '../pages/AdminNotificationRules';
-import { AdminReportSubscriptions } from '../pages/AdminReportSubscriptions';
-import { AdminReportSubscriptionDetail } from '../pages/AdminReportSubscriptionDetail';
+const Templates = lazy(() => import('../pages/Templates').then((m) => ({ default: m.Templates })));
+const TemplateNew = lazy(() => import('../pages/TemplateNew').then((m) => ({ default: m.TemplateNew })));
+const TemplateDetail = lazy(() => import('../pages/TemplateDetail').then((m) => ({ default: m.TemplateDetail })));
+const TemplateApprovals = lazy(() => import('../pages/TemplateApprovals').then((m) => ({ default: m.TemplateApprovals })));
+const TemplateGenerate = lazy(() => import('../pages/TemplateGenerate').then((m) => ({ default: m.TemplateGenerate })));
+const GeneratedDocuments = lazy(() => import('../pages/GeneratedDocuments').then((m) => ({ default: m.GeneratedDocuments })));
+const GeneratedDocumentDetail = lazy(() => import('../pages/GeneratedDocumentDetail').then((m) => ({ default: m.GeneratedDocumentDetail })));
+const AdminAccessRequests = lazy(() => import('../pages/AdminAccessRequests').then((m) => ({ default: m.AdminAccessRequests })));
+const AdminAccessRequestDetail = lazy(() => import('../pages/AdminAccessRequestDetail').then((m) => ({ default: m.AdminAccessRequestDetail })));
+const Notifications = lazy(() => import('../pages/Notifications').then((m) => ({ default: m.Notifications })));
+const NotificationSettings = lazy(() => import('../pages/NotificationSettings').then((m) => ({ default: m.NotificationSettings })));
+const AdminNotificationRules = lazy(() => import('../pages/AdminNotificationRules').then((m) => ({ default: m.AdminNotificationRules })));
+const AdminReportSubscriptions = lazy(() => import('../pages/AdminReportSubscriptions').then((m) => ({ default: m.AdminReportSubscriptions })));
+const AdminReportSubscriptionDetail = lazy(() => import('../pages/AdminReportSubscriptionDetail').then((m) => ({ default: m.AdminReportSubscriptionDetail })));
 
 export function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Public routes — must be OUTSIDE the protected AppLayout */}
           <Route path="/login" element={<Login />} />
@@ -133,21 +136,23 @@ export function App() {
             <Route path="templates/:id" element={<TemplateDetail />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="notifications/settings" element={<NotificationSettings />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="reports/executive" element={<ReportsExecutive />} />
-            <Route path="reports/projects" element={<ReportsProjects />} />
-            <Route path="reports/sales" element={<ReportsSales />} />
-            <Route path="reports/procurement" element={<ReportsProcurement />} />
-            <Route path="reports/factory" element={<ReportsFactory />} />
-            <Route path="reports/store" element={<ReportsStore />} />
-            <Route path="reports/qc" element={<ReportsQC />} />
-            <Route path="reports/afs" element={<ReportsAFS />} />
-            <Route path="reports/suppliers" element={<ReportsSuppliers />} />
-            <Route path="reports/sla" element={<ReportsSLA />} />
-            <Route path="reports/data-quality" element={<ReportsDataQuality />} />
-            <Route path="reports/health-scores" element={<ReportsHealthScores />} />
-            <Route path="reports/issues" element={<ReportsIssues />} />
-            <Route path="reports/capa" element={<ReportsCapa />} />
+            {/* ── Reports — guarded so Sales cannot reach cost-sensitive reports by
+                   direct URL. Sales keep only the sales report; admin is always allowed. ── */}
+            <Route path="reports" element={<RequireRole roles={['operations_manager', 'viewer', 'procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user', 'sales_coordinator']}><Reports /></RequireRole>} />
+            <Route path="reports/executive" element={<RequireRole roles={['operations_manager', 'viewer']}><ReportsExecutive /></RequireRole>} />
+            <Route path="reports/projects" element={<RequireRole roles={['operations_manager', 'viewer', 'sales_coordinator']}><ReportsProjects /></RequireRole>} />
+            <Route path="reports/sales" element={<RequireRole roles={['operations_manager', 'viewer', 'sales_user', 'sales_coordinator']}><ReportsSales /></RequireRole>} />
+            <Route path="reports/procurement" element={<RequireRole roles={['operations_manager', 'procurement_user']}><ReportsProcurement /></RequireRole>} />
+            <Route path="reports/factory" element={<RequireRole roles={['operations_manager', 'factory_user']}><ReportsFactory /></RequireRole>} />
+            <Route path="reports/store" element={<RequireRole roles={['operations_manager', 'store_user']}><ReportsStore /></RequireRole>} />
+            <Route path="reports/qc" element={<RequireRole roles={['operations_manager', 'qc_user']}><ReportsQC /></RequireRole>} />
+            <Route path="reports/afs" element={<RequireRole roles={['operations_manager', 'afs_user']}><ReportsAFS /></RequireRole>} />
+            <Route path="reports/suppliers" element={<RequireRole roles={['operations_manager', 'procurement_user']}><ReportsSuppliers /></RequireRole>} />
+            <Route path="reports/sla" element={<RequireRole roles={['operations_manager', 'viewer']}><ReportsSLA /></RequireRole>} />
+            <Route path="reports/data-quality" element={<RequireRole roles={['operations_manager', 'viewer']}><ReportsDataQuality /></RequireRole>} />
+            <Route path="reports/health-scores" element={<RequireRole roles={['operations_manager', 'viewer']}><ReportsHealthScores /></RequireRole>} />
+            <Route path="reports/issues" element={<RequireRole roles={['operations_manager', 'viewer', 'qc_user']}><ReportsIssues /></RequireRole>} />
+            <Route path="reports/capa" element={<RequireRole roles={['operations_manager', 'qc_user']}><ReportsCapa /></RequireRole>} />
 
             {/* ── Sales coordinator only ── */}
             <Route path="sales-coordinator" element={<RequireRole roles={['sales_coordinator', 'operations_manager']}><SalesCoordinator /></RequireRole>} />
@@ -240,6 +245,7 @@ export function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
+        </Suspense>
       </AuthProvider>
     </BrowserRouter>
   );
