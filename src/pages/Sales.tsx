@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   FileText, FolderOpen, Plus, Search, ChevronRight,
   Loader2, Clock, AlertCircle, CheckCircle,
-  TrendingUp, Flame, ReceiptText, BarChart3,
+  Flame, ReceiptText, BarChart3, ArrowRight,
 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Badge } from '../components/ui/Badge';
@@ -101,7 +101,7 @@ function QuotationRow({ q }: { q: QuotationRequest }) {
   return (
     <tr className="hover:bg-gray-50 transition-colors">
       <td className="px-4 py-3 text-sm font-mono font-medium text-sky-700">
-        <Link to="/quotations" className="hover:underline">{q.quotation_code}</Link>
+        <Link to={`/quotations/${q.id}`} className="hover:underline">{q.quotation_code}</Link>
       </td>
       <td className="px-4 py-3 text-sm text-gray-800">{q.customer_name}</td>
       <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">
@@ -116,7 +116,7 @@ function QuotationRow({ q }: { q: QuotationRequest }) {
         {formatDate(q.required_delivery_expectation)}
       </td>
       <td className="px-4 py-3">
-        <Link to="/quotations">
+        <Link to={`/quotations/${q.id}`}>
           <Button variant="ghost" size="sm">View <ChevronRight size={14} /></Button>
         </Link>
       </td>
@@ -267,7 +267,7 @@ export function Sales() {
       {
         id: 'sent-back', label: 'Sent Back', value: sentBack,
         sub: 'Needs revision', borderColor: 'border-l-red-400',
-        icon: <TrendingUp size={18} />,
+        icon: <AlertCircle size={18} />,
       },
       {
         id: 'clarification', label: 'Need Clarification', value: needClarification,
@@ -328,17 +328,16 @@ export function Sales() {
         title="Sales Workspace"
         subtitle={isBroadView ? 'All quotations and projects' : 'Your quotations and projects'}
         action={
-          <div className="flex items-center gap-2">
-            <Link to="/quotations">
-              <Button variant="secondary" size="sm">
-                <FileText size={14} className="mr-1" /> New Quotation
-              </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link to="/hot-projects/new">
+              <Button variant="secondary" size="sm" icon={<Flame size={14} />}>New Opportunity</Button>
+            </Link>
+            <Link to="/quotations/new">
+              <Button variant="secondary" size="sm" icon={<FileText size={14} />}>New Quotation</Button>
             </Link>
             {canCreateSO && (
               <Link to="/projects/new">
-                <Button variant="primary" size="sm">
-                  <Plus size={14} className="mr-1" /> New SO / Project
-                </Button>
+                <Button size="sm" icon={<Plus size={14} />}>New SO / Project</Button>
               </Link>
             )}
           </div>
@@ -354,33 +353,49 @@ export function Sales() {
         <KpiStrip kpis={kpis} onSelect={setActiveKpi} />
       )}
 
+      {/* Sales workflow strip */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        {[
+          { label: 'Hot Project', icon: <Flame size={13} className="text-orange-500" />, path: '/hot-projects', color: 'border-orange-200 bg-orange-50' },
+          { label: 'Quotation', icon: <FileText size={13} className="text-sky-500" />, path: '/quotations', color: 'border-sky-200 bg-sky-50' },
+          { label: 'SO / Project', icon: <FolderOpen size={13} className="text-indigo-500" />, path: '/projects', color: 'border-indigo-200 bg-indigo-50' },
+          { label: 'Invoicing', icon: <ReceiptText size={13} className="text-emerald-500" />, path: '/projects', color: 'border-emerald-200 bg-emerald-50' },
+          { label: 'Receivables', icon: <BarChart3 size={13} className="text-rose-500" />, path: '/receivables', color: 'border-rose-200 bg-rose-50' },
+        ].map((step, i, arr) => (
+          <div key={step.label} className="flex items-center gap-2 shrink-0">
+            <Link to={step.path} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium text-gray-700 hover:shadow-sm transition-all ${step.color}`}>
+              {step.icon} {step.label}
+            </Link>
+            {i < arr.length - 1 && <ArrowRight size={12} className="text-gray-300 shrink-0" />}
+          </div>
+        ))}
+      </div>
+
       {/* Quick Actions */}
       <Card>
         <div className="px-5 py-4 border-b border-gray-100">
           <h2 className="text-sm font-semibold text-gray-700">Quick Actions</h2>
         </div>
         <div className="px-5 py-4 flex flex-wrap gap-3">
-          <Link to="/quotations">
-            <Button variant="secondary" size="sm">
-              <FileText size={14} className="mr-1" /> My Quotations
-            </Button>
+          <Link to="/hot-projects/new">
+            <Button variant="secondary" size="sm" icon={<Flame size={14} />}>New Hot Project</Button>
           </Link>
-          <Link to="/projects">
-            <Button variant="secondary" size="sm">
-              <FolderOpen size={14} className="mr-1" /> My Projects
-            </Button>
+          <Link to="/quotations/new">
+            <Button variant="secondary" size="sm" icon={<FileText size={14} />}>New Quotation Request</Button>
           </Link>
           {canCreateSO && (
             <Link to="/projects/new">
-              <Button variant="secondary" size="sm">
-                <Plus size={14} className="mr-1" /> Register New SO
-              </Button>
+              <Button variant="secondary" size="sm" icon={<Plus size={14} />}>Register New SO</Button>
             </Link>
           )}
+          <Link to="/quotations">
+            <Button variant="secondary" size="sm" icon={<AlertCircle size={14} />}>My Quotations</Button>
+          </Link>
           <Link to="/projects">
-            <Button variant="secondary" size="sm">
-              <AlertCircle size={14} className="mr-1" /> Sent-Back SOs
-            </Button>
+            <Button variant="secondary" size="sm" icon={<FolderOpen size={14} />}>My Projects</Button>
+          </Link>
+          <Link to="/receivables">
+            <Button variant="secondary" size="sm" icon={<BarChart3 size={14} />}>Receivables</Button>
           </Link>
         </div>
       </Card>
@@ -410,9 +425,15 @@ export function Sales() {
           <div className="px-5 py-8">
             <EmptyState
               icon={<FileText size={24} className="text-gray-400" />}
-              title="No quotations found"
-              description="Submit a new quotation request to get started."
+              title="No quotation requests yet"
+              description={qSearch ? 'No results match your search.' : 'Create a quotation request or start from a Hot Project opportunity.'}
             />
+            {!qSearch && (
+              <div className="flex gap-3 justify-center mt-4">
+                <Link to="/quotations/new"><Button size="sm" icon={<Plus size={14} />}>New Quotation</Button></Link>
+                <Link to="/hot-projects/new"><Button size="sm" variant="secondary" icon={<Flame size={14} />}>New Hot Project</Button></Link>
+              </div>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -469,13 +490,20 @@ export function Sales() {
           <div className="px-5 py-8">
             <EmptyState
               icon={<FolderOpen size={24} className="text-gray-400" />}
-              title="No projects found"
+              title="No active SOs / projects yet"
               description={
-                canCreateSO
-                  ? 'Register a new Sales Order to create your first project.'
+                pSearch
+                  ? 'No results match your search.'
+                  : canCreateSO
+                  ? 'Register a new Sales Order when a quotation is won, or convert a Returned-to-Sales quotation to SO.'
                   : 'No projects assigned to you yet.'
               }
             />
+            {!pSearch && canCreateSO && (
+              <div className="flex justify-center mt-4">
+                <Link to="/projects/new"><Button size="sm" icon={<Plus size={14} />}>Register New SO</Button></Link>
+              </div>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -517,19 +545,19 @@ export function Sales() {
             <Flame size={15} className="text-orange-500" /> Hot Projects
           </h2>
           <Link to="/hot-projects" className="text-xs text-brand-600 hover:underline font-medium">
-            Open Hot Projects →
+            View all →
           </Link>
         </div>
-        <div className="px-5 py-5">
-          <p className="text-sm text-gray-600 mb-4">
-            Pre-SO opportunities tracked by Sales. Track leads, pipeline probability, and estimated contract values before an SO is registered.
+        <div className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+          <p className="text-sm text-gray-600">
+            Track pre-SO sales opportunities. Link to quotations and convert to SO when won.
           </p>
-          <div className="flex gap-3">
+          <div className="flex gap-3 shrink-0">
             <Link to="/hot-projects">
-              <Button size="sm" icon={<Flame size={13} />}>View Pipeline</Button>
+              <Button size="sm" variant="secondary" icon={<Flame size={13} />}>View Pipeline</Button>
             </Link>
             <Link to="/hot-projects/new">
-              <Button size="sm" variant="secondary" icon={<Plus size={13} />}>New Opportunity</Button>
+              <Button size="sm" icon={<Plus size={13} />}>New Opportunity</Button>
             </Link>
           </div>
         </div>
@@ -545,12 +573,12 @@ export function Sales() {
             Open Projects →
           </Link>
         </div>
-        <div className="px-5 py-5">
-          <p className="text-sm text-gray-600 mb-4">
-            Define milestone-based invoicing schedules per SO. Track invoice submission, approval, and payment status. Access via any Project / SO detail page.
+        <div className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+          <p className="text-sm text-gray-600">
+            Define milestone-based invoicing per SO. Track invoice submission, approval, and payment. Access via any Project / SO detail page.
           </p>
-          <Link to="/projects">
-            <Button size="sm" icon={<FolderOpen size={13} />}>Open Projects / SO</Button>
+          <Link to="/projects" className="shrink-0">
+            <Button size="sm" variant="secondary" icon={<FolderOpen size={13} />}>Open Projects / SO</Button>
           </Link>
         </div>
       </Card>
@@ -565,12 +593,12 @@ export function Sales() {
             Open Dashboard →
           </Link>
         </div>
-        <div className="px-5 py-5">
-          <p className="text-sm text-gray-600 mb-4">
-            Track outstanding invoice milestones by aging bucket (0–30 / 31–60 / 61–90 / 90+ days). Monitor overdue receivables per customer across all active projects.
+        <div className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+          <p className="text-sm text-gray-600">
+            Track outstanding invoice milestones by aging bucket (0–30 / 31–60 / 61–90 / 90+ days).
           </p>
-          <Link to="/receivables">
-            <Button size="sm" icon={<BarChart3 size={13} />}>View Receivables Dashboard</Button>
+          <Link to="/receivables" className="shrink-0">
+            <Button size="sm" variant="secondary" icon={<BarChart3 size={13} />}>View Receivables</Button>
           </Link>
         </div>
       </Card>

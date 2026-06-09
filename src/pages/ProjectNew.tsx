@@ -135,10 +135,14 @@ export function ProjectNew() {
   if (!customerName.trim()) step1Errors.push('Customer Name is required');
   if (!deliveryDate) step1Errors.push('Customer Delivery Date is required');
 
+  // Documents are optional for draft — only validate filled entries (no empty file names)
   const step2Errors: string[] = [];
-  if (documents.length === 0) step2Errors.push('At least one document is required');
   documents.forEach((d, i) => {
-    if (!d.file_name.trim()) step2Errors.push(`Document ${i + 1}: File name is required`);
+    if (d.file_name.trim() === '' && documents.length === 1) {
+      // Allow the default empty entry to pass; user may skip documents entirely
+    } else if (d.file_name.trim() === '' && documents.length > 1) {
+      step2Errors.push(`Document ${i + 1}: File name is required`);
+    }
   });
 
   const step3Errors: string[] = [];
@@ -236,11 +240,11 @@ export function ProjectNew() {
         );
       }
 
-      // Insert documents
-      if (documents.length > 0) {
+      // Insert documents (only non-empty entries)
+      const filledDocs = documents.filter((d) => d.file_name.trim());
+      if (filledDocs.length > 0) {
         await supabase.from('project_documents').insert(
-          documents
-            .filter((d) => d.file_name.trim())
+          filledDocs
             .map((d) => ({
               project_id: projectId,
               document_type: d.document_type,
@@ -250,7 +254,6 @@ export function ProjectNew() {
             })),
         );
       }
-
       await recordProjectEvent(
         projectId,
         submitForApproval ? 'submitted_for_approval' : 'project_created',
@@ -433,17 +436,20 @@ export function ProjectNew() {
       {/* ── Step 2: Documents ──────────────────────────────────────────────────── */}
       {step === 1 && (
         <Card className="p-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-5">Documents</h2>
+          <h2 className="text-base font-semibold text-gray-900 mb-2">Document References</h2>
+          <p className="text-sm text-gray-500 mb-5">
+            Optional for draft creation. Record document names for tracking purposes. Actual file upload will be supported in a future release.
+            If a Customer PO or Contract is required for approval, it will be checked at the approval stage — not here.
+          </p>
 
-          {!isSupabaseConfigured && (
-            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 mb-5">
-              <Info size={14} className="text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-800">
-                <span className="font-semibold">Storage not connected</span> — Enter the file name manually.
-                Real file upload requires Supabase Storage to be configured.
-              </p>
-            </div>
-          )}
+          <div className="flex items-start gap-2 bg-sky-50 border border-sky-200 rounded-lg p-3 mb-5">
+            <Info size={14} className="text-sky-600 shrink-0 mt-0.5" />
+            <p className="text-xs text-sky-800">
+              <span className="font-semibold">Documents are optional for draft.</span>{' '}
+              Enter document names for reference. You can skip this step and add documents later via the Project detail page.
+              {!isSupabaseConfigured && ' File storage is not connected — names are recorded as references only.'}
+            </p>
+          </div>
 
           <div className="space-y-4">
             {documents.map((doc, i) => (

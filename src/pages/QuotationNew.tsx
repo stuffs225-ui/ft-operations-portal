@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   ChevronRight, ChevronLeft, Plus, Trash2, FileUp,
-  CheckCircle2, AlertCircle, Info,
+  CheckCircle2, AlertCircle, Info, Flame, Loader2,
 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
@@ -11,6 +11,7 @@ import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { recordQuotationEvent, recordQuotationAuditEntry } from '../lib/quotationAudit';
 import type { QuotationPriority } from '../types';
+import type { HotProject } from '../types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -102,13 +103,77 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
 
 export function QuotationNew() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { profile, role } = useAuth();
+
+  const hotProjectId = searchParams.get('hot_project_id');
+
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
   const [newLine, setNewLine] = useState<LineItem>({ vehicle_type: '', description: '', quantity: 1, remarks: '' });
   const [newDoc, setNewDoc] = useState<DocItem>({ file_name: '', document_type: 'specification_file', remarks: '' });
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+
+  // Hot project prefill state
+  const [hotProject, setHotProject] = useState<HotProject | null>(null);
+  const [hotProjectLoading, setHotProjectLoading] = useState(false);
+
+  // Fetch hot project and prefill form when hotProjectId is in URL
+  useEffect(() => {
+    if (!hotProjectId) return;
+
+    if (!isSupabaseConfigured || !supabase) {
+      // Dev mode: simulate a hot project so the form shows a source card
+      setHotProject({
+        id: hotProjectId,
+        hot_project_code: 'HP-2026-0001',
+        title: 'Demo Opportunity',
+        customer_name: '',
+        customer_contact_name: null,
+        customer_email: null,
+        customer_phone: null,
+        opportunity_source: null,
+        stage: 'lead',
+        probability: 50,
+        estimated_value: null,
+        expected_close_date: null,
+        linked_quotation_id: null,
+        linked_project_id: null,
+        sales_owner_id: null,
+        notes: null,
+        lost_reason: null,
+        created_by: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      return;
+    }
+
+    setHotProjectLoading(true);
+    supabase
+      .from('hot_projects')
+      .select('*')
+      .eq('id', hotProjectId)
+      .single()
+      .then(({ data, error }) => {
+        setHotProjectLoading(false);
+        if (error || !data) return;
+        const hp = data as unknown as HotProject;
+        setHotProject(hp);
+        // Prefill form with hot project data
+        setForm((f) => ({
+          ...f,
+          customer_name: hp.customer_name ?? '',
+          customer_contact_name: hp.customer_contact_name ?? '',
+          customer_email: hp.customer_email ?? '',
+          customer_phone: hp.customer_phone ?? '',
+          opportunity_source: hp.opportunity_source ?? '',
+          scope_summary: hp.title ?? '',
+          sales_remarks: hp.notes ?? '',
+        }));
+      });
+  }, [hotProjectId]);
 
   function validate(forSubmit: boolean): string[] {
     const errs: string[] = [];
@@ -129,10 +194,8 @@ export function QuotationNew() {
     const now = new Date().toISOString();
 
     if (!isSupabaseConfigured || !supabase) {
-      // Dev mode: simulate success
       await new Promise<void>((r) => setTimeout(r, 400));
       setSubmitting(false);
-      // Navigate to the list — can't get a real ID in dev mode
       navigate('/quotations');
       return;
     }
@@ -155,6 +218,7 @@ export function QuotationNew() {
           requested_by: profile?.id ?? null,
           created_by: profile?.id ?? null,
           submitted_at: submit ? now : null,
+          linked_hot_project_id: hotProjectId ?? null,
         })
         .select()
         .single();
@@ -190,11 +254,22 @@ export function QuotationNew() {
         );
       }
 
+      // Link back to hot project: update hot_projects.linked_quotation_id and advance stage
+      if (hotProjectId) {
+        await supabase
+          .from('hot_projects')
+          .update({
+            linked_quotation_id: qtnId,
+            stage: 'quotation_requested',
+          })
+          .eq('id', hotProjectId);
+      }
+
       await recordQuotationEvent(
         qtnId,
         submit ? 'quotation_submitted_by_sales' : 'quotation_draft_created',
         submit ? 'Quotation submitted to Sales Coordinator' : 'Quotation request created as draft',
-        null,
+        hotProjectId ? `Created from Hot Project ${hotProject?.hot_project_code ?? hotProjectId}` : null,
         profile?.id ?? null,
         profile?.full_name ?? null,
       );
@@ -204,7 +279,7 @@ export function QuotationNew() {
         qtnId,
         submit ? 'Quotation submitted by sales' : 'Quotation draft created',
         null,
-        { status },
+        { status, linked_hot_project_id: hotProjectId ?? null },
         profile?.id ?? null,
         profile?.email ?? null,
         role,
@@ -238,12 +313,37 @@ export function QuotationNew() {
     setForm((f) => ({ ...f, documents: f.documents.filter((_, i) => i !== idx) }));
   }
 
+  if (hotProjectLoading) {
+    return (
+      <div className="flex items-center justify-center py-20 gap-3 text-gray-500">
+        <Loader2 className="animate-spin" size={20} />
+        <span>Loading opportunity details…</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-3xl">
       <PageHeader
         title="New Quotation Request"
         subtitle="Create a pre-sales quotation request for the Sales Coordinator to process"
       />
+
+      {/* Hot Project source card */}
+      {hotProject && (
+        <div className="flex items-center gap-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+          <Flame size={16} className="text-orange-500 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-orange-900">
+              Created from Hot Project: <span className="font-mono">{hotProject.hot_project_code}</span>
+            </p>
+            <p className="text-xs text-orange-700 truncate">{hotProject.title}</p>
+          </div>
+          <Link to={`/hot-projects/${hotProject.id}`} className="text-xs text-orange-700 hover:underline whitespace-nowrap font-medium shrink-0">
+            View Hot Project →
+          </Link>
+        </div>
+      )}
 
       {/* Step indicator */}
       <Card className="p-4">
@@ -267,6 +367,12 @@ export function QuotationNew() {
       {step === 0 && (
         <Card className="p-6 space-y-5">
           <h2 className="text-base font-semibold text-gray-900">Customer / Entity Information</h2>
+          {hotProject && (
+            <div className="flex items-start gap-2 p-3 bg-sky-50 border border-sky-200 rounded-lg text-xs text-sky-800">
+              <Info size={14} className="mt-0.5 shrink-0" />
+              Customer details have been prefilled from the Hot Project. You can edit them if needed.
+            </div>
+          )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Customer / Entity Name <span className="text-red-500">*</span></label>
@@ -404,12 +510,13 @@ export function QuotationNew() {
         <Card className="p-6 space-y-5">
           <h2 className="text-base font-semibold text-gray-900">Specification Documents</h2>
 
-          {!isSupabaseConfigured && (
-            <div className="flex items-start gap-2 p-3 bg-sky-50 border border-sky-200 rounded-lg text-sm text-sky-800">
-              <Info size={15} className="mt-0.5 shrink-0" />
-              <span>Storage not connected. Enter a filename to record the document reference for now.</span>
-            </div>
-          )}
+          <div className="flex items-start gap-2 p-3 bg-sky-50 border border-sky-200 rounded-lg text-sm text-sky-800">
+            <Info size={15} className="mt-0.5 shrink-0" />
+            <span>
+              Documents are <strong>optional for saving as draft</strong> but required to submit to the coordinator.
+              {!isSupabaseConfigured && ' Storage not connected — enter a filename to record the reference.'}
+            </span>
+          </div>
 
           {/* Add doc form */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
@@ -464,7 +571,7 @@ export function QuotationNew() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-gray-400 italic">No documents added yet.</p>
+            <p className="text-sm text-gray-400 italic">No documents added yet. You can save a draft without documents and add them later.</p>
           )}
 
           <div className="flex justify-between">
@@ -487,6 +594,14 @@ export function QuotationNew() {
                   <AlertCircle size={14} className="mt-0.5 shrink-0" />{e}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Hot project source banner in review */}
+          {hotProject && (
+            <div className="flex items-center gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-800">
+              <Flame size={14} className="text-orange-500 shrink-0" />
+              <span>Linked to Hot Project: <span className="font-mono font-medium">{hotProject.hot_project_code}</span> — {hotProject.title}</span>
             </div>
           )}
 
@@ -528,7 +643,7 @@ export function QuotationNew() {
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="text-xs font-semibold text-gray-500 uppercase mb-3">Documents ({form.documents.length})</h3>
             {form.documents.length === 0 ? (
-              <p className="text-sm text-amber-600 italic">No documents added (required for submit).</p>
+              <p className="text-sm text-amber-600 italic">No documents added. Documents are required to submit (but not for draft).</p>
             ) : (
               <ul className="space-y-1">
                 {form.documents.map((d, i) => (
@@ -541,8 +656,8 @@ export function QuotationNew() {
           <div className="flex justify-between pt-2">
             <Button variant="secondary" onClick={() => setStep(2)} icon={<ChevronLeft size={16} />}>Back</Button>
             <div className="flex gap-3">
-              <Button variant="outline" loading={submitting} onClick={() => handleSave(false)}>Save as Draft</Button>
-              <Button loading={submitting} onClick={() => handleSave(true)}>Submit to Coordinator <ChevronRight size={16} /></Button>
+              <Button variant="outline" loading={submitting} onClick={() => void handleSave(false)}>Save as Draft</Button>
+              <Button loading={submitting} onClick={() => void handleSave(true)}>Submit to Coordinator <ChevronRight size={16} /></Button>
             </div>
           </div>
         </Card>

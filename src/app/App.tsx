@@ -1,5 +1,7 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth';
 import { PageLoader } from '../components/ui/PageLoader';
 import { AuthProvider } from '../context/AuthContext';
 import { AppLayout } from '../layouts/AppLayout';
@@ -111,6 +113,20 @@ const HotProjectDetail = lazy(() => import('../pages/HotProjectDetail').then((m)
 const ProjectInvoicing = lazy(() => import('../pages/ProjectInvoicing').then((m) => ({ default: m.ProjectInvoicing })));
 const Receivables = lazy(() => import('../pages/Receivables').then((m) => ({ default: m.Receivables })));
 
+// Redirect sales_user from / to /sales; all other roles see the Dashboard
+function RootRedirect() {
+  const { role, loading } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!loading && role === 'sales_user') {
+      navigate('/sales', { replace: true });
+    }
+  }, [role, loading, navigate]);
+  if (loading) return null;
+  if (role === 'sales_user') return null;
+  return <Dashboard />;
+}
+
 export function App() {
   return (
     <BrowserRouter>
@@ -124,7 +140,7 @@ export function App() {
           {/* Protected routes — AppLayout wraps with ProtectedRoute */}
           <Route path="/" element={<AppLayout />}>
             {/* ── Sales-accessible routes (any authenticated user) ── */}
-            <Route index element={<Dashboard />} />
+            <Route index element={<RootRedirect />} />
             <Route path="inbox" element={<ActionInbox />} />
             <Route path="quotations" element={<Quotations />} />
             <Route path="quotations/new" element={<QuotationNew />} />
