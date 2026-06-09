@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   FileText, FolderOpen, Plus, Search, ChevronRight,
-  Loader2, Calendar, Clock, AlertCircle, CheckCircle,
+  Loader2, Clock, AlertCircle, CheckCircle,
   TrendingUp, Flame, ReceiptText, BarChart3,
 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -510,66 +510,68 @@ export function Sales() {
         )}
       </Card>
 
-      {/* Hot Projects — Placeholder */}
+      {/* Hot Projects */}
       <Card>
-        <div className="px-5 py-4 border-b border-gray-100">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <Flame size={15} className="text-orange-400" /> Hot Projects
+            <Flame size={15} className="text-orange-500" /> Hot Projects
           </h2>
+          <Link to="/hot-projects" className="text-xs text-brand-600 hover:underline font-medium">
+            Open Hot Projects →
+          </Link>
         </div>
-        <div className="px-5 py-8 text-center">
-          <Flame size={32} className="text-orange-200 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-gray-600 mb-1">Hot Projects workflow</p>
-          <p className="text-xs text-gray-400 max-w-sm mx-auto">
-            Pre-SO opportunities tracked by Sales. Hot Projects will be introduced in a future module — allowing you to track leads, pipeline probability, and estimated contract values before an SO is registered.
+        <div className="px-5 py-5">
+          <p className="text-sm text-gray-600 mb-4">
+            Pre-SO opportunities tracked by Sales. Track leads, pipeline probability, and estimated contract values before an SO is registered.
           </p>
-          <div className="mt-4">
-            <span className="inline-flex items-center gap-1 text-xs bg-orange-50 text-orange-600 border border-orange-100 px-3 py-1.5 rounded-full font-medium">
-              <Calendar size={11} /> Coming in a future phase
-            </span>
+          <div className="flex gap-3">
+            <Link to="/hot-projects">
+              <Button size="sm" icon={<Flame size={13} />}>View Pipeline</Button>
+            </Link>
+            <Link to="/hot-projects/new">
+              <Button size="sm" variant="secondary" icon={<Plus size={13} />}>New Opportunity</Button>
+            </Link>
           </div>
         </div>
       </Card>
 
-      {/* Invoicing Plan — Placeholder */}
+      {/* Invoicing Plan */}
       <Card>
-        <div className="px-5 py-4 border-b border-gray-100">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <ReceiptText size={15} className="text-indigo-400" /> Invoicing Plan
+            <ReceiptText size={15} className="text-indigo-500" /> Invoicing Plan & Milestones
           </h2>
+          <Link to="/projects" className="text-xs text-brand-600 hover:underline font-medium">
+            Open Projects →
+          </Link>
         </div>
-        <div className="px-5 py-8 text-center">
-          <ReceiptText size={32} className="text-indigo-200 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-gray-600 mb-1">Invoicing Plan & Milestones</p>
-          <p className="text-xs text-gray-400 max-w-sm mx-auto">
-            Define milestone-based invoicing schedules per project. Track invoice submission, approval, and receipt status per SO. This module will be built in a future phase.
+        <div className="px-5 py-5">
+          <p className="text-sm text-gray-600 mb-4">
+            Define milestone-based invoicing schedules per SO. Track invoice submission, approval, and payment status. Access via any Project / SO detail page.
           </p>
-          <div className="mt-4">
-            <span className="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-600 border border-indigo-100 px-3 py-1.5 rounded-full font-medium">
-              <Calendar size={11} /> Coming in a future phase
-            </span>
-          </div>
+          <Link to="/projects">
+            <Button size="sm" icon={<FolderOpen size={13} />}>Open Projects / SO</Button>
+          </Link>
         </div>
       </Card>
 
-      {/* Aging / Receivables — Placeholder */}
+      {/* Aging / Receivables */}
       <Card>
-        <div className="px-5 py-4 border-b border-gray-100">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <BarChart3 size={15} className="text-rose-400" /> Aging / Receivables
+            <BarChart3 size={15} className="text-rose-500" /> Aging & Receivables
           </h2>
+          <Link to="/receivables" className="text-xs text-brand-600 hover:underline font-medium">
+            Open Dashboard →
+          </Link>
         </div>
-        <div className="px-5 py-8 text-center">
-          <BarChart3 size={32} className="text-rose-200 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-gray-600 mb-1">Aging & Receivables Dashboard</p>
-          <p className="text-xs text-gray-400 max-w-sm mx-auto">
-            Track outstanding invoices by aging bucket (30 / 60 / 90 / 90+ days). Monitor overdue receivables per customer and escalate to Finance. This module will be built in a future phase.
+        <div className="px-5 py-5">
+          <p className="text-sm text-gray-600 mb-4">
+            Track outstanding invoice milestones by aging bucket (0–30 / 31–60 / 61–90 / 90+ days). Monitor overdue receivables per customer across all active projects.
           </p>
-          <div className="mt-4">
-            <span className="inline-flex items-center gap-1 text-xs bg-rose-50 text-rose-600 border border-rose-100 px-3 py-1.5 rounded-full font-medium">
-              <Calendar size={11} /> Coming in a future phase
-            </span>
-          </div>
+          <Link to="/receivables">
+            <Button size="sm" icon={<BarChart3 size={13} />}>View Receivables Dashboard</Button>
+          </Link>
         </div>
       </Card>
 

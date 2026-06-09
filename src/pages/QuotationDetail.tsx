@@ -86,7 +86,7 @@ const CAN_CONVERT: UserRole[] = ['admin', 'operations_manager', 'sales_user'];
 function humanizeConvertError(error: { message?: string; code?: string }): string {
   const msg = (error?.message ?? '').toLowerCase();
   if (msg.includes('could not find the function') || msg.includes('does not exist')) {
-    return 'The conversion service is not available yet. Please ask an administrator to apply the latest database migration (067_convert_quotation_to_so), then try again.';
+    return 'The SO conversion service is unavailable on this database instance. Please contact your system administrator.';
   }
   if (msg.includes('returned to sales')) {
     return 'This quotation is not ready to convert. It must be returned to Sales with a completed quotation response first.';
