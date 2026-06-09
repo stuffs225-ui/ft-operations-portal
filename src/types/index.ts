@@ -1560,3 +1560,109 @@ export interface DepartmentReportDef {
   description: string;
   roles: UserRole[];
 }
+
+// ─── Hot Projects ──────────────────────────────────────────────────────────────
+
+export type HotProjectStage =
+  | 'lead'
+  | 'qualified'
+  | 'proposal_required'
+  | 'quotation_requested'
+  | 'negotiation'
+  | 'won'
+  | 'lost'
+  | 'cancelled';
+
+export interface HotProject {
+  id: string;
+  hot_project_code: string;
+  title: string;
+  customer_name: string;
+  customer_contact_name: string | null;
+  customer_email: string | null;
+  customer_phone: string | null;
+  opportunity_source: string | null;
+  stage: HotProjectStage;
+  probability: number;
+  estimated_value: number | null;
+  expected_close_date: string | null;
+  linked_quotation_id: string | null;
+  linked_project_id: string | null;
+  sales_owner_id: string | null;
+  notes: string | null;
+  lost_reason: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─── Invoicing Plans & Milestones ─────────────────────────────────────────────
+
+export type MilestoneStatus =
+  | 'planned'
+  | 'ready_to_invoice'
+  | 'submitted'
+  | 'approved'
+  | 'paid'
+  | 'overdue'
+  | 'cancelled';
+
+export interface ProjectInvoicingPlan {
+  id: string;
+  project_id: string;
+  total_contract_value: number;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectInvoiceMilestone {
+  id: string;
+  plan_id: string;
+  project_id: string;
+  milestone_name: string;
+  milestone_status: MilestoneStatus;
+  percentage: number | null;
+  amount: number;
+  due_date: string | null;
+  invoice_number: string | null;
+  submitted_at: string | null;
+  approved_at: string | null;
+  paid_at: string | null;
+  paid_amount: number | null;
+  notes: string | null;
+  sort_order: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─── Receivables Aging ────────────────────────────────────────────────────────
+
+export type AgingBucket = 'not_due' | 'due_0_30' | 'due_31_60' | 'due_61_90' | 'due_90_plus';
+
+export interface ReceivablesAgingRow {
+  milestone_id: string;
+  plan_id: string;
+  project_id: string;
+  milestone_name: string;
+  milestone_status: MilestoneStatus;
+  amount: number;
+  paid_amount: number;
+  outstanding_amount: number;
+  due_date: string | null;
+  invoice_number: string | null;
+  submitted_at: string | null;
+  approved_at: string | null;
+  paid_at: string | null;
+  sort_order: number;
+  project_code: string;
+  so_number: string;
+  customer_name: string;
+  sales_owner_id: string | null;
+  project_status: string;
+  total_contract_value: number;
+  aging_bucket: AgingBucket;
+  days_overdue: number;
+}

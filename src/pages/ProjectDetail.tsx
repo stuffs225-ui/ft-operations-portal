@@ -4,7 +4,7 @@ import {
   FolderOpen, Loader2, ArrowLeft, Calendar, User, MapPin,
   CheckSquare, AlertCircle, Info, FileText, List, Clock,
   Shield, Edit2, Check, RotateCcw, X, GitBranch,
-  CheckCircle2, Plus, ShoppingCart, Wrench, Truck, Package, FileCheck,
+  CheckCircle2, Plus, ShoppingCart, Wrench, Truck, Package, FileCheck, ReceiptText,
 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Badge } from '../components/ui/Badge';
@@ -860,6 +860,22 @@ export function ProjectDetail() {
               </Card>
             );
           })()}
+          {/* Invoicing Plan quick link */}
+          <Card className="p-5 md:col-span-2 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <ReceiptText size={18} className="text-brand-600" />
+              <div>
+                <div className="text-sm font-semibold text-gray-800">Invoicing Plan & Milestones</div>
+                <div className="text-xs text-gray-500">Track invoice milestones, submission status, and outstanding amounts</div>
+              </div>
+            </div>
+            <Link
+              to={`/projects/${project.id}/invoicing`}
+              className="text-xs font-medium text-brand-600 hover:underline whitespace-nowrap"
+            >
+              Open Invoicing →
+            </Link>
+          </Card>
         </div>
       )}
 
