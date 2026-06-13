@@ -72,7 +72,11 @@ export function HotProjectDetail() {
 
   const canEdit =
     record != null &&
-    (role === 'admin' || role === 'operations_manager' || EDITABLE_STAGES.includes(record.stage));
+    (
+      role === 'admin' ||
+      role === 'operations_manager' ||
+      (role === 'sales_user' && EDITABLE_STAGES.includes(record.stage))
+    );
 
   async function handleSave() {
     if (!record || !isSupabaseConfigured) return;
