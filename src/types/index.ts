@@ -83,6 +83,8 @@ export interface ProjectDocument {
   document_type: string;
   file_name: string;
   storage_path: string | null;
+  file_size: number | null;
+  mime_type: string | null;
   uploaded_by: string | null;
   uploaded_at: string;
   status: string;
@@ -222,6 +224,8 @@ export interface QuotationDocument {
   document_type: string;
   file_name: string;
   storage_path: string | null;
+  file_size: number | null;
+  mime_type: string | null;
   uploaded_by: string | null;
   uploaded_at: string;
   status: string;

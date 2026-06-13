@@ -126,7 +126,7 @@ export const MOCK_PROJECT_DOCUMENTS: Record<string, ProjectDocument[]> = {
     {
       id: 'pdoc-001-1', project_id: 'proj-001',
       document_type: 'customer_po', file_name: 'PO-CRCD-2025-0143.pdf',
-      storage_path: null, uploaded_by: 'dev-usr-001',
+      storage_path: null, file_size: null, mime_type: null, uploaded_by: 'dev-usr-001',
       uploaded_at: '2025-03-01T09:00:00Z', status: 'approved',
       version: '1.0', remarks: null,
     },
@@ -135,14 +135,14 @@ export const MOCK_PROJECT_DOCUMENTS: Record<string, ProjectDocument[]> = {
     {
       id: 'pdoc-002-1', project_id: 'proj-002',
       document_type: 'customer_contract', file_name: 'Contract-MOH-2025-0088.pdf',
-      storage_path: null, uploaded_by: 'dev-usr-001',
+      storage_path: null, file_size: null, mime_type: null, uploaded_by: 'dev-usr-001',
       uploaded_at: '2025-03-10T10:00:00Z', status: 'uploaded',
       version: '1.0', remarks: null,
     },
     {
       id: 'pdoc-002-2', project_id: 'proj-002',
       document_type: 'specification_file', file_name: 'Medical-ICU-Specs-v2.pdf',
-      storage_path: null, uploaded_by: 'dev-usr-001',
+      storage_path: null, file_size: null, mime_type: null, uploaded_by: 'dev-usr-001',
       uploaded_at: '2025-03-10T10:15:00Z', status: 'uploaded',
       version: '2.0', remarks: 'Updated per client review',
     },
@@ -151,7 +151,7 @@ export const MOCK_PROJECT_DOCUMENTS: Record<string, ProjectDocument[]> = {
     {
       id: 'pdoc-003-1', project_id: 'proj-003',
       document_type: 'customer_po', file_name: 'PO-NFCD-2025-0056.pdf',
-      storage_path: null, uploaded_by: 'dev-usr-001',
+      storage_path: null, file_size: null, mime_type: null, uploaded_by: 'dev-usr-001',
       uploaded_at: '2025-03-15T11:00:00Z', status: 'uploaded',
       version: '1.0', remarks: null,
     },
@@ -160,14 +160,14 @@ export const MOCK_PROJECT_DOCUMENTS: Record<string, ProjectDocument[]> = {
     {
       id: 'pdoc-004-1', project_id: 'proj-004',
       document_type: 'customer_contract', file_name: 'Contract-MOH-UAE-2025-0012.pdf',
-      storage_path: null, uploaded_by: 'dev-usr-001',
+      storage_path: null, file_size: null, mime_type: null, uploaded_by: 'dev-usr-001',
       uploaded_at: '2025-02-20T08:00:00Z', status: 'approved',
       version: '1.0', remarks: null,
     },
     {
       id: 'pdoc-004-2', project_id: 'proj-004',
       document_type: 'specification_file', file_name: 'ALS-Vehicle-Specs.pdf',
-      storage_path: null, uploaded_by: 'dev-usr-001',
+      storage_path: null, file_size: null, mime_type: null, uploaded_by: 'dev-usr-001',
       uploaded_at: '2025-02-20T08:30:00Z', status: 'approved',
       version: '1.0', remarks: null,
     },
@@ -176,7 +176,7 @@ export const MOCK_PROJECT_DOCUMENTS: Record<string, ProjectDocument[]> = {
     {
       id: 'pdoc-005-1', project_id: 'proj-005',
       document_type: 'customer_po', file_name: 'PO-GACA-2025-0003.pdf',
-      storage_path: null, uploaded_by: 'dev-usr-001',
+      storage_path: null, file_size: null, mime_type: null, uploaded_by: 'dev-usr-001',
       uploaded_at: '2025-01-10T09:00:00Z', status: 'approved',
       version: '1.0', remarks: null,
     },
@@ -185,7 +185,7 @@ export const MOCK_PROJECT_DOCUMENTS: Record<string, ProjectDocument[]> = {
     {
       id: 'pdoc-006-1', project_id: 'proj-006',
       document_type: 'customer_contract', file_name: 'Contract-DCD-2025-0031.pdf',
-      storage_path: null, uploaded_by: 'dev-usr-001',
+      storage_path: null, file_size: null, mime_type: null, uploaded_by: 'dev-usr-001',
       uploaded_at: '2025-01-25T10:00:00Z', status: 'approved',
       version: '1.0', remarks: null,
     },
@@ -194,7 +194,7 @@ export const MOCK_PROJECT_DOCUMENTS: Record<string, ProjectDocument[]> = {
     {
       id: 'pdoc-007-1', project_id: 'proj-007',
       document_type: 'customer_po', file_name: 'PO-SRCA-2025-0071.pdf',
-      storage_path: null, uploaded_by: 'dev-usr-001',
+      storage_path: null, file_size: null, mime_type: null, uploaded_by: 'dev-usr-001',
       uploaded_at: '2025-03-05T09:00:00Z', status: 'uploaded',
       version: '1.0', remarks: null,
     },
@@ -203,14 +203,14 @@ export const MOCK_PROJECT_DOCUMENTS: Record<string, ProjectDocument[]> = {
     {
       id: 'pdoc-008-1', project_id: 'proj-008',
       document_type: 'customer_po', file_name: 'PO-SADF-2025-0219.pdf',
-      storage_path: null, uploaded_by: 'dev-usr-001',
+      storage_path: null, file_size: null, mime_type: null, uploaded_by: 'dev-usr-001',
       uploaded_at: '2025-02-28T11:00:00Z', status: 'uploaded',
       version: '1.0', remarks: null,
     },
     {
       id: 'pdoc-008-2', project_id: 'proj-008',
       document_type: 'specification_file', file_name: 'Foam-Tanker-Technical-Spec.pdf',
-      storage_path: null, uploaded_by: 'dev-usr-001',
+      storage_path: null, file_size: null, mime_type: null, uploaded_by: 'dev-usr-001',
       uploaded_at: '2025-02-28T11:30:00Z', status: 'under_review',
       version: '1.0', remarks: 'Pending engineering sign-off',
     },
