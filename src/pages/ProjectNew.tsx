@@ -399,6 +399,7 @@ export function ProjectNew() {
           }
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await supabase.from('project_documents').insert({
           project_id: projectId,
           document_type: doc.document_type,
@@ -406,7 +407,9 @@ export function ProjectNew() {
           uploaded_by: profile?.id ?? null,
           remarks: doc.remarks.trim() || null,
           storage_path: storagePath,
-        });
+          file_size: doc.file?.size ?? null,
+          mime_type: doc.file?.type || null,
+        } as any);
       }
 
       await recordProjectEvent(

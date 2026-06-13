@@ -14,6 +14,8 @@ import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { recordQuotationEvent, recordQuotationAuditEntry } from '../lib/quotationAudit';
 import { getQuotationSlaStatus, getOverdueDays } from '../lib/quotationSla';
+import { DocumentPanel } from '../components/documents/DocumentPanel';
+import { openSignedUrl } from '../lib/documents';
 import {
   MOCK_QUOTATIONS,
   getMockQuotationLines,
@@ -258,6 +260,7 @@ export function QuotationDetail() {
   // Response form state
   const [quotationNumber, setQuotationNumber] = useState('');
   const [pdfFileName, setPdfFileName] = useState('');
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [lineValues, setLineValues] = useState<Record<string, number>>({});
   const [savingResponse, setSavingResponse] = useState(false);
 
@@ -476,13 +479,34 @@ export function QuotationDetail() {
     const total = lines.reduce((s, l) => s + (lineValues[l.id] ?? l.final_quotation_unit_value ?? 0) * l.quantity, 0);
 
     if (pdfFileName) {
-      await supabase.from('quotation_documents').insert({
+      let pdfStoragePath: string | null = null;
+      if (pdfFile) {
+        const safeName = pdfFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const uploadPath = `${id}/quotation_pdf/${Date.now()}_${safeName}`;
+        const { data: storageData, error: storageErr } = await supabase.storage
+          .from('quotation-documents')
+          .upload(uploadPath, pdfFile, { upsert: false });
+        if (storageErr) {
+          console.error('[QuotationDetail] PDF upload failed:', storageErr.message);
+        } else {
+          pdfStoragePath = storageData?.path ?? null;
+        }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: newDoc } = await (supabase.from('quotation_documents').insert({
         quotation_request_id: id,
         document_type: 'quotation_pdf',
         file_name: pdfFileName,
+        storage_path: pdfStoragePath,
+        file_size: pdfFile?.size ?? null,
+        mime_type: pdfFile?.type || null,
         uploaded_by: profile?.id ?? null,
         remarks: 'Final quotation PDF',
-      });
+      } as any).select().single());
+      if (newDoc) {
+        setDocuments((prev) => [...prev, newDoc as unknown as QuotationDocument]);
+      }
+      setPdfFile(null);
     }
 
     await supabase.from('quotation_requests').update({
@@ -706,27 +730,25 @@ export function QuotationDetail() {
 
         {/* Specification Documents */}
         <Section title="Specification Documents" icon={<FileUp size={15} />} badge={specDocs.length}>
-          {specDocs.length === 0 ? (
-            <p className="text-sm text-gray-400 italic">No specification documents uploaded.</p>
-          ) : (
-            <ul className="divide-y divide-gray-100">
-              {specDocs.map((d) => (
-                <li key={d.id} className="py-3 flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-2">
-                    <FileText size={15} className="text-gray-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{d.file_name}</p>
-                      <p className="text-xs text-gray-400 capitalize">{d.document_type.replace(/_/g, ' ')} · {fmt(d.uploaded_at)}</p>
-                      {d.remarks && <p className="text-xs text-gray-500 mt-0.5">{d.remarks}</p>}
-                      {!d.storage_path && (
-                        <p className="text-xs text-amber-600 mt-0.5">Document record exists — file storage not attached yet.</p>
-                      )}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+          <DocumentPanel
+            documents={specDocs as unknown as import('../types').ProjectDocument[]}
+            bucket="quotation-documents"
+            canUpload={['admin', 'operations_manager', 'sales_user', 'sales_coordinator'].includes(role ?? '')}
+            upload={quotation && ['admin', 'operations_manager', 'sales_user', 'sales_coordinator'].includes(role ?? '') ? {
+              bucket: 'quotation-documents',
+              table: 'quotation_documents',
+              foreignKey: { field: 'quotation_request_id', value: quotation.id },
+              uploadedBy: profile?.id ?? null,
+              documentTypeOptions: [
+                { value: 'specification_file', label: 'Specification File' },
+                { value: 'customer_po', label: 'Customer PO' },
+                { value: 'customer_contract', label: 'Customer Contract' },
+                { value: 'other', label: 'Other' },
+              ],
+            } : undefined}
+            onUploaded={(doc) => setDocuments((prev) => [...prev, doc as unknown as import('../types').QuotationDocument])}
+            emptyMessage="No specification documents uploaded."
+          />
         </Section>
 
         {/* Quotation Response (shown when there's a response or when coordinator can act) */}
@@ -738,13 +760,22 @@ export function QuotationDetail() {
                 {quotationPdfs.map((d) => (
                   <div key={d.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                     <FileText size={16} className="text-brand-600 shrink-0" />
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900">{d.file_name}</p>
                       <p className="text-xs text-gray-400">Uploaded {fmtDT(d.uploaded_at)}</p>
                       {!d.storage_path && (
-                        <p className="text-xs text-amber-600 mt-0.5">Document record exists — file storage not attached yet.</p>
+                        <p className="text-xs text-amber-600 mt-0.5">Document record exists — file not yet attached.</p>
                       )}
                     </div>
+                    {d.storage_path && (
+                      <button
+                        onClick={() => void openSignedUrl('quotation-documents', d.storage_path!)}
+                        className="flex items-center gap-1 text-xs text-brand-600 hover:underline font-medium shrink-0"
+                        title="Download PDF"
+                      >
+                        <ArrowRight size={12} /> Download
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -812,9 +843,9 @@ export function QuotationDetail() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Quotation PDF</label>
                     {isSupabaseConfigured ? (
                       <label className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                        <Upload size={14} className="text-gray-400" />
-                        <span className="text-gray-500 truncate">{pdfFileName || 'Choose PDF…'}</span>
-                        <input type="file" accept=".pdf" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) setPdfFileName(f.name); }} />
+                        <Upload size={14} className={pdfFile ? 'text-brand-500' : 'text-gray-400'} />
+                        <span className={`truncate ${pdfFile ? 'text-brand-700 font-medium' : 'text-gray-500'}`}>{pdfFile ? pdfFile.name : (pdfFileName || 'Choose PDF…')}</span>
+                        <input type="file" accept=".pdf" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setPdfFile(f); setPdfFileName(f.name); } }} />
                       </label>
                     ) : (
                       <input value={pdfFileName} onChange={(e) => setPdfFileName(e.target.value)}

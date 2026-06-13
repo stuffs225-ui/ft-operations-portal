@@ -26,6 +26,7 @@ import { getMockReceiptsForProject, getMockVehicleReceiptsForProject, getMockCus
 import { getMockMaterialQcForProject, getMockNcrsForProject, getMockProjectQcForProject, getMockFindingsForProject, getMockReleaseNotesForProject } from '../data/mockQc';
 import { getMockDubaiFollowupsForProject, getMockArrivalReportsForProject, getMockPredeliveryReportsForProject, getMockMaintenanceRequestsForProject } from '../data/mockAfs';
 import { getHealthScoreForProject, getSlaEventsForProject, getIssuesForProject, getOpenSlaBreaches } from '../data/mockReports';
+import { DocumentPanel } from '../components/documents/DocumentPanel';
 import type {
   Project, ProjectVehicleLine, ProjectDocument,
   ProjectTimelineEvent, ManufacturingLocation, MedicalItems, UserRole,
@@ -535,7 +536,7 @@ function WoPnGateCard({ project, references, canAdd, onReferenceAdded, className
 
 export function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
-  const { role } = useAuth();
+  const { profile, role } = useAuth();
 
   const [project, setProject] = useState<Project | null>(null);
   const [lines, setLines] = useState<ProjectVehicleLine[]>([]);
@@ -980,32 +981,29 @@ export function ProjectDetail() {
           {!isSupabaseConfigured && (
             <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
               <Info size={14} className="text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-800">File download requires Supabase Storage to be configured.</p>
+              <p className="text-xs text-amber-800">File upload and download require Supabase Storage to be configured.</p>
             </div>
           )}
-          {documents.length === 0 ? (
-            <Card className="p-8 text-center text-gray-500 text-sm">No documents attached.</Card>
-          ) : (
-            documents.map((doc) => (
-              <Card key={doc.id} className="p-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-brand-50 rounded-lg flex items-center justify-center shrink-0">
-                    <FileText size={18} className="text-brand-600" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">{doc.file_name}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">
-                      {doc.document_type.replace(/_/g, ' ')} · v{doc.version} · {formatDate(doc.uploaded_at)}
-                    </div>
-                    {doc.remarks && <div className="text-xs text-gray-400 mt-0.5">{doc.remarks}</div>}
-                  </div>
-                </div>
-                <Badge variant={doc.status === 'approved' ? 'success' : doc.status === 'rejected' ? 'critical' : 'neutral'}>
-                  {doc.status.replace(/_/g, ' ')}
-                </Badge>
-              </Card>
-            ))
-          )}
+          <DocumentPanel
+            documents={documents}
+            bucket="project-documents"
+            canUpload={['admin', 'operations_manager', 'sales_user'].includes(role ?? '')}
+            upload={project && ['admin', 'operations_manager', 'sales_user'].includes(role ?? '') ? {
+              bucket: 'project-documents',
+              table: 'project_documents',
+              foreignKey: { field: 'project_id', value: project.id },
+              uploadedBy: profile?.id ?? null,
+              documentTypeOptions: [
+                { value: 'customer_po', label: 'Customer PO' },
+                { value: 'customer_contract', label: 'Customer Contract' },
+                { value: 'sales_order_supporting_document', label: 'SO Supporting Document' },
+                { value: 'specification_file', label: 'Specification File' },
+                { value: 'other', label: 'Other' },
+              ],
+            } : undefined}
+            onUploaded={(doc) => setDocuments((prev) => [...prev, doc as ProjectDocument])}
+            emptyMessage="No documents attached to this project."
+          />
         </div>
       )}
 
