@@ -1,6 +1,7 @@
 import { Bell, Menu, ChevronDown, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useUnreadNotificationCount } from '../../hooks/useUnreadNotificationCount';
 import { ROLE_CONFIGS } from '../../lib/roles';
 import { BrandLogo } from '../ui/BrandLogo';
 
@@ -11,6 +12,7 @@ interface HeaderProps {
 export function Header({ onMenuToggle }: HeaderProps) {
   const { profile, role, signOut, isDevMode } = useAuth();
 
+  const unreadCount = useUnreadNotificationCount();
   const displayName = profile?.full_name ?? profile?.email ?? 'User';
   const roleConfig = role ? ROLE_CONFIGS[role] : null;
   const avatarInitials = displayName
@@ -46,10 +48,11 @@ export function Header({ onMenuToggle }: HeaderProps) {
         </span>
       )}
 
-      {/* Notifications — the unread dot is intentionally omitted until a real
-          unread count is wired, so the UI never implies fake activity. */}
       <Link to="/notifications" className="relative p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors" aria-label="Notifications">
         <Bell size={18} />
+        {unreadCount > 0 && (
+          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" aria-label={`${unreadCount} unread`} />
+        )}
       </Link>
 
       {/* User chip */}

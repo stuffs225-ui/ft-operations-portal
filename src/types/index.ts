@@ -587,6 +587,25 @@ export interface InboxTask {
   path: string;
 }
 
+// Row shape returned by action_inbox_view
+export interface ActionInboxItem {
+  id: string;
+  title: string;
+  description: string;
+  action_type: string;
+  related_entity_type: string;
+  related_entity_id: string;
+  assigned_to_user_id: string | null;
+  assigned_to_role: string;
+  department: string;
+  priority: TaskPriority;
+  due_at: string | null;
+  status: 'open' | 'overdue';
+  path: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── Store / Warehouse ────────────────────────────────────────────────────────
 
 export type ReceiptStatus = 'draft' | 'received' | 'partially_received' | 'pending_material_qc' | 'accepted' | 'rejected' | 'closed';

@@ -9,6 +9,7 @@ import {
 import { cn } from '../../lib/utils';
 import { NAV_ITEMS } from '../../data/navigation';
 import { useAuth } from '../../hooks/useAuth';
+import { useInboxCount } from '../../hooks/useInboxCount';
 import { BrandLogo } from '../ui/BrandLogo';
 import type { NavItem, UserRole } from '../../types';
 
@@ -55,7 +56,7 @@ function buildVisibleNav(role: UserRole | null): NavItem[] {
   return result;
 }
 
-function NavItemRow({ item, onClose }: { item: NavItem; onClose: () => void }) {
+function NavItemRow({ item, onClose, badgeCount }: { item: NavItem; onClose: () => void; badgeCount?: number }) {
   if (item.path === '#') {
     return (
       <div className="px-3 pt-4 pb-1">
@@ -83,9 +84,9 @@ function NavItemRow({ item, onClose }: { item: NavItem; onClose: () => void }) {
     >
       {Icon && <Icon size={16} className="shrink-0" />}
       <span className="flex-1 truncate">{item.label}</span>
-      {item.badge !== undefined && item.badge > 0 && (
+      {(badgeCount ?? item.badge ?? 0) > 0 && (
         <span className="ml-auto text-[10px] bg-red-100 text-red-700 rounded-full px-1.5 py-0.5 font-semibold">
-          {item.badge}
+          {badgeCount ?? item.badge}
         </span>
       )}
     </NavLink>
@@ -94,6 +95,7 @@ function NavItemRow({ item, onClose }: { item: NavItem; onClose: () => void }) {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { role } = useAuth();
+  const inboxCount = useInboxCount();
   const visibleItems = buildVisibleNav(role);
 
   return (
@@ -125,7 +127,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         {/* Nav items */}
         <nav className="flex-1 overflow-y-auto py-2 scrollbar-thin">
           {visibleItems.map((item) => (
-            <NavItemRow key={item.id} item={item} onClose={onClose} />
+            <NavItemRow
+              key={item.id}
+              item={item}
+              onClose={onClose}
+              badgeCount={item.id === 'inbox' ? (inboxCount > 0 ? inboxCount : undefined) : undefined}
+            />
           ))}
         </nav>
 
