@@ -423,7 +423,7 @@ export function QuotationDetail() {
       return sum + uv * l.quantity;
     }, 0);
 
-    const { data } = await supabase
+    const { data, error: returnErr } = await supabase
       .from('quotation_requests')
       .update({
         quotation_status: 'returned_to_sales',
@@ -434,6 +434,12 @@ export function QuotationDetail() {
       .eq('id', id)
       .select()
       .single();
+
+    if (returnErr) {
+      setActionMsg(`Could not return to Sales: ${returnErr.message}`);
+      setSavingResponse(false);
+      return;
+    }
 
     if (data) setQuotation(data as unknown as QuotationRequest);
 
