@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { UserCheck, Search, Info, Loader2 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
-import { Badge } from '../components/ui/Badge';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { ROLE_CONFIGS } from '../lib/roles';
-import { MOCK_ACCESS_REQUESTS } from '../data/mockAccessRequests';
-import { formatDate } from '../lib/utils';
-import type { AccessRequest, AccessRequestStatus } from '../types';
+import { Search, Info, Loader2 } from 'lucide-react';
+import { PageHeader } from '@/components/common/page-header';
+import { StatusBadge } from '@/components/status/status-badge';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { ROLE_CONFIGS } from '@/lib/roles';
+import { MOCK_ACCESS_REQUESTS } from '@/data/mockAccessRequests';
+import { formatDate } from '@/lib/utils';
+import type { AccessRequest, AccessRequestStatus } from '@/types';
 
 type TabKey = 'all' | 'submitted' | 'under_review' | 'approved' | 'rejected';
 
@@ -20,15 +20,7 @@ const TABS: { key: TabKey; label: string; statuses: AccessRequestStatus[] | null
 ];
 
 export function statusBadge(status: AccessRequestStatus) {
-  const map: Record<AccessRequestStatus, { label: string; variant: 'neutral' | 'warning' | 'info' | 'success' | 'critical' }> = {
-    submitted:    { label: 'Submitted',    variant: 'info' },
-    under_review: { label: 'Under Review', variant: 'warning' },
-    approved:     { label: 'Approved',     variant: 'success' },
-    rejected:     { label: 'Rejected',     variant: 'critical' },
-    cancelled:    { label: 'Cancelled',    variant: 'neutral' },
-  };
-  const { label, variant } = map[status];
-  return <Badge variant={variant}>{label}</Badge>;
+  return <StatusBadge status={status} />;
 }
 
 export function AdminAccessRequests() {
@@ -76,7 +68,6 @@ export function AdminAccessRequests() {
       <PageHeader
         title="Access Requests"
         subtitle="Review and assign roles for portal access requests"
-        icon={<UserCheck size={18} />}
       />
 
       {!isSupabaseConfigured && (
