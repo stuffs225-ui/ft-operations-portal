@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Flame, Plus, Search, Loader2, AlertCircle } from 'lucide-react';
+import { Flame, Plus, Search, AlertCircle } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
+import { PageLoader } from '../components/ui/PageLoader';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { HotProject, HotProjectStage } from '../types';
 
@@ -132,11 +133,12 @@ export function HotProjects() {
           description="Connect Supabase to view hot projects."
         />
       ) : loading ? (
-        <div className="flex justify-center py-16 text-gray-400">
-          <Loader2 size={24} className="animate-spin" />
-        </div>
+        <PageLoader />
       ) : error ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+        <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
+          <span>{error}</span>
+        </div>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<Flame size={32} className="text-gray-300" />}

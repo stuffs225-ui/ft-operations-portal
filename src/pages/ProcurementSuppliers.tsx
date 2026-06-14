@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Search, Star } from 'lucide-react';
+import { PageLoader } from '../components/ui/PageLoader';
 import { PageHeader } from '@/components/common/page-header';
 import { StatusBadge } from '@/components/status/status-badge';
 import { Badge } from '../components/ui/Badge';
@@ -122,7 +123,7 @@ export function ProcurementSuppliers() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-gray-400 text-sm">Loading…</div>
+        <PageLoader />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<Users size={28} />}
