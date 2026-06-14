@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Clock, Search } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -135,7 +136,7 @@ export function ProcurementEtaHistory() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-gray-400 text-sm">Loading…</div>
+        <PageLoader />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<Clock size={28} />}

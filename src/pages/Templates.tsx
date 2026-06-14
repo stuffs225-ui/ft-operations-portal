@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { FileText, Plus, Search, ChevronRight, CheckSquare, FilePlus } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -143,7 +144,7 @@ export function Templates() {
         </div>
 
         {loading ? (
-          <div className="px-5 py-10 text-center text-sm text-gray-400">Loading templates…</div>
+          <PageLoader />
         ) : filtered.length === 0 ? (
           <div className="px-5 py-10">
             <EmptyState
