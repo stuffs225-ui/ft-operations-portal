@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckSquare, Check, X, ChevronRight } from 'lucide-react';
+import { PageLoader } from '../components/ui/PageLoader';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -109,7 +110,7 @@ export function TemplateApprovals() {
         </div>
 
         {loading ? (
-          <div className="px-5 py-10 text-center text-sm text-gray-400">Loading…</div>
+          <div className="py-4"><PageLoader /></div>
         ) : filtered.length === 0 ? (
           <div className="px-5 py-10">
             <EmptyState icon={<CheckSquare size={24} className="text-gray-400" />} title="Nothing here"

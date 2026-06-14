@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Clock } from 'lucide-react';
+import { EmptyState } from '../components/ui/EmptyState';
 import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -201,9 +202,11 @@ function ActiveProjectsTab() {
 
 function AgingTab() {
   return (
-    <div className="rounded-lg bg-gray-50 border border-gray-200 px-6 py-10 text-center text-sm text-gray-500">
-      Aging / Receivables report coming in a future phase.
-    </div>
+    <EmptyState
+      icon={<Clock size={28} className="text-gray-400" />}
+      title="Aging / Receivables report not yet available"
+      description="This report will be available in a future phase. Use the Receivables module for current aging data."
+    />
   );
 }
 
