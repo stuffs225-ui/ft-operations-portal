@@ -1617,6 +1617,12 @@ export type Database = {
         Update: { [key: string]: unknown };
         Relationships: [];
       };
+      project_department_routing: {
+        Row: { id: string; project_id: string; department: string; is_required: boolean; routed_at: string; routed_by: string | null; source: string; metadata: Record<string, unknown>; created_at: string; updated_at: string };
+        Insert: { project_id: string; department: string; is_required?: boolean; routed_at?: string; routed_by?: string | null; source?: string; metadata?: Record<string, unknown>; created_at?: string; updated_at?: string };
+        Update: { project_id?: string; department?: string; is_required?: boolean; routed_at?: string; routed_by?: string | null; source?: string; metadata?: Record<string, unknown>; updated_at?: string };
+        Relationships: [];
+      };
     };
     Views: {
       // Security-hardened views (migration 060). Cost columns are NULL for restricted roles.
