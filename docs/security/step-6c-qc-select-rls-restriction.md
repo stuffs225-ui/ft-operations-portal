@@ -93,13 +93,17 @@ the pattern established in migration 061.
 
 ## 6. sales_user Access Decision and Rationale
 
-**Decision:** Own-project-only access via `project_id IN (SELECT id FROM public.projects WHERE sales_owner_id = auth.uid())`.
+**Decision:** Own-project-only access via `project_id IN (SELECT id FROM public.projects WHERE created_by = auth.uid())`.
 
 **Rationale:**
 - Sales users need visibility into the QC status and release authorization of their own projects — this is a legitimate operational need for sales tracking and customer communication.
 - Blanket access to all QC records across all projects would expose sensitive quality data from competitor projects managed by other sales users.
-- `project_id` is available on all five tables and reliably links to `projects.sales_owner_id`.
-- The subquery is the same pattern established for sales_user access in migrations 010, 011, 012 (project sub-tables).
+- `project_id` is available on all five tables and reliably links to `projects`.
+- `created_by` is used (not `sales_owner_id`) because the projects RLS policy `"projects: sales_user read own"` filters on `created_by = auth.uid()`. Using `sales_owner_id` in the subquery while the projects RLS enforces `created_by` would cause a false-denial: the RLS would additionally filter the subquery result set, silently excluding projects where `sales_owner_id ≠ created_by` — the sales_user would then see zero QC records for that project even though they're the listed sales owner.
+- This matches the established pattern in migrations 010, 011, 012 (project sub-tables), which all use `p.created_by = auth.uid()`.
+
+**Note — field used:**
+Initial draft used `sales_owner_id = auth.uid()`. This was corrected during the Step 6C safety review after confirming the projects RLS policy uses `created_by`, and all existing project sub-table policies (migrations 010–012) use `created_by`.
 
 **Edge case — nullable project_id:**
 `material_qc_inspections.project_id` and `material_ncrs.project_id` are nullable. A QC inspection or NCR with `project_id = NULL` would be excluded from sales_user visibility (`NULL IN (...)` evaluates to false in SQL). This is the correct conservative behavior — unlinked records have no identifiable project owner.

@@ -17,7 +17,7 @@
 --        store_user, afs_user, viewer) get full read access — they all have
 --        legitimate operational need to see QC data.
 --     2. sales_user gets own-project-only access via a project_id subquery
---        on projects.sales_owner_id = auth.uid().
+--        on projects.created_by = auth.uid() (matches projects RLS pattern).
 --   Roles with no operational QC need (sales_coordinator, procurement_user)
 --   receive no SELECT grant and will see zero rows.
 --
@@ -36,6 +36,11 @@
 -- Original broad policy: 035_material_qc_inspections.sql — mqc_select USING (true)
 -- Note: project_id is NULLABLE on this table. The sales_user subquery safely
 -- excludes NULL-project rows because NULL IN (...) evaluates to false in SQL.
+-- created_by is used (not sales_owner_id) because:
+--   1. The projects RLS "sales_user read own" policy filters on created_by = auth.uid().
+--      A subquery using sales_owner_id would be additionally filtered by that RLS to
+--      require created_by = auth.uid() too, silently excluding rows if the two differ.
+--   2. Matches the pattern in migrations 010, 011, 012 (project sub-tables).
 
 DROP POLICY IF EXISTS mqc_select ON public.material_qc_inspections;
 
@@ -49,13 +54,13 @@ CREATE POLICY mqc_select_operational ON public.material_qc_inspections
     )
   );
 
--- Sales user: own-project-only visibility (project ownership via sales_owner_id)
+-- Sales user: own-project-only visibility (created_by matches projects RLS)
 CREATE POLICY mqc_select_sales ON public.material_qc_inspections
   FOR SELECT TO authenticated
   USING (
     public.current_user_role() = 'sales_user'
     AND project_id IN (
-      SELECT id FROM public.projects WHERE sales_owner_id = auth.uid()
+      SELECT id FROM public.projects WHERE created_by = auth.uid()
     )
   );
 
@@ -75,13 +80,13 @@ CREATE POLICY ncr_select_operational ON public.material_ncrs
     )
   );
 
--- Sales user: own-project-only (project_id nullable — rows without project are excluded)
+-- Sales user: own-project-only (created_by matches projects RLS; nullable rows excluded)
 CREATE POLICY ncr_select_sales ON public.material_ncrs
   FOR SELECT TO authenticated
   USING (
     public.current_user_role() = 'sales_user'
     AND project_id IN (
-      SELECT id FROM public.projects WHERE sales_owner_id = auth.uid()
+      SELECT id FROM public.projects WHERE created_by = auth.uid()
     )
   );
 
@@ -101,13 +106,13 @@ CREATE POLICY pqc_select_operational ON public.project_qc_inspections
     )
   );
 
--- Sales user: own-project-only (project_id NOT NULL — no edge case)
+-- Sales user: own-project-only (created_by matches projects RLS; project_id NOT NULL)
 CREATE POLICY pqc_select_sales ON public.project_qc_inspections
   FOR SELECT TO authenticated
   USING (
     public.current_user_role() = 'sales_user'
     AND project_id IN (
-      SELECT id FROM public.projects WHERE sales_owner_id = auth.uid()
+      SELECT id FROM public.projects WHERE created_by = auth.uid()
     )
   );
 
@@ -129,13 +134,13 @@ CREATE POLICY fnd_select_operational ON public.project_qc_findings
     )
   );
 
--- Sales user: own-project-only (project_id NOT NULL — clean subquery)
+-- Sales user: own-project-only (created_by matches projects RLS; project_id NOT NULL)
 CREATE POLICY fnd_select_sales ON public.project_qc_findings
   FOR SELECT TO authenticated
   USING (
     public.current_user_role() = 'sales_user'
     AND project_id IN (
-      SELECT id FROM public.projects WHERE sales_owner_id = auth.uid()
+      SELECT id FROM public.projects WHERE created_by = auth.uid()
     )
   );
 
@@ -158,13 +163,13 @@ CREATE POLICY rn_select_operational ON public.release_notes
     )
   );
 
--- Sales user: own-project-only (release note completion is a key sales milestone)
+-- Sales user: own-project-only (created_by matches projects RLS; project_id NOT NULL)
 CREATE POLICY rn_select_sales ON public.release_notes
   FOR SELECT TO authenticated
   USING (
     public.current_user_role() = 'sales_user'
     AND project_id IN (
-      SELECT id FROM public.projects WHERE sales_owner_id = auth.uid()
+      SELECT id FROM public.projects WHERE created_by = auth.uid()
     )
   );
 
