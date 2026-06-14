@@ -1,4 +1,4 @@
-import { Bell, Menu, ChevronDown, LogOut } from 'lucide-react';
+import { Bell, Menu, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { ROLE_CONFIGS } from '../../lib/roles';
@@ -69,7 +69,6 @@ export function Header({ onMenuToggle }: HeaderProps) {
             </div>
           )}
         </div>
-        <ChevronDown size={14} className="text-gray-400 hidden sm:block" />
       </div>
 
       {/* Logout */}

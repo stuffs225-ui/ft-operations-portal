@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Clock, AlertTriangle, Inbox as InboxIcon } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -101,7 +101,7 @@ export function ActionInbox() {
         title="My Action Inbox"
         subtitle="Tasks requiring your attention across active workflows"
         breadcrumb={[{ label: 'Inbox' }]}
-        action={
+        actions={
           // Only surface counters when they reflect real, non-zero work.
           (criticalCount > 0 || overdueCount > 0) ? (
             <div className="flex items-center gap-2 text-xs">

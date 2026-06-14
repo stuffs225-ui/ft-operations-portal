@@ -55,11 +55,12 @@ function buildVisibleNav(role: UserRole | null): NavItem[] {
   return result;
 }
 
-function NavItemRow({ item, onClose }: { item: NavItem; onClose: () => void }) {
+function NavItemRow({ item, onClose, isFirst }: { item: NavItem; onClose: () => void; isFirst?: boolean }) {
   if (item.path === '#') {
     return (
-      <div className="px-3 pt-4 pb-1">
-        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+      <div className={cn('px-3 pb-1', isFirst ? 'pt-3' : 'pt-5')}>
+        {!isFirst && <div className="border-t border-gray-100 mb-3" />}
+        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
           {item.label}
         </span>
       </div>
@@ -132,14 +133,20 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {/* Nav items */}
         <nav className="flex-1 overflow-y-auto py-2 scrollbar-thin">
-          {visibleItems.map((item) => (
-            <NavItemRow key={item.id} item={item} onClose={onClose} />
+          {visibleItems.map((item, idx) => (
+            <NavItemRow
+              key={item.id}
+              item={item}
+              onClose={onClose}
+              isFirst={idx === 0}
+            />
           ))}
         </nav>
 
         {/* Footer */}
-        <div className="px-4 py-3 border-t border-gray-200 text-[10px] text-gray-400">
-          NAFFCO Fire Trucks — Operations Portal
+        <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+          <span className="text-[10px] text-gray-400">Operations Portal</span>
+          <span className="text-[10px] text-gray-300">v8B</span>
         </div>
       </aside>
     </>

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Package, Truck, ShieldCheck, Plus, ChevronRight, AlertCircle, Info } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
@@ -49,7 +49,7 @@ export function Store() {
       <PageHeader
         title="Store / Warehouse"
         subtitle="Material and vehicle receiving, inventory, and custody management"
-        action={
+        actions={
           canCreate ? (
             <div className="flex items-center gap-2">
               <Link to="/store/receipts/new">

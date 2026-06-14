@@ -2,8 +2,14 @@ import type { NavItem } from '../types';
 
 export const NAV_ITEMS: NavItem[] = [
   {
+    id: 'sep-0',
+    label: 'CONTROL CENTER',
+    path: '#',
+    icon: '',
+  },
+  {
     id: 'dashboard',
-    label: 'Dashboard',
+    label: 'Home',
     path: '/',
     icon: 'LayoutDashboard',
     // Sales users land on /sales instead; Dashboard is for management roles
@@ -11,14 +17,14 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'inbox',
-    label: 'My Action Inbox',
+    label: 'Action Inbox',
     path: '/inbox',
     icon: 'Inbox',
     // No static badge: counts must be derived from real data only (see Sidebar).
   },
   {
     id: 'sep-1',
-    label: 'SALES',
+    label: 'SALES & QUOTATION',
     path: '#',
     icon: '',
   },
@@ -159,7 +165,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'sep-6',
-    label: 'MANAGEMENT',
+    label: 'REPORTS & ADMIN',
     path: '#',
     icon: '',
   },
