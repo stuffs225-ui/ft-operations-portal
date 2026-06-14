@@ -39,7 +39,6 @@
   }
 
   body {
-    @apply bg-gray-50 text-gray-900;
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
   }
