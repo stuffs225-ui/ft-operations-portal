@@ -180,7 +180,9 @@ export function QuotationNew() {
     if (!form.customer_name.trim()) errs.push('Customer / Entity Name is required.');
     if (form.lines.length === 0) errs.push('At least one requested vehicle / item line is required.');
     if (form.lines.some((l) => l.quantity <= 0)) errs.push('All line quantities must be greater than 0.');
-    if (forSubmit && form.documents.length === 0) errs.push('At least one specification document is required to submit.');
+    if (forSubmit && !form.documents.some((d) => d.document_type === 'specification_file')) {
+      errs.push('At least one Specification File document is required to submit.');
+    }
     return errs;
   }
 
@@ -190,7 +192,6 @@ export function QuotationNew() {
     setErrors([]);
     setSubmitting(true);
 
-    const status = submit ? 'submitted_by_sales' : 'draft';
     const now = new Date().toISOString();
 
     if (!isSupabaseConfigured || !supabase) {
@@ -201,7 +202,10 @@ export function QuotationNew() {
     }
 
     try {
-      // Insert quotation
+      // ── Step 1: INSERT quotation as draft ─────────────────────────────────
+      // Always inserts as 'draft' even when the user intends to submit.
+      // The final status change to 'submitted_by_sales' happens after documents
+      // are inserted, allowing migration 087 to enforce R-001 on the UPDATE.
       const { data: qtn, error: qErr } = await supabase
         .from('quotation_requests')
         .insert({
@@ -214,10 +218,10 @@ export function QuotationNew() {
           required_delivery_expectation: form.required_delivery_expectation || null,
           scope_summary: form.scope_summary.trim() || null,
           sales_remarks: form.sales_remarks.trim() || null,
-          quotation_status: status,
+          quotation_status: 'draft',
           requested_by: profile?.id ?? null,
           created_by: profile?.id ?? null,
-          submitted_at: submit ? now : null,
+          submitted_at: null,
           linked_hot_project_id: hotProjectId ?? null,
         })
         .select()
@@ -225,9 +229,10 @@ export function QuotationNew() {
 
       if (qErr || !qtn) throw qErr ?? new Error('Failed to create quotation');
 
-      const qtnId = (qtn as { id: string }).id;
+      const qtnId = (qtn as { id: string; quotation_code: string }).id;
+      const qtnCode = (qtn as { id: string; quotation_code: string }).quotation_code;
 
-      // Insert lines
+      // ── Step 2: INSERT lines ──────────────────────────────────────────────
       if (form.lines.length > 0) {
         await supabase.from('quotation_request_lines').insert(
           form.lines.map((l, idx) => ({
@@ -241,9 +246,12 @@ export function QuotationNew() {
         );
       }
 
-      // Insert documents
+      // ── Step 3: INSERT documents ──────────────────────────────────────────
+      // Documents must exist before the final status UPDATE so that
+      // migration 087 (trg_quotation_document_gates) can verify their presence.
+      // If document insert fails, stop here — the quotation remains as draft.
       if (form.documents.length > 0) {
-        await supabase.from('quotation_documents').insert(
+        const { error: docErr } = await supabase.from('quotation_documents').insert(
           form.documents.map((d) => ({
             quotation_request_id: qtnId,
             document_type: d.document_type,
@@ -252,9 +260,17 @@ export function QuotationNew() {
             remarks: d.remarks || null,
           })),
         );
+        if (docErr) {
+          setErrors([
+            `Draft quotation ${qtnCode} was created but documents could not be saved: ${docErr.message}. ` +
+            'Your draft is accessible in the Quotations list — open it to add documents, then resubmit.',
+          ]);
+          setSubmitting(false);
+          return;
+        }
       }
 
-      // Link back to hot project: update hot_projects.linked_quotation_id and advance stage
+      // ── Step 4: Link hot project ──────────────────────────────────────────
       if (hotProjectId) {
         await supabase
           .from('hot_projects')
@@ -265,25 +281,72 @@ export function QuotationNew() {
           .eq('id', hotProjectId);
       }
 
-      await recordQuotationEvent(
-        qtnId,
-        submit ? 'quotation_submitted_by_sales' : 'quotation_draft_created',
-        submit ? 'Quotation submitted to Sales Coordinator' : 'Quotation request created as draft',
-        hotProjectId ? `Created from Hot Project ${hotProject?.hot_project_code ?? hotProjectId}` : null,
-        profile?.id ?? null,
-        profile?.full_name ?? null,
-      );
+      if (submit) {
+        // ── Step 5: UPDATE status to submitted_by_sales ───────────────────
+        // Migration 087 (trg_quotation_document_gates) enforces R-001 here:
+        // it blocks this UPDATE if no specification_file document row exists.
+        const { error: submitErr } = await supabase
+          .from('quotation_requests')
+          .update({ quotation_status: 'submitted_by_sales', submitted_at: now })
+          .eq('id', qtnId);
 
-      await recordQuotationAuditEntry(
-        submit ? 'quotation_submitted' : 'quotation_created',
-        qtnId,
-        submit ? 'Quotation submitted by sales' : 'Quotation draft created',
-        null,
-        { status, linked_hot_project_id: hotProjectId ?? null },
-        profile?.id ?? null,
-        profile?.email ?? null,
-        role,
-      );
+        if (submitErr) {
+          const isGovernance =
+            submitErr.message.includes('R-001') ||
+            submitErr.message.includes('specification file') ||
+            submitErr.message.includes('Governance violation');
+          setErrors([
+            isGovernance
+              ? `Draft quotation ${qtnCode} was created but submission was blocked by the database: ` +
+                'at least one document must have type "Specification File". ' +
+                'Your draft is accessible in the Quotations list — change the document type and retry.'
+              : `Draft quotation ${qtnCode} was created but could not be submitted: ${submitErr.message}. ` +
+                'Your draft is accessible in the Quotations list.',
+          ]);
+          setSubmitting(false);
+          return;
+        }
+
+        // ── Step 6: Record timeline + audit (submission confirmed) ────────
+        await recordQuotationEvent(
+          qtnId,
+          'quotation_submitted_by_sales',
+          'Quotation submitted to Sales Coordinator',
+          hotProjectId ? `Created from Hot Project ${hotProject?.hot_project_code ?? hotProjectId}` : null,
+          profile?.id ?? null,
+          profile?.full_name ?? null,
+        );
+        await recordQuotationAuditEntry(
+          'quotation_submitted',
+          qtnId,
+          'Quotation submitted by sales',
+          null,
+          { status: 'submitted_by_sales', linked_hot_project_id: hotProjectId ?? null },
+          profile?.id ?? null,
+          profile?.email ?? null,
+          role,
+        );
+      } else {
+        // ── Step 5 (draft path): Record timeline + audit ──────────────────
+        await recordQuotationEvent(
+          qtnId,
+          'quotation_draft_created',
+          'Quotation request created as draft',
+          hotProjectId ? `Created from Hot Project ${hotProject?.hot_project_code ?? hotProjectId}` : null,
+          profile?.id ?? null,
+          profile?.full_name ?? null,
+        );
+        await recordQuotationAuditEntry(
+          'quotation_created',
+          qtnId,
+          'Quotation draft created',
+          null,
+          { status: 'draft', linked_hot_project_id: hotProjectId ?? null },
+          profile?.id ?? null,
+          profile?.email ?? null,
+          role,
+        );
+      }
 
       setSubmitting(false);
       navigate(`/quotations/${qtnId}`);
