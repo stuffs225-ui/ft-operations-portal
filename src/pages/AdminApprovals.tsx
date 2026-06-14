@@ -4,7 +4,7 @@ import {
   AlertCircle, Info, Calendar, User, MapPin,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -122,10 +122,26 @@ function ApproveModal({ project, onClose, onSuccess }: ApproveModalProps) {
         role,
       );
 
-      // Persist checked routing departments — non-blocking (approval already committed above).
-      // Unchecked departments are not inserted; the table is a positive list of routing destinations.
+      // Persist routing: delete stale so_approval rows first, then insert the
+      // currently-checked set. Non-blocking — approval is already committed above.
       const DEPT_KEYS = ['procurement', 'factory', 'store', 'material_qc', 'project_qc', 'dubai_afs'] as const;
       const checkedDepts = DEPT_KEYS.filter((d) => routes[d]);
+
+      const { error: deleteErr } = await supabase
+        .from('project_department_routing')
+        .delete()
+        .eq('project_id', project.id)
+        .eq('source', 'so_approval');
+
+      if (deleteErr) {
+        setRoutingWarning(
+          `Project approved. Routing cleanup failed: ${deleteErr.message}. ` +
+          `Previous routing rows may remain. Routing is recorded in the project timeline instead.`,
+        );
+        setSubmitting(false);
+        return;
+      }
+
       if (checkedDepts.length > 0) {
         const routingRows = checkedDepts.map((dept) => ({
           project_id: project.id,
@@ -137,7 +153,7 @@ function ApproveModal({ project, onClose, onSuccess }: ApproveModalProps) {
         }));
         const { error: routingErr } = await supabase
           .from('project_department_routing')
-          .upsert(routingRows, { onConflict: 'project_id,department' });
+          .insert(routingRows);
         if (routingErr) {
           setRoutingWarning(
             `Project approved. Department routing could not be persisted: ${routingErr.message}. ` +
@@ -628,7 +644,7 @@ export function AdminApprovals() {
       });
   }
 
-  useEffect(() => { loadProjects(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { loadProjects(); }, []); // eslint-disable-line react-hooks/exhaustive-deps,react-hooks/set-state-in-effect
 
   const tabProjects = projects.filter((p) =>
     TABS.find((t) => t.key === activeTab)?.statuses.includes(p.project_status),
@@ -648,7 +664,6 @@ export function AdminApprovals() {
       <PageHeader
         title="Admin Approvals"
         subtitle="SO approval queue, routing decisions, and rejection history"
-        icon={<CheckSquare size={18} />}
       />
 
       {successMsg && (
