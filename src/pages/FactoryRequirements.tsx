@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FileText, Search } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -148,7 +149,7 @@ export function FactoryRequirements() {
 
       {/* Table */}
       {loading ? (
-        <Card className="p-8 text-center text-sm text-gray-500">Loading requirements…</Card>
+        <PageLoader />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<FileText size={24} />}

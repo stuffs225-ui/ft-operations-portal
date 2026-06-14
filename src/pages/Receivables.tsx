@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { BarChart3, Search, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
+import { BarChart3, Search, AlertCircle, ExternalLink } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Drawer } from '../components/ui/Drawer';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { ReceivablesAgingRow, AgingBucket, MilestoneStatus } from '../types';
@@ -156,9 +157,12 @@ export function Receivables() {
           description="Connect Supabase to view receivables."
         />
       ) : loading ? (
-        <div className="flex justify-center py-16 text-gray-400"><Loader2 size={24} className="animate-spin" /></div>
+        <PageLoader />
       ) : error ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+        <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
+          <span>{error}</span>
+        </div>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<BarChart3 size={32} className="text-gray-300" />}

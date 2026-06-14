@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, Search, Plus } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -177,7 +178,7 @@ export function FactoryRawMaterialRequests() {
 
       {/* Table */}
       {loading ? (
-        <Card className="p-8 text-center text-sm text-gray-500">Loading raw material requests…</Card>
+        <PageLoader />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<Package size={24} />}

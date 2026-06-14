@@ -4,6 +4,7 @@ import {
   FileText, Search, Plus, AlertTriangle, Clock,
 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -220,7 +221,7 @@ export function Quotations() {
 
       {/* Table */}
       {loading ? (
-        <Card className="p-8 text-center text-sm text-gray-500">Loading quotations…</Card>
+        <PageLoader />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<FileText size={40} />}
