@@ -69,16 +69,19 @@ CREATE POLICY sup_procurement_insert ON public.approved_suppliers
   FOR INSERT TO authenticated
   WITH CHECK (public.current_user_role() = 'procurement_user');
 
--- UPDATE WITH CHECK: procurement_user cannot self-approve medical/critical eligibility.
--- Only admin or operations_manager (via sup_admin_all) can set these flags to true.
+-- UPDATE: procurement_user cannot self-approve medical/critical eligibility.
+-- IMPORTANT: The medical/critical flag guard must live in the trigger below,
+-- NOT in a WITH CHECK condition. WITH CHECK evaluates the resulting NEW row
+-- value — if admin has already set approved_for_medical_items = true, any
+-- procurement_user UPDATE (even changing payment_terms) would fail because
+-- NEW.approved_for_medical_items = true violates "= false". The trigger uses
+-- OLD vs NEW comparison, so it correctly blocks the CHANGE from false → true
+-- without locking procurement_user out of already-approved suppliers.
 CREATE POLICY sup_procurement_update ON public.approved_suppliers
   FOR UPDATE TO authenticated
   USING (public.current_user_role() = 'procurement_user')
-  WITH CHECK (
-    public.current_user_role() = 'procurement_user'
-    AND approved_for_medical_items  = false
-    AND approved_for_critical_items = false
-  );
+  WITH CHECK (public.current_user_role() = 'procurement_user');
+-- Medical/critical self-approval is blocked by trigger trg_enforce_qc_supplier_fields.
 
 -- No DELETE policy for procurement_user — blocked by default.
 
@@ -94,20 +97,24 @@ CREATE POLICY sup_qc_update ON public.approved_suppliers
   USING (public.current_user_role() = 'qc_user')
   WITH CHECK (public.current_user_role() = 'qc_user');
 
--- ── B2. BEFORE UPDATE trigger: enforce qc_user column-level restriction ────────
--- RLS WITH CHECK operates on the resulting NEW row and cannot detect which
--- individual columns changed (OLD is not available in WITH CHECK). A SECURITY
--- DEFINER BEFORE UPDATE trigger is the correct PostgreSQL mechanism to enforce
--- per-column restrictions while still allowing qc_status, qc_remarks,
--- quality_rating, and system-managed fields (updated_at) to change.
+-- ── B2. BEFORE UPDATE trigger: enforce column-level restrictions ───────────────
+-- Handles two restrictions using OLD vs NEW comparison (unavailable in WITH CHECK):
 --
--- Permitted changes for qc_user: qc_status, qc_remarks, quality_rating, updated_at.
--- All other columns must be unchanged from OLD.
+-- 1. qc_user field restriction: qc_user may only change qc_status, qc_remarks,
+--    quality_rating, and the system-managed updated_at field (set by the
+--    supplier_updated_at trigger which fires before this one). All other columns
+--    must be unchanged from OLD.
+--
+-- 2. procurement_user medical/critical self-approval guard: procurement_user may
+--    NOT change approved_for_medical_items or approved_for_critical_items from
+--    false → true. Only admin or operations_manager may set these flags to true.
+--    Using a trigger (not WITH CHECK) so that procurement_user can still update
+--    other fields on suppliers that admin has already approved for medical use.
 
 CREATE OR REPLACE FUNCTION public.enforce_qc_supplier_fields()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
-  -- Only restrict qc_user; admin/ops/procurement handled by their own policies.
+  -- qc_user: restricted to qc_status, qc_remarks, quality_rating only.
   IF public.current_user_role() = 'qc_user' THEN
     IF (NEW.supplier_name               IS DISTINCT FROM OLD.supplier_name)
        OR (NEW.supplier_category        IS DISTINCT FROM OLD.supplier_category)
@@ -127,6 +134,21 @@ BEGIN
         'qc_user may only update qc_status, qc_remarks, and quality_rating on approved_suppliers';
     END IF;
   END IF;
+
+  -- procurement_user: may not set approved_for_medical_items or
+  -- approved_for_critical_items from false → true.
+  -- (Changing an already-true flag back to false is allowed — admin may delegate.)
+  IF public.current_user_role() = 'procurement_user' THEN
+    IF (NEW.approved_for_medical_items IS DISTINCT FROM OLD.approved_for_medical_items
+        AND NEW.approved_for_medical_items = true)
+       OR (NEW.approved_for_critical_items IS DISTINCT FROM OLD.approved_for_critical_items
+           AND NEW.approved_for_critical_items = true)
+    THEN
+      RAISE EXCEPTION
+        'procurement_user may not set approved_for_medical_items or approved_for_critical_items to true; requires admin or operations_manager';
+    END IF;
+  END IF;
+
   RETURN NEW;
 END;
 $$;
@@ -146,6 +168,8 @@ CREATE TRIGGER trg_enforce_qc_supplier_fields
 --                      SELECT approved/approved_with_conditions only
 
 -- ── Rollback (commented — run in Supabase SQL editor to revert) ───────────────
+-- Note: the trigger enforce_qc_supplier_fields() guards both qc_user field
+-- restriction AND procurement_user medical/critical self-approval. Drop both.
 -- DROP TRIGGER IF EXISTS trg_enforce_qc_supplier_fields ON public.approved_suppliers;
 -- DROP FUNCTION IF EXISTS public.enforce_qc_supplier_fields();
 --
