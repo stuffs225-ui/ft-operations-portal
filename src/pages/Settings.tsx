@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '../components/ui/Button';
 import {
-  Settings as SettingsIcon, Plus, Pencil,
+  Plus, Pencil,
   CheckCircle2, AlertTriangle, Database, ShieldCheck, Loader2,
 } from 'lucide-react';
 import { cn } from '../lib/utils';

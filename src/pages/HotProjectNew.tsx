@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Flame, ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';

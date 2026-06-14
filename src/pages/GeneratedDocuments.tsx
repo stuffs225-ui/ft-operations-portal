@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { FileCheck, Search, ChevronRight } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { StatusBadge } from '@/components/status/status-badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '@/components/feedback/empty-state';
@@ -61,7 +62,7 @@ export function GeneratedDocuments() {
         </div>
 
         {loading ? (
-          <div className="px-5 py-10 text-center text-sm text-gray-400">Loading documents…</div>
+          <div className="py-4"><PageLoader /></div>
         ) : filtered.length === 0 ? (
           <div className="px-5 py-10">
             <EmptyState icon={<FileCheck size={24} className="text-gray-400" />} title="No generated documents"

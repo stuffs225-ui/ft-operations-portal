@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
+import { PageLoader } from '../components/ui/PageLoader';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { getMockTemplate, getMockTemplateFields } from '../data/mockTemplates';
@@ -115,7 +116,7 @@ export function TemplateGenerate() {
   }
 
   if (loading) {
-    return <div className="px-5 py-10 text-center text-sm text-gray-400">Loading template…</div>;
+    return <PageLoader />;
   }
 
   if (notFound || !template) {

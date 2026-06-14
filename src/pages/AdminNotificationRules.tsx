@@ -1,4 +1,4 @@
-import { SlidersHorizontal, Plus, Info } from 'lucide-react';
+import { Plus, Info } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
