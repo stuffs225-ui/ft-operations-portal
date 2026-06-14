@@ -150,7 +150,7 @@ export function App() {
             <Route path="hot-projects/new" element={<RequireRole roles={['admin', 'operations_manager', 'sales_user']}><HotProjectNew /></RequireRole>} />
             <Route path="hot-projects/:id" element={<RequireRole roles={['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'viewer']}><HotProjectDetail /></RequireRole>} />
             <Route path="projects" element={<Projects />} />
-            <Route path="projects/new" element={<ProjectNew />} />
+            <Route path="projects/new" element={<RequireRole roles={['admin', 'operations_manager', 'sales_user']}><ProjectNew /></RequireRole>} />
             <Route path="projects/:id" element={<ProjectDetail />} />
             <Route path="projects/:projectId/invoicing" element={<RequireRole roles={['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'viewer']}><ProjectInvoicing /></RequireRole>} />
             <Route path="templates" element={<Templates />} />

@@ -10,6 +10,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '@/components/feedback/empty-state';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermission } from '@/hooks/usePermission';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { MOCK_PROJECTS } from '@/data/mockProjects';
 import type { Project, ProjectStatus, ManufacturingLocation, MedicalItems, UserRole } from '@/types';
@@ -52,6 +53,7 @@ const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'sales_user'];
 
 export function Projects() {
   const { role, profile } = useAuth();
+  const { canViewCosts } = usePermission();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -62,7 +64,7 @@ export function Projects() {
   const [search, setSearch] = useState('');
 
   const canCreate = role ? CAN_CREATE.includes(role) : false;
-  const canSeeMoney = role === 'admin' || role === 'operations_manager';
+  const canSeeMoney = canViewCosts;
 
   // Load data
   useEffect(() => {
