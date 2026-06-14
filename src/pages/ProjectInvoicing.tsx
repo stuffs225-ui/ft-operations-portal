@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ReceiptText, ArrowLeft, Plus, Save, Loader2, Trash2 } from 'lucide-react';
+import { PageLoader } from '../components/ui/PageLoader';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -188,7 +189,7 @@ export function ProjectInvoicing() {
   }
 
   if (loading) {
-    return <div className="flex justify-center py-24 text-gray-400"><Loader2 size={24} className="animate-spin" /></div>;
+    return <PageLoader />;
   }
 
   const inputCls = 'w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/30';
