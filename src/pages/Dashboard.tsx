@@ -3,14 +3,17 @@ import {
   AlertTriangle, AlertCircle, ShoppingCart, PackageCheck, Truck,
   ClipboardX, ShieldAlert, Package, FileText, TrendingUp, TrendingDown,
   Minus, ArrowRight, Send, CheckCircle, Wrench, Calendar, Clock,
-  ClipboardCheck, FileCheck, Plane, FileSearch, BarChart2, Activity, type LucideIcon,
+  ClipboardCheck, FileCheck, Plane, FileSearch, BarChart2, Activity,
+  FolderKanban, Warehouse, Factory, Microscope, BarChart3,
+  type LucideIcon,
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { DASHBOARD_KPI_CARDS, AFS_KPI_CARDS, PROJECT_SUMMARY } from '../data/mockDashboard';
 import { mockOrEmpty, mockOrValue, isLiveMode } from '../lib/dataMode';
-import type { KpiCard } from '../types';
+import { useAuth } from '../hooks/useAuth';
+import type { KpiCard, UserRole } from '../types';
 import { cn } from '../lib/utils';
 
 const EMPTY_SUMMARY: typeof PROJECT_SUMMARY = {
@@ -30,6 +33,31 @@ const severityConfig = {
   critical: { border: 'border-l-red-500',    badge: 'bg-red-50 text-red-700',      dot: 'bg-red-500'   },
   info:     { border: 'border-l-sky-400',    badge: 'bg-sky-50 text-sky-700',      dot: 'bg-sky-400'   },
 };
+
+type ModuleTile = {
+  id: string;
+  label: string;
+  path: string;
+  icon: LucideIcon;
+  iconClass: string;
+  borderClass: string;
+  roles?: UserRole[];
+};
+
+const MODULE_TILES: ModuleTile[] = [
+  { id: 'quotations',   label: 'Quotations',       path: '/quotations',   icon: FileText,     iconClass: 'text-blue-600',    borderClass: 'border-l-blue-400',    roles: ['admin','operations_manager','sales_user','sales_coordinator','viewer'] },
+  { id: 'sales',        label: 'Sales Workspace',  path: '/sales',        icon: TrendingUp,   iconClass: 'text-emerald-600', borderClass: 'border-l-emerald-400', roles: ['admin','operations_manager','sales_user'] },
+  { id: 'projects',     label: 'Projects / SO',    path: '/projects',     icon: FolderKanban, iconClass: 'text-indigo-600',  borderClass: 'border-l-indigo-400'  },
+  { id: 'procurement',  label: 'Procurement',      path: '/procurement',  icon: ShoppingCart, iconClass: 'text-amber-600',   borderClass: 'border-l-amber-400',   roles: ['admin','operations_manager','procurement_user'] },
+  { id: 'factory',      label: 'Factory',          path: '/factory',      icon: Factory,      iconClass: 'text-orange-600',  borderClass: 'border-l-orange-400',  roles: ['admin','operations_manager','factory_user'] },
+  { id: 'store',        label: 'Store / Warehouse',path: '/store',        icon: Warehouse,    iconClass: 'text-teal-600',    borderClass: 'border-l-teal-400',    roles: ['admin','operations_manager','store_user'] },
+  { id: 'material-qc',  label: 'Material QC',      path: '/material-qc',  icon: Microscope,   iconClass: 'text-purple-600',  borderClass: 'border-l-purple-400',  roles: ['admin','operations_manager','qc_user'] },
+  { id: 'project-qc',   label: 'Project QC',       path: '/project-qc',   icon: ClipboardCheck,iconClass:'text-violet-600', borderClass: 'border-l-violet-400',  roles: ['admin','operations_manager','qc_user'] },
+  { id: 'dubai-afs',    label: 'Dubai / AFS',      path: '/dubai-afs',    icon: Plane,        iconClass: 'text-sky-600',     borderClass: 'border-l-sky-400',     roles: ['admin','operations_manager','afs_user'] },
+  { id: 'after-sales',  label: 'After Sales',      path: '/after-sales',  icon: Wrench,       iconClass: 'text-rose-600',    borderClass: 'border-l-rose-400',    roles: ['admin','operations_manager','afs_user'] },
+  { id: 'reports',      label: 'Reports Hub',      path: '/reports',      icon: BarChart2,    iconClass: 'text-cyan-600',    borderClass: 'border-l-cyan-400',    roles: ['admin','operations_manager','procurement_user','factory_user','store_user','qc_user','afs_user','sales_coordinator','viewer'] },
+  { id: 'control-tower',label: 'Control Tower',    path: '/control-tower',icon: BarChart3,    iconClass: 'text-purple-600',  borderClass: 'border-l-purple-500',  roles: ['admin','operations_manager','viewer'] },
+];
 
 function KpiCardItem({ card }: { card: KpiCard }) {
   const navigate = useNavigate();
@@ -65,9 +93,13 @@ function KpiCardItem({ card }: { card: KpiCard }) {
 }
 
 export function Dashboard() {
+  const { role } = useAuth();
   const summary = mockOrValue(PROJECT_SUMMARY, EMPTY_SUMMARY);
   const dashboardCards = mockOrEmpty(DASHBOARD_KPI_CARDS);
   const afsCards = mockOrEmpty(AFS_KPI_CARDS);
+  const visibleModuleTiles = MODULE_TILES.filter(
+    (t) => !t.roles || !role || t.roles.includes(role) || role === 'admin',
+  );
 
   return (
     <div>
@@ -75,7 +107,7 @@ export function Dashboard() {
         title="Operations Control Tower"
         subtitle="Operational status across all modules"
         breadcrumb={[{ label: 'Dashboard' }]}
-        action={<DataSourceBadge variant="auto" />}
+        actions={<DataSourceBadge variant="auto" />}
       />
 
       {isLiveMode() && (
@@ -107,63 +139,64 @@ export function Dashboard() {
         ))}
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="mb-6">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-          <span className="w-1 h-4 bg-brand-600 rounded-full inline-block" />
-          Critical Operational Indicators
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
-          {dashboardCards.map((card) => (
-            <KpiCardItem key={card.id} card={card} />
-          ))}
+      {/* KPI Cards Grid — hidden in live mode until module data is wired (Phase 2+) */}
+      {dashboardCards.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <span className="w-1 h-4 bg-brand-600 rounded-full inline-block" />
+            Critical Operational Indicators
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+            {dashboardCards.map((card) => (
+              <KpiCardItem key={card.id} card={card} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Dubai / AFS & After Sales KPIs */}
-      <div className="mb-6">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-          <span className="w-1 h-4 bg-sky-600 rounded-full inline-block" />
-          Dubai / AFS &amp; After Sales
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {afsCards.map((card) => (
-            <KpiCardItem key={card.id} card={card} />
-          ))}
+      {/* Dubai / AFS & After Sales KPIs — hidden in live mode until module data is wired */}
+      {afsCards.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <span className="w-1 h-4 bg-sky-600 rounded-full inline-block" />
+            Dubai / AFS &amp; After Sales
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {afsCards.map((card) => (
+              <KpiCardItem key={card.id} card={card} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Reports & Control Tower Quick Access */}
-      <div className="mb-6">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-          <span className="w-1 h-4 bg-purple-600 rounded-full inline-block" />
-          Reports &amp; Control Tower
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Link to="/control-tower" className="group">
-            <div className="bg-white rounded-xl border border-gray-200 border-l-4 border-l-purple-500 shadow-sm p-5 hover:shadow-md hover:border-gray-300 transition-all cursor-pointer">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-purple-50 text-purple-700"><Activity size={18} /></div>
-                <div>
-                  <div className="text-sm font-semibold text-gray-900 group-hover:text-purple-700 transition-colors mb-0.5">Control Tower</div>
-                  <div className="text-xs text-gray-500">Live exceptions, SLA breaches, delivery readiness, and health scores</div>
-                </div>
-              </div>
-            </div>
-          </Link>
-          <Link to="/reports" className="group">
-            <div className="bg-white rounded-xl border border-gray-200 border-l-4 border-l-sky-500 shadow-sm p-5 hover:shadow-md hover:border-gray-300 transition-all cursor-pointer">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-sky-50 text-sky-700"><BarChart2 size={18} /></div>
-                <div>
-                  <div className="text-sm font-semibold text-gray-900 group-hover:text-sky-700 transition-colors mb-0.5">Reports Hub</div>
-                  <div className="text-xs text-gray-500">Operational reports across procurement, factory, QC, AFS, data quality, and more</div>
-                </div>
-              </div>
-            </div>
-          </Link>
+      {/* Your Modules — role-filtered static launcher, no data fetching */}
+      {visibleModuleTiles.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <span className="w-1 h-4 bg-indigo-500 rounded-full inline-block" />
+            Your Modules
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+            {visibleModuleTiles.map((tile) => {
+              const Icon = tile.icon;
+              return (
+                <Link key={tile.id} to={tile.path} className="group">
+                  <div className={cn(
+                    'bg-white rounded-xl border border-gray-200 border-l-4 shadow-sm px-4 py-3',
+                    'hover:shadow-md hover:border-gray-300 transition-all',
+                    tile.borderClass,
+                  )}>
+                    <Icon size={16} className={cn('mb-2', tile.iconClass)} />
+                    <div className="text-xs font-semibold text-gray-800 group-hover:text-gray-600 transition-colors leading-tight">
+                      {tile.label}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Governance Rules Banner */}
       <Card className="bg-brand-950 border-brand-800 text-white">

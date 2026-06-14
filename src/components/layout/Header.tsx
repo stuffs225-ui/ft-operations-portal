@@ -1,4 +1,4 @@
-import { Bell, Menu, ChevronDown, LogOut } from 'lucide-react';
+import { Bell, Menu, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { ROLE_CONFIGS } from '../../lib/roles';
@@ -31,8 +31,8 @@ export function Header({ onMenuToggle }: HeaderProps) {
         <Menu size={20} />
       </button>
 
-      {/* Brand lockup — NAFFCO Fire Trucks Department · Operations Portal */}
-      <Link to="/" className="mr-4 shrink-0">
+      {/* Brand lockup — only shown on mobile; desktop sidebar carries the brand. */}
+      <Link to="/" className="mr-4 shrink-0 lg:hidden">
         <BrandLogo size={30} withWordmark tagline="Operations Portal" />
       </Link>
 
@@ -69,7 +69,6 @@ export function Header({ onMenuToggle }: HeaderProps) {
             </div>
           )}
         </div>
-        <ChevronDown size={14} className="text-gray-400 hidden sm:block" />
       </div>
 
       {/* Logout */}
