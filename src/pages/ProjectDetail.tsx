@@ -6,7 +6,7 @@ import {
   Shield, Edit2, Check, RotateCcw, X, GitBranch,
   CheckCircle2, Plus, ShoppingCart, Wrench, Truck, Package, FileCheck, ReceiptText,
 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -87,6 +87,69 @@ function statusBadge(status: string) {
 }
 
 const CAN_APPROVE: UserRole[] = ['admin', 'operations_manager'];
+
+// ── Routing Summary Card ──────────────────────────────────────────────────────
+
+const DEPT_LABELS: Record<string, string> = {
+  procurement: 'Procurement',
+  factory:     'Factory / Production',
+  store:       'Store / Warehouse',
+  material_qc: 'Material QC',
+  project_qc:  'Project QC',
+  dubai_afs:   'Dubai / AFS',
+};
+
+function RoutingSummaryCard({ projectId }: { projectId: string }) {
+  const [routing, setRouting] = useState<string[]>([]);
+  const [loadingRouting, setLoadingRouting] = useState(true);
+  const [routingLoadError, setRoutingLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) {
+      setRouting([]);
+      setLoadingRouting(false);
+      return;
+    }
+    supabase
+      .from('project_department_routing')
+      .select('department')
+      .eq('project_id', projectId)
+      .order('department')
+      .then(({ data, error }) => {
+        if (error) setRoutingLoadError(error.message);
+        else setRouting((data as unknown as Array<{ department: string }>)?.map((r) => r.department) ?? []);
+        setLoadingRouting(false);
+      });
+  }, [projectId]);
+
+  return (
+    <Card className="p-5">
+      <h3 className="text-sm font-semibold text-gray-900 mb-3">Department Routing</h3>
+      {loadingRouting ? (
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <Loader2 size={14} className="animate-spin" />
+          Loading routing…
+        </div>
+      ) : routingLoadError ? (
+        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+          <span className="text-xs text-amber-700">Could not load routing data.</span>
+        </div>
+      ) : routing.length === 0 ? (
+        <p className="text-sm text-gray-500">No structured routing decisions recorded yet.</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {routing.map((dept) => (
+            <span key={dept} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-50 border border-brand-200 rounded-lg text-xs font-medium text-brand-800">
+              <CheckCircle2 size={12} className="shrink-0" />
+              {DEPT_LABELS[dept] ?? dept}
+            </span>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
 
 // ── Inline Approve Panel ──────────────────────────────────────────────────────
 
@@ -669,12 +732,11 @@ export function ProjectDetail() {
       <PageHeader
         title={project.project_code}
         subtitle={`${project.customer_name} — ${project.so_number}`}
-        icon={<FolderOpen size={18} />}
         breadcrumb={[
-          { label: 'Projects', path: '/projects' },
+          { label: 'Projects', href: '/projects' },
           { label: project.project_code },
         ]}
-        action={
+        actions={
           <div className="flex items-center gap-2">
             {statusBadge(project.project_status)}
           </div>
@@ -1759,6 +1821,8 @@ export function ProjectDetail() {
               </div>
             )}
           </Card>
+
+          <RoutingSummaryCard projectId={project.id} />
 
           {canApprove && (
             <ApprovePanel project={project} onSuccess={handleApprovalSuccess} />
