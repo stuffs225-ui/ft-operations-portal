@@ -40,6 +40,7 @@ export interface Project {
   project_code: string;
   so_number: string;
   customer_name: string;
+  customer_id: string | null;
   sales_owner_id: string | null;
   customer_delivery_date: string;
   project_status: ProjectStatus;
@@ -60,6 +61,7 @@ export interface Project {
   // Joined fields (optional)
   sales_owner?: { full_name: string | null; email: string } | null;
   approved_by_profile?: { full_name: string | null } | null;
+  customer?: Pick<Customer, 'id' | 'name'> | null;
 }
 
 export interface ProjectVehicleLine {
@@ -1669,4 +1671,47 @@ export interface ReceivablesAgingRow {
   total_contract_value: number;
   aging_bucket: AgingBucket;
   days_overdue: number;
+}
+
+// ─── Customer (Migration 079) ─────────────────────────────────────────────────
+
+export type CustomerStatus = 'active' | 'inactive' | 'suspended';
+
+export interface Customer {
+  id: string;
+  customer_code: string;
+  name: string;
+  name_arabic: string | null;
+  industry: string | null;
+  country: string | null;
+  city: string | null;
+  address: string | null;
+  vat_number: string | null;
+  crn_number: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  payment_terms_days: number | null;
+  credit_limit: number | null;
+  status: CustomerStatus;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─── Audit Log (Migration 080) ───────────────────────────────────────────────
+
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  description: string | null;
+  before_data: Record<string, unknown> | null;
+  after_data: Record<string, unknown> | null;
+  actor_id: string | null;
+  actor_email: string | null;
+  actor_role: string | null;
+  created_at: string;
 }

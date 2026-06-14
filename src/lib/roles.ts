@@ -72,12 +72,3 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     color: 'bg-gray-100 text-gray-700',
   },
 };
-
-// Simulated active user – replace with real auth in Phase 1
-export const MOCK_CURRENT_USER = {
-  id: 'usr-001',
-  name: 'Operations Admin',
-  email: 'admin@ft-ops.com',
-  role: 'admin' as UserRole,
-  avatar: 'OA',
-};
