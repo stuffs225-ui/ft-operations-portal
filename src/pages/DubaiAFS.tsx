@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Plane, Clock, AlertTriangle, CheckCircle, Package, FileSearch, Wrench, TrendingUp } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { MOCK_DUBAI_FOLLOWUPS, MOCK_AFS_ARRIVAL_REPORTS, MOCK_AFS_MISSING_ITEMS, MOCK_AFS_PREDELIVERY_REPORTS } from '../data/mockAfs';

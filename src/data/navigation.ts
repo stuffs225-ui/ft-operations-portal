@@ -119,7 +119,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: 'vehicle-receiving',
     label: 'Vehicle Receiving',
-    path: '/vehicle-receiving',
+    path: '/store/vehicle-receiving',
     icon: 'Truck',
     roles: ['admin', 'operations_manager', 'store_user'],
   },

@@ -4,7 +4,7 @@ import {
   ShoppingCart, Package, Truck, Clock, Users, AlertTriangle,
   CheckCircle, ChevronRight, FileText, TrendingUp,
 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { useAuth } from '../hooks/useAuth';
@@ -139,9 +139,8 @@ export function Procurement() {
       <PageHeader
         title="Procurement"
         subtitle="Purchase Requests, PO to Supplier, ETA tracking, and approved suppliers."
-        icon={<ShoppingCart size={18} />}
         breadcrumb={[{ label: 'Procurement' }]}
-        action={
+        actions={
           !isSupabaseConfigured ? (
             <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
               <span className="w-2 h-2 bg-amber-400 rounded-full" />
