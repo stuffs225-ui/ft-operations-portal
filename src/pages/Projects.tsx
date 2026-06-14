@@ -4,14 +4,15 @@ import {
   FolderOpen, Plus, Search, MapPin,
   ChevronRight, Loader2, Calendar, User,
 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
+import { StatusBadge } from '@/components/status/status-badge';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { EmptyState } from '../components/ui/EmptyState';
-import { useAuth } from '../hooks/useAuth';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { MOCK_PROJECTS } from '../data/mockProjects';
-import type { Project, ProjectStatus, ManufacturingLocation, MedicalItems, UserRole } from '../types';
+import { EmptyState } from '@/components/feedback/empty-state';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { MOCK_PROJECTS } from '@/data/mockProjects';
+import type { Project, ProjectStatus, ManufacturingLocation, MedicalItems, UserRole } from '@/types';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -26,20 +27,6 @@ const STATUS_TABS: { key: StatusTab; label: string }[] = [
   { key: 'rejected', label: 'Rejected' },
 ];
 
-function statusBadge(status: ProjectStatus) {
-  const map: Record<ProjectStatus, { label: string; variant: 'neutral' | 'warning' | 'info' | 'success' | 'critical' | 'default' }> = {
-    draft:                   { label: 'Draft',      variant: 'neutral' },
-    submitted_for_approval:  { label: 'Submitted',  variant: 'info' },
-    sent_back_for_revision:  { label: 'Sent Back',  variant: 'warning' },
-    approved:                { label: 'Approved',   variant: 'success' },
-    rejected:                { label: 'Rejected',   variant: 'critical' },
-    active:                  { label: 'Active',     variant: 'default' },
-    completed:               { label: 'Completed',  variant: 'success' },
-    cancelled:               { label: 'Cancelled',  variant: 'neutral' },
-  };
-  const { label, variant } = map[status] ?? { label: status, variant: 'neutral' };
-  return <Badge variant={variant}>{label}</Badge>;
-}
 
 function locationBadge(loc: ManufacturingLocation) {
   if (loc === 'not_set') return <Badge variant="neutral">Not Set</Badge>;
@@ -117,8 +104,7 @@ export function Projects() {
       <PageHeader
         title="Projects / SO"
         subtitle="Sales Orders and project lifecycle management"
-        icon={<FolderOpen size={18} />}
-        action={
+        actions={
           canCreate ? (
             <Link to="/projects/new">
               <Button icon={<Plus size={16} />} size="md">
@@ -246,7 +232,7 @@ export function Projects() {
                       <div className="mt-1">{medicalBadge(project.medical_items)}</div>
                     )}
                   </td>
-                  <td className="px-4 py-3">{statusBadge(project.project_status)}</td>
+                  <td className="px-4 py-3"><StatusBadge status={project.project_status} /></td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       <MapPin size={12} className="text-gray-400 shrink-0" />

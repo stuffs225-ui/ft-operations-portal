@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Search, Star } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
+import { StatusBadge } from '@/components/status/status-badge';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
-import { EmptyState } from '../components/ui/EmptyState';
-import { useAuth } from '../hooks/useAuth';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { MOCK_SUPPLIERS } from '../data/mockProcurement';
-import type { ApprovedSupplier } from '../types';
+import { EmptyState } from '@/components/feedback/empty-state';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { MOCK_SUPPLIERS } from '@/data/mockProcurement';
+import type { ApprovedSupplier } from '@/types';
 
 // suppress unused import warning
 void useAuth;
@@ -28,31 +29,6 @@ const STATUS_TABS: { key: ProcurementStatusFilter; label: string }[] = [
   { key: 'inactive',               label: 'Inactive' },
 ];
 
-function procurementStatusBadge(status: string) {
-  const map: Record<string, { label: string; variant: 'neutral' | 'warning' | 'info' | 'success' | 'critical' | 'default' }> = {
-    approved:                { label: 'Approved',                 variant: 'success' },
-    approved_with_conditions: { label: 'Approved w/ Conditions', variant: 'warning' },
-    suspended:               { label: 'Suspended',               variant: 'critical' },
-    blacklisted:             { label: 'Blacklisted',             variant: 'critical' },
-    pending_review:          { label: 'Pending Review',          variant: 'info' },
-    draft:                   { label: 'Draft',                   variant: 'neutral' },
-    inactive:                { label: 'Inactive',                variant: 'neutral' },
-  };
-  const { label, variant } = map[status] ?? { label: status, variant: 'neutral' as const };
-  return <Badge variant={variant}>{label}</Badge>;
-}
-
-function qcStatusBadge(status: string) {
-  const map: Record<string, { label: string; variant: 'neutral' | 'warning' | 'info' | 'success' | 'critical' | 'default' }> = {
-    approved:                { label: 'Approved',                 variant: 'success' },
-    approved_with_conditions: { label: 'Approved w/ Conditions', variant: 'warning' },
-    rejected:                { label: 'Rejected',                variant: 'critical' },
-    assessed:                { label: 'Assessed',                variant: 'info' },
-    not_assessed:            { label: 'Not Assessed',            variant: 'neutral' },
-  };
-  const { label, variant } = map[status] ?? { label: status, variant: 'neutral' as const };
-  return <Badge variant={variant}>{label}</Badge>;
-}
 
 function StarRating({ rating }: { rating: number | null }) {
   if (rating === null) return <span className="text-xs text-gray-400">Not rated</span>;
@@ -110,9 +86,8 @@ export function ProcurementSuppliers() {
       <PageHeader
         title="Approved Suppliers"
         subtitle="Supplier register with procurement and QC status."
-        icon={<Users size={18} />}
         breadcrumb={[
-          { label: 'Procurement', path: '/procurement' },
+          { label: 'Procurement', href: '/procurement' },
           { label: 'Approved Suppliers' },
         ]}
       />
@@ -177,8 +152,8 @@ export function ProcurementSuppliers() {
                     <td className="px-4 py-3 font-medium text-gray-900">{supplier.supplier_name}</td>
                     <td className="px-4 py-3 text-gray-700">{supplier.supplier_category ?? '—'}</td>
                     <td className="px-4 py-3 text-gray-700">{supplier.contact_person ?? '—'}</td>
-                    <td className="px-4 py-3">{procurementStatusBadge(supplier.procurement_status)}</td>
-                    <td className="px-4 py-3">{qcStatusBadge(supplier.qc_status)}</td>
+                    <td className="px-4 py-3"><StatusBadge status={supplier.procurement_status} /></td>
+                    <td className="px-4 py-3"><StatusBadge status={supplier.qc_status} /></td>
                     <td className="px-4 py-3"><StarRating rating={supplier.quality_rating} /></td>
                     <td className="px-4 py-3">
                       <Badge variant={supplier.approved_for_medical_items ? 'success' : 'neutral'}>

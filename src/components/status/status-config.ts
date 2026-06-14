@@ -134,6 +134,31 @@ export const STATUS_CONFIG: Record<string, StatusConfig> = {
     label: 'Suspended',
     className: 'bg-orange-50 text-orange-700 border-orange-200',
   },
+  approved_with_conditions: {
+    variant: 'outline',
+    label: 'Approved w/ Conditions',
+    className: 'bg-amber-50 text-amber-700 border-amber-200',
+  },
+  pending_review: {
+    variant: 'outline',
+    label: 'Pending Review',
+    className: 'bg-sky-50 text-sky-700 border-sky-200',
+  },
+  inactive: {
+    variant: 'secondary',
+    label: 'Inactive',
+    className: 'bg-gray-100 text-gray-500 border-gray-200',
+  },
+  assessed: {
+    variant: 'default',
+    label: 'Assessed',
+    className: 'bg-blue-100 text-blue-700 border-blue-200',
+  },
+  not_assessed: {
+    variant: 'secondary',
+    label: 'Not Assessed',
+    className: 'bg-gray-100 text-gray-400 border-gray-200',
+  },
   // ── QC / NCR ──────────────────────────────────────────────────────────
   open: {
     variant: 'destructive',
@@ -160,6 +185,16 @@ export const STATUS_CONFIG: Record<string, StatusConfig> = {
     label: 'Released',
     className: 'bg-green-100 text-green-700 border-green-200',
   },
+  corrective_action_in_progress: {
+    variant: 'outline',
+    label: 'In Progress',
+    className: 'bg-orange-50 text-orange-700 border-orange-200',
+  },
+  pending_evidence: {
+    variant: 'outline',
+    label: 'Pending Evidence',
+    className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+  },
   // ── Quotations ─────────────────────────────────────────────────────────
   submitted: {
     variant: 'outline',
@@ -182,6 +217,21 @@ export const STATUS_CONFIG: Record<string, StatusConfig> = {
     className: 'bg-red-50 text-red-600 border-red-200',
   },
   // ── General ────────────────────────────────────────────────────────────
+  generated: {
+    variant: 'default',
+    label: 'Generated',
+    className: 'bg-green-100 text-green-700 border-green-200',
+  },
+  exported: {
+    variant: 'outline',
+    label: 'Exported',
+    className: 'bg-sky-50 text-sky-700 border-sky-200',
+  },
+  archived: {
+    variant: 'secondary',
+    label: 'Archived',
+    className: 'bg-gray-100 text-gray-600 border-gray-200',
+  },
   delivered: {
     variant: 'default',
     label: 'Delivered',
