@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, ChevronRight } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
-import { Badge } from '../components/ui/Badge';
+import { PageHeader } from '@/components/common/page-header';
+import { StatusBadge } from '@/components/status/status-badge';
+import { PriorityBadge } from '@/components/status/priority-badge';
 import { Button } from '../components/ui/Button';
-import { EmptyState } from '../components/ui/EmptyState';
-import { DataSourceBadge } from '../components/ui/DataSourceBadge';
-import { mockOrEmpty } from '../lib/dataMode';
-import { MOCK_MATERIAL_NCRS } from '../data/mockQc';
-import type { NcrStatus, NcrSeverity } from '../types';
+import { EmptyState } from '@/components/feedback/empty-state';
+import { DataSourceBadge } from '@/components/ui/DataSourceBadge';
+import { mockOrEmpty } from '@/lib/dataMode';
+import { MOCK_MATERIAL_NCRS } from '@/data/mockQc';
+import type { NcrStatus, NcrSeverity } from '@/types';
 
 type StatusTab = 'all' | NcrStatus;
 type SeverityFilter = 'all' | NcrSeverity;
@@ -23,21 +24,6 @@ const STATUS_TABS: { key: StatusTab; label: string }[] = [
   { key: 'cancelled', label: 'Cancelled' },
 ];
 
-function severityVariant(s: string): 'neutral' | 'warning' | 'critical' | 'info' | 'default' {
-  if (s === 'critical') return 'critical';
-  if (s === 'high') return 'warning';
-  if (s === 'medium') return 'info';
-  return 'neutral';
-}
-
-function statusVariant(s: string): 'neutral' | 'warning' | 'success' | 'critical' | 'info' | 'default' {
-  if (s === 'open') return 'critical';
-  if (s === 'assigned' || s === 'corrective_action_in_progress') return 'warning';
-  if (s === 'pending_evidence') return 'info';
-  if (s === 'closed') return 'success';
-  if (s === 'cancelled') return 'neutral';
-  return 'neutral';
-}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -108,11 +94,11 @@ export function MaterialNcrs() {
                 {filtered.map(n => (
                   <tr key={n.id} className={`hover:bg-gray-50 transition-colors ${n.severity === 'critical' ? 'border-l-4 border-l-red-500' : ''}`}>
                     <td className="px-4 py-3 text-sm font-mono font-medium text-sky-700">{n.ncr_number}</td>
-                    <td className="px-4 py-3"><Badge variant={severityVariant(n.severity)}>{n.severity}</Badge></td>
+                    <td className="px-4 py-3"><PriorityBadge priority={n.severity} /></td>
                     <td className="px-4 py-3 text-sm text-gray-700 hidden md:table-cell">{n.item?.item_name ?? '—'}</td>
                     <td className="px-4 py-3 text-sm text-gray-500 hidden lg:table-cell font-mono text-xs">{n.project?.project_code ?? '—'}</td>
                     <td className="px-4 py-3 text-sm text-gray-500 hidden md:table-cell">{n.root_cause_category ?? '—'}</td>
-                    <td className="px-4 py-3"><Badge variant={statusVariant(n.ncr_status)}>{n.ncr_status.replace(/_/g, ' ')}</Badge></td>
+                    <td className="px-4 py-3"><StatusBadge status={n.ncr_status} /></td>
                     <td className="px-4 py-3 text-sm text-gray-500 hidden xl:table-cell">{n.due_date ? formatDate(n.due_date) : '—'}</td>
                     <td className="px-4 py-3">
                       <Link to={`/material-qc/ncrs/${n.id}`}>

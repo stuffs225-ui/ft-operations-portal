@@ -1,5 +1,5 @@
 import { Construction } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 
@@ -27,7 +27,7 @@ export function PlaceholderPage({
       <PageHeader
         title={title}
         subtitle={description}
-        action={
+        actions={
           <div className="flex items-center gap-2">
             <Badge variant="warning">Phase {phase}</Badge>
             <Badge variant="neutral">{module}</Badge>

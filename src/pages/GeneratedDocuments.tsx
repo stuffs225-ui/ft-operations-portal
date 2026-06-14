@@ -1,20 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { FileCheck, Search, ChevronRight } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
-import { Badge } from '../components/ui/Badge';
+import { PageHeader } from '@/components/common/page-header';
+import { StatusBadge } from '@/components/status/status-badge';
 import { Button } from '../components/ui/Button';
-import { EmptyState } from '../components/ui/EmptyState';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { MOCK_GENERATED_DOCUMENTS } from '../data/mockTemplates';
-import type { GeneratedDocument, GeneratedDocumentStatus } from '../types';
-
-const STATUS_BADGE: Record<GeneratedDocumentStatus, { label: string; variant: 'default' | 'success' | 'warning' | 'critical' | 'info' | 'neutral' }> = {
-  draft: { label: 'Draft', variant: 'neutral' },
-  generated: { label: 'Generated', variant: 'success' },
-  exported: { label: 'Exported', variant: 'info' },
-  archived: { label: 'Archived', variant: 'default' },
-};
+import { EmptyState } from '@/components/feedback/empty-state';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { MOCK_GENERATED_DOCUMENTS } from '@/data/mockTemplates';
+import type { GeneratedDocument } from '@/types';
 
 export function GeneratedDocuments() {
   const [docs, setDocs] = useState<GeneratedDocument[]>([]);
@@ -50,8 +43,7 @@ export function GeneratedDocuments() {
       <PageHeader
         title="Generated Documents"
         subtitle="Documents produced from fillable templates"
-        icon={<FileCheck size={18} />}
-        breadcrumb={[{ label: 'Templates', path: '/templates' }, { label: 'Generated Documents' }]}
+        breadcrumb={[{ label: 'Templates', href: '/templates' }, { label: 'Generated Documents' }]}
       />
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
@@ -95,7 +87,7 @@ export function GeneratedDocuments() {
                     <td className="px-4 py-3 text-sm text-gray-800">{d.output_title}</td>
                     <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">{d.template?.template_name ?? '—'}</td>
                     <td className="px-4 py-3">
-                      <Badge variant={STATUS_BADGE[d.status].variant}>{STATUS_BADGE[d.status].label}</Badge>
+                      <StatusBadge status={d.status} />
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500 hidden lg:table-cell">{new Date(d.generated_at).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
