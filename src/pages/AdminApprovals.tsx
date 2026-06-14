@@ -59,6 +59,8 @@ function ApproveModal({ project, onClose, onSuccess }: ApproveModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [routingWarning, setRoutingWarning] = useState<string | null>(null);
+
   // Auto-check based on selections
   function handleLocationChange(loc: ManufacturingLocation) {
     setLocation(loc);
@@ -120,6 +122,32 @@ function ApproveModal({ project, onClose, onSuccess }: ApproveModalProps) {
         role,
       );
 
+      // Persist checked routing departments — non-blocking (approval already committed above).
+      // Unchecked departments are not inserted; the table is a positive list of routing destinations.
+      const DEPT_KEYS = ['procurement', 'factory', 'store', 'material_qc', 'project_qc', 'dubai_afs'] as const;
+      const checkedDepts = DEPT_KEYS.filter((d) => routes[d]);
+      if (checkedDepts.length > 0) {
+        const routingRows = checkedDepts.map((dept) => ({
+          project_id: project.id,
+          department: dept,
+          is_required: true,
+          routed_by: profile?.id ?? null,
+          source: 'so_approval',
+          metadata: { manufacturing_location: location, medical_items: medical },
+        }));
+        const { error: routingErr } = await supabase
+          .from('project_department_routing')
+          .upsert(routingRows, { onConflict: 'project_id,department' });
+        if (routingErr) {
+          setRoutingWarning(
+            `Project approved. Department routing could not be persisted: ${routingErr.message}. ` +
+            `Routing is recorded in the project timeline instead.`,
+          );
+          setSubmitting(false);
+          return;
+        }
+      }
+
       onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to approve project');
@@ -145,6 +173,13 @@ function ApproveModal({ project, onClose, onSuccess }: ApproveModalProps) {
             <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3">
               <AlertCircle size={14} className="text-red-500 shrink-0 mt-0.5" />
               <span className="text-xs text-red-700">{error}</span>
+            </div>
+          )}
+
+          {routingWarning && (
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+              <span className="text-xs text-amber-700">{routingWarning}</span>
             </div>
           )}
 
@@ -237,10 +272,18 @@ function ApproveModal({ project, onClose, onSuccess }: ApproveModalProps) {
         </div>
 
         <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose} disabled={submitting}>Cancel</Button>
-          <Button onClick={handleApprove} loading={submitting} icon={!submitting ? <Check size={16} /> : undefined}>
-            Approve Project
-          </Button>
+          {routingWarning ? (
+            <Button onClick={onSuccess} icon={<Check size={16} />}>
+              Close
+            </Button>
+          ) : (
+            <>
+              <Button variant="ghost" onClick={onClose} disabled={submitting}>Cancel</Button>
+              <Button onClick={handleApprove} loading={submitting} icon={!submitting ? <Check size={16} /> : undefined}>
+                Approve Project
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>
