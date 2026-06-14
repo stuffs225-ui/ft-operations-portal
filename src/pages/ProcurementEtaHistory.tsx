@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Clock, Search } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -98,9 +98,8 @@ export function ProcurementEtaHistory() {
       <PageHeader
         title="ETA History"
         subtitle="Full audit trail of all ETA changes with reasons."
-        icon={<Clock size={18} />}
         breadcrumb={[
-          { label: 'Procurement', path: '/procurement' },
+          { label: 'Procurement', href: '/procurement' },
           { label: 'ETA History' },
         ]}
       />

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ClipboardCheck, AlertTriangle, CheckCircle, FileCheck, Wrench, ChevronRight, Plus } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -72,7 +72,7 @@ export function ProjectQC() {
       <PageHeader
         title="Project / Vehicle QC"
         subtitle="Final vehicle and project quality inspection, findings, rework, and release notes"
-        action={
+        actions={
           canCreate ? (
             <Link to="/project-qc/inspections">
               <Button variant="primary" size="sm"><Plus size={14} className="mr-1" /> New Inspection</Button>

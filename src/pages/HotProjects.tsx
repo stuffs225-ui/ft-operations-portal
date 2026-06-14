@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Flame, Plus, Search, Loader2, AlertCircle } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -74,8 +74,7 @@ export function HotProjects() {
       <PageHeader
         title="Hot Projects"
         subtitle="Opportunity pipeline — active leads and negotiations"
-        icon={<Flame className="text-brand-600" size={22} />}
-        action={
+        actions={
           <Link to="/hot-projects/new">
             <Button icon={<Plus size={15} />} size="sm">New Opportunity</Button>
           </Link>

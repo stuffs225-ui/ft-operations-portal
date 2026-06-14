@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, CheckCircle } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -104,7 +104,7 @@ export function ReportsCapa() {
       <PageHeader
         title="CAPA Records"
         subtitle="Corrective and preventive action tracking"
-        action={
+        actions={
           <Button variant="primary" size="sm" onClick={handleNewCapa} disabled={!canManage}>
             New CAPA
           </Button>

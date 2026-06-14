@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BellRing, Info, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
@@ -111,12 +111,11 @@ export function NotificationSettings() {
       <PageHeader
         title="Notification Preferences"
         subtitle="Choose how you are notified for each event"
-        icon={<BellRing size={18} />}
         breadcrumb={[
-          { label: 'Notifications', path: '/notifications' },
+          { label: 'Notifications', href: '/notifications' },
           { label: 'Preferences' },
         ]}
-        action={
+        actions={
           <div className="flex items-center gap-2">
             <DataSourceBadge variant="preview" />
             <Button variant="primary" size="sm" loading={saving} disabled={saving} onClick={handleSave}>

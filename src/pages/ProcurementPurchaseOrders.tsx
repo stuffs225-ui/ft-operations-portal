@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, Search, AlertTriangle } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -97,9 +97,8 @@ export function ProcurementPurchaseOrders() {
       <PageHeader
         title="PO to Supplier"
         subtitle="All Purchase Orders sent to suppliers."
-        icon={<ShoppingCart size={18} />}
         breadcrumb={[
-          { label: 'Procurement', path: '/procurement' },
+          { label: 'Procurement', href: '/procurement' },
           { label: 'PO to Supplier' },
         ]}
       />

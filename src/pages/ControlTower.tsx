@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import {
   AlertTriangle, CheckCircle2, XCircle, ArrowRight, Radio,
 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card, CardHeader } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -200,9 +200,8 @@ export function ControlTower() {
       <PageHeader
         title="Control Tower"
         subtitle="Live operational monitoring — exceptions, blockers, and delivery status"
-        icon={<Radio size={18} />}
         breadcrumb={[{ label: 'Control Tower' }]}
-        action={<DataSourceBadge variant="preview" />}
+        actions={<DataSourceBadge variant="preview" />}
       />
 
       {isLiveMode() && (

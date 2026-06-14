@@ -4,7 +4,7 @@ import {
   Users, ShoppingCart, Shield, Phone, ArrowLeft,
   Loader2, Edit2, Check, X, Star,
 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -296,13 +296,12 @@ export function ProcurementSupplierDetail() {
       <PageHeader
         title={supplier.supplier_name}
         subtitle={supplier.supplier_category ?? 'Supplier'}
-        icon={<Users size={18} />}
         breadcrumb={[
-          { label: 'Procurement', path: '/procurement' },
-          { label: 'Approved Suppliers', path: '/procurement/suppliers' },
+          { label: 'Procurement', href: '/procurement' },
+          { label: 'Approved Suppliers', href: '/procurement/suppliers' },
           { label: supplier.supplier_name },
         ]}
-        action={procurementStatusBadge(supplier.procurement_status)}
+        actions={procurementStatusBadge(supplier.procurement_status)}
       />
 
       {/* Tabs */}

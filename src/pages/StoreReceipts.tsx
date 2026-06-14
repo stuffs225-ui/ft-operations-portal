@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, Plus, Search, ChevronRight } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -64,7 +64,7 @@ export function StoreReceipts() {
       <PageHeader
         title="Material Receipts"
         subtitle="Incoming materials and goods received from suppliers"
-        action={
+        actions={
           canCreate ? (
             <Link to="/store/receipts/new">
               <Button variant="primary" size="sm">

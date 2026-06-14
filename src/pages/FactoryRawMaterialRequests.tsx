@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, Search, Plus } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -100,9 +100,8 @@ export function FactoryRawMaterialRequests() {
       <PageHeader
         title="Raw Material Requests"
         subtitle="Project-related and stock raw material requests"
-        icon={<Package size={18} />}
-        breadcrumb={[{ label: 'Factory', path: '/factory' }, { label: 'Raw Material Requests' }]}
-        action={
+        breadcrumb={[{ label: 'Factory', href: '/factory' }, { label: 'Raw Material Requests' }]}
+        actions={
           canCreate ? (
             <Link to="/factory/raw-material-requests/new">
               <Button size="sm" icon={<Plus size={14} />}>

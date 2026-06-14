@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Search, Package } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';

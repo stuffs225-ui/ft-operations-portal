@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FileText, Search, Package } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -82,9 +82,8 @@ export function ProcurementRequests() {
       <PageHeader
         title="Purchase Requests"
         subtitle="All incoming PRs from production and engineering teams."
-        icon={<FileText size={18} />}
         breadcrumb={[
-          { label: 'Procurement', path: '/procurement' },
+          { label: 'Procurement', href: '/procurement' },
           { label: 'Purchase Requests' },
         ]}
       />

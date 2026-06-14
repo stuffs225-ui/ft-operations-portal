@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, CheckCircle2, XCircle, ArrowRight, Download } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -128,8 +128,8 @@ export function ReportsProjects() {
       <PageHeader
         title="Project Reports"
         subtitle="Lifecycle status, WO/PN coverage, and health scores"
-        breadcrumb={[{ label: 'Reports', path: '/reports' }, { label: 'Projects' }]}
-        action={
+        breadcrumb={[{ label: 'Reports', href: '/reports' }, { label: 'Projects' }]}
+        actions={
           <Button variant="secondary" size="sm" icon={<Download size={14} />} disabled>
             Export (coming soon)
           </Button>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Wrench, FileX, RefreshCw, CheckCircle2, Package } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { isSupabaseConfigured } from '../lib/supabase';
@@ -121,7 +121,7 @@ export function ReportsFactory() {
       <PageHeader
         title="Factory Reports"
         subtitle="Production blockers, BOQ gaps, monthly updates, and QC readiness"
-        breadcrumb={[{ label: 'Reports', path: '/reports' }, { label: 'Factory' }]}
+        breadcrumb={[{ label: 'Reports', href: '/reports' }, { label: 'Factory' }]}
       />
 
       {!isSupabaseConfigured && (

@@ -134,8 +134,7 @@ export function FactoryProjects() {
       <PageHeader
         title="Factory Projects"
         subtitle="Approved Saudi projects with active WO"
-        icon={<Wrench size={18} />}
-        breadcrumb={[{ label: 'Factory', path: '/factory' }, { label: 'Projects' }]}
+        breadcrumb={[{ label: 'Factory', href: '/factory' }, { label: 'Projects' }]}
       />
 
       {!isSupabaseConfigured && (

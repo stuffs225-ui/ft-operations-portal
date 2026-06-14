@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ShieldCheck, AlertOctagon, Search, Wrench, FileCheck } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { isSupabaseConfigured } from '../lib/supabase';
@@ -106,7 +106,7 @@ export function ReportsQC() {
       <PageHeader
         title="QC Reports"
         subtitle="Material inspections, NCRs, project QC findings, and release note readiness"
-        breadcrumb={[{ label: 'Reports', path: '/reports' }, { label: 'QC' }]}
+        breadcrumb={[{ label: 'Reports', href: '/reports' }, { label: 'QC' }]}
       />
 
       {!isSupabaseConfigured && (

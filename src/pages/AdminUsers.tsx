@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Search, UserPlus, X, ChevronDown, Eye, ArrowRight } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { cn, formatDate } from '../lib/utils';
@@ -214,8 +214,7 @@ export function AdminUsers() {
       <PageHeader
         title="Admin / Users"
         subtitle="Manage user accounts and role assignments"
-        icon={<Users size={20} />}
-        action={
+        actions={
           <Button size="sm" icon={<UserPlus size={14} />}>
             Invite User
           </Button>

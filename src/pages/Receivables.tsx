@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { BarChart3, Search, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -89,7 +89,6 @@ export function Receivables() {
       <PageHeader
         title="Receivables & Aging"
         subtitle="Outstanding invoice milestones — live from invoicing plans"
-        icon={<BarChart3 className="text-brand-600" size={22} />}
       />
 
       {/* KPI cards */}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FileCheck, ChevronRight, Plus } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -56,7 +56,7 @@ export function ProjectQcReleaseNotes() {
       <PageHeader
         title="Release Notes"
         subtitle="Issue Release Notes for projects and vehicle lines ready for customer delivery"
-        action={
+        actions={
           canCreate ? (
             <Link to="/project-qc/release-notes/new">
               <Button variant="primary" size="sm"><Plus size={14} className="mr-1" /> New Release Note</Button>

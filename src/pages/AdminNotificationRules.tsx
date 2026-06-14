@@ -1,5 +1,5 @@
 import { SlidersHorizontal, Plus, Info } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { ROLE_CONFIGS } from '../lib/roles';
@@ -26,8 +26,7 @@ export function AdminNotificationRules() {
       <PageHeader
         title="Notification Rules"
         subtitle="Notification events and escalation governance"
-        icon={<SlidersHorizontal size={18} />}
-        action={
+        actions={
           <div className="flex items-center gap-2">
             <DataSourceBadge variant="preview" />
             <Button
