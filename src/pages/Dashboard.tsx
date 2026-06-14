@@ -6,7 +6,7 @@ import {
   ClipboardCheck, FileCheck, Plane, FileSearch, BarChart2, Activity, type LucideIcon,
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { DASHBOARD_KPI_CARDS, AFS_KPI_CARDS, PROJECT_SUMMARY } from '../data/mockDashboard';
 import { mockOrEmpty, mockOrValue, isLiveMode } from '../lib/dataMode';
@@ -75,7 +75,7 @@ export function Dashboard() {
         title="Operations Control Tower"
         subtitle="Operational status across all modules"
         breadcrumb={[{ label: 'Dashboard' }]}
-        action={<DataSourceBadge variant="auto" />}
+        actions={<DataSourceBadge variant="auto" />}
       />
 
       {isLiveMode() && (
@@ -107,31 +107,35 @@ export function Dashboard() {
         ))}
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="mb-6">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-          <span className="w-1 h-4 bg-brand-600 rounded-full inline-block" />
-          Critical Operational Indicators
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
-          {dashboardCards.map((card) => (
-            <KpiCardItem key={card.id} card={card} />
-          ))}
+      {/* KPI Cards Grid — hidden in live mode until module data is wired (Phase 2+) */}
+      {dashboardCards.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <span className="w-1 h-4 bg-brand-600 rounded-full inline-block" />
+            Critical Operational Indicators
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+            {dashboardCards.map((card) => (
+              <KpiCardItem key={card.id} card={card} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Dubai / AFS & After Sales KPIs */}
-      <div className="mb-6">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-          <span className="w-1 h-4 bg-sky-600 rounded-full inline-block" />
-          Dubai / AFS &amp; After Sales
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {afsCards.map((card) => (
-            <KpiCardItem key={card.id} card={card} />
-          ))}
+      {/* Dubai / AFS & After Sales KPIs — hidden in live mode until module data is wired */}
+      {afsCards.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <span className="w-1 h-4 bg-sky-600 rounded-full inline-block" />
+            Dubai / AFS &amp; After Sales
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {afsCards.map((card) => (
+              <KpiCardItem key={card.id} card={card} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Reports & Control Tower Quick Access */}
       <div className="mb-6">

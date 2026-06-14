@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import {
   LayoutDashboard, Inbox, FileText, TrendingUp, UserCheck, FolderKanban,
   ShieldCheck, GitBranch, ShoppingCart, Factory, Warehouse, PackageCheck,
@@ -121,6 +121,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <X size={18} />
           </button>
         </div>
+
+        {/* Desktop brand header */}
+        <Link
+          to="/"
+          className="hidden lg:flex items-center h-14 px-4 border-b border-gray-200 shrink-0 hover:bg-gray-50 transition-colors"
+        >
+          <BrandLogo size={28} withWordmark tagline="Operations Portal" />
+        </Link>
 
         {/* Nav items */}
         <nav className="flex-1 overflow-y-auto py-2 scrollbar-thin">

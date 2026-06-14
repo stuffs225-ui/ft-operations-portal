@@ -31,8 +31,8 @@ export function Header({ onMenuToggle }: HeaderProps) {
         <Menu size={20} />
       </button>
 
-      {/* Brand lockup — NAFFCO Fire Trucks Department · Operations Portal */}
-      <Link to="/" className="mr-4 shrink-0">
+      {/* Brand lockup — only shown on mobile; desktop sidebar carries the brand. */}
+      <Link to="/" className="mr-4 shrink-0 lg:hidden">
         <BrandLogo size={30} withWordmark tagline="Operations Portal" />
       </Link>
 
