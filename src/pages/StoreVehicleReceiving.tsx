@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Truck, Plus, Search, ChevronRight, AlertCircle, CheckCircle } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -65,7 +65,7 @@ export function StoreVehicleReceiving() {
       <PageHeader
         title="Vehicle Receiving"
         subtitle="Register incoming vehicles — chassis number and required photos mandatory"
-        action={
+        actions={
           canCreate ? (
             <Link to="/store/vehicle-receiving/new">
               <Button variant="primary" size="sm">

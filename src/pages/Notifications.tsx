@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, Settings, CheckCheck, Info, Loader2 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -87,8 +87,7 @@ export function Notifications() {
       <PageHeader
         title="Notifications"
         subtitle={unread > 0 ? `${unread} unread` : 'All caught up'}
-        icon={<Bell size={18} />}
-        action={
+        actions={
           <div className="flex items-center gap-2">
             <Button variant="secondary" size="sm" icon={<CheckCheck size={14} />} onClick={handleMarkAll} disabled={unread === 0}>
               Mark all as read

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FileCheck, Printer, Download } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -63,8 +63,8 @@ export function GeneratedDocumentDetail() {
   if (notFound || !doc) {
     return (
       <div className="space-y-5">
-        <PageHeader title="Generated Document" icon={<FileCheck size={18} />}
-          breadcrumb={[{ label: 'Templates', path: '/templates' }, { label: 'Generated Documents', path: '/templates/generated' }, { label: 'Not found' }]} />
+        <PageHeader title="Generated Document"
+          breadcrumb={[{ label: 'Templates', href: '/templates' }, { label: 'Generated Documents', href: '/templates/generated' }, { label: 'Not found' }]} />
         <EmptyState icon={<FileCheck size={24} className="text-gray-400" />} title="Document not found"
           description="The generated document you are looking for does not exist."
           action={<Link to="/templates/generated"><Button variant="secondary" size="sm">Back to documents</Button></Link>} />
@@ -80,9 +80,8 @@ export function GeneratedDocumentDetail() {
       <PageHeader
         title={doc.output_title}
         subtitle={doc.generated_document_number}
-        icon={<FileCheck size={18} />}
-        breadcrumb={[{ label: 'Templates', path: '/templates' }, { label: 'Generated Documents', path: '/templates/generated' }, { label: doc.generated_document_number }]}
-        action={
+        breadcrumb={[{ label: 'Templates', href: '/templates' }, { label: 'Generated Documents', href: '/templates/generated' }, { label: doc.generated_document_number }]}
+        actions={
           <div className="flex items-center gap-2">
             <Button variant="secondary" size="sm" onClick={() => window.print()}>
               <Printer size={14} className="mr-1" /> Print

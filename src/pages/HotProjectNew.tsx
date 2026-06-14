@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Flame, ArrowLeft, Save, Loader2 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { useAuth } from '../hooks/useAuth';
@@ -108,8 +108,7 @@ export function HotProjectNew() {
       <PageHeader
         title="New Opportunity"
         subtitle="Add a hot project to the pipeline"
-        icon={<Flame className="text-brand-600" size={22} />}
-        action={
+        actions={
           <Link to="/hot-projects">
             <Button variant="secondary" icon={<ArrowLeft size={14} />} size="sm">Back</Button>
           </Link>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FilePlus, Download } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -121,8 +121,8 @@ export function TemplateGenerate() {
   if (notFound || !template) {
     return (
       <div className="space-y-5">
-        <PageHeader title="Generate Document" icon={<FilePlus size={18} />}
-          breadcrumb={[{ label: 'Templates', path: '/templates' }, { label: 'Not found' }]} />
+        <PageHeader title="Generate Document"
+          breadcrumb={[{ label: 'Templates', href: '/templates' }, { label: 'Not found' }]} />
         <EmptyState icon={<FilePlus size={24} className="text-gray-400" />} title="Template not found"
           description="The template you are looking for does not exist."
           action={<Link to="/templates"><Button variant="secondary" size="sm">Back to templates</Button></Link>} />
@@ -135,9 +135,8 @@ export function TemplateGenerate() {
       <PageHeader
         title="Generate Document"
         subtitle={`${template.template_code} — ${template.template_name}`}
-        icon={<FilePlus size={18} />}
-        breadcrumb={[{ label: 'Templates', path: '/templates' }, { label: template.template_code, path: `/templates/${template.id}` }, { label: 'Generate' }]}
-        action={
+        breadcrumb={[{ label: 'Templates', href: '/templates' }, { label: template.template_code, href: `/templates/${template.id}` }, { label: 'Generate' }]}
+        actions={
           <div className="flex items-center gap-2">
             <Button variant="secondary" size="sm" onClick={handleDownload}>
               <Download size={14} className="mr-1" /> Download as .txt

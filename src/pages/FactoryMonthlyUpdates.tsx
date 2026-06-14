@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, AlertTriangle, ChevronRight, CheckCircle2 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -107,8 +107,7 @@ export function FactoryMonthlyUpdates() {
       <PageHeader
         title="Monthly Updates"
         subtitle="Factory records requiring a monthly production status update"
-        icon={<Calendar size={18} />}
-        breadcrumb={[{ label: 'Factory', path: '/factory' }, { label: 'Monthly Updates' }]}
+        breadcrumb={[{ label: 'Factory', href: '/factory' }, { label: 'Monthly Updates' }]}
       />
 
       {!isSupabaseConfigured && (

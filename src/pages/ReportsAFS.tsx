@@ -8,7 +8,7 @@ import {
   FileText,
   Wrench,
 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { isSupabaseConfigured } from '../lib/supabase';
@@ -106,8 +106,8 @@ export function ReportsAFS() {
       <PageHeader
         title="Dubai / AFS Reports"
         subtitle="PN gate, ETA tracking, arrival, pre-delivery, and maintenance status"
-        breadcrumb={[{ label: 'Reports', path: '/reports' }, { label: 'Dubai / AFS' }]}
-        action={<DataSourceBadge variant="preview" />}
+        breadcrumb={[{ label: 'Reports', href: '/reports' }, { label: 'Dubai / AFS' }]}
+        actions={<DataSourceBadge variant="preview" />}
       />
 
       {!isSupabaseConfigured && (

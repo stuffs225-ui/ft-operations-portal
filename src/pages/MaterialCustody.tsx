@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldCheck, Plus, ChevronRight } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -60,7 +60,7 @@ export function MaterialCustody() {
       <PageHeader
         title="Material Custody"
         subtitle="Issuance, acceptance, installation, and return of store materials"
-        action={
+        actions={
           canCreate ? (
             <Link to="/custody/new">
               <Button variant="primary" size="sm"><Plus size={14} className="mr-1" /> Issue Custody</Button>

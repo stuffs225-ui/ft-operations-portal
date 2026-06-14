@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Wrench, Search, AlertTriangle } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -134,8 +134,7 @@ export function FactoryProjects() {
       <PageHeader
         title="Factory Projects"
         subtitle="Approved Saudi projects with active WO"
-        icon={<Wrench size={18} />}
-        breadcrumb={[{ label: 'Factory', path: '/factory' }, { label: 'Projects' }]}
+        breadcrumb={[{ label: 'Factory', href: '/factory' }, { label: 'Projects' }]}
       />
 
       {!isSupabaseConfigured && (

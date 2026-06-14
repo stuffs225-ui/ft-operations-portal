@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ClipboardCheck, AlertTriangle, CheckCircle, XCircle, Clock, ChevronRight, Plus } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -71,7 +71,7 @@ export function MaterialQC() {
       <PageHeader
         title="Material QC"
         subtitle="Inspect received materials, manage NCRs, and track serial numbers"
-        action={
+        actions={
           canCreate ? (
             <Link to="/material-qc/inspections">
               <Button variant="primary" size="sm"><Plus size={14} className="mr-1" /> New Inspection</Button>

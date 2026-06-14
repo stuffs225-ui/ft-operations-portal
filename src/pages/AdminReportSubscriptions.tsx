@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarClock, Plus, X, ChevronDown, Info, ArrowRight } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -222,8 +222,7 @@ export function AdminReportSubscriptions() {
       <PageHeader
         title="Scheduled Report Subscriptions"
         subtitle="Configure who receives department reports and how often"
-        icon={<CalendarClock size={20} />}
-        action={
+        actions={
           <Button size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>
             New Subscription
           </Button>

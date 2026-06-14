@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Button } from '../components/ui/Button';
 import {
   Settings as SettingsIcon, Plus, Pencil,
@@ -640,8 +640,7 @@ export function Settings() {
       <PageHeader
         title="Settings"
         subtitle="Master data, SLA rules, and system configuration"
-        icon={<SettingsIcon size={20} />}
-        action={
+        actions={
           <span className={cn(
             'inline-flex items-center gap-1.5 text-[10px] font-medium rounded px-2 py-1 border',
             isSupabaseConfigured

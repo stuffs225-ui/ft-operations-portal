@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -233,7 +233,7 @@ export function ReportsSales() {
       <PageHeader
         title="Sales Reports"
         subtitle="Quotation pipeline, conversion, and active project overview"
-        breadcrumb={[{ label: 'Reports', path: '/reports' }, { label: 'Sales' }]}
+        breadcrumb={[{ label: 'Reports', href: '/reports' }, { label: 'Sales' }]}
       />
 
       <ReportExportBar

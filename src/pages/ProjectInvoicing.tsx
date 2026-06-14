@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ReceiptText, ArrowLeft, Plus, Save, Loader2, Trash2 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -181,7 +181,7 @@ export function ProjectInvoicing() {
   if (!isSupabaseConfigured) {
     return (
       <div className="space-y-4">
-        <PageHeader title="Project Invoicing" icon={<ReceiptText className="text-brand-600" size={22} />} action={<Link to={`/projects/${projectId}`}><Button variant="secondary" icon={<ArrowLeft size={14} />} size="sm">Back to Project</Button></Link>} />
+        <PageHeader title="Project Invoicing" actions={<Link to={`/projects/${projectId}`}><Button variant="secondary" icon={<ArrowLeft size={14} />} size="sm">Back to Project</Button></Link>} />
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">Supabase is not configured.</div>
       </div>
     );
@@ -198,8 +198,7 @@ export function ProjectInvoicing() {
       <PageHeader
         title="Invoicing Plan"
         subtitle={project ? `${project.project_code} · ${project.customer_name}` : 'Project Invoicing'}
-        icon={<ReceiptText className="text-brand-600" size={22} />}
-        action={
+        actions={
           <Link to={`/projects/${projectId}`}>
             <Button variant="secondary" icon={<ArrowLeft size={14} />} size="sm">Back to Project</Button>
           </Link>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Wrench, FileText, Package, Calendar, AlertTriangle, ChevronRight } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { useAuth } from '../hooks/useAuth';
@@ -98,10 +98,7 @@ export function Factory() {
   if (!role || !FACTORY_ROLES.includes(role)) {
     return (
       <div className="p-6">
-        <PageHeader
-          title="Factory / Production"
-          icon={<Wrench size={18} />}
-        />
+        <PageHeader title="Factory / Production" />
         <Card className="p-8 text-center">
           <div className="flex flex-col items-center gap-3">
             <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center">
@@ -157,7 +154,6 @@ export function Factory() {
       <PageHeader
         title="Factory / Production"
         subtitle="Saudi factory workspace — manage WO, BOQ, BOM, GA Drawings, and production progress"
-        icon={<Wrench size={18} />}
       />
 
       {!isSupabaseConfigured && (

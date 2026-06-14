@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Package } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { MOCK_AFS_MISSING_ITEMS } from '../data/mockAfs';

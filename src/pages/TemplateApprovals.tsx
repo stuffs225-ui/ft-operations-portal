@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckSquare, Check, X, ChevronRight } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -86,8 +86,7 @@ export function TemplateApprovals() {
       <PageHeader
         title="Template Approvals"
         subtitle="Review and approve submitted document templates"
-        icon={<CheckSquare size={18} />}
-        breadcrumb={[{ label: 'Templates', path: '/templates' }, { label: 'Approvals' }]}
+        breadcrumb={[{ label: 'Templates', href: '/templates' }, { label: 'Approvals' }]}
       />
 
       {msg && (

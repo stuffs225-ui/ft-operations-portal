@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { FileText, Plus, Search, ChevronRight, CheckSquare, FilePlus } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -86,8 +86,7 @@ export function Templates() {
       <PageHeader
         title="Template Library"
         subtitle="Document templates and fillable forms across departments"
-        icon={<FileText size={18} />}
-        action={
+        actions={
           <div className="flex items-center gap-2">
             {canApprove && (
               <Link to="/templates/approvals">

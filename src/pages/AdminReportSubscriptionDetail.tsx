@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, CalendarClock, Play, Pause, PlayCircle } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -102,8 +102,7 @@ export function AdminReportSubscriptionDetail() {
         <PageHeader
           title={reportTitle}
           subtitle="Scheduled report subscription configuration and delivery history"
-          icon={<CalendarClock size={20} />}
-          action={
+          actions={
             <div className="flex items-center gap-2">
               <DataSourceBadge variant="preview" />
               <Button

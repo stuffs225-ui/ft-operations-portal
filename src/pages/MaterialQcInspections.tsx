@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ClipboardCheck, ChevronRight, Plus } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -61,7 +61,7 @@ export function MaterialQcInspections() {
       <PageHeader
         title="Material QC Inspections"
         subtitle="Inspect received materials and record QC results"
-        action={
+        actions={
           canCreate ? (
             <Link to="/material-qc/inspections/new">
               <Button variant="primary" size="sm"><Plus size={14} className="mr-1" /> New Inspection</Button>

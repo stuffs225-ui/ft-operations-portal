@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Wrench, Plus } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -51,7 +51,7 @@ export function AfterSalesMaintenance() {
       <PageHeader
         title="Maintenance Requests"
         subtitle="After-sales maintenance and repair tracking"
-        action={canCreate ? (
+        actions={canCreate ? (
           <Link to="/after-sales/maintenance/new">
             <Button variant="primary" size="sm"><Plus size={14} className="mr-1" /> New Request</Button>
           </Link>

@@ -3,7 +3,7 @@ import {
   AlertTriangle, CheckCircle2, XCircle,
   ArrowRight,
 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card, CardHeader } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -189,7 +189,7 @@ export function ReportsExecutive() {
       <PageHeader
         title="Executive Dashboard"
         subtitle="Full operational overview across all modules"
-        breadcrumb={[{ label: 'Reports', path: '/reports' }, { label: 'Executive' }]}
+        breadcrumb={[{ label: 'Reports', href: '/reports' }, { label: 'Executive' }]}
       />
 
       {/* Section 1: Project Lifecycle Overview */}

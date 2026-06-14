@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Package, Truck, UserCheck, Inbox, Stethoscope } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { isSupabaseConfigured } from '../lib/supabase';
@@ -101,7 +101,7 @@ export function ReportsStore() {
       <PageHeader
         title="Store Reports"
         subtitle="Material receipts, vehicle receiving, custody, and serial tracking"
-        breadcrumb={[{ label: 'Reports', path: '/reports' }, { label: 'Store' }]}
+        breadcrumb={[{ label: 'Reports', href: '/reports' }, { label: 'Store' }]}
       />
 
       {!isSupabaseConfigured && (

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FileText, Search } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -88,8 +88,7 @@ export function FactoryRequirements() {
       <PageHeader
         title="Factory Requirements"
         subtitle="BOQ, BOM, GA Drawing, Detail Drawings, and other production requirements"
-        icon={<FileText size={18} />}
-        breadcrumb={[{ label: 'Factory', path: '/factory' }, { label: 'Requirements' }]}
+        breadcrumb={[{ label: 'Factory', href: '/factory' }, { label: 'Requirements' }]}
       />
 
       {!isSupabaseConfigured && (

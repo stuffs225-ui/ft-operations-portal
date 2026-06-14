@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FileText, Clock, AlertTriangle, TrendingDown, Star } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { useAuth } from '../hooks/useAuth';
@@ -106,7 +106,7 @@ export function ReportsProcurement() {
       <PageHeader
         title="Procurement Reports"
         subtitle="PR pipeline, PO status, ETA coverage, and supplier performance"
-        breadcrumb={[{ label: 'Reports', path: '/reports' }, { label: 'Procurement' }]}
+        breadcrumb={[{ label: 'Reports', href: '/reports' }, { label: 'Procurement' }]}
       />
 
       {!isSupabaseConfigured && (
