@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Search, UserPlus, X, ChevronDown, Eye, ArrowRight } from 'lucide-react';
+import { Search, UserPlus, X, ChevronDown, Eye, ArrowRight } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';

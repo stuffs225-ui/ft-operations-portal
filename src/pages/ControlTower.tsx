@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import {
-  AlertTriangle, CheckCircle2, XCircle, ArrowRight, Radio,
+  AlertTriangle, CheckCircle2, XCircle, ArrowRight,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Card, CardHeader } from '../components/ui/Card';
