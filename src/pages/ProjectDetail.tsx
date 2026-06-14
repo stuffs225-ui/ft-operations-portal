@@ -99,7 +99,7 @@ const DEPT_LABELS: Record<string, string> = {
   dubai_afs:   'Dubai / AFS',
 };
 
-function RoutingSummaryCard({ projectId }: { projectId: string }) {
+function RoutingSummaryCard({ projectId, refreshKey }: { projectId: string; refreshKey?: number }) {
   const [routing, setRouting] = useState<string[]>([]);
   const [loadingRouting, setLoadingRouting] = useState(true);
   const [routingLoadError, setRoutingLoadError] = useState<string | null>(null);
@@ -110,6 +110,8 @@ function RoutingSummaryCard({ projectId }: { projectId: string }) {
       setLoadingRouting(false);
       return;
     }
+    setLoadingRouting(true);
+    setRoutingLoadError(null);
     supabase
       .from('project_department_routing')
       .select('department')
@@ -120,7 +122,7 @@ function RoutingSummaryCard({ projectId }: { projectId: string }) {
         else setRouting((data as unknown as Array<{ department: string }>)?.map((r) => r.department) ?? []);
         setLoadingRouting(false);
       });
-  }, [projectId]);
+  }, [projectId, refreshKey]);
 
   return (
     <Card className="p-5">
@@ -156,9 +158,10 @@ function RoutingSummaryCard({ projectId }: { projectId: string }) {
 interface ApprovePanelProps {
   project: Project;
   onSuccess: (updated: Partial<Project>) => void;
+  onRoutingWarning?: (msg: string) => void;
 }
 
-function ApprovePanel({ project, onSuccess }: ApprovePanelProps) {
+function ApprovePanel({ project, onSuccess, onRoutingWarning }: ApprovePanelProps) {
   const { profile, role } = useAuth();
   const [location, setLocation] = useState<ManufacturingLocation>(
     project.manufacturing_location === 'not_set' ? 'saudi' : project.manufacturing_location,
@@ -166,10 +169,28 @@ function ApprovePanel({ project, onSuccess }: ApprovePanelProps) {
   const [medical, setMedical] = useState<MedicalItems>(
     project.medical_items === 'not_set' ? 'no' : project.medical_items,
   );
+  const [routes, setRoutes] = useState({
+    procurement: true,
+    factory: true,
+    store: true,
+    material_qc: false,
+    project_qc: true,
+    dubai_afs: false,
+  });
   const [reason, setReason] = useState('');
   const [mode, setMode] = useState<'approve' | 'sendback' | 'reject' | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function handleLocationChange(loc: ManufacturingLocation) {
+    setLocation(loc);
+    setRoutes((r) => ({ ...r, dubai_afs: loc === 'dubai' }));
+  }
+
+  function handleMedicalChange(med: MedicalItems) {
+    setMedical(med);
+    setRoutes((r) => ({ ...r, material_qc: med === 'yes' }));
+  }
 
   async function handleApprove() {
     setSubmitting(true); setError(null);
@@ -188,10 +209,42 @@ function ApprovePanel({ project, onSuccess }: ApprovePanelProps) {
       if (e) throw e;
       await recordProjectEvent(project.id, 'approved', 'Project approved',
         `Route: ${location} | Medical: ${medical}`, profile?.id ?? null, profile?.full_name ?? null,
-        { manufacturing_location: location, medical_items: medical });
+        { manufacturing_location: location, medical_items: medical, routing: routes });
       await recordAuditEntry('project_approved', project.id, `Project ${project.project_code} approved`,
         { project_status: 'submitted_for_approval' }, { project_status: 'approved' },
         profile?.id ?? null, profile?.email ?? null, role);
+
+      // Routing persistence — non-blocking; approval already committed above
+      const { error: delErr } = await supabase
+        .from('project_department_routing')
+        .delete()
+        .eq('project_id', project.id)
+        .eq('source', 'so_approval');
+      if (delErr) {
+        onRoutingWarning?.(`Routing cleanup failed: ${delErr.message}. Approval saved; routing recorded in timeline.`);
+        onSuccess({ project_status: 'approved', manufacturing_location: location, medical_items: medical,
+          approved_at: now, approved_by: profile?.id ?? null });
+        return;
+      }
+
+      const checkedDepts = (Object.keys(routes) as (keyof typeof routes)[]).filter((k) => routes[k]);
+      if (checkedDepts.length > 0) {
+        const rows = checkedDepts.map((dept) => ({
+          project_id: project.id,
+          department: dept,
+          routed_by: profile?.id ?? null,
+          source: 'so_approval' as const,
+          metadata: { manufacturing_location: location, medical_items: medical },
+        }));
+        const { error: insErr } = await supabase.from('project_department_routing').insert(rows);
+        if (insErr) {
+          onRoutingWarning?.(`Routing save failed: ${insErr.message}. Approval saved; routing recorded in timeline.`);
+          onSuccess({ project_status: 'approved', manufacturing_location: location, medical_items: medical,
+            approved_at: now, approved_by: profile?.id ?? null });
+          return;
+        }
+      }
+
       onSuccess({ project_status: 'approved', manufacturing_location: location, medical_items: medical,
         approved_at: now, approved_by: profile?.id ?? null });
     } catch (err) {
@@ -278,7 +331,7 @@ function ApprovePanel({ project, onSuccess }: ApprovePanelProps) {
         <h4 className="text-sm font-semibold text-gray-900 mb-3">Manufacturing Location</h4>
         <div className="grid grid-cols-2 gap-2">
           {(['saudi', 'dubai'] as const).map((loc) => (
-            <button key={loc} onClick={() => setLocation(loc)}
+            <button key={loc} onClick={() => handleLocationChange(loc)}
               className={`px-4 py-2.5 rounded-lg border-2 text-sm font-medium transition-colors ${
                 location === loc ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
               }`}>
@@ -303,12 +356,30 @@ function ApprovePanel({ project, onSuccess }: ApprovePanelProps) {
         <h4 className="text-sm font-semibold text-gray-900 mb-3">Medical Items</h4>
         <div className="grid grid-cols-2 gap-2">
           {(['yes', 'no'] as const).map((med) => (
-            <button key={med} onClick={() => setMedical(med)}
+            <button key={med} onClick={() => handleMedicalChange(med)}
               className={`px-4 py-2.5 rounded-lg border-2 text-sm font-medium transition-colors ${
                 medical === med ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
               }`}>
               {med === 'yes' ? 'Yes — Medical' : 'No — Non-Medical'}
             </button>
+          ))}
+        </div>
+      </Card>
+
+      {/* Department Routing */}
+      <Card className="p-4">
+        <h4 className="text-sm font-semibold text-gray-900 mb-3">Department Routing</h4>
+        <div className="space-y-2">
+          {(Object.keys(routes) as (keyof typeof routes)[]).map((dept) => (
+            <label key={dept} className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={routes[dept]}
+                onChange={(e) => setRoutes((r) => ({ ...r, [dept]: e.target.checked }))}
+                className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+              />
+              <span className="text-sm text-gray-700">{DEPT_LABELS[dept] ?? dept}</span>
+            </label>
           ))}
         </div>
       </Card>
@@ -625,6 +696,8 @@ export function ProjectDetail() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [routingRefreshKey, setRoutingRefreshKey] = useState(0);
+  const [approvalRoutingWarning, setApprovalRoutingWarning] = useState<string | null>(null);
 
   const canSeeMoney = role === 'admin' || role === 'operations_manager';
   const canApprove = role ? CAN_APPROVE.includes(role) : false;
@@ -708,6 +781,7 @@ export function ProjectDetail() {
 
   function handleApprovalSuccess(updated: Partial<Project>) {
     setProject((p) => p ? { ...p, ...updated } : p);
+    setRoutingRefreshKey((k) => k + 1);
   }
 
   if (loading) {
@@ -1822,10 +1896,17 @@ export function ProjectDetail() {
             )}
           </Card>
 
-          <RoutingSummaryCard projectId={project.id} />
+          <RoutingSummaryCard projectId={project.id} refreshKey={routingRefreshKey} />
+
+          {approvalRoutingWarning && (
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+              <span className="text-xs text-amber-700">{approvalRoutingWarning}</span>
+            </div>
+          )}
 
           {canApprove && (
-            <ApprovePanel project={project} onSuccess={handleApprovalSuccess} />
+            <ApprovePanel project={project} onSuccess={handleApprovalSuccess} onRoutingWarning={setApprovalRoutingWarning} />
           )}
 
           {!canApprove && (
