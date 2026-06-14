@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
+import { EmptyState } from '@/components/feedback/empty-state';
+import { SectionCard } from '@/components/common/section-card';
 import { ScrollText, Search, Filter, ChevronDown, ChevronRight } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn } from '@/lib/utils';
 
 type AuditAction =
   | 'CREATE'
@@ -271,11 +273,10 @@ export function AuditLog() {
       <PageHeader
         title="Audit Log"
         subtitle="Immutable record of all system actions and changes"
-        icon={<ScrollText size={20} />}
       />
 
       {/* Filter bar */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-3 items-center">
+      <SectionCard contentClassName="flex flex-wrap gap-3 items-center p-4">
         <div className="relative flex-1 min-w-[220px] max-w-sm">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
@@ -308,10 +309,10 @@ export function AuditLog() {
         </div>
 
         <div className="ml-auto text-xs text-gray-400">{filtered.length} entries</div>
-      </div>
+      </SectionCard>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <SectionCard noPadding>
         {/* Column headers */}
         <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 border-b border-gray-200 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
           <div className="w-4" />
@@ -324,11 +325,15 @@ export function AuditLog() {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="py-12 text-center text-sm text-gray-400">No audit entries match the current filter.</div>
+          <EmptyState
+            icon={<ScrollText className="h-8 w-8" />}
+            title="No entries match the current filter"
+            description="Try adjusting your search or action filter."
+          />
         ) : (
           filtered.map((entry) => <AuditRow key={entry.id} entry={entry} />)
         )}
-      </div>
+      </SectionCard>
 
       <p className="text-[11px] text-gray-400 text-center">
         Sample data — live entries will be stored in the <code className="bg-gray-100 px-1 rounded">audit_log</code> table and are immutable once written.

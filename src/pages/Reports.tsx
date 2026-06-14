@@ -4,9 +4,9 @@ import {
   ClipboardCheck, Plane, Users, AlertTriangle, Database, Shield,
   CheckCircle, FileText, BookOpen,
 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ReportCardDef {
   title: string;
@@ -71,19 +71,19 @@ export function Reports() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-start justify-between flex-wrap gap-4">
-        <PageHeader
-          title="Reports & Control Tower"
-          subtitle="Centralised reporting, SLA monitoring, health scores, and operational intelligence"
-          breadcrumb={[{ label: 'Reports' }]}
-        />
-        <Link to="/control-tower">
-          <button className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-            <Activity size={15} />
-            Open Control Tower
-          </button>
-        </Link>
-      </div>
+      <PageHeader
+        title="Reports & Control Tower"
+        subtitle="Centralised reporting, SLA monitoring, health scores, and operational intelligence"
+        breadcrumb={[{ label: 'Reports' }]}
+        actions={
+          <Link to="/control-tower">
+            <button className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+              <Activity size={15} />
+              Open Control Tower
+            </button>
+          </Link>
+        }
+      />
 
       {REPORT_GROUPS.map(group => {
         const visibleCards = group.cards.filter(
