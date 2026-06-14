@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BellRing, Info, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
+import { Info, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
