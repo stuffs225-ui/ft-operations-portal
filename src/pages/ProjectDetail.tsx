@@ -662,6 +662,12 @@ function WoPnGateCard({ project, references, canAdd, onReferenceAdded, className
           Go to <Link to="/wo-pn-gate" className="text-brand-600 hover:underline">WO / PN Gate</Link> to manage all execution references.
         </p>
       )}
+      {hasRef && activeRef && (
+        <p className="mt-3 text-xs text-gray-500">
+          To cancel or supersede this reference, go to{' '}
+          <Link to="/wo-pn-gate" className="text-brand-600 hover:underline">WO / PN Gate</Link>.
+        </p>
+      )}
     </Card>
   );
 }
