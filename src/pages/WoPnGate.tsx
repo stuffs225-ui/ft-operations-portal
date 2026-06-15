@@ -5,7 +5,7 @@ import {
   CheckCircle2, Clock,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -229,6 +229,8 @@ function EditReferenceModal({ reference, canConfirm, onClose, onSuccess }: EditR
   const [remarks, setRemarks] = useState(reference.remarks ?? '');
   const [submitting, setSubmitting] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [superseding, setSuperseding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSave() {
@@ -247,6 +249,14 @@ function EditReferenceModal({ reference, canConfirm, onClose, onSuccess }: EditR
         .select()
         .single();
       if (e) throw e;
+      await recordProjectEvent(
+        reference.project_id,
+        `${reference.reference_type}_updated`,
+        `${reference.reference_type.toUpperCase()} remarks updated`,
+        `${reference.reference_type.toUpperCase()} number: ${reference.reference_number}`,
+        profile?.id ?? null, profile?.full_name ?? null,
+        { reference_type: reference.reference_type, reference_number: reference.reference_number },
+      );
       await recordAuditEntry(
         'execution_reference_updated',
         reference.project_id,
@@ -308,8 +318,86 @@ function EditReferenceModal({ reference, canConfirm, onClose, onSuccess }: EditR
     }
   }
 
+  async function handleCancel() {
+    setCancelling(true);
+    setError(null);
+    if (!isSupabaseConfigured || !supabase) {
+      await new Promise<void>((r) => setTimeout(r, 300));
+      onSuccess({ ...reference, status: 'cancelled' });
+      return;
+    }
+    try {
+      const { data, error: e } = await supabase
+        .from('project_execution_references')
+        .update({ status: 'cancelled' })
+        .eq('id', reference.id)
+        .select()
+        .single();
+      if (e) throw e;
+      await recordProjectEvent(
+        reference.project_id,
+        `${reference.reference_type}_cancelled`,
+        `${reference.reference_type.toUpperCase()} cancelled`,
+        `${reference.reference_type.toUpperCase()} number: ${reference.reference_number}`,
+        profile?.id ?? null, profile?.full_name ?? null,
+        { reference_type: reference.reference_type, reference_number: reference.reference_number, previous_status: reference.status },
+      );
+      await recordAuditEntry(
+        `${reference.reference_type}_cancelled`,
+        reference.project_id,
+        `${reference.reference_type.toUpperCase()} ${reference.reference_number} cancelled`,
+        { status: reference.status }, { status: 'cancelled' },
+        profile?.id ?? null, profile?.email ?? null, role,
+      );
+      onSuccess(data as unknown as ExecutionReference);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Cancel failed');
+      setCancelling(false);
+    }
+  }
+
+  async function handleSupersede() {
+    setSuperseding(true);
+    setError(null);
+    if (!isSupabaseConfigured || !supabase) {
+      await new Promise<void>((r) => setTimeout(r, 300));
+      onSuccess({ ...reference, status: 'superseded' });
+      return;
+    }
+    try {
+      const { data, error: e } = await supabase
+        .from('project_execution_references')
+        .update({ status: 'superseded' })
+        .eq('id', reference.id)
+        .select()
+        .single();
+      if (e) throw e;
+      await recordProjectEvent(
+        reference.project_id,
+        `${reference.reference_type}_superseded`,
+        `${reference.reference_type.toUpperCase()} superseded`,
+        `${reference.reference_type.toUpperCase()} number: ${reference.reference_number} — replaced by a new reference`,
+        profile?.id ?? null, profile?.full_name ?? null,
+        { reference_type: reference.reference_type, reference_number: reference.reference_number, previous_status: reference.status },
+      );
+      await recordAuditEntry(
+        `${reference.reference_type}_superseded`,
+        reference.project_id,
+        `${reference.reference_type.toUpperCase()} ${reference.reference_number} superseded`,
+        { status: reference.status }, { status: 'superseded' },
+        profile?.id ?? null, profile?.email ?? null, role,
+      );
+      onSuccess(data as unknown as ExecutionReference);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Supersede failed');
+      setSuperseding(false);
+    }
+  }
+
   const typeLabel = reference.reference_type.toUpperCase();
   const isConfirmed = reference.status === 'confirmed';
+  const isActive = reference.status === 'created' || reference.status === 'confirmed';
+  const anyBusy = submitting || confirming || cancelling || superseding;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
@@ -357,15 +445,36 @@ function EditReferenceModal({ reference, canConfirm, onClose, onSuccess }: EditR
               className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
             />
           </div>
+
+          {canConfirm && isActive && (
+            <div className="border border-red-200 bg-red-50 rounded-lg p-3 space-y-2">
+              <p className="text-xs font-semibold text-red-800">Corrective Actions</p>
+              <p className="text-xs text-red-600">
+                These actions deactivate this reference. A new reference can then be added for the project.
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                <Button size="sm" variant="danger" onClick={handleCancel}
+                  loading={cancelling} disabled={anyBusy && !cancelling}>
+                  Cancel Reference
+                </Button>
+                <Button size="sm" variant="secondary" onClick={handleSupersede}
+                  loading={superseding} disabled={anyBusy && !superseding}>
+                  Supersede Reference
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
         <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between gap-3">
-          <Button variant="ghost" onClick={onClose} disabled={submitting || confirming}>Close</Button>
+          <Button variant="ghost" onClick={onClose} disabled={anyBusy}>Close</Button>
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={handleSave} loading={submitting} disabled={confirming}>
+            <Button variant="secondary" onClick={handleSave} loading={submitting}
+              disabled={anyBusy && !submitting}>
               Save Remarks
             </Button>
-            {canConfirm && !isConfirmed && (
-              <Button onClick={handleConfirm} loading={confirming} disabled={submitting}
+            {canConfirm && !isConfirmed && isActive && (
+              <Button onClick={handleConfirm} loading={confirming}
+                disabled={anyBusy && !confirming}
                 icon={!confirming ? <Check size={16} /> : undefined}>
                 Confirm {typeLabel}
               </Button>
@@ -588,11 +697,20 @@ export function WoPnGate() {
 
   function handleEditSuccess(updated: ExecutionReference) {
     setEditTarget(null);
-    setReferences((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
-    showSuccess(updated.status === 'confirmed'
-      ? `${updated.reference_type.toUpperCase()} ${updated.reference_number} confirmed.${!isSupabaseConfigured ? ' (dev mode)' : ''}`
-      : 'Remarks updated.',
-    );
+    if (updated.status === 'cancelled' || updated.status === 'superseded') {
+      loadData();
+      showSuccess(
+        `${updated.reference_type.toUpperCase()} ${updated.reference_number} ${updated.status}. `
+        + `A new reference can now be added for the project.`
+        + (!isSupabaseConfigured ? ' (dev mode — not persisted)' : ''),
+      );
+    } else if (updated.status === 'confirmed') {
+      setReferences((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      showSuccess(`${updated.reference_type.toUpperCase()} ${updated.reference_number} confirmed.${!isSupabaseConfigured ? ' (dev mode)' : ''}`);
+    } else {
+      setReferences((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      showSuccess('Remarks updated.');
+    }
   }
 
   function showSuccess(msg: string) {
@@ -611,7 +729,6 @@ export function WoPnGate() {
       <PageHeader
         title="WO / PN Gate"
         subtitle="Execution reference gate — unlock factory and Dubai follow-up workflows"
-        icon={<GitBranch size={18} />}
       />
 
       {/* Summary strip */}
