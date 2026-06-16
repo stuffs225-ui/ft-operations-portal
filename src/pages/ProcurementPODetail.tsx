@@ -4,7 +4,7 @@ import {
   ShoppingCart, Package, Clock, Shield, ArrowLeft,
   Loader2, Edit2, Check, X, AlertTriangle,
 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -369,11 +369,12 @@ export function ProcurementPODetail() {
         subtitle={`${po.project?.project_code ?? '—'} — ${po.supplier_name}`}
         icon={<ShoppingCart size={18} />}
         breadcrumb={[
-          { label: 'Procurement', path: '/procurement' },
-          { label: 'PO to Supplier', path: '/procurement/purchase-orders' },
+          { label: 'Procurement', href: '/procurement' },
+          { label: 'PO to Supplier', href: '/procurement/purchase-orders' },
           { label: po.po_number },
         ]}
-        action={poStatusBadge(po.po_status)}
+        actions={poStatusBadge(po.po_status)}
+        className="mb-6"
       />
 
       {/* Tabs */}

@@ -4,7 +4,7 @@ import {
   FileText, Package, ShoppingCart, Clock, ArrowLeft,
   Loader2, Plus, Edit2, Check, X,
 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -223,11 +223,12 @@ export function ProcurementRequestDetail() {
         subtitle={`${pr.project?.project_code ?? '—'} — ${pr.project?.customer_name ?? '—'}`}
         icon={<FileText size={18} />}
         breadcrumb={[
-          { label: 'Procurement', path: '/procurement' },
-          { label: 'Purchase Requests', path: '/procurement/requests' },
+          { label: 'Procurement', href: '/procurement' },
+          { label: 'Purchase Requests', href: '/procurement/requests' },
           { label: pr.pr_number },
         ]}
-        action={prStatusBadge(pr.status)}
+        actions={prStatusBadge(pr.status)}
+        className="mb-6"
       />
 
       {/* Tabs */}
