@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { PageHeader } from '@/components/common/page-header';
-import { EmptyState } from '@/components/feedback/empty-state';
+import { EmptyState } from '../components/ui/EmptyState';
 import { SectionCard } from '@/components/common/section-card';
 import { ScrollText, Search, Filter, ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';

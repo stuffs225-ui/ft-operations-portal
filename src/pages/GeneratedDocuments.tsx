@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/common/page-header';
 import { PageLoader } from '../components/ui/PageLoader';
 import { StatusBadge } from '@/components/status/status-badge';
 import { Button } from '../components/ui/Button';
-import { EmptyState } from '@/components/feedback/empty-state';
+import { EmptyState } from '../components/ui/EmptyState';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { MOCK_GENERATED_DOCUMENTS } from '@/data/mockTemplates';
 import type { GeneratedDocument } from '@/types';
