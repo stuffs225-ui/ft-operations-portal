@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/common/page-header';
 import { StatusBadge } from '@/components/status/status-badge';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { EmptyState } from '@/components/feedback/empty-state';
+import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermission } from '@/hooks/usePermission';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
