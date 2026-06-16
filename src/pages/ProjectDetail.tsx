@@ -7,6 +7,7 @@ import {
   CheckCircle2, Plus, ShoppingCart, Wrench, Truck, FileCheck, ReceiptText,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
+import { SectionHeader } from '@/components/common/section-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -867,10 +868,10 @@ export function ProjectDetail() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px whitespace-nowrap ${
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px whitespace-nowrap rounded-t-sm ${
                 activeTab === tab.key
                   ? 'border-brand-600 text-brand-700'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
               {tab.icon}
@@ -1059,10 +1060,7 @@ export function ProjectDetail() {
 
         {/* Approval & Routing — appended to Overview (was separate 'approval' tab) */}
         <div className="mt-2">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-            <span className="w-1 h-4 bg-brand-500 rounded-full inline-block" />
-            Approval &amp; Routing
-          </h2>
+          <SectionHeader title="Approval & Routing" />
           <div className="space-y-5">
             <Card className="p-5">
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Current Status</h3>
@@ -1121,10 +1119,7 @@ export function ProjectDetail() {
         <div className="space-y-6">
           {/* SO Details section */}
           <div>
-            <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <span className="w-1 h-4 bg-emerald-500 rounded-full inline-block" />
-              Sales Order Details
-            </h2>
+            <SectionHeader title="Sales Order Details" accent="bg-emerald-500" />
             <Card className="p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
                 {[
@@ -1158,10 +1153,7 @@ export function ProjectDetail() {
 
           {/* Vehicle Lines section */}
           <div>
-            <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <span className="w-1 h-4 bg-emerald-500 rounded-full inline-block" />
-              Vehicle Lines
-            </h2>
+            <SectionHeader title="Vehicle Lines" accent="bg-emerald-500" />
             {lines.length === 0 ? (
               <Card className="p-8 text-center text-gray-500 text-sm">No vehicle lines registered.</Card>
             ) : (
@@ -1260,10 +1252,7 @@ export function ProjectDetail() {
 
           {/* Procurement section */}
           <div>
-            <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <span className="w-1 h-4 bg-amber-500 rounded-full inline-block" />
-              Procurement
-            </h2>
+            <SectionHeader title="Procurement" accent="bg-amber-500" />
             <div className="space-y-5">
               {/* Purchase Requests */}
               <div>
@@ -1392,10 +1381,7 @@ export function ProjectDetail() {
 
           {/* Factory Production section */}
           <div>
-            <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <span className="w-1 h-4 bg-amber-500 rounded-full inline-block" />
-              Factory Production
-            </h2>
+            <SectionHeader title="Factory Production" accent="bg-amber-500" />
             <div className="space-y-5">
               {project.manufacturing_location !== 'saudi' ? (
                 <Card className="p-6 text-center">
@@ -1486,10 +1472,7 @@ export function ProjectDetail() {
 
           {/* Store & Inventory section */}
           <div>
-            <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <span className="w-1 h-4 bg-amber-500 rounded-full inline-block" />
-              Store &amp; Inventory
-            </h2>
+            <SectionHeader title="Store & Inventory" accent="bg-amber-500" />
             <div className="space-y-5">
               {/* Summary cards */}
               <div className="grid grid-cols-3 gap-3">
@@ -1653,10 +1636,7 @@ export function ProjectDetail() {
 
           {/* Dubai / AFS section */}
           <div>
-            <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <span className="w-1 h-4 bg-amber-500 rounded-full inline-block" />
-              Dubai / AFS
-            </h2>
+            <SectionHeader title="Dubai / AFS" accent="bg-amber-500" />
             <div className="space-y-5">
               {project.manufacturing_location !== 'dubai' && (
                 <div className="bg-sky-50 border border-sky-200 rounded-xl px-5 py-4 text-sm text-sky-800">
@@ -2005,10 +1985,7 @@ export function ProjectDetail() {
 
           {/* Timeline section */}
           <div>
-            <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <span className="w-1 h-4 bg-slate-500 rounded-full inline-block" />
-              Timeline
-            </h2>
+            <SectionHeader title="Timeline" accent="bg-slate-500" />
             <div className="space-y-3">
               {timeline.length === 0 ? (
                 <Card className="p-8 text-center text-gray-500 text-sm">No timeline events yet.</Card>
@@ -2048,10 +2025,7 @@ export function ProjectDetail() {
           {/* Audit Log section — visible to admin and operations_manager only */}
           {canAudit && (
             <div>
-              <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <span className="w-1 h-4 bg-slate-500 rounded-full inline-block" />
-                Audit Log
-              </h2>
+              <SectionHeader title="Audit Log" accent="bg-slate-500" />
               <div>
                 <p className="text-sm text-gray-500 mb-4">
                   Audit log entries for project <strong>{project.project_code}</strong>.{' '}
