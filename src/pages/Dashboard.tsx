@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { PageHeader } from '@/components/common/page-header';
+import { SectionHeader } from '@/components/common/section-header';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { DASHBOARD_KPI_CARDS, AFS_KPI_CARDS, PROJECT_SUMMARY } from '../data/mockDashboard';
 import { mockOrEmpty, mockOrValue, isLiveMode } from '../lib/dataMode';
@@ -229,15 +230,6 @@ function KpiCardItem({ card }: { card: KpiCard }) {
   );
 }
 
-function SectionHeader({ label, accentClass }: { label: string; accentClass: string }) {
-  return (
-    <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-      <span className={cn('w-1 h-4 rounded-full inline-block', accentClass)} />
-      {label}
-    </h2>
-  );
-}
-
 function ModuleTileLink({ tile }: { tile: ModuleTile }) {
   const Icon = tile.icon;
   return (
@@ -300,7 +292,7 @@ export function Dashboard() {
       {/* My Work — quick-access strip for the most critical role-specific actions */}
       {myWorkCards.length > 0 && (
         <div className="mb-6">
-          <SectionHeader label="My Work" accentClass="bg-brand-600" />
+          <SectionHeader title="My Work" accent="bg-brand-600" />
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
             {myWorkCards.map((card) => {
               const Icon = card.icon;
@@ -350,7 +342,7 @@ export function Dashboard() {
       {/* KPI Cards — hidden in live mode until module data is wired (Phase 2+) */}
       {dashboardCards.length > 0 && (
         <div className="mb-6">
-          <SectionHeader label="Critical Operational Indicators" accentClass="bg-brand-600" />
+          <SectionHeader title="Critical Operational Indicators" accent="bg-brand-600" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {dashboardCards.map((card) => (
               <KpiCardItem key={card.id} card={card} />
@@ -362,7 +354,7 @@ export function Dashboard() {
       {/* Dubai / AFS KPIs — hidden in live mode until module data is wired */}
       {afsCards.length > 0 && (
         <div className="mb-6">
-          <SectionHeader label="Dubai / AFS & After Sales" accentClass="bg-sky-600" />
+          <SectionHeader title="Dubai / AFS & After Sales" accent="bg-sky-600" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {afsCards.map((card) => (
               <KpiCardItem key={card.id} card={card} />
@@ -377,7 +369,7 @@ export function Dashboard() {
         if (visibleTiles.length === 0) return null;
         return (
           <div key={section.id} className="mb-6">
-            <SectionHeader label={section.label} accentClass={section.accentClass} />
+            <SectionHeader title={section.label} accent={section.accentClass} />
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
               {visibleTiles.map((tile) => (
                 <ModuleTileLink key={tile.id} tile={tile} />

@@ -79,7 +79,7 @@ function NavItemRow({ item, onClose, isFirst }: { item: NavItem; onClose: () => 
         cn(
           'flex items-center gap-2.5 px-3 py-2 mx-2 rounded-lg text-sm font-medium transition-colors',
           isActive
-            ? 'bg-brand-50 text-brand-700'
+            ? 'bg-brand-50 text-brand-700 font-semibold'
             : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
         )
       }
