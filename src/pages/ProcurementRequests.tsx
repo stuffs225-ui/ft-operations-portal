@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Search, Package } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { PageLoader } from '../components/ui/PageLoader';
@@ -40,6 +40,7 @@ function prStatusBadge(status: string) {
 }
 
 export function ProcurementRequests() {
+  const navigate = useNavigate();
   const { role } = useAuth();
   void role;
 
@@ -87,6 +88,7 @@ export function ProcurementRequests() {
           { label: 'Procurement', href: '/procurement' },
           { label: 'Purchase Requests' },
         ]}
+        className="mb-6"
       />
 
       {/* Search */}
@@ -118,6 +120,12 @@ export function ProcurementRequests() {
         ))}
       </div>
 
+      {!loading && filtered.length > 0 && (
+        <p className="text-xs text-gray-500 mb-3">
+          {filtered.length} {filtered.length === 1 ? 'request' : 'requests'}
+        </p>
+      )}
+
       {loading ? (
         <PageLoader />
       ) : filtered.length === 0 ? (
@@ -142,7 +150,14 @@ export function ProcurementRequests() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filtered.map((pr) => (
-                  <tr key={pr.id} className="hover:bg-gray-50">
+                  <tr
+                    key={pr.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={(e) => {
+                      if ((e.target as HTMLElement).closest('a')) return;
+                      navigate(`/procurement/requests/${pr.id}`);
+                    }}
+                  >
                     <td className="px-4 py-3">
                       <span className="font-mono font-semibold text-gray-900">{pr.pr_number}</span>
                     </td>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Users, Search, Star } from 'lucide-react';
 import { PageLoader } from '../components/ui/PageLoader';
 import { PageHeader } from '@/components/common/page-header';
@@ -7,13 +7,9 @@ import { StatusBadge } from '@/components/status/status-badge';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
-import { useAuth } from '@/hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { MOCK_SUPPLIERS } from '@/data/mockProcurement';
 import type { ApprovedSupplier } from '@/types';
-
-// suppress unused import warning
-void useAuth;
 
 type ProcurementStatusFilter =
   | 'all' | 'draft' | 'pending_review' | 'approved' | 'approved_with_conditions'
@@ -29,7 +25,6 @@ const STATUS_TABS: { key: ProcurementStatusFilter; label: string }[] = [
   { key: 'blacklisted',            label: 'Blacklisted' },
   { key: 'inactive',               label: 'Inactive' },
 ];
-
 
 function StarRating({ rating }: { rating: number | null }) {
   if (rating === null) return <span className="text-xs text-gray-400">Not rated</span>;
@@ -47,6 +42,7 @@ function StarRating({ rating }: { rating: number | null }) {
 }
 
 export function ProcurementSuppliers() {
+  const navigate = useNavigate();
   const [suppliers, setSuppliers] = useState<ApprovedSupplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeStatus, setActiveStatus] = useState<ProcurementStatusFilter>('all');
@@ -91,6 +87,7 @@ export function ProcurementSuppliers() {
           { label: 'Procurement', href: '/procurement' },
           { label: 'Approved Suppliers' },
         ]}
+        className="mb-6"
       />
 
       {/* Search */}
@@ -122,6 +119,12 @@ export function ProcurementSuppliers() {
         ))}
       </div>
 
+      {!loading && filtered.length > 0 && (
+        <p className="text-xs text-gray-500 mb-3">
+          {filtered.length} {filtered.length === 1 ? 'supplier' : 'suppliers'}
+        </p>
+      )}
+
       {loading ? (
         <PageLoader />
       ) : filtered.length === 0 ? (
@@ -142,14 +145,21 @@ export function ProcurementSuppliers() {
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">Procurement Status</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">QC Status</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">Quality</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Medical</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Critical</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Medical Items</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Critical Items</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filtered.map((supplier) => (
-                  <tr key={supplier.id} className="hover:bg-gray-50">
+                  <tr
+                    key={supplier.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={(e) => {
+                      if ((e.target as HTMLElement).closest('a')) return;
+                      navigate(`/procurement/suppliers/${supplier.id}`);
+                    }}
+                  >
                     <td className="px-4 py-3 font-medium text-gray-900">{supplier.supplier_name}</td>
                     <td className="px-4 py-3 text-gray-700">{supplier.supplier_category ?? '—'}</td>
                     <td className="px-4 py-3 text-gray-700">{supplier.contact_person ?? '—'}</td>

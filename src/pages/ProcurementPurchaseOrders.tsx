@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Search, AlertTriangle } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { PageLoader } from '../components/ui/PageLoader';
@@ -54,6 +54,7 @@ function formatDate(iso: string) {
 }
 
 export function ProcurementPurchaseOrders() {
+  const navigate = useNavigate();
   const { role } = useAuth();
 
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
@@ -102,6 +103,7 @@ export function ProcurementPurchaseOrders() {
           { label: 'Procurement', href: '/procurement' },
           { label: 'PO to Supplier' },
         ]}
+        className="mb-6"
       />
 
       {!canSeeCost && (
@@ -140,6 +142,12 @@ export function ProcurementPurchaseOrders() {
         ))}
       </div>
 
+      {!loading && filtered.length > 0 && (
+        <p className="text-xs text-gray-500 mb-3">
+          {filtered.length} {filtered.length === 1 ? 'order' : 'orders'}
+        </p>
+      )}
+
       {loading ? (
         <PageLoader />
       ) : filtered.length === 0 ? (
@@ -167,7 +175,14 @@ export function ProcurementPurchaseOrders() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filtered.map((po) => (
-                  <tr key={po.id} className="hover:bg-gray-50">
+                  <tr
+                    key={po.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={(e) => {
+                      if ((e.target as HTMLElement).closest('a')) return;
+                      navigate(`/procurement/purchase-orders/${po.id}`);
+                    }}
+                  >
                     <td className="px-4 py-3">
                       <span className="font-mono font-semibold text-gray-900">{po.po_number}</span>
                     </td>
