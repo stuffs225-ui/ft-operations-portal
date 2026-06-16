@@ -15,7 +15,7 @@ Step 11A identified two governance gaps in the procurement module:
 
 2. **PR item terminal-state guard (MISSING):** `procurement_request_items` had no DB-level guard preventing inserts or updates after the parent `procurement_request` reached a terminal state (`'closed'`, `'cancelled'`). Migration 085 locked the PR header but not PR items.
 
-This step adds one migration (`086_procurement_governance_hardening.sql`) that closes both gaps without changing any application code, routes, or UI.
+This step adds one migration (`093_procurement_governance_hardening.sql`) that closes both gaps without changing any application code, routes, or UI.
 
 ---
 
@@ -29,7 +29,7 @@ tsc --noEmit:     ✅ 0 errors
 npm run lint:     ⚠️  80 problems (64 errors, 16 warnings) — all pre-existing
 ```
 
-Pre-existing lint errors are in existing source files unrelated to this step. No lint errors introduced by migration 086.
+Pre-existing lint errors are in existing source files unrelated to this step. No lint errors introduced by migration 093.
 
 ---
 
@@ -60,7 +60,7 @@ Pre-existing lint errors are in existing source files unrelated to this step. No
 
 ## C. Supplier Approval Baseline
 
-| Property | Before migration 086 | After migration 086 |
+| Property | Before migration 093 | After migration 093 |
 |---|---|---|
 | `procurement_user` sets `procurement_status = 'approved'` | **Allowed** (no trigger block) | **Blocked** (trigger raises exception) |
 | `procurement_user` sets `procurement_status = 'approved_with_conditions'` | **Allowed** | **Blocked** |
@@ -80,7 +80,7 @@ Pre-existing lint errors are in existing source files unrelated to this step. No
 
 ## D. Supplier Approval DB Guardrail Implemented
 
-**Yes.** Migration 086 Part A extends `enforce_qc_supplier_fields()` using `CREATE OR REPLACE FUNCTION`. The existing trigger `trg_enforce_qc_supplier_fields` is not recreated — it continues to fire and calls the updated function body.
+**Yes.** Migration 093 Part A extends `enforce_qc_supplier_fields()` using `CREATE OR REPLACE FUNCTION`. The existing trigger `trg_enforce_qc_supplier_fields` is not recreated — it continues to fire and calls the updated function body.
 
 New checks added:
 1. `procurement_user` cannot change `procurement_status` to `'approved'`, `'approved_with_conditions'`, `'suspended'`, or `'blacklisted'`
@@ -92,7 +92,7 @@ All checks from migration 084 are preserved unchanged.
 
 ## E. PR Item Terminal-State Baseline
 
-| Property | Before migration 086 | After migration 086 |
+| Property | Before migration 093 | After migration 093 |
 |---|---|---|
 | PR items INSERT when parent PR is `'closed'` | **Allowed** (`pri_procurement_all` FOR ALL) | **Blocked** (trigger raises exception) |
 | PR items INSERT when parent PR is `'cancelled'` | **Allowed** | **Blocked** |
@@ -106,7 +106,7 @@ All checks from migration 084 are preserved unchanged.
 
 ## F. PR Item Terminal-State Guard Implemented
 
-**Yes.** Migration 086 Part B:
+**Yes.** Migration 093 Part B:
 
 1. **RLS split:** `pri_procurement_all` (FOR ALL) replaced with `pri_procurement_select`, `pri_procurement_insert`, `pri_procurement_update`. No DELETE policy — `procurement_user` cannot delete PR items (audit trail preservation, consistent with PR header policy from migration 085).
 
@@ -118,11 +118,11 @@ Terminal states used: `'closed'`, `'cancelled'` — sourced from `pr_status` ENU
 
 ## G. Migration Details
 
-**File:** `supabase/migrations/086_procurement_governance_hardening.sql`
+**File:** `supabase/migrations/093_procurement_governance_hardening.sql`
 
 | Aspect | Detail |
 |---|---|
-| Migration number | 086 (sequential after 085) |
+| Migration number | 093 (sequential after 092) |
 | Tables affected | `approved_suppliers`, `procurement_request_items` |
 | Functions created | `enforce_pr_item_terminal_state()` (new) |
 | Functions replaced | `enforce_qc_supplier_fields()` (CREATE OR REPLACE — replaces migration 084 version) |
@@ -169,7 +169,7 @@ Terminal states used: `'closed'`, `'cancelled'` — sourced from `pr_status` ENU
 | Drops tables or columns | ✅ No |
 | Weakens RLS | ✅ No — removes FOR ALL DELETE from `pri_procurement_all` (tightening) |
 | Removes existing triggers or policies | ✅ No — trigger `trg_enforce_qc_supplier_fields` preserved; `pri_procurement_all` replaced with scoped policies |
-| Follows naming convention | ✅ Yes — 086 sequential, snake_case function names, trg_ prefix for triggers |
+| Follows naming convention | ✅ Yes — 093 sequential after 092, snake_case function names, trg_ prefix for triggers |
 | Uses established patterns | ✅ Yes — mirrors migration 061 (PO approval), 084 (qc field guard), 085 (PR terminal-state) |
 | `current_user_role()` helper available | ✅ Yes — defined in migration 003 |
 | `auth.uid()` in SECURITY DEFINER context | ✅ Safe — established pattern in migrations 061, 084, 085 |
@@ -185,7 +185,7 @@ npm ci:               ✅ success (no new dependencies added)
 npm run build:        ✅ 6.87 s — 0 errors, 0 warnings (migration adds only SQL file)
 npx tsc --noEmit:     ✅ 0 errors
 npm run lint:         ⚠️  80 problems (64 errors, 16 warnings) — all pre-existing
-                          No errors in migration 086 or any changed file
+                          No errors in migration 093 or any changed file
 Vercel check:         Not available in this environment
 ```
 

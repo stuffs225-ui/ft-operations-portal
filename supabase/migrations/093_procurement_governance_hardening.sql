@@ -1,4 +1,4 @@
--- ── Migration 086: Procurement Governance Hardening (Step 11B) ────────────────
+-- ── Migration 093: Procurement Governance Hardening (Step 11B) ────────────────
 --
 -- Reference: docs/implementation/step-11a-procurement-suppliers-governance-audit.md
 -- Implements two governance guards identified in the Step 11A audit:
@@ -93,7 +93,7 @@ BEGIN
     END IF;
 
     -- ── procurement_user: procurement_status governance states blocked ──────
-    -- (New check added in migration 086.)
+    -- (New check added in migration 093.)
     -- Only admin / operations_manager may approve, approve_with_conditions,
     -- suspend, or blacklist a supplier. procurement_user may only use:
     -- 'draft', 'pending_review', 'inactive'.
@@ -107,7 +107,7 @@ BEGIN
   END IF;
 
   -- ── Self-approval guard ──────────────────────────────────────────────────────
-  -- (New check added in migration 086.)
+  -- (New check added in migration 093.)
   -- Applies when procurement_status is being set to an approval state.
   -- Blocks the user who created the supplier record from approving their own entry.
   -- Guard conditions: status is changing to an approval state, created_by is
