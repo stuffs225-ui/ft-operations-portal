@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
  */
 export function PageLoader() {
   return (
-    <div className="flex items-center justify-center py-24 text-gray-400" role="status" aria-live="polite">
+    <div className="flex items-center justify-center py-24 text-brand-400" role="status" aria-live="polite">
       <Loader2 size={22} className="animate-spin" />
       <span className="sr-only">Loading…</span>
     </div>
