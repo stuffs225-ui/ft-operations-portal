@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/common/page-header';
 import { StatusBadge } from '@/components/status/status-badge';
 import { PriorityBadge } from '@/components/status/priority-badge';
 import { Button } from '../components/ui/Button';
-import { EmptyState } from '@/components/feedback/empty-state';
+import { EmptyState } from '../components/ui/EmptyState';
 import { DataSourceBadge } from '@/components/ui/DataSourceBadge';
 import { mockOrEmpty } from '@/lib/dataMode';
 import { MOCK_MATERIAL_NCRS } from '@/data/mockQc';

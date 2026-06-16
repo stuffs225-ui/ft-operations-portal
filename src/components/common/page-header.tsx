@@ -11,10 +11,11 @@ interface PageHeaderProps {
   subtitle?: string
   breadcrumb?: BreadcrumbItem[]
   actions?: React.ReactNode
+  icon?: React.ReactNode
   className?: string
 }
 
-export function PageHeader({ title, subtitle, breadcrumb, actions, className }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, breadcrumb, actions, icon, className }: PageHeaderProps) {
   return (
     <div className={cn('flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between', className)}>
       <div className="min-w-0 flex-1">
@@ -34,11 +35,21 @@ export function PageHeader({ title, subtitle, breadcrumb, actions, className }: 
             ))}
           </nav>
         )}
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground truncate">
-          {title}
-        </h1>
-        {subtitle && (
-          <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
+        {icon ? (
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-brand-50 text-brand-600 rounded-lg flex items-center justify-center shrink-0">
+              {icon}
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground truncate">{title}</h1>
+              {subtitle && <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>}
+            </div>
+          </div>
+        ) : (
+          <>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground truncate">{title}</h1>
+            {subtitle && <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>}
+          </>
         )}
       </div>
       {actions && (

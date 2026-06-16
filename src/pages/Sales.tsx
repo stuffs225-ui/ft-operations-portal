@@ -5,7 +5,7 @@ import {
   Loader2, Clock, AlertCircle, CheckCircle,
   Flame, ReceiptText, BarChart3, ArrowRight,
 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -327,7 +327,7 @@ export function Sales() {
       <PageHeader
         title="Sales Workspace"
         subtitle={isBroadView ? 'All quotations and projects' : 'Your quotations and projects'}
-        action={
+        actions={
           <div className="flex items-center gap-2 flex-wrap">
             <Link to="/hot-projects/new">
               <Button variant="secondary" size="sm" icon={<Flame size={14} />}>New Opportunity</Button>
