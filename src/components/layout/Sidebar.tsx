@@ -2,8 +2,9 @@ import { NavLink, Link } from 'react-router-dom';
 import {
   LayoutDashboard, Inbox, FileText, TrendingUp, UserCheck, FolderKanban,
   ShieldCheck, GitBranch, ShoppingCart, Factory, Warehouse, PackageCheck,
-  Truck, Microscope, ClipboardCheck, Plane, Wrench, BarChart3, Settings,
-  Users, X, ScrollText, FileStack, Bell, UserPlus, BellRing, CalendarClock, Activity, Flame,
+  Truck, Microscope, ClipboardCheck, Plane, Wrench, BarChart2, BarChart3,
+  Settings, Users, X, ScrollText, FileStack, Bell, UserPlus, BellRing,
+  CalendarClock, Activity, Flame,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -15,8 +16,9 @@ import type { NavItem, UserRole } from '../../types';
 const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard, Inbox, FileText, TrendingUp, UserCheck, FolderKanban,
   ShieldCheck, GitBranch, ShoppingCart, Factory, Warehouse, PackageCheck,
-  Truck, Microscope, ClipboardCheck, Plane, Wrench, BarChart3, Settings,
-  Users, ScrollText, FileStack, Bell, UserPlus, BellRing, CalendarClock, Activity, Flame,
+  Truck, Microscope, ClipboardCheck, Plane, Wrench, BarChart2, BarChart3,
+  Settings, Users, ScrollText, FileStack, Bell, UserPlus, BellRing,
+  CalendarClock, Activity, Flame,
 };
 
 interface SidebarProps {
