@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   FolderOpen, Loader2, ArrowLeft, Calendar, User, MapPin,
-  CheckSquare, AlertCircle, Info, FileText, List, Clock,
-  Shield, Edit2, Check, RotateCcw, X, GitBranch,
-  CheckCircle2, Plus, ShoppingCart, Wrench, Truck, Package, FileCheck, ReceiptText,
+  AlertCircle, Info, FileText, List, Clock,
+  Check, RotateCcw, X, GitBranch,
+  CheckCircle2, Plus, ShoppingCart, Wrench, Truck, FileCheck, ReceiptText,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
