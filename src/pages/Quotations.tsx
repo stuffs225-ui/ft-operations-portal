@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   FileText, Search, Plus, AlertTriangle, Clock,
 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { PageLoader } from '../components/ui/PageLoader';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -168,7 +168,7 @@ export function Quotations() {
       <PageHeader
         title="Quotation Requests"
         subtitle="Pre-sales quotation management and Sales Coordinator workflow"
-        action={
+        actions={
           canCreate ? (
             <Link to="/quotations/new">
               <Button icon={<Plus size={16} />}>New Quotation Request</Button>

@@ -4,7 +4,7 @@ import {
   Users, Clock, AlertTriangle, CheckCircle2, Send,
   FileText, Upload, RotateCcw, Info,
 } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
