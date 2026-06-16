@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   Users, ShoppingCart, Shield, Phone, ArrowLeft,
-  Loader2, Edit2, Check, X, Star,
+  Edit2, Check, X, Star,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -285,11 +286,7 @@ export function ProcurementSupplierDetail() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 size={28} className="text-brand-500 animate-spin" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (notFound || !supplier) {
@@ -308,12 +305,14 @@ export function ProcurementSupplierDetail() {
       <PageHeader
         title={supplier.supplier_name}
         subtitle={supplier.supplier_category ?? 'Supplier'}
+        icon={<Users size={18} />}
         breadcrumb={[
           { label: 'Procurement', href: '/procurement' },
           { label: 'Approved Suppliers', href: '/procurement/suppliers' },
           { label: supplier.supplier_name },
         ]}
         actions={procurementStatusBadge(supplier.procurement_status)}
+        className="mb-6"
       />
 
       {/* Tabs */}
