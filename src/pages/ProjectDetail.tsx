@@ -54,21 +54,40 @@ function formatDateTime(iso: string) {
   });
 }
 
-type TabKey = 'overview' | 'details' | 'lines' | 'documents' | 'procurement' | 'factory' | 'store' | 'qc_release' | 'dubai_afs' | 'approval' | 'timeline' | 'audit';
+// ── Step 10.5E — 6-tab structure (down from 12) ────────────────────────────────
+// Old tabs → new tab mapping:
+//   overview                          → overview
+//   details (SO Details)              → commercial
+//   lines (Vehicle Lines)             → commercial
+//   procurement                       → execution
+//   factory                           → execution
+//   store                             → execution
+//   dubai_afs                         → execution
+//   qc_release                        → quality
+//   documents                         → documents
+//   approval (moved into overview)    → overview (approval section at bottom)
+//   timeline                          → activity
+//   audit                             → activity (canAudit-gated section)
+
+type TabKey = 'overview' | 'commercial' | 'execution' | 'quality' | 'documents' | 'activity';
+
+// UI-only role visibility per tab. null = all roles may see this tab.
+// This does NOT change route guards or RLS — UI hiding only.
+// REVIEW-NEEDED: /projects/:id has no RequireRole guard; all authenticated users
+// can access ProjectDetail directly. These tab restrictions are display-layer only.
+const TAB_ROLES: Partial<Record<TabKey, UserRole[]>> = {
+  commercial: ['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'viewer'],
+  execution:  ['admin', 'operations_manager', 'procurement_user', 'factory_user', 'store_user', 'afs_user'],
+  quality:    ['admin', 'operations_manager', 'qc_user'],
+};
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
-  { key: 'overview',     label: 'Overview',           icon: <FolderOpen size={15} /> },
-  { key: 'details',      label: 'SO Details',         icon: <Edit2 size={15} /> },
-  { key: 'lines',        label: 'Vehicle Lines',      icon: <List size={15} /> },
-  { key: 'documents',    label: 'Documents',          icon: <FileText size={15} /> },
-  { key: 'procurement',  label: 'Procurement',        icon: <ShoppingCart size={15} /> },
-  { key: 'factory',      label: 'Factory',            icon: <Wrench size={15} /> },
-  { key: 'store',        label: 'Store',              icon: <Package size={15} /> },
-  { key: 'qc_release',   label: 'QC & Release',       icon: <FileCheck size={15} /> },
-  { key: 'dubai_afs',    label: 'Dubai / AFS',        icon: <Truck size={15} /> },
-  { key: 'approval',     label: 'Approval & Routing', icon: <CheckSquare size={15} /> },
-  { key: 'timeline',     label: 'Timeline',           icon: <Clock size={15} /> },
-  { key: 'audit',        label: 'Audit',              icon: <Shield size={15} /> },
+  { key: 'overview',    label: 'Overview',          icon: <FolderOpen size={15} /> },
+  { key: 'commercial',  label: 'Commercial',        icon: <List size={15} /> },
+  { key: 'execution',   label: 'Execution',         icon: <ShoppingCart size={15} /> },
+  { key: 'quality',     label: 'Quality & Release', icon: <FileCheck size={15} /> },
+  { key: 'documents',   label: 'Documents',         icon: <FileText size={15} /> },
+  { key: 'activity',    label: 'Activity',          icon: <Clock size={15} /> },
 ];
 
 function statusBadge(status: string) {
@@ -707,9 +726,27 @@ export function ProjectDetail() {
 
   const canSeeMoney = role === 'admin' || role === 'operations_manager';
   const canApprove = role ? CAN_APPROVE.includes(role) : false;
-  const canAudit = role === 'admin';
+  // Expanded from admin-only to admin + operations_manager per Step 10.5E.
+  // Both roles already have access to /audit-log page via navigation.
+  const canAudit = role === 'admin' || role === 'operations_manager';
   const canAddRef = role === 'admin' || role === 'operations_manager' || role === 'factory_user';
   const canSeeCost = ['admin', 'operations_manager', 'procurement_user'].includes(role ?? '');
+
+  // Tab visibility helper — UI display layer only (see TAB_ROLES comment above)
+  function isTabVisible(key: TabKey): boolean {
+    const allowedRoles = TAB_ROLES[key];
+    if (!allowedRoles) return true;
+    if (!role) return false;
+    if (role === 'admin') return true;
+    return allowedRoles.includes(role);
+  }
+
+  // Safe active tab fallback: if the current tab becomes hidden (e.g. role resolved
+  // after initial render), reset to overview which is always visible.
+  useEffect(() => {
+    if (!isTabVisible(activeTab)) setActiveTab('overview');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role]);
 
   useEffect(() => {
     if (!id) { setNotFound(true); setLoading(false); return; }
@@ -823,13 +860,10 @@ export function ProjectDetail() {
         }
       />
 
-      {/* Tabs */}
+      {/* Tabs — role-filtered (UI display only; does not restrict direct route access) */}
       <div className="border-b border-gray-200 mb-6 overflow-x-auto">
         <div className="flex gap-1 min-w-max">
-          {TABS.filter((t) => {
-            if (t.key === 'audit' && !canAudit) return false;
-            return true;
-          }).map((tab) => (
+          {TABS.filter((t) => isTabVisible(t.key)).map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
@@ -847,6 +881,7 @@ export function ProjectDetail() {
       </div>
 
       {/* ── Overview ─────────────────────────────────────────────────────────── */}
+      {/* Contains: project info, WO/PN gate, health, invoicing, approval & routing */}
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="p-5">
@@ -1020,100 +1055,167 @@ export function ProjectDetail() {
             </Link>
           </Card>
         </div>
-      )}
 
-      {/* ── SO Details ───────────────────────────────────────────────────────── */}
-      {activeTab === 'details' && (
-        <Card className="p-6">
-          <h3 className="text-sm font-semibold text-gray-900 mb-4">Sales Order Details</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
-            {[
-              { label: 'Project Code', value: project.project_code },
-              { label: 'SO Number', value: project.so_number },
-              { label: 'Customer Name', value: project.customer_name },
-              { label: 'Delivery Date', value: formatDate(project.customer_delivery_date) },
-              { label: 'Manufacturing Location', value: project.manufacturing_location.replace(/_/g, ' ') },
-              { label: 'Medical Items', value: project.medical_items.replace(/_/g, ' ') },
-              ...(canSeeMoney ? [{ label: 'Total Sales Value', value: formatSAR(project.total_sales_value) }] : []),
-              { label: 'Status', value: project.project_status.replace(/_/g, ' ') },
-              { label: 'Created At', value: formatDateTime(project.created_at) },
-              { label: 'Last Updated', value: formatDateTime(project.updated_at) },
-              ...(project.submitted_at ? [{ label: 'Submitted At', value: formatDateTime(project.submitted_at) }] : []),
-              ...(project.approved_at ? [{ label: 'Approved At', value: formatDateTime(project.approved_at) }] : []),
-            ].map(({ label, value }) => (
-              <div key={label} className="flex flex-col gap-0.5">
-                <span className="text-xs text-gray-500 font-medium">{label}</span>
-                <span className="text-gray-900 capitalize">{value}</span>
+        {/* Approval & Routing — appended to Overview (was separate 'approval' tab) */}
+        <div className="mt-2">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <span className="w-1 h-4 bg-brand-500 rounded-full inline-block" />
+            Approval &amp; Routing
+          </h2>
+          <div className="space-y-5">
+            <Card className="p-5">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Current Status</h3>
+              <div className="flex items-center gap-3 flex-wrap">
+                {statusBadge(project.project_status)}
+                {project.approved_at && (
+                  <span className="text-sm text-gray-600">
+                    Approved {formatDateTime(project.approved_at)}
+                    {project.approved_by_profile?.full_name && ` by ${project.approved_by_profile.full_name}`}
+                  </span>
+                )}
+                {project.rejected_at && (
+                  <span className="text-sm text-gray-600">
+                    Rejected {formatDateTime(project.rejected_at)}
+                  </span>
+                )}
               </div>
-            ))}
+              {project.revision_reason && (
+                <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
+                  <strong>Revision note:</strong> {project.revision_reason}
+                </div>
+              )}
+              {project.rejection_reason && (
+                <div className="mt-3 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-800">
+                  <strong>Rejection reason:</strong> {project.rejection_reason}
+                </div>
+              )}
+            </Card>
+
+            <RoutingSummaryCard projectId={project.id} refreshKey={routingRefreshKey} />
+
+            {approvalRoutingWarning && (
+              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                <span className="text-xs text-amber-700">{approvalRoutingWarning}</span>
+              </div>
+            )}
+
+            {canApprove && (
+              <ApprovePanel project={project} onSuccess={handleApprovalSuccess} onRoutingWarning={setApprovalRoutingWarning} />
+            )}
+
+            {!canApprove && (
+              <div className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4">
+                Approval actions are restricted to Admin and Operations Manager roles.
+              </div>
+            )}
           </div>
-          {project.notes && (
-            <div className="mt-5 pt-4 border-t border-gray-100">
-              <p className="text-xs text-gray-500 font-medium mb-1">Notes</p>
-              <p className="text-sm text-gray-700">{project.notes}</p>
-            </div>
-          )}
-        </Card>
+        </div>
       )}
 
-      {/* ── Vehicle Lines ─────────────────────────────────────────────────────── */}
-      {activeTab === 'lines' && (
-        <div>
-          {lines.length === 0 ? (
-            <Card className="p-8 text-center text-gray-500 text-sm">No vehicle lines registered.</Card>
-          ) : (
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-700">#</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-700">Type</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-700">Description</th>
-                    <th className="text-right px-4 py-3 font-semibold text-gray-700">Qty</th>
-                    {canSeeMoney && (
-                      <>
-                        <th className="text-right px-4 py-3 font-semibold text-gray-700">Unit (SAR)</th>
-                        <th className="text-right px-4 py-3 font-semibold text-gray-700">Total (SAR)</th>
-                      </>
-                    )}
-                    <th className="text-left px-4 py-3 font-semibold text-gray-700">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {lines.map((line) => (
-                    <tr key={line.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-gray-500">{line.line_number}</td>
-                      <td className="px-4 py-3 font-medium">{line.vehicle_type}</td>
-                      <td className="px-4 py-3 text-gray-700">{line.description}</td>
-                      <td className="px-4 py-3 text-right">{line.quantity}</td>
+      {/* ── Commercial ───────────────────────────────────────────────────────── */}
+      {/* Contains: SO Details (was 'details' tab) + Vehicle Lines (was 'lines' tab) */}
+      {activeTab === 'commercial' && (
+        <div className="space-y-6">
+          {/* SO Details section */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <span className="w-1 h-4 bg-emerald-500 rounded-full inline-block" />
+              Sales Order Details
+            </h2>
+            <Card className="p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                {[
+                  { label: 'Project Code', value: project.project_code },
+                  { label: 'SO Number', value: project.so_number },
+                  { label: 'Customer Name', value: project.customer_name },
+                  { label: 'Delivery Date', value: formatDate(project.customer_delivery_date) },
+                  { label: 'Manufacturing Location', value: project.manufacturing_location.replace(/_/g, ' ') },
+                  { label: 'Medical Items', value: project.medical_items.replace(/_/g, ' ') },
+                  ...(canSeeMoney ? [{ label: 'Total Sales Value', value: formatSAR(project.total_sales_value) }] : []),
+                  { label: 'Status', value: project.project_status.replace(/_/g, ' ') },
+                  { label: 'Created At', value: formatDateTime(project.created_at) },
+                  { label: 'Last Updated', value: formatDateTime(project.updated_at) },
+                  ...(project.submitted_at ? [{ label: 'Submitted At', value: formatDateTime(project.submitted_at) }] : []),
+                  ...(project.approved_at ? [{ label: 'Approved At', value: formatDateTime(project.approved_at) }] : []),
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex flex-col gap-0.5">
+                    <span className="text-xs text-gray-500 font-medium">{label}</span>
+                    <span className="text-gray-900 capitalize">{value}</span>
+                  </div>
+                ))}
+              </div>
+              {project.notes && (
+                <div className="mt-5 pt-4 border-t border-gray-100">
+                  <p className="text-xs text-gray-500 font-medium mb-1">Notes</p>
+                  <p className="text-sm text-gray-700">{project.notes}</p>
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* Vehicle Lines section */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <span className="w-1 h-4 bg-emerald-500 rounded-full inline-block" />
+              Vehicle Lines
+            </h2>
+            {lines.length === 0 ? (
+              <Card className="p-8 text-center text-gray-500 text-sm">No vehicle lines registered.</Card>
+            ) : (
+              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="text-left px-4 py-3 font-semibold text-gray-700">#</th>
+                      <th className="text-left px-4 py-3 font-semibold text-gray-700">Type</th>
+                      <th className="text-left px-4 py-3 font-semibold text-gray-700">Description</th>
+                      <th className="text-right px-4 py-3 font-semibold text-gray-700">Qty</th>
                       {canSeeMoney && (
                         <>
-                          <td className="px-4 py-3 text-right">{line.unit_sales_value.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-right font-semibold">{line.line_total_value.toLocaleString()}</td>
+                          <th className="text-right px-4 py-3 font-semibold text-gray-700">Unit (SAR)</th>
+                          <th className="text-right px-4 py-3 font-semibold text-gray-700">Total (SAR)</th>
                         </>
                       )}
-                      <td className="px-4 py-3">
-                        <Badge variant="neutral">{line.line_status}</Badge>
-                      </td>
+                      <th className="text-left px-4 py-3 font-semibold text-gray-700">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-                {canSeeMoney && (
-                  <tfoot className="border-t-2 border-gray-300 bg-gray-50">
-                    <tr>
-                      <td colSpan={5} className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
-                        Total Value
-                      </td>
-                      <td className="px-4 py-3 text-right text-base font-bold text-gray-900">
-                        {lines.reduce((s, l) => s + l.line_total_value, 0).toLocaleString()}
-                      </td>
-                      <td />
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {lines.map((line) => (
+                      <tr key={line.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-gray-500">{line.line_number}</td>
+                        <td className="px-4 py-3 font-medium">{line.vehicle_type}</td>
+                        <td className="px-4 py-3 text-gray-700">{line.description}</td>
+                        <td className="px-4 py-3 text-right">{line.quantity}</td>
+                        {canSeeMoney && (
+                          <>
+                            <td className="px-4 py-3 text-right">{line.unit_sales_value.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-right font-semibold">{line.line_total_value.toLocaleString()}</td>
+                          </>
+                        )}
+                        <td className="px-4 py-3">
+                          <Badge variant="neutral">{line.line_status}</Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  {canSeeMoney && (
+                    <tfoot className="border-t-2 border-gray-300 bg-gray-50">
+                      <tr>
+                        <td colSpan={5} className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
+                          Total Value
+                        </td>
+                        <td className="px-4 py-3 text-right text-base font-bold text-gray-900">
+                          {lines.reduce((s, l) => s + l.line_total_value, 0).toLocaleString()}
+                        </td>
+                        <td />
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -1149,175 +1251,453 @@ export function ProjectDetail() {
         </div>
       )}
 
-      {/* ── Procurement ───────────────────────────────────────────────────────── */}
-      {activeTab === 'procurement' && (
-        <div className="space-y-5">
-          {/* Purchase Requests */}
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              <FileText size={15} className="text-brand-600" /> Purchase Requests
-            </h3>
-            {procurementPRs.length === 0 ? (
-              <Card className="p-6 text-center text-gray-500 text-sm">No procurement activity for this project</Card>
-            ) : (
-              <Card>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="text-left px-4 py-3 font-semibold text-gray-700">PR Number</th>
-                        <th className="text-left px-4 py-3 font-semibold text-gray-700">Status</th>
-                        <th className="text-left px-4 py-3 font-semibold text-gray-700">Received Date</th>
-                        <th className="text-left px-4 py-3 font-semibold text-gray-700">Source Dept</th>
-                        <th className="text-left px-4 py-3 font-semibold text-gray-700">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {procurementPRs.map((pr) => {
-                        const prStatusMap: Record<string, { label: string; variant: 'neutral' | 'warning' | 'info' | 'success' | 'critical' | 'default' }> = {
-                          draft: { label: 'Draft', variant: 'neutral' },
-                          pr_received: { label: 'PR Received', variant: 'info' },
-                          in_progress: { label: 'In Progress', variant: 'warning' },
-                          partially_ordered: { label: 'Partially Ordered', variant: 'warning' },
-                          fully_ordered: { label: 'Fully Ordered', variant: 'success' },
-                          cancelled: { label: 'Cancelled', variant: 'neutral' },
-                          closed: { label: 'Closed', variant: 'neutral' },
-                        };
-                        const { label, variant } = prStatusMap[pr.status] ?? { label: pr.status, variant: 'neutral' as const };
-                        return (
-                          <tr key={pr.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 font-mono font-semibold text-gray-900">{pr.pr_number}</td>
-                            <td className="px-4 py-3"><Badge variant={variant}>{label}</Badge></td>
-                            <td className="px-4 py-3 text-gray-700">
-                              {pr.received_date ? formatDate(pr.received_date) : '—'}
-                            </td>
-                            <td className="px-4 py-3 text-gray-700">{pr.source_department ?? '—'}</td>
-                            <td className="px-4 py-3">
-                              <Link to={`/procurement/requests/${pr.id}`} className="text-xs font-medium text-brand-600 hover:underline">
-                                View
-                              </Link>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-            )}
-          </div>
+      {/* ── Execution ────────────────────────────────────────────────────────── */}
+      {/* Contains: Procurement (PRs + POs), Factory, Store & Inventory, Dubai/AFS */}
+      {activeTab === 'execution' && (
+        <div className="space-y-8">
 
-          {/* PO to Supplier */}
+          {/* Procurement section */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              <ShoppingCart size={15} className="text-brand-600" /> PO to Supplier
-            </h3>
-            {procurementPOs.length === 0 ? (
-              <Card className="p-6 text-center text-gray-500 text-sm">No purchase orders for this project</Card>
-            ) : (
-              <Card>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="text-left px-4 py-3 font-semibold text-gray-700">PO Number</th>
-                        <th className="text-left px-4 py-3 font-semibold text-gray-700">Supplier</th>
-                        <th className="text-left px-4 py-3 font-semibold text-gray-700">PO Date</th>
-                        <th className="text-left px-4 py-3 font-semibold text-gray-700">Status</th>
-                        {canSeeCost && <th className="text-right px-4 py-3 font-semibold text-gray-700">Value</th>}
-                        <th className="text-left px-4 py-3 font-semibold text-gray-700">ETA</th>
-                        <th className="text-left px-4 py-3 font-semibold text-gray-700">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {procurementPOs.map((po) => {
-                        const poStatusMap: Record<string, { label: string; variant: 'neutral' | 'warning' | 'info' | 'success' | 'critical' | 'default' }> = {
-                          draft: { label: 'Draft', variant: 'neutral' },
-                          pending_approval: { label: 'Pending Approval', variant: 'warning' },
-                          approved: { label: 'Approved', variant: 'success' },
-                          rejected: { label: 'Rejected', variant: 'critical' },
-                          sent_to_supplier: { label: 'Sent to Supplier', variant: 'info' },
-                          eta_confirmed: { label: 'ETA Confirmed', variant: 'info' },
-                          in_transit: { label: 'In Transit', variant: 'warning' },
-                          partially_received: { label: 'Partially Received', variant: 'warning' },
-                          fully_received: { label: 'Fully Received', variant: 'success' },
-                          delayed: { label: 'Delayed', variant: 'critical' },
-                          cancelled: { label: 'Cancelled', variant: 'neutral' },
-                          closed: { label: 'Closed', variant: 'neutral' },
-                        };
-                        const { label, variant } = poStatusMap[po.po_status] ?? { label: po.po_status, variant: 'neutral' as const };
-                        return (
-                          <tr key={po.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 font-mono font-semibold text-gray-900">{po.po_number}</td>
-                            <td className="px-4 py-3 text-gray-700">{po.supplier_name}</td>
-                            <td className="px-4 py-3 text-gray-700">{formatDate(po.po_date)}</td>
-                            <td className="px-4 py-3"><Badge variant={variant}>{label}</Badge></td>
-                            {canSeeCost && (
-                              <td className="px-4 py-3 text-right font-medium">
-                                {po.currency} {po.purchase_value.toLocaleString()}
-                              </td>
-                            )}
-                            <td className="px-4 py-3 text-gray-700">
-                              {po.eta_date ? formatDate(po.eta_date) : '—'}
-                            </td>
-                            <td className="px-4 py-3">
-                              <Link to={`/procurement/purchase-orders/${po.id}`} className="text-xs font-medium text-brand-600 hover:underline">
-                                View
-                              </Link>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Factory ──────────────────────────────────────────────────────────── */}
-      {activeTab === 'factory' && (
-        <div className="space-y-5">
-          {project.manufacturing_location !== 'saudi' ? (
-            <Card className="p-6 text-center">
-              <Wrench size={32} className="text-gray-300 mx-auto mb-3" />
-              <p className="text-sm font-semibold text-gray-700">Dubai / AFS Route</p>
-              <p className="text-xs text-gray-500 mt-1">Factory module applies to Saudi manufacturing projects only. Dubai projects use the AFS workflow (Phase 9).</p>
-            </Card>
-          ) : (
-            <>
-              {/* Factory Records */}
-              <Card className="p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-900">Production Records</h3>
-                  <Link to={`/factory/projects/${project.id}`} className="text-xs text-brand-600 hover:underline">Open Factory Workspace →</Link>
-                </div>
-                {factoryRecords.length === 0 ? (
-                  <p className="text-sm text-gray-500">No factory records yet. Open the Factory Workspace to set up production.</p>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <span className="w-1 h-4 bg-amber-500 rounded-full inline-block" />
+              Procurement
+            </h2>
+            <div className="space-y-5">
+              {/* Purchase Requests */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <FileText size={15} className="text-brand-600" /> Purchase Requests
+                </h3>
+                {procurementPRs.length === 0 ? (
+                  <Card className="p-6 text-center text-gray-500 text-sm">No procurement activity for this project</Card>
                 ) : (
-                  <div className="space-y-2">
-                    {factoryRecords.map((fr) => (
-                      <div key={fr.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                  <Card>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 border-b border-gray-200">
+                          <tr>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">PR Number</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Status</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Received Date</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Source Dept</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {procurementPRs.map((pr) => {
+                            const prStatusMap: Record<string, { label: string; variant: 'neutral' | 'warning' | 'info' | 'success' | 'critical' | 'default' }> = {
+                              draft: { label: 'Draft', variant: 'neutral' },
+                              pr_received: { label: 'PR Received', variant: 'info' },
+                              in_progress: { label: 'In Progress', variant: 'warning' },
+                              partially_ordered: { label: 'Partially Ordered', variant: 'warning' },
+                              fully_ordered: { label: 'Fully Ordered', variant: 'success' },
+                              cancelled: { label: 'Cancelled', variant: 'neutral' },
+                              closed: { label: 'Closed', variant: 'neutral' },
+                            };
+                            const { label, variant } = prStatusMap[pr.status] ?? { label: pr.status, variant: 'neutral' as const };
+                            return (
+                              <tr key={pr.id} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 font-mono font-semibold text-gray-900">{pr.pr_number}</td>
+                                <td className="px-4 py-3"><Badge variant={variant}>{label}</Badge></td>
+                                <td className="px-4 py-3 text-gray-700">
+                                  {pr.received_date ? formatDate(pr.received_date) : '—'}
+                                </td>
+                                <td className="px-4 py-3 text-gray-700">{pr.source_department ?? '—'}</td>
+                                <td className="px-4 py-3">
+                                  <Link to={`/procurement/requests/${pr.id}`} className="text-xs font-medium text-brand-600 hover:underline">
+                                    View
+                                  </Link>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                )}
+              </div>
+
+              {/* PO to Supplier */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <ShoppingCart size={15} className="text-brand-600" /> PO to Supplier
+                </h3>
+                {procurementPOs.length === 0 ? (
+                  <Card className="p-6 text-center text-gray-500 text-sm">No purchase orders for this project</Card>
+                ) : (
+                  <Card>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 border-b border-gray-200">
+                          <tr>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">PO Number</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Supplier</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">PO Date</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Status</th>
+                            {canSeeCost && <th className="text-right px-4 py-3 font-semibold text-gray-700">Value</th>}
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">ETA</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {procurementPOs.map((po) => {
+                            const poStatusMap: Record<string, { label: string; variant: 'neutral' | 'warning' | 'info' | 'success' | 'critical' | 'default' }> = {
+                              draft: { label: 'Draft', variant: 'neutral' },
+                              pending_approval: { label: 'Pending Approval', variant: 'warning' },
+                              approved: { label: 'Approved', variant: 'success' },
+                              rejected: { label: 'Rejected', variant: 'critical' },
+                              sent_to_supplier: { label: 'Sent to Supplier', variant: 'info' },
+                              eta_confirmed: { label: 'ETA Confirmed', variant: 'info' },
+                              in_transit: { label: 'In Transit', variant: 'warning' },
+                              partially_received: { label: 'Partially Received', variant: 'warning' },
+                              fully_received: { label: 'Fully Received', variant: 'success' },
+                              delayed: { label: 'Delayed', variant: 'critical' },
+                              cancelled: { label: 'Cancelled', variant: 'neutral' },
+                              closed: { label: 'Closed', variant: 'neutral' },
+                            };
+                            const { label, variant } = poStatusMap[po.po_status] ?? { label: po.po_status, variant: 'neutral' as const };
+                            return (
+                              <tr key={po.id} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 font-mono font-semibold text-gray-900">{po.po_number}</td>
+                                <td className="px-4 py-3 text-gray-700">{po.supplier_name}</td>
+                                <td className="px-4 py-3 text-gray-700">{formatDate(po.po_date)}</td>
+                                <td className="px-4 py-3"><Badge variant={variant}>{label}</Badge></td>
+                                {canSeeCost && (
+                                  <td className="px-4 py-3 text-right font-medium">
+                                    {po.currency} {po.purchase_value.toLocaleString()}
+                                  </td>
+                                )}
+                                <td className="px-4 py-3 text-gray-700">
+                                  {po.eta_date ? formatDate(po.eta_date) : '—'}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <Link to={`/procurement/purchase-orders/${po.id}`} className="text-xs font-medium text-brand-600 hover:underline">
+                                    View
+                                  </Link>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Factory Production section */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <span className="w-1 h-4 bg-amber-500 rounded-full inline-block" />
+              Factory Production
+            </h2>
+            <div className="space-y-5">
+              {project.manufacturing_location !== 'saudi' ? (
+                <Card className="p-6 text-center">
+                  <Wrench size={32} className="text-gray-300 mx-auto mb-3" />
+                  <p className="text-sm font-semibold text-gray-700">Dubai / AFS Route</p>
+                  <p className="text-xs text-gray-500 mt-1">Factory module applies to Saudi manufacturing projects only. Dubai projects use the AFS workflow (Phase 9).</p>
+                </Card>
+              ) : (
+                <>
+                  {/* Factory Records */}
+                  <Card className="p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-gray-900">Production Records</h3>
+                      <Link to={`/factory/projects/${project.id}`} className="text-xs text-brand-600 hover:underline">Open Factory Workspace →</Link>
+                    </div>
+                    {factoryRecords.length === 0 ? (
+                      <p className="text-sm text-gray-500">No factory records yet. Open the Factory Workspace to set up production.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {factoryRecords.map((fr) => (
+                          <div key={fr.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">
+                                {fr.vehicle_line ? `${fr.vehicle_line.vehicle_type} — ${fr.vehicle_line.description}` : 'Project-level record'}
+                              </p>
+                              <p className="text-xs text-gray-500">Progress: {fr.progress_percentage}%</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {fr.monthly_update_required && (
+                                <Badge variant="critical">Update Required</Badge>
+                              )}
+                              <Badge variant={
+                                fr.production_status === 'production_completed' || fr.production_status === 'sent_to_qc' ? 'success' :
+                                fr.production_status === 'in_production' ? 'default' :
+                                fr.production_status === 'on_hold' ? 'neutral' :
+                                fr.production_status === 'monthly_update_required' ? 'critical' : 'warning'
+                              }>
+                                {fr.production_status.replace(/_/g, ' ')}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </Card>
+
+                  {/* Raw Material Requests */}
+                  <Card className="p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-gray-900">Raw Material Requests</h3>
+                      <Link to="/factory/raw-material-requests" className="text-xs text-brand-600 hover:underline">View all RMRs</Link>
+                    </div>
+                    {factoryRmrs.length === 0 ? (
+                      <p className="text-sm text-gray-500">No raw material requests for this project.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {factoryRmrs.map((rmr) => (
+                          <div key={rmr.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                            <div>
+                              <p className="text-sm font-mono font-medium text-gray-900">{rmr.request_number}</p>
+                              <p className="text-xs text-gray-500">{new Date(rmr.requested_at).toLocaleDateString('en-GB')}</p>
+                            </div>
+                            <Badge variant={
+                              rmr.status === 'fulfilled' ? 'success' :
+                              rmr.status === 'sent_to_procurement' ? 'info' :
+                              rmr.status === 'rejected' || rmr.status === 'cancelled' ? 'neutral' :
+                              rmr.status === 'draft' ? 'neutral' : 'warning'
+                            }>
+                              {rmr.status.replace(/_/g, ' ')}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </Card>
+
+                  <Card className="p-4 bg-sky-50 border-sky-200">
+                    <p className="text-xs text-sky-800 font-medium">QC & Release</p>
+                    <p className="text-xs text-sky-700 mt-1">
+                      When production is completed, view QC inspections, findings, and Release Note status in the{' '}
+                      <button onClick={() => setActiveTab('quality')} className="underline font-semibold hover:text-sky-900">Quality &amp; Release tab</button>.
+                    </p>
+                  </Card>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Store & Inventory section */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <span className="w-1 h-4 bg-amber-500 rounded-full inline-block" />
+              Store &amp; Inventory
+            </h2>
+            <div className="space-y-5">
+              {/* Summary cards */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: 'Material Receipts', value: storeReceipts.length, color: 'border-l-sky-400' },
+                  { label: 'Vehicle Receipts', value: storeVehicleReceipts.length, color: 'border-l-indigo-400' },
+                  { label: 'Custody Records', value: storeCustody.length, color: 'border-l-amber-400' },
+                ].map(k => (
+                  <div key={k.label} className={`bg-white rounded-xl border border-gray-200 border-l-4 shadow-sm p-4 ${k.color}`}>
+                    <div className="text-2xl font-bold text-gray-900">{k.value}</div>
+                    <div className="text-sm text-gray-600 mt-0.5">{k.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Material Receipts */}
+              <Card>
+                <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <ShoppingCart size={15} className="text-sky-500" /> Material Receipts
+                  </h3>
+                  <Link to="/store/receipts"><Button variant="ghost" size="sm">View All</Button></Link>
+                </div>
+                {storeReceipts.length === 0 ? (
+                  <div className="px-5 py-6 text-sm text-gray-400 text-center">No material receipts linked to this project.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-xs font-medium text-gray-500">Receipt #</th>
+                          <th className="px-4 py-2 text-xs font-medium text-gray-500">Date</th>
+                          <th className="px-4 py-2 text-xs font-medium text-gray-500">Supplier</th>
+                          <th className="px-4 py-2 text-xs font-medium text-gray-500">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {storeReceipts.map(r => (
+                          <tr key={r.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-2.5 text-sm font-mono text-sky-700">
+                              <Link to={`/store/receipts/${r.id}`} className="hover:underline">{r.receipt_number}</Link>
+                            </td>
+                            <td className="px-4 py-2.5 text-sm text-gray-600">{formatDate(r.received_date)}</td>
+                            <td className="px-4 py-2.5 text-sm text-gray-600">{r.supplier_name ?? '—'}</td>
+                            <td className="px-4 py-2.5">
+                              <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${
+                                r.status === 'received' ? 'bg-green-100 text-green-700' :
+                                r.status === 'pending_material_qc' ? 'bg-amber-100 text-amber-700' :
+                                r.status === 'accepted' ? 'bg-sky-100 text-sky-700' :
+                                'bg-gray-100 text-gray-600'
+                              }`}>{r.status.replace(/_/g, ' ')}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </Card>
+
+              {/* Vehicle Receipts */}
+              <Card>
+                <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <Truck size={15} className="text-indigo-500" /> Vehicle Receipts
+                  </h3>
+                  <Link to="/store/vehicle-receiving"><Button variant="ghost" size="sm">View All</Button></Link>
+                </div>
+                {storeVehicleReceipts.length === 0 ? (
+                  <div className="px-5 py-6 text-sm text-gray-400 text-center">No vehicle receipts linked to this project.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-xs font-medium text-gray-500">Vehicle ID</th>
+                          <th className="px-4 py-2 text-xs font-medium text-gray-500">Date</th>
+                          <th className="px-4 py-2 text-xs font-medium text-gray-500">Vehicle Type</th>
+                          <th className="px-4 py-2 text-xs font-medium text-gray-500">Chassis #</th>
+                          <th className="px-4 py-2 text-xs font-medium text-gray-500">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {storeVehicleReceipts.map(v => (
+                          <tr key={v.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-2.5 text-sm font-mono text-sky-700">
+                              <Link to={`/store/vehicle-receiving/${v.id}`} className="hover:underline">{v.id.toUpperCase()}</Link>
+                            </td>
+                            <td className="px-4 py-2.5 text-sm text-gray-600">{formatDate(v.received_date)}</td>
+                            <td className="px-4 py-2.5 text-sm text-gray-700">{v.vehicle_type}</td>
+                            <td className="px-4 py-2.5 text-sm font-mono text-gray-600">{v.chassis_number || <span className="text-red-400 text-xs">Missing</span>}</td>
+                            <td className="px-4 py-2.5">
+                              <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${
+                                v.status === 'accepted' ? 'bg-green-100 text-green-700' :
+                                v.status === 'pending_condition_review' ? 'bg-amber-100 text-amber-700' :
+                                v.status === 'damaged' ? 'bg-red-100 text-red-700' :
+                                'bg-gray-100 text-gray-600'
+                              }`}>{v.status.replace(/_/g, ' ')}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </Card>
+
+              {/* Custody Records */}
+              <Card>
+                <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <List size={15} className="text-amber-500" /> Custody Records
+                  </h3>
+                  <Link to="/custody"><Button variant="ghost" size="sm">View All</Button></Link>
+                </div>
+                {storeCustody.length === 0 ? (
+                  <div className="px-5 py-6 text-sm text-gray-400 text-center">No custody records linked to this project.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-xs font-medium text-gray-500">Custody #</th>
+                          <th className="px-4 py-2 text-xs font-medium text-gray-500">Item</th>
+                          <th className="px-4 py-2 text-xs font-medium text-gray-500">Type</th>
+                          <th className="px-4 py-2 text-xs font-medium text-gray-500">Issued To</th>
+                          <th className="px-4 py-2 text-xs font-medium text-gray-500">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {storeCustody.map(c => (
+                          <tr key={c.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-2.5 text-sm font-mono text-sky-700">
+                              <Link to={`/custody/${c.id}`} className="hover:underline">{c.custody_number}</Link>
+                            </td>
+                            <td className="px-4 py-2.5 text-sm text-gray-700">{c.item?.item_name ?? '—'}</td>
+                            <td className="px-4 py-2.5">
+                              <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${
+                                c.issue_type === 'temporary_custody' ? 'bg-amber-100 text-amber-700' : 'bg-sky-100 text-sky-700'
+                              }`}>{c.issue_type === 'temporary_custody' ? 'Temporary' : 'Assign'}</span>
+                            </td>
+                            <td className="px-4 py-2.5 text-sm text-gray-600">{c.issued_to_role ?? c.issued_to_department ?? '—'}</td>
+                            <td className="px-4 py-2.5">
+                              <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${
+                                c.status === 'in_custody' ? 'bg-blue-100 text-blue-700' :
+                                c.status === 'returned' ? 'bg-gray-100 text-gray-600' :
+                                c.status === 'installed' ? 'bg-green-100 text-green-700' :
+                                c.status === 'pending_approval' ? 'bg-amber-100 text-amber-700' :
+                                'bg-gray-100 text-gray-600'
+                              }`}>{c.status.replace(/_/g, ' ')}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </Card>
+            </div>
+          </div>
+
+          {/* Dubai / AFS section */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <span className="w-1 h-4 bg-amber-500 rounded-full inline-block" />
+              Dubai / AFS
+            </h2>
+            <div className="space-y-5">
+              {project.manufacturing_location !== 'dubai' && (
+                <div className="bg-sky-50 border border-sky-200 rounded-xl px-5 py-4 text-sm text-sky-800">
+                  <strong>Dubai follow-up does not apply to this project</strong> — it is routed through the Saudi factory workflow.
+                  After-sales maintenance requests are shown below if any exist.
+                </div>
+              )}
+
+              {/* KPI strip */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label: 'Dubai Follow-ups', value: dubaiFollowups.length, color: 'border-l-sky-400' },
+                  { label: 'Arrival Reports', value: afsArrivalReports.length, color: 'border-l-green-400' },
+                  { label: 'Pre-Delivery Reports', value: afsPredeliveryReports.length, color: 'border-l-amber-400' },
+                  { label: 'Maintenance Requests', value: afsMaintenanceRequests.length, color: 'border-l-purple-400' },
+                ].map(k => (
+                  <Card key={k.label} className={`p-4 border-l-4 ${k.color}`}>
+                    <div className="text-xl font-bold text-gray-900">{k.value}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{k.label}</div>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Dubai Follow-ups */}
+              <Card>
+                <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-700">Dubai Follow-ups</h3>
+                  <Link to="/dubai-afs/projects"><Button variant="ghost" size="sm">View All</Button></Link>
+                </div>
+                {dubaiFollowups.length === 0 ? (
+                  <div className="px-5 py-5 text-sm text-gray-400 text-center">No Dubai follow-ups for this project.</div>
+                ) : (
+                  <div className="divide-y divide-gray-50">
+                    {dubaiFollowups.map(f => (
+                      <div key={f.id} className="px-5 py-3 flex items-center justify-between text-sm">
                         <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {fr.vehicle_line ? `${fr.vehicle_line.vehicle_type} — ${fr.vehicle_line.description}` : 'Project-level record'}
-                          </p>
-                          <p className="text-xs text-gray-500">Progress: {fr.progress_percentage}%</p>
+                          <span className="text-gray-700">{f.vehicle_line?.vehicle_type ?? 'Project-wide'}</span>
+                          <span className="text-gray-400 ml-2 text-xs">{f.dubai_status.replace(/_/g, ' ')}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          {fr.monthly_update_required && (
-                            <Badge variant="critical">Update Required</Badge>
-                          )}
-                          <Badge variant={
-                            fr.production_status === 'production_completed' || fr.production_status === 'sent_to_qc' ? 'success' :
-                            fr.production_status === 'in_production' ? 'default' :
-                            fr.production_status === 'on_hold' ? 'neutral' :
-                            fr.production_status === 'monthly_update_required' ? 'critical' : 'warning'
-                          }>
-                            {fr.production_status.replace(/_/g, ' ')}
-                          </Badge>
+                          {f.eta_date && <span className="text-xs text-gray-500">ETA {new Date(f.eta_date).toLocaleDateString('en-GB')}</span>}
+                          <Badge variant={f.eta_status === 'delayed' ? 'warning' : f.eta_status === 'on_track' ? 'success' : 'neutral'}>{f.eta_status.replace(/_/g, ' ')}</Badge>
+                          <Link to={`/dubai-afs/projects/${f.id}`}><Button variant="ghost" size="sm">View</Button></Link>
                         </div>
                       </div>
                     ))}
@@ -1325,214 +1705,93 @@ export function ProjectDetail() {
                 )}
               </Card>
 
-              {/* Raw Material Requests */}
-              <Card className="p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-900">Raw Material Requests</h3>
-                  <Link to="/factory/raw-material-requests" className="text-xs text-brand-600 hover:underline">View all RMRs</Link>
+              {/* Arrival Reports */}
+              <Card>
+                <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-700">Arrival Reports</h3>
+                  <Link to="/dubai-afs/arrival-reports"><Button variant="ghost" size="sm">View All</Button></Link>
                 </div>
-                {factoryRmrs.length === 0 ? (
-                  <p className="text-sm text-gray-500">No raw material requests for this project.</p>
+                {afsArrivalReports.length === 0 ? (
+                  <div className="px-5 py-5 text-sm text-gray-400 text-center">No arrival reports for this project.</div>
                 ) : (
-                  <div className="space-y-2">
-                    {factoryRmrs.map((rmr) => (
-                      <div key={rmr.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                  <div className="divide-y divide-gray-50">
+                    {afsArrivalReports.map(r => (
+                      <div key={r.id} className="px-5 py-3 flex items-center justify-between text-sm">
                         <div>
-                          <p className="text-sm font-mono font-medium text-gray-900">{rmr.request_number}</p>
-                          <p className="text-xs text-gray-500">{new Date(rmr.requested_at).toLocaleDateString('en-GB')}</p>
+                          <span className="font-mono text-sky-700 text-xs">{r.arrival_report_number}</span>
+                          <span className="text-gray-500 ml-2">{new Date(r.arrival_date).toLocaleDateString('en-GB')}</span>
                         </div>
-                        <Badge variant={
-                          rmr.status === 'fulfilled' ? 'success' :
-                          rmr.status === 'sent_to_procurement' ? 'info' :
-                          rmr.status === 'rejected' || rmr.status === 'cancelled' ? 'neutral' :
-                          rmr.status === 'draft' ? 'neutral' : 'warning'
-                        }>
-                          {rmr.status.replace(/_/g, ' ')}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">{r.received_quantity}/{r.expected_quantity} units</span>
+                          <Badge variant={r.arrival_status === 'arrived' ? 'success' : r.arrival_status === 'delayed' ? 'critical' : 'neutral'}>{r.arrival_status.replace(/_/g, ' ')}</Badge>
+                          <Link to={`/dubai-afs/arrival-reports/${r.id}`}><Button variant="ghost" size="sm">View</Button></Link>
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
               </Card>
 
-              <Card className="p-4 bg-sky-50 border-sky-200">
-                <p className="text-xs text-sky-800 font-medium">QC & Release</p>
-                <p className="text-xs text-sky-700 mt-1">
-                  When production is completed, view QC inspections, findings, and Release Note status in the{' '}
-                  <button onClick={() => setActiveTab('qc_release')} className="underline font-semibold hover:text-sky-900">QC &amp; Release tab</button>.
-                </p>
+              {/* Pre-Delivery Reports */}
+              <Card>
+                <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-700">Pre-Delivery Reports</h3>
+                  <Link to="/dubai-afs/predelivery-reports"><Button variant="ghost" size="sm">View All</Button></Link>
+                </div>
+                {afsPredeliveryReports.length === 0 ? (
+                  <div className="px-5 py-5 text-sm text-gray-400 text-center">No pre-delivery reports for this project.</div>
+                ) : (
+                  <div className="divide-y divide-gray-50">
+                    {afsPredeliveryReports.map(r => (
+                      <div key={r.id} className="px-5 py-3 flex items-center justify-between text-sm">
+                        <div>
+                          <span className="font-mono text-sky-700 text-xs">{r.predelivery_report_number}</span>
+                          <span className="text-gray-500 ml-2">{new Date(r.report_date).toLocaleDateString('en-GB')}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={r.ready_for_delivery ? 'success' : 'warning'}>{r.ready_for_delivery ? 'Ready' : 'Not Ready'}</Badge>
+                          <Link to={`/dubai-afs/predelivery-reports/${r.id}`}><Button variant="ghost" size="sm">View</Button></Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </Card>
-            </>
-          )}
-        </div>
-      )}
 
-      {/* ── Store ─────────────────────────────────────────────────────────────── */}
-      {activeTab === 'store' && (
-        <div className="space-y-5">
-          {/* Summary cards */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: 'Material Receipts', value: storeReceipts.length, color: 'border-l-sky-400' },
-              { label: 'Vehicle Receipts', value: storeVehicleReceipts.length, color: 'border-l-indigo-400' },
-              { label: 'Custody Records', value: storeCustody.length, color: 'border-l-amber-400' },
-            ].map(k => (
-              <div key={k.label} className={`bg-white rounded-xl border border-gray-200 border-l-4 shadow-sm p-4 ${k.color}`}>
-                <div className="text-2xl font-bold text-gray-900">{k.value}</div>
-                <div className="text-sm text-gray-600 mt-0.5">{k.label}</div>
-              </div>
-            ))}
+              {/* Maintenance Requests */}
+              <Card>
+                <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-700">Maintenance Requests</h3>
+                  <Link to="/after-sales/maintenance"><Button variant="ghost" size="sm">View All</Button></Link>
+                </div>
+                {afsMaintenanceRequests.length === 0 ? (
+                  <div className="px-5 py-5 text-sm text-gray-400 text-center">No maintenance requests for this project.</div>
+                ) : (
+                  <div className="divide-y divide-gray-50">
+                    {afsMaintenanceRequests.map(r => (
+                      <div key={r.id} className="px-5 py-3 flex items-center justify-between text-sm">
+                        <div>
+                          <span className="font-mono text-sky-700 text-xs">{r.maintenance_request_number}</span>
+                          <span className="text-gray-700 ml-2">{r.title.slice(0, 50)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={r.priority === 'critical' ? 'critical' : r.priority === 'high' ? 'warning' : 'neutral'}>{r.priority}</Badge>
+                          <Link to={`/after-sales/maintenance/${r.id}`}><Button variant="ghost" size="sm">View</Button></Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            </div>
           </div>
 
-          {/* Material Receipts */}
-          <Card>
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <ShoppingCart size={15} className="text-sky-500" /> Material Receipts
-              </h3>
-              <Link to="/store/receipts"><Button variant="ghost" size="sm">View All</Button></Link>
-            </div>
-            {storeReceipts.length === 0 ? (
-              <div className="px-5 py-6 text-sm text-gray-400 text-center">No material receipts linked to this project.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Receipt #</th>
-                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Date</th>
-                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Supplier</th>
-                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {storeReceipts.map(r => (
-                      <tr key={r.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-2.5 text-sm font-mono text-sky-700">
-                          <Link to={`/store/receipts/${r.id}`} className="hover:underline">{r.receipt_number}</Link>
-                        </td>
-                        <td className="px-4 py-2.5 text-sm text-gray-600">{formatDate(r.received_date)}</td>
-                        <td className="px-4 py-2.5 text-sm text-gray-600">{r.supplier_name ?? '—'}</td>
-                        <td className="px-4 py-2.5">
-                          <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${
-                            r.status === 'received' ? 'bg-green-100 text-green-700' :
-                            r.status === 'pending_material_qc' ? 'bg-amber-100 text-amber-700' :
-                            r.status === 'accepted' ? 'bg-sky-100 text-sky-700' :
-                            'bg-gray-100 text-gray-600'
-                          }`}>{r.status.replace(/_/g, ' ')}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
-
-          {/* Vehicle Receipts */}
-          <Card>
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <Truck size={15} className="text-indigo-500" /> Vehicle Receipts
-              </h3>
-              <Link to="/store/vehicle-receiving"><Button variant="ghost" size="sm">View All</Button></Link>
-            </div>
-            {storeVehicleReceipts.length === 0 ? (
-              <div className="px-5 py-6 text-sm text-gray-400 text-center">No vehicle receipts linked to this project.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Vehicle ID</th>
-                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Date</th>
-                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Vehicle Type</th>
-                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Chassis #</th>
-                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {storeVehicleReceipts.map(v => (
-                      <tr key={v.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-2.5 text-sm font-mono text-sky-700">
-                          <Link to={`/store/vehicle-receiving/${v.id}`} className="hover:underline">{v.id.toUpperCase()}</Link>
-                        </td>
-                        <td className="px-4 py-2.5 text-sm text-gray-600">{formatDate(v.received_date)}</td>
-                        <td className="px-4 py-2.5 text-sm text-gray-700">{v.vehicle_type}</td>
-                        <td className="px-4 py-2.5 text-sm font-mono text-gray-600">{v.chassis_number || <span className="text-red-400 text-xs">Missing</span>}</td>
-                        <td className="px-4 py-2.5">
-                          <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${
-                            v.status === 'accepted' ? 'bg-green-100 text-green-700' :
-                            v.status === 'pending_condition_review' ? 'bg-amber-100 text-amber-700' :
-                            v.status === 'damaged' ? 'bg-red-100 text-red-700' :
-                            'bg-gray-100 text-gray-600'
-                          }`}>{v.status.replace(/_/g, ' ')}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
-
-          {/* Custody Records */}
-          <Card>
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <List size={15} className="text-amber-500" /> Custody Records
-              </h3>
-              <Link to="/custody"><Button variant="ghost" size="sm">View All</Button></Link>
-            </div>
-            {storeCustody.length === 0 ? (
-              <div className="px-5 py-6 text-sm text-gray-400 text-center">No custody records linked to this project.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Custody #</th>
-                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Item</th>
-                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Type</th>
-                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Issued To</th>
-                      <th className="px-4 py-2 text-xs font-medium text-gray-500">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {storeCustody.map(c => (
-                      <tr key={c.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-2.5 text-sm font-mono text-sky-700">
-                          <Link to={`/custody/${c.id}`} className="hover:underline">{c.custody_number}</Link>
-                        </td>
-                        <td className="px-4 py-2.5 text-sm text-gray-700">{c.item?.item_name ?? '—'}</td>
-                        <td className="px-4 py-2.5">
-                          <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${
-                            c.issue_type === 'temporary_custody' ? 'bg-amber-100 text-amber-700' : 'bg-sky-100 text-sky-700'
-                          }`}>{c.issue_type === 'temporary_custody' ? 'Temporary' : 'Assign'}</span>
-                        </td>
-                        <td className="px-4 py-2.5 text-sm text-gray-600">{c.issued_to_role ?? c.issued_to_department ?? '—'}</td>
-                        <td className="px-4 py-2.5">
-                          <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${
-                            c.status === 'in_custody' ? 'bg-blue-100 text-blue-700' :
-                            c.status === 'returned' ? 'bg-gray-100 text-gray-600' :
-                            c.status === 'installed' ? 'bg-green-100 text-green-700' :
-                            c.status === 'pending_approval' ? 'bg-amber-100 text-amber-700' :
-                            'bg-gray-100 text-gray-600'
-                          }`}>{c.status.replace(/_/g, ' ')}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
-
         </div>
       )}
 
-      {/* ── QC & Release ──────────────────────────────────────────────────────── */}
-      {activeTab === 'qc_release' && (
+      {/* ── Quality & Release ─────────────────────────────────────────────────── */}
+      {/* Contains: qc_release content (Material QC, NCRs, Project QC, Findings, Release Notes) */}
+      {activeTab === 'quality' && (
         <div className="space-y-5">
           {/* Summary KPIs */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
@@ -1737,242 +1996,74 @@ export function ProjectDetail() {
         </div>
       )}
 
-      {/* ── Dubai / AFS ──────────────────────────────────────────────────────── */}
-      {activeTab === 'dubai_afs' && (
-        <div className="space-y-5">
-          {project.manufacturing_location !== 'dubai' && (
-            <div className="bg-sky-50 border border-sky-200 rounded-xl px-5 py-4 text-sm text-sky-800">
-              <strong>Dubai follow-up does not apply to this project</strong> — it is routed through the Saudi factory workflow.
-              After-sales maintenance requests are shown below if any exist.
-            </div>
-          )}
+      {/* ── Activity ──────────────────────────────────────────────────────────── */}
+      {/* Contains: Timeline + Audit Log (audit gated to canAudit) */}
+      {activeTab === 'activity' && (
+        <div className="space-y-6">
 
-          {/* KPI strip */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { label: 'Dubai Follow-ups', value: dubaiFollowups.length, color: 'border-l-sky-400' },
-              { label: 'Arrival Reports', value: afsArrivalReports.length, color: 'border-l-green-400' },
-              { label: 'Pre-Delivery Reports', value: afsPredeliveryReports.length, color: 'border-l-amber-400' },
-              { label: 'Maintenance Requests', value: afsMaintenanceRequests.length, color: 'border-l-purple-400' },
-            ].map(k => (
-              <Card key={k.label} className={`p-4 border-l-4 ${k.color}`}>
-                <div className="text-xl font-bold text-gray-900">{k.value}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{k.label}</div>
-              </Card>
-            ))}
+          {/* Timeline section */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <span className="w-1 h-4 bg-slate-500 rounded-full inline-block" />
+              Timeline
+            </h2>
+            <div className="space-y-3">
+              {timeline.length === 0 ? (
+                <Card className="p-8 text-center text-gray-500 text-sm">No timeline events yet.</Card>
+              ) : (
+                <div className="relative">
+                  <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200" />
+                  <div className="space-y-4">
+                    {timeline.map((event) => (
+                      <div key={event.id} className="flex items-start gap-4 relative">
+                        <div className="w-10 h-10 rounded-full bg-brand-100 border-2 border-white flex items-center justify-center shrink-0 z-10">
+                          <Clock size={16} className="text-brand-600" />
+                        </div>
+                        <Card className="flex-1 p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-semibold text-gray-900">{event.title}</p>
+                              {event.actor_name && (
+                                <p className="text-xs text-gray-500 mt-0.5">by {event.actor_name}</p>
+                              )}
+                              {event.body && (
+                                <p className="text-sm text-gray-700 mt-2">{event.body}</p>
+                              )}
+                            </div>
+                            <time className="text-xs text-gray-400 whitespace-nowrap shrink-0">
+                              {formatDateTime(event.created_at)}
+                            </time>
+                          </div>
+                        </Card>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Dubai Follow-ups */}
-          <Card>
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-700">Dubai Follow-ups</h3>
-              <Link to="/dubai-afs/projects"><Button variant="ghost" size="sm">View All</Button></Link>
-            </div>
-            {dubaiFollowups.length === 0 ? (
-              <div className="px-5 py-5 text-sm text-gray-400 text-center">No Dubai follow-ups for this project.</div>
-            ) : (
-              <div className="divide-y divide-gray-50">
-                {dubaiFollowups.map(f => (
-                  <div key={f.id} className="px-5 py-3 flex items-center justify-between text-sm">
-                    <div>
-                      <span className="text-gray-700">{f.vehicle_line?.vehicle_type ?? 'Project-wide'}</span>
-                      <span className="text-gray-400 ml-2 text-xs">{f.dubai_status.replace(/_/g, ' ')}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {f.eta_date && <span className="text-xs text-gray-500">ETA {new Date(f.eta_date).toLocaleDateString('en-GB')}</span>}
-                      <Badge variant={f.eta_status === 'delayed' ? 'warning' : f.eta_status === 'on_track' ? 'success' : 'neutral'}>{f.eta_status.replace(/_/g, ' ')}</Badge>
-                      <Link to={`/dubai-afs/projects/${f.id}`}><Button variant="ghost" size="sm">View</Button></Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-
-          {/* Arrival Reports */}
-          <Card>
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-700">Arrival Reports</h3>
-              <Link to="/dubai-afs/arrival-reports"><Button variant="ghost" size="sm">View All</Button></Link>
-            </div>
-            {afsArrivalReports.length === 0 ? (
-              <div className="px-5 py-5 text-sm text-gray-400 text-center">No arrival reports for this project.</div>
-            ) : (
-              <div className="divide-y divide-gray-50">
-                {afsArrivalReports.map(r => (
-                  <div key={r.id} className="px-5 py-3 flex items-center justify-between text-sm">
-                    <div>
-                      <span className="font-mono text-sky-700 text-xs">{r.arrival_report_number}</span>
-                      <span className="text-gray-500 ml-2">{new Date(r.arrival_date).toLocaleDateString('en-GB')}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">{r.received_quantity}/{r.expected_quantity} units</span>
-                      <Badge variant={r.arrival_status === 'arrived' ? 'success' : r.arrival_status === 'delayed' ? 'critical' : 'neutral'}>{r.arrival_status.replace(/_/g, ' ')}</Badge>
-                      <Link to={`/dubai-afs/arrival-reports/${r.id}`}><Button variant="ghost" size="sm">View</Button></Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-
-          {/* Pre-Delivery Reports */}
-          <Card>
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-700">Pre-Delivery Reports</h3>
-              <Link to="/dubai-afs/predelivery-reports"><Button variant="ghost" size="sm">View All</Button></Link>
-            </div>
-            {afsPredeliveryReports.length === 0 ? (
-              <div className="px-5 py-5 text-sm text-gray-400 text-center">No pre-delivery reports for this project.</div>
-            ) : (
-              <div className="divide-y divide-gray-50">
-                {afsPredeliveryReports.map(r => (
-                  <div key={r.id} className="px-5 py-3 flex items-center justify-between text-sm">
-                    <div>
-                      <span className="font-mono text-sky-700 text-xs">{r.predelivery_report_number}</span>
-                      <span className="text-gray-500 ml-2">{new Date(r.report_date).toLocaleDateString('en-GB')}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={r.ready_for_delivery ? 'success' : 'warning'}>{r.ready_for_delivery ? 'Ready' : 'Not Ready'}</Badge>
-                      <Link to={`/dubai-afs/predelivery-reports/${r.id}`}><Button variant="ghost" size="sm">View</Button></Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-
-          {/* Maintenance Requests */}
-          <Card>
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-700">Maintenance Requests</h3>
-              <Link to="/after-sales/maintenance"><Button variant="ghost" size="sm">View All</Button></Link>
-            </div>
-            {afsMaintenanceRequests.length === 0 ? (
-              <div className="px-5 py-5 text-sm text-gray-400 text-center">No maintenance requests for this project.</div>
-            ) : (
-              <div className="divide-y divide-gray-50">
-                {afsMaintenanceRequests.map(r => (
-                  <div key={r.id} className="px-5 py-3 flex items-center justify-between text-sm">
-                    <div>
-                      <span className="font-mono text-sky-700 text-xs">{r.maintenance_request_number}</span>
-                      <span className="text-gray-700 ml-2">{r.title.slice(0, 50)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={r.priority === 'critical' ? 'critical' : r.priority === 'high' ? 'warning' : 'neutral'}>{r.priority}</Badge>
-                      <Link to={`/after-sales/maintenance/${r.id}`}><Button variant="ghost" size="sm">View</Button></Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </div>
-      )}
-
-      {/* ── Approval & Routing ────────────────────────────────────────────────── */}
-      {activeTab === 'approval' && (
-        <div className="space-y-5">
-          {/* Current approval state */}
-          <Card className="p-5">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Current Status</h3>
-            <div className="flex items-center gap-3 flex-wrap">
-              {statusBadge(project.project_status)}
-              {project.approved_at && (
-                <span className="text-sm text-gray-600">
-                  Approved {formatDateTime(project.approved_at)}
-                  {project.approved_by_profile?.full_name && ` by ${project.approved_by_profile.full_name}`}
-                </span>
-              )}
-              {project.rejected_at && (
-                <span className="text-sm text-gray-600">
-                  Rejected {formatDateTime(project.rejected_at)}
-                </span>
-              )}
-            </div>
-            {project.revision_reason && (
-              <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
-                <strong>Revision note:</strong> {project.revision_reason}
-              </div>
-            )}
-            {project.rejection_reason && (
-              <div className="mt-3 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-800">
-                <strong>Rejection reason:</strong> {project.rejection_reason}
-              </div>
-            )}
-          </Card>
-
-          <RoutingSummaryCard projectId={project.id} refreshKey={routingRefreshKey} />
-
-          {approvalRoutingWarning && (
-            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
-              <span className="text-xs text-amber-700">{approvalRoutingWarning}</span>
-            </div>
-          )}
-
-          {canApprove && (
-            <ApprovePanel project={project} onSuccess={handleApprovalSuccess} onRoutingWarning={setApprovalRoutingWarning} />
-          )}
-
-          {!canApprove && (
-            <div className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4">
-              Approval actions are restricted to Admin and Operations Manager roles.
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Timeline ──────────────────────────────────────────────────────────── */}
-      {activeTab === 'timeline' && (
-        <div className="space-y-3">
-          {timeline.length === 0 ? (
-            <Card className="p-8 text-center text-gray-500 text-sm">No timeline events yet.</Card>
-          ) : (
-            <div className="relative">
-              <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200" />
-              <div className="space-y-4">
-                {timeline.map((event) => (
-                  <div key={event.id} className="flex items-start gap-4 relative">
-                    <div className="w-10 h-10 rounded-full bg-brand-100 border-2 border-white flex items-center justify-center shrink-0 z-10">
-                      <Clock size={16} className="text-brand-600" />
-                    </div>
-                    <Card className="flex-1 p-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">{event.title}</p>
-                          {event.actor_name && (
-                            <p className="text-xs text-gray-500 mt-0.5">by {event.actor_name}</p>
-                          )}
-                          {event.body && (
-                            <p className="text-sm text-gray-700 mt-2">{event.body}</p>
-                          )}
-                        </div>
-                        <time className="text-xs text-gray-400 whitespace-nowrap shrink-0">
-                          {formatDateTime(event.created_at)}
-                        </time>
-                      </div>
-                    </Card>
-                  </div>
-                ))}
+          {/* Audit Log section — visible to admin and operations_manager only */}
+          {canAudit && (
+            <div>
+              <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <span className="w-1 h-4 bg-slate-500 rounded-full inline-block" />
+                Audit Log
+              </h2>
+              <div>
+                <p className="text-sm text-gray-500 mb-4">
+                  Audit log entries for project <strong>{project.project_code}</strong>.{' '}
+                  {!isSupabaseConfigured && 'Dev mode — no live data.'}
+                </p>
+                <Card className="p-8 text-center text-gray-500 text-sm">
+                  Full audit log is available in the{' '}
+                  <Link to="/audit-log" className="text-brand-600 hover:underline">Audit Log</Link>{' '}
+                  page filtered by this project ID: <code className="bg-gray-100 px-1 rounded text-xs">{project.id}</code>
+                </Card>
               </div>
             </div>
           )}
-        </div>
-      )}
 
-      {/* ── Audit ─────────────────────────────────────────────────────────────── */}
-      {activeTab === 'audit' && canAudit && (
-        <div>
-          <p className="text-sm text-gray-500 mb-4">
-            Audit log entries for project <strong>{project.project_code}</strong>.{' '}
-            {!isSupabaseConfigured && 'Dev mode — no live data.'}
-          </p>
-          <Card className="p-8 text-center text-gray-500 text-sm">
-            Full audit log is available in the{' '}
-            <Link to="/audit-log" className="text-brand-600 hover:underline">Audit Log</Link>{' '}
-            page filtered by this project ID: <code className="bg-gray-100 px-1 rounded text-xs">{project.id}</code>
-          </Card>
         </div>
       )}
     </div>
