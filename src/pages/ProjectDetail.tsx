@@ -883,6 +883,7 @@ export function ProjectDetail() {
       {/* ── Overview ─────────────────────────────────────────────────────────── */}
       {/* Contains: project info, WO/PN gate, health, invoicing, approval & routing */}
       {activeTab === 'overview' && (
+        <>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="p-5">
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Project Info</h3>
@@ -1111,6 +1112,7 @@ export function ProjectDetail() {
             )}
           </div>
         </div>
+        </>
       )}
 
       {/* ── Commercial ───────────────────────────────────────────────────────── */}
