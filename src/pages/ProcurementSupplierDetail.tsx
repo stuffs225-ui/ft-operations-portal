@@ -10,6 +10,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { recordProcurementEvent } from '../lib/procurementAudit';
 import {
   MOCK_SUPPLIERS, MOCK_PURCHASE_ORDERS,
 } from '../data/mockProcurement';
@@ -148,9 +149,6 @@ export function ProcurementSupplierDetail() {
   const canUpdateProcurement = role ? CAN_UPDATE_PROCUREMENT.includes(role as UserRole) : false;
   const canUpdateQC = role ? CAN_UPDATE_QC.includes(role as UserRole) : false;
 
-  // suppress unused profile warning
-  void profile;
-
   useEffect(() => {
     if (!id) { setNotFound(true); setLoading(false); return; }
 
@@ -221,6 +219,13 @@ export function ProcurementSupplierDetail() {
           setProcSaving(false);
           return;
         }
+        recordProcurementEvent(
+          'supplier', supplier.id, null,
+          'procurement_status_updated',
+          `Supplier ${supplier.supplier_name} procurement status updated to ${newProcStatus}`,
+          null, profile?.id ?? null, profile?.full_name ?? null,
+          { old_status: supplier.procurement_status, new_status: newProcStatus, remarks: procRemarks || null },
+        );
         setSupplier({
           ...supplier,
           procurement_status: newProcStatus as ApprovedSupplier['procurement_status'],
@@ -260,6 +265,13 @@ export function ProcurementSupplierDetail() {
           setQcSaving(false);
           return;
         }
+        recordProcurementEvent(
+          'supplier', supplier.id, null,
+          'qc_status_updated',
+          `Supplier ${supplier.supplier_name} QC status updated to ${newQCStatus}`,
+          null, profile?.id ?? null, profile?.full_name ?? null,
+          { old_status: supplier.qc_status, new_status: newQCStatus, quality_rating: newQualityRating || null, remarks: qcRemarks || null },
+        );
         setSupplier({
           ...supplier,
           qc_status: newQCStatus as ApprovedSupplier['qc_status'],
