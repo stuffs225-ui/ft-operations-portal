@@ -65,7 +65,9 @@ export function CustodyDetail() {
   const [receiverRejectReason, setReceiverRejectReason] = useState('');
 
   const canApprove = role ? CAN_APPROVE.includes(role) : false;
-  const isReceiver = role === record?.issued_to_role || role === 'factory_user' || role === 'afs_user';
+  // RLS custody_records_factory_update (migration 034) requires issued_to_user_id = auth.uid().
+  // When null, factory/afs users cannot perform the UPDATE — only the named recipient or admin/ops can.
+  const isReceiver = record?.issued_to_user_id === user?.id || canApprove;
 
   useEffect(() => {
     if (!id) return;
@@ -292,7 +294,11 @@ export function CustodyDetail() {
           )}
           {record.receiver_decision === 'pending' && record.status === 'issued' && isReceiver && (
             <div className="space-y-3">
-              <p className="text-sm text-amber-700">Material has been issued to you. Please accept or reject.</p>
+              <p className="text-sm text-amber-700">
+                {record.issued_to_user_id === user?.id
+                  ? 'Material has been issued to you. Please accept or reject.'
+                  : 'Confirm receipt on behalf of the recipient (admin override).'}
+              </p>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Rejection Reason (if rejecting)</label>
                 <textarea value={receiverRejectReason} onChange={e => setReceiverRejectReason(e.target.value)} rows={2}

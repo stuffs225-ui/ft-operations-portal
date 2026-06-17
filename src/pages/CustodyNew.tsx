@@ -66,11 +66,21 @@ export function CustodyNew() {
       return;
     }
 
+    // Temporary custody requires issued_to_user_id (non-null) to satisfy RLS gate
+    // custody_records_factory_update (migration 034). Block until user picker is built.
+    if (issueType === 'temporary_custody') {
+      setSaveError(
+        'Temporary custody requires assigning a specific recipient user. ' +
+        'An individual user picker is not yet implemented. Use "Assign to Project" until this is available.',
+      );
+      return;
+    }
+
     setSaving(true);
     setSaveError(null);
 
     try {
-      const custodyStatus = issueType === 'temporary_custody' ? 'pending_approval' : 'issued';
+      const custodyStatus = 'issued';
       const approvalStatus = approvalRequired ? 'pending_approval' : 'not_required';
 
       const { data: cusData, error: cusError } = await supabase
@@ -204,9 +214,16 @@ export function CustodyNew() {
             </div>
 
             {issueType === 'temporary_custody' && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-                <AlertCircle size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-amber-700">Temporary custody requires Admin or Operations Manager approval before the material can be issued.</p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+                <AlertCircle size={16} className="text-red-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-red-700">Temporary custody creation is currently blocked</p>
+                  <p className="text-xs text-red-600 mt-0.5">
+                    Temporary custody requires assigning a specific recipient user. An individual user picker
+                    is not yet implemented. Until it is available, use "Assign to Project" instead.
+                    Tracking ref: issued_to_user_id must be non-null for temporary custody (RLS gate).
+                  </p>
+                </div>
               </div>
             )}
 
@@ -276,7 +293,7 @@ export function CustodyNew() {
             )}
             <div className="flex justify-between">
               <Button variant="ghost" size="sm" onClick={() => setStep(2)} disabled={saving}><ChevronLeft size={14} /> Back</Button>
-              <Button variant="primary" size="sm" onClick={handleIssue} disabled={saving}>
+              <Button variant="primary" size="sm" onClick={handleIssue} disabled={saving || issueType === 'temporary_custody'}>
                 {saving ? 'Saving…' : 'Issue Custody'}
               </Button>
             </div>
