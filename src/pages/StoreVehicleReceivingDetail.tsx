@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Truck, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_VEHICLE_RECEIPTS, getMockVehiclePhotos } from '../data/mockStore';
-import type { VehicleReceiptStatus, PhotoType, UserRole } from '../types';
-import { isSupabaseConfigured } from '../lib/supabase';
+import type { VehicleReceipt, VehicleReceiptPhoto, VehicleReceiptStatus, PhotoType, UserRole } from '../types';
 
 const REQUIRED_PHOTO_TYPES: PhotoType[] = ['front', 'rear', 'left_side', 'right_side', 'chassis_plate'];
 const ALL_PHOTO_LABELS: Record<PhotoType, string> = {
@@ -32,19 +33,149 @@ const ALL_PHOTO_TYPES: PhotoType[] = ['front', 'rear', 'left_side', 'right_side'
 
 export function StoreVehicleReceivingDetail() {
   const { id } = useParams<{ id: string }>();
-  const { role } = useAuth();
+  const { role, user } = useAuth();
+
+  const [vehicle, setVehicle] = useState<VehicleReceipt | null>(null);
+  const [photos, setPhotos] = useState<VehicleReceiptPhoto[]>([]);
+  const [loading, setLoading] = useState(Boolean(id));
+  const [notFound, setNotFound] = useState(!id);
+
+  const [acting, setActing] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [devMsg, setDevMsg] = useState('');
+
   const [addPhotoType, setAddPhotoType] = useState<PhotoType>('front');
   const [addPhotoFile, setAddPhotoFile] = useState('');
   const [showPhotoForm, setShowPhotoForm] = useState(false);
 
-  const vehicle = MOCK_VEHICLE_RECEIPTS.find(v => v.id === id);
-  const photos = id ? getMockVehiclePhotos(id) : [];
   const uploadedRequired = photos.filter(p => REQUIRED_PHOTO_TYPES.includes(p.photo_type)).length;
   const allRequiredUploaded = uploadedRequired >= REQUIRED_PHOTO_TYPES.length;
   const canAct = role ? CAN_ACT.includes(role) : false;
 
-  if (!vehicle) {
+  useEffect(() => {
+    if (!id) return;
+
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        const found = MOCK_VEHICLE_RECEIPTS.find(v => v.id === id);
+        if (!found) { setNotFound(true); setLoading(false); return; }
+        setVehicle(found);
+        setPhotos(getMockVehiclePhotos(id));
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('vehicle_receipts')
+        .select('*, project:projects(project_code, so_number, customer_name)')
+        .eq('id', id)
+        .single();
+
+      if (error || !data) { setNotFound(true); setLoading(false); return; }
+      setVehicle(data as unknown as VehicleReceipt);
+
+      const { data: photoData } = await supabase
+        .from('vehicle_receipt_photos')
+        .select('*')
+        .eq('vehicle_receipt_id', id);
+
+      setPhotos((photoData as unknown as VehicleReceiptPhoto[]) ?? []);
+      setLoading(false);
+    })();
+  }, [id]);
+
+  async function handleAction(action: string) {
+    if (!isSupabaseConfigured || !supabase) {
+      setDevMsg(`Dev Mode — "${action}" recorded (not persisted).`);
+      return;
+    }
+    if (!vehicle) return;
+
+    let newStatus: VehicleReceiptStatus | null = null;
+
+    if (action === 'Accept Vehicle') {
+      // App-layer photo gate — mirrors the DB trigger enforce_vehicle_photo_completion()
+      // from migration 094. The DB trigger is the final authority; this check gives
+      // the user a clear message before the request reaches the DB.
+      if (!allRequiredUploaded) {
+        setActionError(
+          `All 5 required photos must be present before accepting this vehicle receipt. ` +
+          `${uploadedRequired} of ${REQUIRED_PHOTO_TYPES.length} recorded — add the missing photos first.`,
+        );
+        return;
+      }
+      newStatus = 'accepted';
+    } else if (action === 'Mark as Damaged') {
+      newStatus = 'damaged';
+    } else if (action === 'Assign to Production') {
+      newStatus = 'assigned_to_production';
+    }
+
+    if (!newStatus) return;
+
+    setActing(true);
+    setActionError(null);
+
+    try {
+      const { error } = await supabase
+        .from('vehicle_receipts')
+        .update({ status: newStatus })
+        .eq('id', vehicle.id);
+
+      if (error) throw error;
+      setVehicle(v => v ? { ...v, status: newStatus! } : v);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to update vehicle receipt.');
+    } finally {
+      setActing(false);
+    }
+  }
+
+  async function handleAddPhoto() {
+    if (!isSupabaseConfigured || !supabase) {
+      setDevMsg(`Dev Mode — "Upload ${addPhotoType} photo" recorded (not persisted).`);
+      setShowPhotoForm(false);
+      setAddPhotoFile('');
+      return;
+    }
+    if (!vehicle || !addPhotoFile.trim()) return;
+    if (!user?.id) {
+      setActionError('Not authenticated. Please refresh and sign in again.');
+      return;
+    }
+
+    setActing(true);
+    setActionError(null);
+
+    try {
+      const { data: inserted, error } = await supabase
+        .from('vehicle_receipt_photos')
+        .insert({
+          vehicle_receipt_id: vehicle.id,
+          photo_type: addPhotoType,
+          file_name: addPhotoFile.trim(),
+          storage_path: null,
+          uploaded_by: user.id,
+        })
+        .select('*')
+        .single();
+
+      if (error) throw error;
+      if (inserted) setPhotos(prev => [...prev, inserted as unknown as VehicleReceiptPhoto]);
+      setShowPhotoForm(false);
+      setAddPhotoFile('');
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to add photo.');
+    } finally {
+      setActing(false);
+    }
+  }
+
+  if (loading) {
+    return <PageLoader />;
+  }
+
+  if (notFound || !vehicle) {
     return (
       <div className="space-y-5">
         <PageHeader title="Vehicle Receipt Not Found" />
@@ -56,13 +187,6 @@ export function StoreVehicleReceivingDetail() {
         <Link to="/store/vehicle-receiving" className="text-sm text-sky-600 hover:underline">← Back</Link>
       </div>
     );
-  }
-
-  function handleAction(action: string) {
-    if (!isSupabaseConfigured) {
-      setDevMsg(`Dev Mode — "${action}" recorded (not persisted).`);
-      return;
-    }
   }
 
   return (
@@ -80,6 +204,9 @@ export function StoreVehicleReceivingDetail() {
       {devMsg && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 text-sm text-amber-700">{devMsg}</div>
       )}
+      {actionError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2 text-sm text-red-700">{actionError}</div>
+      )}
 
       {/* Photo completeness banner */}
       <div className={`rounded-xl border px-5 py-3 flex items-center gap-3 ${
@@ -87,7 +214,7 @@ export function StoreVehicleReceivingDetail() {
       }`}>
         {allRequiredUploaded
           ? <><CheckCircle size={18} className="text-green-600" /><span className="text-sm font-medium text-green-700">Vehicle receipt complete — all required photos uploaded</span></>
-          : <><AlertCircle size={18} className="text-red-500" /><span className="text-sm font-medium text-red-700">{REQUIRED_PHOTO_TYPES.length - uploadedRequired} required photo(s) missing — receipt is incomplete</span></>
+          : <><AlertCircle size={18} className="text-red-500" /><span className="text-sm font-medium text-red-700">{REQUIRED_PHOTO_TYPES.length - uploadedRequired} required photo(s) missing — acceptance is blocked until photos are complete</span></>
         }
       </div>
 
@@ -128,15 +255,17 @@ export function StoreVehicleReceivingDetail() {
         {canAct && (
           <div className="px-5 pb-4 flex flex-wrap gap-2">
             {(vehicle.status === 'received' || vehicle.status === 'pending_condition_review') && (
-              <Button variant="primary" size="sm" onClick={() => handleAction('Accept Vehicle')}>Accept Vehicle</Button>
+              <Button variant="primary" size="sm" onClick={() => handleAction('Accept Vehicle')} disabled={acting}>
+                {acting ? 'Saving…' : 'Accept Vehicle'}
+              </Button>
             )}
             {vehicle.condition_status !== 'good' && vehicle.status !== 'damaged' && (
-              <Button variant="secondary" size="sm" onClick={() => handleAction('Mark as Damaged')}>Mark as Damaged</Button>
+              <Button variant="secondary" size="sm" onClick={() => handleAction('Mark as Damaged')} disabled={acting}>Mark as Damaged</Button>
             )}
             {vehicle.status === 'accepted' && vehicle.project?.project_code?.startsWith('FT') && (
-              <Button variant="secondary" size="sm" onClick={() => handleAction('Assign to Production')}>Assign to Production</Button>
+              <Button variant="secondary" size="sm" onClick={() => handleAction('Assign to Production')} disabled={acting}>Assign to Production</Button>
             )}
-            <Button variant="ghost" size="sm" onClick={() => setShowPhotoForm(!showPhotoForm)}>Add Photo</Button>
+            <Button variant="ghost" size="sm" onClick={() => { setShowPhotoForm(!showPhotoForm); setActionError(null); }}>Add Photo</Button>
           </div>
         )}
       </Card>
@@ -160,8 +289,8 @@ export function StoreVehicleReceivingDetail() {
                   placeholder="photo.jpg"
                   className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
               </div>
-              <Button variant="primary" size="sm" onClick={() => handleAction(`Upload ${addPhotoType} photo`)}>
-                Save
+              <Button variant="primary" size="sm" onClick={handleAddPhoto} disabled={acting || !addPhotoFile.trim()}>
+                {acting ? 'Saving…' : 'Save'}
               </Button>
             </div>
           </div>

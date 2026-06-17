@@ -4,26 +4,30 @@ import { Truck, ChevronLeft, ChevronRight, CheckCircle, AlertCircle } from 'luci
 import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
 import type { PhotoType } from '../types';
 
 const REQUIRED_PHOTO_TYPES: PhotoType[] = ['front', 'rear', 'left_side', 'right_side', 'chassis_plate'];
 const ALL_PHOTO_TYPES: { type: PhotoType; label: string; required: boolean }[] = [
-  { type: 'front', label: 'Front', required: true },
-  { type: 'rear', label: 'Rear', required: true },
-  { type: 'left_side', label: 'Left Side', required: true },
-  { type: 'right_side', label: 'Right Side', required: true },
+  { type: 'front',         label: 'Front',         required: true },
+  { type: 'rear',          label: 'Rear',          required: true },
+  { type: 'left_side',     label: 'Left Side',     required: true },
+  { type: 'right_side',    label: 'Right Side',    required: true },
   { type: 'chassis_plate', label: 'Chassis Plate', required: true },
-  { type: 'damage', label: 'Damage', required: false },
-  { type: 'other', label: 'Other', required: false },
+  { type: 'damage',        label: 'Damage',        required: false },
+  { type: 'other',         label: 'Other',         required: false },
 ];
 
 type PhotoRecord = Partial<Record<PhotoType, string>>;
 
 export function StoreVehicleReceivingNew() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [devSuccess, setDevSuccess] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Step 1
   const [vehicleType, setVehicleType] = useState('');
@@ -41,13 +45,74 @@ export function StoreVehicleReceivingNew() {
   const uploadedRequired = REQUIRED_PHOTO_TYPES.filter(t => photos[t]).length;
   const allRequiredUploaded = uploadedRequired === REQUIRED_PHOTO_TYPES.length;
 
-  function handleSave() {
-    if (!isSupabaseConfigured) {
+  async function handleSave(targetStatus: 'draft' | 'received') {
+    if (!isSupabaseConfigured || !supabase) {
       setDevSuccess(true);
       setTimeout(() => navigate('/store/vehicle-receiving'), 1500);
       return;
     }
-    navigate('/store/vehicle-receiving');
+
+    if (!chassisNumber.trim()) {
+      setSaveError('Chassis number is required.');
+      return;
+    }
+    if (!user?.id) {
+      setSaveError('Not authenticated. Please refresh and sign in again.');
+      return;
+    }
+
+    setSaving(true);
+    setSaveError(null);
+
+    try {
+      const { data: vrData, error: vrError } = await supabase
+        .from('vehicle_receipts')
+        .insert({
+          chassis_number: chassisNumber.trim(),
+          vehicle_type: vehicleType.trim(),
+          received_date: receivedDate,
+          received_by: user.id,
+          project_id: projectId || null,
+          mileage: mileage ? Number(mileage) : null,
+          storage_location: storageLocation.trim() || null,
+          condition_status: conditionStatus,
+          damage_notes: conditionStatus !== 'good' ? damageNotes.trim() || null : null,
+          status: targetStatus,
+          created_by: user.id,
+        })
+        .select('id')
+        .single();
+
+      if (vrError) throw vrError;
+
+      // Insert photo records for each filename entered. storage_path is null because
+      // this wizard uses a text input for filename — file upload to Supabase Storage
+      // is not yet implemented. The DB trigger enforce_vehicle_photo_completion()
+      // checks DISTINCT photo_type presence; storage_path is not required by the gate.
+      const photoEntries = (Object.entries(photos) as [PhotoType, string][]).filter(
+        ([, fn]) => fn?.trim(),
+      );
+      if (photoEntries.length > 0 && vrData?.id) {
+        const { error: photoError } = await supabase
+          .from('vehicle_receipt_photos')
+          .insert(
+            photoEntries.map(([type, fn]) => ({
+              vehicle_receipt_id: vrData.id,
+              photo_type: type,
+              file_name: fn.trim(),
+              storage_path: null,
+              uploaded_by: user.id,
+            })),
+          );
+        if (photoError) throw photoError;
+      }
+
+      navigate('/store/vehicle-receiving');
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save vehicle receipt. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (devSuccess) {
@@ -177,7 +242,7 @@ export function StoreVehicleReceivingNew() {
               </div>
               {!allRequiredUploaded && (
                 <p className="text-xs text-amber-600 mt-2">
-                  {REQUIRED_PHOTO_TYPES.length - uploadedRequired} required photo(s) still missing. Vehicle receipt cannot be closed until all 5 required photos are uploaded.
+                  {REQUIRED_PHOTO_TYPES.length - uploadedRequired} required photo(s) still missing. Vehicle receipt cannot be accepted until all 5 required photos are recorded.
                 </p>
               )}
             </div>
@@ -199,25 +264,34 @@ export function StoreVehicleReceivingNew() {
               <div className="flex justify-between"><span className="text-gray-500">Chassis #:</span><span className="font-mono">{chassisNumber}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Received Date:</span><span>{receivedDate}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Condition:</span><span>{conditionStatus}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Photos:</span>
-                <span className={allRequiredUploaded ? 'text-green-600' : 'text-red-600'}>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Photos:</span>
+                <span className={allRequiredUploaded ? 'text-green-600' : 'text-amber-600'}>
                   {uploadedRequired}/{REQUIRED_PHOTO_TYPES.length} required
+                  {!allRequiredUploaded && ' — acceptance requires all 5'}
                 </span>
               </div>
             </div>
             <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 text-xs text-sky-700">
-              Governance: Vehicle receipt is complete only when chassis number and all 5 required photos are recorded.
+              Governance: Vehicle receipt is complete only when chassis number and all 5 required photos are recorded. Acceptance is blocked until photos are complete.
             </div>
+            {saveError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">{saveError}</div>
+            )}
             {!isSupabaseConfigured && (
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700">
                 Dev Mode — changes will not be persisted.
               </div>
             )}
             <div className="flex justify-between">
-              <Button variant="ghost" size="sm" onClick={() => setStep(2)}><ChevronLeft size={14} /> Back</Button>
+              <Button variant="ghost" size="sm" onClick={() => setStep(2)} disabled={saving}><ChevronLeft size={14} /> Back</Button>
               <div className="flex gap-2">
-                <Button variant="secondary" size="sm" onClick={handleSave}>Save as Draft</Button>
-                <Button variant="primary" size="sm" onClick={handleSave}>Mark as Received</Button>
+                <Button variant="secondary" size="sm" onClick={() => handleSave('draft')} disabled={saving}>
+                  {saving ? 'Saving…' : 'Save as Draft'}
+                </Button>
+                <Button variant="primary" size="sm" onClick={() => handleSave('received')} disabled={saving}>
+                  {saving ? 'Saving…' : 'Mark as Received'}
+                </Button>
               </div>
             </div>
           </div>
