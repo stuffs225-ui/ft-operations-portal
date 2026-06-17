@@ -1,29 +1,19 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Truck, ChevronLeft, ChevronRight, CheckCircle, AlertCircle } from 'lucide-react';
+import { Truck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { isSupabaseConfigured } from '../lib/supabase';
-import type { PhotoType } from '../types';
-
-const REQUIRED_PHOTO_TYPES: PhotoType[] = ['front', 'rear', 'left_side', 'right_side', 'chassis_plate'];
-const ALL_PHOTO_TYPES: { type: PhotoType; label: string; required: boolean }[] = [
-  { type: 'front', label: 'Front', required: true },
-  { type: 'rear', label: 'Rear', required: true },
-  { type: 'left_side', label: 'Left Side', required: true },
-  { type: 'right_side', label: 'Right Side', required: true },
-  { type: 'chassis_plate', label: 'Chassis Plate', required: true },
-  { type: 'damage', label: 'Damage', required: false },
-  { type: 'other', label: 'Other', required: false },
-];
-
-type PhotoRecord = Partial<Record<PhotoType, string>>;
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
 
 export function StoreVehicleReceivingNew() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [devSuccess, setDevSuccess] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Step 1
   const [vehicleType, setVehicleType] = useState('');
@@ -36,18 +26,55 @@ export function StoreVehicleReceivingNew() {
   // Step 2
   const [conditionStatus, setConditionStatus] = useState('good');
   const [damageNotes, setDamageNotes] = useState('');
-  const [photos, setPhotos] = useState<PhotoRecord>({});
 
-  const uploadedRequired = REQUIRED_PHOTO_TYPES.filter(t => photos[t]).length;
-  const allRequiredUploaded = uploadedRequired === REQUIRED_PHOTO_TYPES.length;
-
-  function handleSave() {
-    if (!isSupabaseConfigured) {
+  async function handleSave(targetStatus: 'draft' | 'received') {
+    if (!isSupabaseConfigured || !supabase) {
       setDevSuccess(true);
       setTimeout(() => navigate('/store/vehicle-receiving'), 1500);
       return;
     }
-    navigate('/store/vehicle-receiving');
+
+    if (!chassisNumber.trim()) {
+      setSaveError('Chassis number is required.');
+      return;
+    }
+    if (!user?.id) {
+      setSaveError('Not authenticated. Please refresh and sign in again.');
+      return;
+    }
+
+    setSaving(true);
+    setSaveError(null);
+
+    try {
+      const { error: vrError } = await supabase
+        .from('vehicle_receipts')
+        .insert({
+          chassis_number: chassisNumber.trim(),
+          vehicle_type: vehicleType.trim(),
+          received_date: receivedDate,
+          received_by: user.id,
+          project_id: projectId || null,
+          mileage: mileage ? Number(mileage) : null,
+          storage_location: storageLocation.trim() || null,
+          condition_status: conditionStatus,
+          damage_notes: conditionStatus !== 'good' ? damageNotes.trim() || null : null,
+          status: targetStatus,
+          created_by: user.id,
+        });
+
+      if (vrError) throw vrError;
+
+      // Photo insertion is intentionally omitted. Migration 095 requires storage_path
+      // to be non-null for photo completion — filename-only records do not qualify.
+      // Photos must be uploaded as real files once file upload functionality is available.
+
+      navigate('/store/vehicle-receiving');
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save vehicle receipt. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (devSuccess) {
@@ -148,38 +175,15 @@ export function StoreVehicleReceivingNew() {
             )}
 
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">Photo Documentation</h4>
-              <div className="space-y-2">
-                {ALL_PHOTO_TYPES.map(({ type, label, required }) => {
-                  const uploaded = Boolean(photos[type]);
-                  return (
-                    <div key={type} className="flex items-center gap-3 p-2 border border-gray-100 rounded-lg">
-                      <div className="w-5 h-5 flex-shrink-0">
-                        {uploaded
-                          ? <CheckCircle size={18} className="text-green-500" />
-                          : required
-                            ? <AlertCircle size={18} className="text-red-400" />
-                            : <div className="w-4 h-4 rounded-full border-2 border-gray-200" />}
-                      </div>
-                      <span className="text-sm font-medium text-gray-700 w-28">{label}</span>
-                      {required && <span className="text-xs text-red-500 font-medium">Required</span>}
-                      {!required && <span className="text-xs text-gray-400">Optional</span>}
-                      <input
-                        type="text"
-                        placeholder="Enter filename…"
-                        value={photos[type] ?? ''}
-                        onChange={e => setPhotos(p => ({ ...p, [type]: e.target.value }))}
-                        className="ml-auto flex-1 max-w-xs border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-sky-300"
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-              {!allRequiredUploaded && (
-                <p className="text-xs text-amber-600 mt-2">
-                  {REQUIRED_PHOTO_TYPES.length - uploadedRequired} required photo(s) still missing. Vehicle receipt cannot be closed until all 5 required photos are uploaded.
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Photo Documentation</h4>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-1">
+                <p className="text-sm font-medium text-amber-800">Photo upload not yet available</p>
+                <p className="text-xs text-amber-700">
+                  Photo file upload will be available in a future update. Save the receipt now
+                  — photos must be uploaded as real files (not filenames) before acceptance is
+                  possible. Required: front, rear, left side, right side, chassis plate.
                 </p>
-              )}
+              </div>
             </div>
 
             <div className="flex justify-between">
@@ -199,25 +203,31 @@ export function StoreVehicleReceivingNew() {
               <div className="flex justify-between"><span className="text-gray-500">Chassis #:</span><span className="font-mono">{chassisNumber}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Received Date:</span><span>{receivedDate}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Condition:</span><span>{conditionStatus}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Photos:</span>
-                <span className={allRequiredUploaded ? 'text-green-600' : 'text-red-600'}>
-                  {uploadedRequired}/{REQUIRED_PHOTO_TYPES.length} required
-                </span>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Photos:</span>
+                <span className="text-amber-600">Upload deferred — required before acceptance</span>
               </div>
             </div>
             <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 text-xs text-sky-700">
-              Governance: Vehicle receipt is complete only when chassis number and all 5 required photos are recorded.
+              Governance: chassis number is required. All 5 photo files (front, rear, left side, right side, chassis plate) must be uploaded as real files before acceptance. Acceptance is blocked until photo file upload is implemented and photos are on file.
             </div>
+            {saveError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">{saveError}</div>
+            )}
             {!isSupabaseConfigured && (
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700">
                 Dev Mode — changes will not be persisted.
               </div>
             )}
             <div className="flex justify-between">
-              <Button variant="ghost" size="sm" onClick={() => setStep(2)}><ChevronLeft size={14} /> Back</Button>
+              <Button variant="ghost" size="sm" onClick={() => setStep(2)} disabled={saving}><ChevronLeft size={14} /> Back</Button>
               <div className="flex gap-2">
-                <Button variant="secondary" size="sm" onClick={handleSave}>Save as Draft</Button>
-                <Button variant="primary" size="sm" onClick={handleSave}>Mark as Received</Button>
+                <Button variant="secondary" size="sm" onClick={() => handleSave('draft')} disabled={saving}>
+                  {saving ? 'Saving…' : 'Save as Draft'}
+                </Button>
+                <Button variant="primary" size="sm" onClick={() => handleSave('received')} disabled={saving}>
+                  {saving ? 'Saving…' : 'Mark as Received'}
+                </Button>
               </div>
             </div>
           </div>
