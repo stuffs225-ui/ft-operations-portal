@@ -4,7 +4,10 @@ import { Package, ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
+import { recordStoreAudit } from '../lib/storeAudit';
+import type { ReceiptType } from '../types';
 
 const MATERIAL_CATEGORIES = ['general', 'electrical', 'mechanical', 'medical', 'chemical', 'hydraulic', 'structural', 'consumable'];
 const UNITS = ['unit', 'kg', 'litre', 'metre', 'set', 'box'];
@@ -24,6 +27,7 @@ interface DraftItem {
 
 export function StoreReceiptNew() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
 
   // Step 1 state
@@ -31,7 +35,7 @@ export function StoreReceiptNew() {
   const [supplierName, setSupplierName] = useState('');
   const [deliveryNote, setDeliveryNote] = useState('');
   const [projectId, setProjectId] = useState('');
-  const [receiptType, setReceiptType] = useState('material');
+  const [receiptType, setReceiptType] = useState<ReceiptType>('material');
   const [remarks, setRemarks] = useState('');
 
   // Step 2 state
@@ -43,6 +47,8 @@ export function StoreReceiptNew() {
   });
 
   const [devSuccess, setDevSuccess] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   function addItem() {
     if (!newItem.item_name || newItem.quantity_received <= 0) return;
@@ -54,13 +60,77 @@ export function StoreReceiptNew() {
     setItems(prev => prev.filter((_, i) => i !== idx));
   }
 
-  function handleSave(_markReceived: boolean) {
-    if (!isSupabaseConfigured) {
+  async function handleSave(markReceived: boolean) {
+    if (!isSupabaseConfigured || !supabase) {
       setDevSuccess(true);
       setTimeout(() => navigate('/store/receipts'), 1500);
       return;
     }
-    navigate('/store/receipts');
+
+    if (!receivedDate.trim()) {
+      setSaveError('Received date is required.');
+      return;
+    }
+    if (!user?.id) {
+      setSaveError('Not authenticated. Please refresh and sign in again.');
+      return;
+    }
+
+    setSaving(true);
+    setSaveError(null);
+
+    try {
+      const { data: srData, error: srError } = await supabase
+        .from('store_receipts')
+        .insert({
+          received_date: receivedDate,
+          receipt_type: receiptType,
+          supplier_name: supplierName.trim() || null,
+          delivery_note_number: deliveryNote.trim() || null,
+          project_id: projectId || null,
+          remarks: remarks.trim() || null,
+          status: markReceived ? 'received' : 'draft',
+          received_by: user.id,
+          created_by: user.id,
+        })
+        .select('id')
+        .single();
+
+      if (srError) throw srError;
+
+      if (items.length > 0 && srData?.id) {
+        const { error: itemsError } = await supabase
+          .from('store_receipt_items')
+          .insert(
+            items.map(item => ({
+              store_receipt_id: srData.id,
+              project_id: projectId || null,
+              item_name: item.item_name,
+              item_code: item.item_code || null,
+              material_category: item.material_category,
+              quantity_received: item.quantity_received,
+              unit: item.unit,
+              serial_required: item.serial_required,
+              storage_location: item.storage_location || null,
+              condition: item.condition,
+            }))
+          );
+        if (itemsError) throw itemsError;
+      }
+
+      void recordStoreAudit(
+        markReceived ? 'store_receipt_received' : 'store_receipt_draft',
+        srData.id,
+        `Store receipt ${markReceived ? 'marked as received' : 'saved as draft'} with ${items.length} item(s).`,
+        user.id,
+      );
+
+      navigate(srData?.id ? `/store/receipts/${srData.id}` : '/store/receipts');
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save receipt. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (devSuccess) {
@@ -79,7 +149,6 @@ export function StoreReceiptNew() {
     <div className="space-y-5 max-w-2xl">
       <PageHeader title="New Material Receipt" subtitle={`Step ${step} of 3`} />
 
-      {/* Step indicator */}
       <div className="flex items-center gap-2 mb-2">
         {['Receipt Info', 'Add Items', 'Review'].map((label, i) => (
           <div key={i} className="flex items-center gap-2">
@@ -102,7 +171,7 @@ export function StoreReceiptNew() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Receipt Type</label>
-              <select value={receiptType} onChange={e => setReceiptType(e.target.value)}
+              <select value={receiptType} onChange={e => setReceiptType(e.target.value as ReceiptType)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300">
                 {RECEIPT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
@@ -249,18 +318,25 @@ export function StoreReceiptNew() {
               <div className="flex justify-between"><span className="text-gray-500">Project:</span><span>{projectId || 'Unallocated'}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Items:</span><span>{items.length}</span></div>
             </div>
+            {saveError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">{saveError}</div>
+            )}
             {!isSupabaseConfigured && (
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700">
                 Dev Mode — changes will not be persisted to the database.
               </div>
             )}
             <div className="flex justify-between">
-              <Button variant="ghost" size="sm" onClick={() => setStep(2)}>
+              <Button variant="ghost" size="sm" onClick={() => setStep(2)} disabled={saving}>
                 <ChevronLeft size={14} /> Back
               </Button>
               <div className="flex gap-2">
-                <Button variant="secondary" size="sm" onClick={() => handleSave(false)}>Save as Draft</Button>
-                <Button variant="primary" size="sm" onClick={() => handleSave(true)}>Mark as Received</Button>
+                <Button variant="secondary" size="sm" onClick={() => handleSave(false)} disabled={saving}>
+                  {saving ? 'Saving…' : 'Save as Draft'}
+                </Button>
+                <Button variant="primary" size="sm" onClick={() => handleSave(true)} disabled={saving}>
+                  {saving ? 'Saving…' : 'Mark as Received'}
+                </Button>
               </div>
             </div>
           </div>

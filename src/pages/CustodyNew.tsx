@@ -1,24 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShieldCheck, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
 import { MOCK_STORE_RECEIPTS as MOCK_STORE_RECEIPTS_RAW, MOCK_RECEIPT_ITEMS } from '../data/mockStore';
 import { mockOrEmpty } from '../lib/dataMode';
+import { recordStoreAudit } from '../lib/storeAudit';
+import type { StoreReceiptItem } from '../types';
 
 const MOCK_STORE_RECEIPTS = mockOrEmpty(MOCK_STORE_RECEIPTS_RAW);
-import type { StoreReceiptItem } from '../types';
 
 export function CustodyNew() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [devSuccess, setDevSuccess] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Step 1
   const [selectedItem, setSelectedItem] = useState<StoreReceiptItem | null>(null);
+  const [availableItems, setAvailableItems] = useState<StoreReceiptItem[]>([]);
 
   // Step 2
   const [issueType, setIssueType] = useState<'assign_to_project' | 'temporary_custody'>('assign_to_project');
@@ -29,18 +35,88 @@ export function CustodyNew() {
 
   const approvalRequired = issueType === 'temporary_custody';
 
-  // Get items available for issuance (in_store)
-  const availableItems: StoreReceiptItem[] = MOCK_STORE_RECEIPTS.flatMap(r =>
-    (MOCK_RECEIPT_ITEMS[r.id] ?? []).filter(i => i.status === 'in_store')
-  );
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        const mockItems: StoreReceiptItem[] = MOCK_STORE_RECEIPTS.flatMap(r =>
+          (MOCK_RECEIPT_ITEMS[r.id] ?? []).filter((i: StoreReceiptItem) => i.status === 'in_store')
+        );
+        setAvailableItems(mockItems);
+        return;
+      }
 
-  function handleIssue() {
-    if (!isSupabaseConfigured) {
+      const { data } = await supabase
+        .from('store_receipt_items')
+        .select('*')
+        .eq('status', 'in_store');
+
+      setAvailableItems((data as unknown as StoreReceiptItem[]) ?? []);
+    })();
+  }, []);
+
+  async function handleIssue() {
+    if (!isSupabaseConfigured || !supabase) {
       setDevSuccess(true);
       setTimeout(() => navigate('/custody'), 1500);
       return;
     }
-    navigate('/custody');
+    if (!selectedItem) return;
+    if (!user?.id) {
+      setSaveError('Not authenticated. Please refresh and sign in again.');
+      return;
+    }
+
+    // Temporary custody requires issued_to_user_id (non-null) to satisfy RLS gate
+    // custody_records_factory_update (migration 034). Block until user picker is built.
+    if (issueType === 'temporary_custody') {
+      setSaveError(
+        'Temporary custody requires assigning a specific recipient user. ' +
+        'An individual user picker is not yet implemented. Use "Assign to Project" until this is available.',
+      );
+      return;
+    }
+
+    setSaving(true);
+    setSaveError(null);
+
+    try {
+      const custodyStatus = 'issued';
+      const approvalStatus = approvalRequired ? 'pending_approval' : 'not_required';
+
+      const { data: cusData, error: cusError } = await supabase
+        .from('material_custody_records')
+        .insert({
+          store_receipt_item_id: selectedItem.id,
+          project_id: projectId || null,
+          issued_to_role: issuedToRole,
+          issued_to_user_id: null,
+          issued_to_department: issuedToDept.trim() || null,
+          issue_type: issueType,
+          approval_required: approvalRequired,
+          approval_status: approvalStatus,
+          issued_by: user.id,
+          status: custodyStatus,
+          remarks: remarks.trim() || null,
+          created_by: user.id,
+        })
+        .select('id')
+        .single();
+
+      if (cusError) throw cusError;
+
+      void recordStoreAudit(
+        'custody_issued',
+        cusData.id,
+        `Custody record created for "${selectedItem.item_name}" — ${issueType.replace(/_/g, ' ')}.`,
+        user.id,
+      );
+
+      navigate(cusData?.id ? `/custody/${cusData.id}` : '/custody');
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to create custody record. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (devSuccess) {
@@ -138,9 +214,16 @@ export function CustodyNew() {
             </div>
 
             {issueType === 'temporary_custody' && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-                <AlertCircle size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-amber-700">Temporary custody requires Admin or Operations Manager approval before the material can be issued.</p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+                <AlertCircle size={16} className="text-red-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-red-700">Temporary custody creation is currently blocked</p>
+                  <p className="text-xs text-red-600 mt-0.5">
+                    Temporary custody requires assigning a specific recipient user. An individual user picker
+                    is not yet implemented. Until it is available, use "Assign to Project" instead.
+                    Tracking ref: issued_to_user_id must be non-null for temporary custody (RLS gate).
+                  </p>
+                </div>
               </div>
             )}
 
@@ -200,14 +283,19 @@ export function CustodyNew() {
                 <Badge variant={approvalRequired ? 'warning' : 'neutral'}>{approvalRequired ? 'Yes — Admin/Ops' : 'Not Required'}</Badge>
               </div>
             </div>
+            {saveError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">{saveError}</div>
+            )}
             {!isSupabaseConfigured && (
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700">
                 Dev Mode — changes will not be persisted.
               </div>
             )}
             <div className="flex justify-between">
-              <Button variant="ghost" size="sm" onClick={() => setStep(2)}><ChevronLeft size={14} /> Back</Button>
-              <Button variant="primary" size="sm" onClick={handleIssue}>Issue Custody</Button>
+              <Button variant="ghost" size="sm" onClick={() => setStep(2)} disabled={saving}><ChevronLeft size={14} /> Back</Button>
+              <Button variant="primary" size="sm" onClick={handleIssue} disabled={saving || issueType === 'temporary_custody'}>
+                {saving ? 'Saving…' : 'Issue Custody'}
+              </Button>
             </div>
           </div>
         </Card>
