@@ -33,7 +33,7 @@ const ALL_PHOTO_TYPES: PhotoType[] = ['front', 'rear', 'left_side', 'right_side'
 
 export function StoreVehicleReceivingDetail() {
   const { id } = useParams<{ id: string }>();
-  const { role } = useAuth();
+  const { role, user } = useAuth();
 
   const [vehicle, setVehicle] = useState<VehicleReceipt | null>(null);
   const [photos, setPhotos] = useState<VehicleReceiptPhoto[]>([]);
@@ -43,6 +43,11 @@ export function StoreVehicleReceivingDetail() {
   const [acting, setActing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [devMsg, setDevMsg] = useState('');
+
+  const [addPhotoType, setAddPhotoType] = useState<PhotoType>('front');
+  const [addPhotoFile, setAddPhotoFile] = useState<File | null>(null);
+  const [showPhotoForm, setShowPhotoForm] = useState(false);
+  const [fileInputKey, setFileInputKey] = useState(0);
 
   // Only photos with a real storage_path count toward completion (migration 095).
   // Filename-only records (storage_path = null) do not satisfy the acceptance gate.
@@ -98,10 +103,9 @@ export function StoreVehicleReceivingDetail() {
       // Requires all 5 photo types with a real storage_path — filename-only records do not qualify.
       if (!allRequiredUploaded) {
         setActionError(
-          `Vehicle acceptance requires all 5 required photos to be uploaded as real files ` +
-          `(front, rear, left side, right side, chassis plate). ` +
-          `Photo file upload is not yet implemented — acceptance is blocked until ` +
-          `file upload functionality is available and all 5 photos are on file.`,
+          `All 5 required photos must be uploaded before accepting this vehicle receipt — ` +
+          `${uploadedRequired} of ${REQUIRED_PHOTO_TYPES.length} complete. ` +
+          `Use the Add Photo button to upload the missing photos.`,
         );
         return;
       }
@@ -127,6 +131,58 @@ export function StoreVehicleReceivingDetail() {
       setVehicle(v => v ? { ...v, status: newStatus! } : v);
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Failed to update vehicle receipt.');
+    } finally {
+      setActing(false);
+    }
+  }
+
+  async function handleAddPhoto() {
+    if (!isSupabaseConfigured || !supabase) {
+      setDevMsg('Dev Mode — photo upload not available without Supabase.');
+      return;
+    }
+    if (!vehicle || !addPhotoFile) return;
+    if (!user?.id) {
+      setActionError('Not authenticated. Please refresh and sign in again.');
+      return;
+    }
+    if (addPhotoFile.size > 10 * 1024 * 1024) {
+      setActionError('File exceeds the 10 MB limit.');
+      return;
+    }
+
+    setActing(true);
+    setActionError(null);
+
+    try {
+      const safeName = addPhotoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const uploadPath = `${vehicle.id}/${addPhotoType}/${Date.now()}_${safeName}`;
+
+      const { data: storageData, error: storageErr } = await supabase.storage
+        .from('vehicle-photos')
+        .upload(uploadPath, addPhotoFile, { upsert: false });
+
+      if (storageErr) throw storageErr;
+
+      const { data: inserted, error: dbErr } = await supabase
+        .from('vehicle_receipt_photos')
+        .insert({
+          vehicle_receipt_id: vehicle.id,
+          photo_type: addPhotoType,
+          file_name: addPhotoFile.name,
+          storage_path: storageData.path,
+          uploaded_by: user.id,
+        })
+        .select('*')
+        .single();
+
+      if (dbErr) throw dbErr;
+      if (inserted) setPhotos(prev => [...prev, inserted as unknown as VehicleReceiptPhoto]);
+      setShowPhotoForm(false);
+      setAddPhotoFile(null);
+      setFileInputKey(k => k + 1);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to upload photo.');
     } finally {
       setActing(false);
     }
@@ -171,11 +227,11 @@ export function StoreVehicleReceivingDetail() {
 
       {/* Photo completeness banner */}
       <div className={`rounded-xl border px-5 py-3 flex items-center gap-3 ${
-        allRequiredUploaded ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'
+        allRequiredUploaded ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
       }`}>
         {allRequiredUploaded
           ? <><CheckCircle size={18} className="text-green-600" /><span className="text-sm font-medium text-green-700">Vehicle receipt complete — all required photos uploaded</span></>
-          : <><AlertCircle size={18} className="text-amber-500" /><span className="text-sm font-medium text-amber-700">Photo file upload not yet implemented — acceptance is blocked until all 5 required photos are uploaded as real files</span></>
+          : <><AlertCircle size={18} className="text-red-500" /><span className="text-sm font-medium text-red-700">{REQUIRED_PHOTO_TYPES.length - uploadedRequired} required photo(s) missing — upload using Add Photo before accepting</span></>
         }
       </div>
 
@@ -226,9 +282,47 @@ export function StoreVehicleReceivingDetail() {
             {vehicle.status === 'accepted' && vehicle.project?.project_code?.startsWith('FT') && (
               <Button variant="secondary" size="sm" onClick={() => handleAction('Assign to Production')} disabled={acting}>Assign to Production</Button>
             )}
+            <Button variant="ghost" size="sm" onClick={() => { setShowPhotoForm(f => !f); setActionError(null); }}>
+              {showPhotoForm ? 'Cancel' : 'Add Photo'}
+            </Button>
           </div>
         )}
       </Card>
+
+      {/* Add photo form */}
+      {showPhotoForm && canAct && (
+        <Card>
+          <div className="p-4 space-y-3">
+            <h4 className="text-sm font-semibold text-gray-700">Upload Photo</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Photo Type</label>
+                <select value={addPhotoType} onChange={e => setAddPhotoType(e.target.value as PhotoType)}
+                  className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300">
+                  {ALL_PHOTO_TYPES.map(t => <option key={t} value={t}>{ALL_PHOTO_LABELS[t]}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Photo File</label>
+                <input
+                  key={fileInputKey}
+                  type="file"
+                  accept=".jpg,.jpeg,.png"
+                  onChange={e => setAddPhotoFile(e.target.files?.[0] ?? null)}
+                  className="w-full text-sm text-gray-600 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100"
+                />
+                <p className="text-xs text-gray-400 mt-1">JPG or PNG, max 10 MB</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => { setShowPhotoForm(false); setAddPhotoFile(null); setActionError(null); }}>Cancel</Button>
+              <Button variant="primary" size="sm" onClick={handleAddPhoto} disabled={acting || !addPhotoFile}>
+                {acting ? 'Uploading…' : 'Upload Photo'}
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Photos grid */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">

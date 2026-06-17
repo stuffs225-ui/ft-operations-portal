@@ -47,7 +47,7 @@ export function StoreVehicleReceivingNew() {
     setSaveError(null);
 
     try {
-      const { error: vrError } = await supabase
+      const { data: vrData, error: vrError } = await supabase
         .from('vehicle_receipts')
         .insert({
           chassis_number: chassisNumber.trim(),
@@ -61,15 +61,15 @@ export function StoreVehicleReceivingNew() {
           damage_notes: conditionStatus !== 'good' ? damageNotes.trim() || null : null,
           status: targetStatus,
           created_by: user.id,
-        });
+        })
+        .select('id')
+        .single();
 
       if (vrError) throw vrError;
 
-      // Photo insertion is intentionally omitted. Migration 095 requires storage_path
-      // to be non-null for photo completion — filename-only records do not qualify.
-      // Photos must be uploaded as real files once file upload functionality is available.
-
-      navigate('/store/vehicle-receiving');
+      // Navigate to the detail page so the user can immediately upload required photos.
+      // Photo insertion is done from the detail page — real files only (migration 095).
+      navigate(vrData?.id ? `/store/vehicle-receiving/${vrData.id}` : '/store/vehicle-receiving');
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Failed to save vehicle receipt. Please try again.');
     } finally {
