@@ -14,9 +14,17 @@ import type { StoreReceiptItem } from '../types';
 
 const MOCK_STORE_RECEIPTS = mockOrEmpty(MOCK_STORE_RECEIPTS_RAW);
 
+// Minimal receiver shape — only admin/ops can query all profiles (RLS: profiles: manager read).
+interface ReceiverProfile {
+  id: string;
+  full_name: string | null;
+  email: string;
+  role: string;
+}
+
 export function CustodyNew() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [step, setStep] = useState(1);
   const [devSuccess, setDevSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -33,8 +41,15 @@ export function CustodyNew() {
   const [projectId, setProjectId] = useState('');
   const [remarks, setRemarks] = useState('');
 
+  // Receiver picker — only loaded/shown for admin/operations_manager.
+  // Other roles (factory_user, afs_user, store_user) can only read their own profile per RLS.
+  const canPickReceiver = role === 'admin' || role === 'operations_manager';
+  const [receiverUsers, setReceiverUsers] = useState<ReceiverProfile[]>([]);
+  const [receiverUserId, setReceiverUserId] = useState('');
+
   const approvalRequired = issueType === 'temporary_custody';
 
+  // Load available store items
   useEffect(() => {
     (async () => {
       if (!isSupabaseConfigured || !supabase) {
@@ -54,6 +69,18 @@ export function CustodyNew() {
     })();
   }, []);
 
+  // Load receiver profiles — only for admin/operations_manager (RLS gate: profiles: manager read).
+  useEffect(() => {
+    if (!canPickReceiver || !isSupabaseConfigured || !supabase) return;
+    (async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, role')
+        .order('full_name', { ascending: true, nullsFirst: false });
+      setReceiverUsers((data as unknown as ReceiverProfile[]) ?? []);
+    })();
+  }, [canPickReceiver]);
+
   async function handleIssue() {
     if (!isSupabaseConfigured || !supabase) {
       setDevSuccess(true);
@@ -66,21 +93,30 @@ export function CustodyNew() {
       return;
     }
 
-    // Temporary custody requires issued_to_user_id (non-null) to satisfy RLS gate
-    // custody_records_factory_update (migration 034). Block until user picker is built.
+    // Determine issued_to_user_id:
+    // - admin/ops: must select from picker (can see all profiles via RLS).
+    // - all other roles: self-assignment (factory/afs/store users can only read their own profile).
+    let issuedToUserId: string | null = null;
     if (issueType === 'temporary_custody') {
-      setSaveError(
-        'Temporary custody requires assigning a specific recipient user. ' +
-        'An individual user picker is not yet implemented. Use "Assign to Project" until this is available.',
-      );
-      return;
+      if (canPickReceiver) {
+        if (!receiverUserId) {
+          setSaveError('Please select a receiver for temporary custody.');
+          return;
+        }
+        issuedToUserId = receiverUserId;
+      } else {
+        // Self-assignment: the requesting user is the receiver.
+        // custody_records_factory_update RLS requires issued_to_user_id = auth.uid(), so
+        // setting this to user.id allows the receiver to accept/reject their own record.
+        issuedToUserId = user.id;
+      }
     }
 
     setSaving(true);
     setSaveError(null);
 
     try {
-      const custodyStatus = 'issued';
+      const custodyStatus = issueType === 'temporary_custody' ? 'pending_approval' : 'issued';
       const approvalStatus = approvalRequired ? 'pending_approval' : 'not_required';
 
       const { data: cusData, error: cusError } = await supabase
@@ -89,7 +125,7 @@ export function CustodyNew() {
           store_receipt_item_id: selectedItem.id,
           project_id: projectId || null,
           issued_to_role: issuedToRole,
-          issued_to_user_id: null,
+          issued_to_user_id: issuedToUserId,
           issued_to_department: issuedToDept.trim() || null,
           issue_type: issueType,
           approval_required: approvalRequired,
@@ -118,6 +154,12 @@ export function CustodyNew() {
       setSaving(false);
     }
   }
+
+  const selectedReceiverName = canPickReceiver
+    ? receiverUsers.find(u => u.id === receiverUserId)?.full_name
+      ?? receiverUsers.find(u => u.id === receiverUserId)?.email
+      ?? receiverUserId
+    : 'You (self-custody)';
 
   if (devSuccess) {
     return (
@@ -202,7 +244,7 @@ export function CustodyNew() {
                 {(['assign_to_project', 'temporary_custody'] as const).map(type => (
                   <button
                     key={type}
-                    onClick={() => setIssueType(type)}
+                    onClick={() => { setIssueType(type); setReceiverUserId(''); }}
                     className={`flex-1 py-2 px-3 rounded-lg border text-sm font-medium transition-colors ${
                       issueType === type ? 'border-sky-400 bg-sky-50 text-sky-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
                     }`}
@@ -213,17 +255,41 @@ export function CustodyNew() {
               </div>
             </div>
 
+            {/* Temporary custody receiver */}
+            {issueType === 'temporary_custody' && canPickReceiver && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Receiver <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={receiverUserId}
+                  onChange={e => setReceiverUserId(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                >
+                  <option value="">Select receiver…</option>
+                  {receiverUsers.map(u => (
+                    <option key={u.id} value={u.id}>
+                      {u.full_name ?? u.email} ({u.role.replace(/_/g, ' ')})
+                    </option>
+                  ))}
+                </select>
+                {!receiverUserId && (
+                  <p className="text-xs text-red-500 mt-1">Required — select the person who will hold this item temporarily.</p>
+                )}
+              </div>
+            )}
+
+            {issueType === 'temporary_custody' && !canPickReceiver && (
+              <div className="bg-sky-50 border border-sky-200 rounded-lg p-3">
+                <p className="text-xs font-medium text-sky-700">You are requesting temporary custody for yourself.</p>
+                <p className="text-xs text-sky-600 mt-0.5">Your account will be recorded as the receiver of this item. Admin or Operations Manager approval is required before it can be issued.</p>
+              </div>
+            )}
+
             {issueType === 'temporary_custody' && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
-                <AlertCircle size={16} className="text-red-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-xs font-medium text-red-700">Temporary custody creation is currently blocked</p>
-                  <p className="text-xs text-red-600 mt-0.5">
-                    Temporary custody requires assigning a specific recipient user. An individual user picker
-                    is not yet implemented. Until it is available, use "Assign to Project" instead.
-                    Tracking ref: issued_to_user_id must be non-null for temporary custody (RLS gate).
-                  </p>
-                </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                <AlertCircle size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-amber-700">Temporary custody requires Admin or Operations Manager approval before the material can be issued.</p>
               </div>
             )}
 
@@ -262,7 +328,16 @@ export function CustodyNew() {
 
             <div className="flex justify-between">
               <Button variant="ghost" size="sm" onClick={() => setStep(1)}><ChevronLeft size={14} /> Back</Button>
-              <Button variant="primary" size="sm" onClick={() => setStep(3)}>Next <ChevronRight size={14} /></Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  if (issueType === 'temporary_custody' && canPickReceiver && !receiverUserId) return;
+                  setStep(3);
+                }}
+              >
+                Next <ChevronRight size={14} />
+              </Button>
             </div>
           </div>
         </Card>
@@ -277,6 +352,12 @@ export function CustodyNew() {
               <div className="flex justify-between"><span className="text-gray-500">Issue Type:</span>
                 <Badge variant={issueType === 'temporary_custody' ? 'warning' : 'info'}>{issueType.replace(/_/g, ' ')}</Badge>
               </div>
+              {issueType === 'temporary_custody' && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Receiver:</span>
+                  <span className="font-medium">{selectedReceiverName}</span>
+                </div>
+              )}
               <div className="flex justify-between"><span className="text-gray-500">Issued To:</span><span>{issuedToRole}</span></div>
               {projectId && <div className="flex justify-between"><span className="text-gray-500">Project:</span><span>{projectId}</span></div>}
               <div className="flex justify-between"><span className="text-gray-500">Approval Required:</span>
@@ -293,7 +374,12 @@ export function CustodyNew() {
             )}
             <div className="flex justify-between">
               <Button variant="ghost" size="sm" onClick={() => setStep(2)} disabled={saving}><ChevronLeft size={14} /> Back</Button>
-              <Button variant="primary" size="sm" onClick={handleIssue} disabled={saving || issueType === 'temporary_custody'}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleIssue}
+                disabled={saving || (issueType === 'temporary_custody' && canPickReceiver && !receiverUserId)}
+              >
                 {saving ? 'Saving…' : 'Issue Custody'}
               </Button>
             </div>
