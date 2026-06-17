@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ShieldCheck, ArrowLeft, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_CUSTODY_RECORDS } from '../data/mockStore';
-import type { CustodyStatus, CustodyApprovalStatus, CustodyReceiverDecision, UserRole } from '../types';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { recordStoreAudit } from '../lib/storeAudit';
+import type { MaterialCustodyRecord, CustodyStatus, CustodyApprovalStatus, CustodyReceiverDecision, UserRole } from '../types';
 
 const STATUS_VARIANT: Record<CustodyStatus, 'neutral' | 'info' | 'warning' | 'success' | 'critical' | 'default'> = {
   draft: 'neutral', pending_approval: 'warning', approved_for_issue: 'info',
@@ -28,29 +30,127 @@ const RECEIVER_VARIANT: Record<CustodyReceiverDecision, 'neutral' | 'warning' | 
 
 const CAN_APPROVE: UserRole[] = ['admin', 'operations_manager'];
 
+type CustodyPatch = {
+  approval_status?: CustodyApprovalStatus;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  rejected_by?: string | null;
+  rejected_at?: string | null;
+  rejection_reason?: string | null;
+  status?: CustodyStatus;
+  receiver_decision?: CustodyReceiverDecision;
+  accepted_by?: string | null;
+  accepted_at?: string | null;
+  receiver_rejection_reason?: string | null;
+  installation_status?: string;
+  installed_at?: string | null;
+  returned_at?: string | null;
+};
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 export function CustodyDetail() {
   const { id } = useParams<{ id: string }>();
-  const { role } = useAuth();
+  const { role, user } = useAuth();
+
+  const [record, setRecord] = useState<MaterialCustodyRecord | null>(null);
+  const [loading, setLoading] = useState(Boolean(id));
+  const [notFound, setNotFound] = useState(!id);
   const [devMsg, setDevMsg] = useState('');
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [acting, setActing] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [receiverRejectReason, setReceiverRejectReason] = useState('');
 
-  const record = MOCK_CUSTODY_RECORDS.find(c => c.id === id);
   const canApprove = role ? CAN_APPROVE.includes(role) : false;
   const isReceiver = role === record?.issued_to_role || role === 'factory_user' || role === 'afs_user';
 
-  function handleAction(action: string) {
-    if (!isSupabaseConfigured) {
+  useEffect(() => {
+    if (!id) return;
+
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        const found = MOCK_CUSTODY_RECORDS.find(c => c.id === id);
+        if (!found) { setNotFound(true); setLoading(false); return; }
+        setRecord(found);
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('material_custody_records')
+        .select('*, project:projects(project_code, so_number, customer_name), item:store_receipt_items(item_name, item_code, material_category)')
+        .eq('id', id)
+        .single();
+
+      if (error || !data) { setNotFound(true); setLoading(false); return; }
+      setRecord(data as unknown as MaterialCustodyRecord);
+      setLoading(false);
+    })();
+  }, [id]);
+
+  async function handleAction(action: string) {
+    if (!isSupabaseConfigured || !supabase) {
       setDevMsg(`Dev Mode — "${action}" recorded (not persisted).`);
       return;
     }
+    if (!record || !user?.id) return;
+
+    setActing(true);
+    setActionError(null);
+
+    try {
+      let patch: CustodyPatch = {};
+      const now = new Date().toISOString();
+
+      if (action === 'Approve') {
+        patch = { approval_status: 'approved', approved_by: user.id, approved_at: now, status: 'issued' };
+      } else if (action === 'Reject approval') {
+        patch = { approval_status: 'rejected', rejected_by: user.id, rejected_at: now, rejection_reason: rejectReason, status: 'cancelled' };
+      } else if (action === 'Accept custody') {
+        // B-021: status and receiver_decision must be updated together to avoid trigger violation.
+        patch = { status: 'in_custody', receiver_decision: 'accepted', accepted_by: user.id, accepted_at: now };
+      } else if (action === 'Reject custody') {
+        patch = { receiver_decision: 'rejected', receiver_rejection_reason: receiverRejectReason, status: 'cancelled' };
+      } else if (action === 'Mark as Installed') {
+        patch = { status: 'installed', installation_status: 'installed', installed_at: now };
+      } else if (action === 'Return to Store') {
+        patch = { status: 'returned', returned_at: now };
+      } else if (action === 'Mark as Consumed') {
+        patch = { status: 'consumed_by_project' };
+      } else {
+        return;
+      }
+
+      const { error } = await supabase
+        .from('material_custody_records')
+        .update(patch)
+        .eq('id', record.id);
+
+      if (error) throw error;
+
+      void recordStoreAudit(
+        `custody_${action.toLowerCase().replace(/\s+/g, '_')}`,
+        record.id,
+        `Custody record ${record.custody_number}: ${action}.`,
+        user.id,
+      );
+
+      setRecord(r => r ? { ...r, ...patch } as MaterialCustodyRecord : r);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to update custody record.');
+    } finally {
+      setActing(false);
+    }
   }
 
-  if (!record) {
+  if (loading) {
+    return <PageLoader />;
+  }
+
+  if (notFound || !record) {
     return (
       <div className="space-y-5">
         <PageHeader title="Custody Record Not Found" />
@@ -78,6 +178,9 @@ export function CustodyDetail() {
 
       {devMsg && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 text-sm text-amber-700">{devMsg}</div>
+      )}
+      {actionError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2 text-sm text-red-700">{actionError}</div>
       )}
 
       {/* Status summary */}
@@ -150,8 +253,10 @@ export function CustodyDetail() {
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="primary" size="sm" onClick={() => handleAction('Approve custody')}>Approve</Button>
-                  <Button variant="secondary" size="sm" onClick={() => { if (rejectReason) handleAction('Reject custody'); }}>
+                  <Button variant="primary" size="sm" onClick={() => handleAction('Approve')} disabled={acting}>
+                    {acting ? 'Saving…' : 'Approve'}
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => { if (rejectReason) handleAction('Reject approval'); }} disabled={acting}>
                     Reject
                   </Button>
                 </div>
@@ -194,8 +299,10 @@ export function CustodyDetail() {
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
               </div>
               <div className="flex gap-2">
-                <Button variant="primary" size="sm" onClick={() => handleAction('Accept custody')}>Accept</Button>
-                <Button variant="secondary" size="sm" onClick={() => { if (receiverRejectReason) handleAction('Reject custody'); }}>
+                <Button variant="primary" size="sm" onClick={() => handleAction('Accept custody')} disabled={acting}>
+                  {acting ? 'Saving…' : 'Accept'}
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => { if (receiverRejectReason) handleAction('Reject custody'); }} disabled={acting}>
                   Reject
                 </Button>
               </div>
@@ -215,11 +322,17 @@ export function CustodyDetail() {
           </div>
           <div className="px-5 py-4 flex flex-wrap gap-2">
             {(role === 'factory_user' || role === 'afs_user' || canApprove) && (
-              <Button variant="primary" size="sm" onClick={() => handleAction('Mark as Installed')}>Mark Installed</Button>
+              <Button variant="primary" size="sm" onClick={() => handleAction('Mark as Installed')} disabled={acting}>
+                {acting ? 'Saving…' : 'Mark Installed'}
+              </Button>
             )}
-            <Button variant="secondary" size="sm" onClick={() => handleAction('Return to Store')}>Return to Store</Button>
+            <Button variant="secondary" size="sm" onClick={() => handleAction('Return to Store')} disabled={acting}>
+              {acting ? 'Saving…' : 'Return to Store'}
+            </Button>
             {(role === 'factory_user' || canApprove) && (
-              <Button variant="ghost" size="sm" onClick={() => handleAction('Mark as Consumed')}>Mark Consumed</Button>
+              <Button variant="ghost" size="sm" onClick={() => handleAction('Mark as Consumed')} disabled={acting}>
+                {acting ? 'Saving…' : 'Mark Consumed'}
+              </Button>
             )}
           </div>
         </Card>

@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Package, ArrowLeft, Tag } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_STORE_RECEIPTS, MOCK_MEDICAL_SERIALS, getMockReceiptItems } from '../data/mockStore';
-import type { ReceiptStatus, ItemStatus, UserRole } from '../types';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { recordStoreAudit } from '../lib/storeAudit';
+import type { StoreReceipt, StoreReceiptItem, MedicalSerialNumber, ReceiptStatus, ItemStatus, UserRole } from '../types';
 
 const RECEIPT_STATUS_VARIANT: Record<ReceiptStatus, 'neutral' | 'info' | 'warning' | 'success' | 'critical' | 'default'> = {
   draft: 'neutral', received: 'info', partially_received: 'warning',
@@ -30,17 +32,109 @@ const CAN_ACT: UserRole[] = ['admin', 'operations_manager', 'store_user'];
 
 export function StoreReceiptDetail() {
   const { id } = useParams<{ id: string }>();
-  const { role } = useAuth();
+  const { role, user } = useAuth();
+
+  const [receipt, setReceipt] = useState<StoreReceipt | null>(null);
+  const [items, setItems] = useState<StoreReceiptItem[]>([]);
+  const [serials, setSerials] = useState<MedicalSerialNumber[]>([]);
+  const [loading, setLoading] = useState(Boolean(id));
+  const [notFound, setNotFound] = useState(!id);
   const [tab, setTab] = useState<'items' | 'serials'>('items');
   const [devMsg, setDevMsg] = useState('');
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [acting, setActing] = useState(false);
 
-  const receipt = MOCK_STORE_RECEIPTS.find(r => r.id === id);
-  const items = id ? getMockReceiptItems(id) : [];
   const hasSerials = items.some(i => i.serial_required);
-  const serials = MOCK_MEDICAL_SERIALS.filter(s => items.some(i => i.id === s.store_receipt_item_id));
   const canAct = role ? CAN_ACT.includes(role) : false;
 
-  if (!receipt) {
+  useEffect(() => {
+    if (!id) return;
+
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        const found = MOCK_STORE_RECEIPTS.find(r => r.id === id);
+        if (!found) { setNotFound(true); setLoading(false); return; }
+        const mockItems = getMockReceiptItems(id);
+        setReceipt(found);
+        setItems(mockItems);
+        setSerials(MOCK_MEDICAL_SERIALS.filter(s => mockItems.some(i => i.id === s.store_receipt_item_id)));
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('store_receipts')
+        .select('*, project:projects(project_code, so_number, customer_name)')
+        .eq('id', id)
+        .single();
+
+      if (error || !data) { setNotFound(true); setLoading(false); return; }
+      setReceipt(data as unknown as StoreReceipt);
+
+      const { data: itemData } = await supabase
+        .from('store_receipt_items')
+        .select('*')
+        .eq('store_receipt_id', id);
+
+      const loadedItems = (itemData as unknown as StoreReceiptItem[]) ?? [];
+      setItems(loadedItems);
+
+      const serialItemIds = loadedItems.filter(i => i.serial_required).map(i => i.id);
+      if (serialItemIds.length > 0) {
+        const { data: serialData } = await supabase
+          .from('medical_serial_numbers')
+          .select('*')
+          .in('store_receipt_item_id', serialItemIds);
+        setSerials((serialData as unknown as MedicalSerialNumber[]) ?? []);
+      }
+
+      setLoading(false);
+    })();
+  }, [id]);
+
+  async function handleAction(action: string) {
+    if (!isSupabaseConfigured || !supabase) {
+      setDevMsg(`Dev Mode — "${action}" action recorded (not persisted).`);
+      return;
+    }
+    if (!receipt || !user?.id) return;
+
+    let newStatus: ReceiptStatus | null = null;
+    if (action === 'Mark as Received') newStatus = 'received';
+    else if (action === 'Send to QC') newStatus = 'pending_material_qc';
+    if (!newStatus) return;
+
+    setActing(true);
+    setActionError(null);
+
+    try {
+      const { error } = await supabase
+        .from('store_receipts')
+        .update({ status: newStatus })
+        .eq('id', receipt.id);
+
+      if (error) throw error;
+
+      void recordStoreAudit(
+        `store_receipt_${newStatus}`,
+        receipt.id,
+        `Store receipt ${receipt.receipt_number} status updated to ${newStatus}.`,
+        user.id,
+      );
+
+      setReceipt(r => r ? { ...r, status: newStatus! } : r);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to update receipt.');
+    } finally {
+      setActing(false);
+    }
+  }
+
+  if (loading) {
+    return <PageLoader />;
+  }
+
+  if (notFound || !receipt) {
     return (
       <div className="space-y-5">
         <PageHeader title="Receipt Not Found" />
@@ -52,13 +146,6 @@ export function StoreReceiptDetail() {
         <Link to="/store/receipts" className="text-sm text-sky-600 hover:underline">← Back to receipts</Link>
       </div>
     );
-  }
-
-  function handleAction(action: string) {
-    if (!isSupabaseConfigured) {
-      setDevMsg(`Dev Mode — "${action}" action recorded (not persisted).`);
-      return;
-    }
   }
 
   return (
@@ -76,8 +163,10 @@ export function StoreReceiptDetail() {
       {devMsg && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 text-sm text-amber-700">{devMsg}</div>
       )}
+      {actionError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2 text-sm text-red-700">{actionError}</div>
+      )}
 
-      {/* Header card */}
       <Card>
         <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
@@ -108,16 +197,19 @@ export function StoreReceiptDetail() {
         {canAct && (
           <div className="px-5 pb-4 flex gap-2">
             {receipt.status === 'draft' && (
-              <Button variant="primary" size="sm" onClick={() => handleAction('Mark as Received')}>Mark as Received</Button>
+              <Button variant="primary" size="sm" onClick={() => handleAction('Mark as Received')} disabled={acting}>
+                {acting ? 'Saving…' : 'Mark as Received'}
+              </Button>
             )}
             {receipt.status === 'received' && (
-              <Button variant="secondary" size="sm" onClick={() => handleAction('Send to QC')}>Send to Material QC</Button>
+              <Button variant="secondary" size="sm" onClick={() => handleAction('Send to QC')} disabled={acting}>
+                {acting ? 'Saving…' : 'Send to Material QC'}
+              </Button>
             )}
           </div>
         )}
       </Card>
 
-      {/* Tabs */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div className="flex items-center gap-1 px-4 pt-3 border-b border-gray-100">
           {(['items', ...(hasSerials ? ['serials'] : [])] as ('items' | 'serials')[]).map(t => (
