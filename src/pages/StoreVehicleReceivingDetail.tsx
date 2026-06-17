@@ -33,7 +33,7 @@ const ALL_PHOTO_TYPES: PhotoType[] = ['front', 'rear', 'left_side', 'right_side'
 
 export function StoreVehicleReceivingDetail() {
   const { id } = useParams<{ id: string }>();
-  const { role, user } = useAuth();
+  const { role } = useAuth();
 
   const [vehicle, setVehicle] = useState<VehicleReceipt | null>(null);
   const [photos, setPhotos] = useState<VehicleReceiptPhoto[]>([]);
@@ -44,11 +44,11 @@ export function StoreVehicleReceivingDetail() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [devMsg, setDevMsg] = useState('');
 
-  const [addPhotoType, setAddPhotoType] = useState<PhotoType>('front');
-  const [addPhotoFile, setAddPhotoFile] = useState('');
-  const [showPhotoForm, setShowPhotoForm] = useState(false);
-
-  const uploadedRequired = photos.filter(p => REQUIRED_PHOTO_TYPES.includes(p.photo_type)).length;
+  // Only photos with a real storage_path count toward completion (migration 095).
+  // Filename-only records (storage_path = null) do not satisfy the acceptance gate.
+  const uploadedRequired = photos.filter(
+    p => REQUIRED_PHOTO_TYPES.includes(p.photo_type) && p.storage_path != null && p.storage_path !== ''
+  ).length;
   const allRequiredUploaded = uploadedRequired >= REQUIRED_PHOTO_TYPES.length;
   const canAct = role ? CAN_ACT.includes(role) : false;
 
@@ -94,13 +94,14 @@ export function StoreVehicleReceivingDetail() {
     let newStatus: VehicleReceiptStatus | null = null;
 
     if (action === 'Accept Vehicle') {
-      // App-layer photo gate — mirrors the DB trigger enforce_vehicle_photo_completion()
-      // from migration 094. The DB trigger is the final authority; this check gives
-      // the user a clear message before the request reaches the DB.
+      // App-layer gate mirrors DB trigger enforce_vehicle_photo_completion() (migration 095).
+      // Requires all 5 photo types with a real storage_path — filename-only records do not qualify.
       if (!allRequiredUploaded) {
         setActionError(
-          `All 5 required photos must be present before accepting this vehicle receipt. ` +
-          `${uploadedRequired} of ${REQUIRED_PHOTO_TYPES.length} recorded — add the missing photos first.`,
+          `Vehicle acceptance requires all 5 required photos to be uploaded as real files ` +
+          `(front, rear, left side, right side, chassis plate). ` +
+          `Photo file upload is not yet implemented — acceptance is blocked until ` +
+          `file upload functionality is available and all 5 photos are on file.`,
         );
         return;
       }
@@ -126,46 +127,6 @@ export function StoreVehicleReceivingDetail() {
       setVehicle(v => v ? { ...v, status: newStatus! } : v);
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Failed to update vehicle receipt.');
-    } finally {
-      setActing(false);
-    }
-  }
-
-  async function handleAddPhoto() {
-    if (!isSupabaseConfigured || !supabase) {
-      setDevMsg(`Dev Mode — "Upload ${addPhotoType} photo" recorded (not persisted).`);
-      setShowPhotoForm(false);
-      setAddPhotoFile('');
-      return;
-    }
-    if (!vehicle || !addPhotoFile.trim()) return;
-    if (!user?.id) {
-      setActionError('Not authenticated. Please refresh and sign in again.');
-      return;
-    }
-
-    setActing(true);
-    setActionError(null);
-
-    try {
-      const { data: inserted, error } = await supabase
-        .from('vehicle_receipt_photos')
-        .insert({
-          vehicle_receipt_id: vehicle.id,
-          photo_type: addPhotoType,
-          file_name: addPhotoFile.trim(),
-          storage_path: null,
-          uploaded_by: user.id,
-        })
-        .select('*')
-        .single();
-
-      if (error) throw error;
-      if (inserted) setPhotos(prev => [...prev, inserted as unknown as VehicleReceiptPhoto]);
-      setShowPhotoForm(false);
-      setAddPhotoFile('');
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Failed to add photo.');
     } finally {
       setActing(false);
     }
@@ -210,11 +171,11 @@ export function StoreVehicleReceivingDetail() {
 
       {/* Photo completeness banner */}
       <div className={`rounded-xl border px-5 py-3 flex items-center gap-3 ${
-        allRequiredUploaded ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+        allRequiredUploaded ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'
       }`}>
         {allRequiredUploaded
           ? <><CheckCircle size={18} className="text-green-600" /><span className="text-sm font-medium text-green-700">Vehicle receipt complete — all required photos uploaded</span></>
-          : <><AlertCircle size={18} className="text-red-500" /><span className="text-sm font-medium text-red-700">{REQUIRED_PHOTO_TYPES.length - uploadedRequired} required photo(s) missing — acceptance is blocked until photos are complete</span></>
+          : <><AlertCircle size={18} className="text-amber-500" /><span className="text-sm font-medium text-amber-700">Photo file upload not yet implemented — acceptance is blocked until all 5 required photos are uploaded as real files</span></>
         }
       </div>
 
@@ -265,61 +226,42 @@ export function StoreVehicleReceivingDetail() {
             {vehicle.status === 'accepted' && vehicle.project?.project_code?.startsWith('FT') && (
               <Button variant="secondary" size="sm" onClick={() => handleAction('Assign to Production')} disabled={acting}>Assign to Production</Button>
             )}
-            <Button variant="ghost" size="sm" onClick={() => { setShowPhotoForm(!showPhotoForm); setActionError(null); }}>Add Photo</Button>
           </div>
         )}
       </Card>
 
-      {/* Add photo form */}
-      {showPhotoForm && canAct && (
-        <Card>
-          <div className="p-4 space-y-3">
-            <h4 className="text-sm font-semibold text-gray-700">Add Photo</h4>
-            <div className="flex gap-3 items-end">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Photo Type</label>
-                <select value={addPhotoType} onChange={e => setAddPhotoType(e.target.value as PhotoType)}
-                  className="border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300">
-                  {ALL_PHOTO_TYPES.map(t => <option key={t} value={t}>{ALL_PHOTO_LABELS[t]}</option>)}
-                </select>
-              </div>
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-gray-600 mb-1">File Name</label>
-                <input type="text" value={addPhotoFile} onChange={e => setAddPhotoFile(e.target.value)}
-                  placeholder="photo.jpg"
-                  className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
-              </div>
-              <Button variant="primary" size="sm" onClick={handleAddPhoto} disabled={acting || !addPhotoFile.trim()}>
-                {acting ? 'Saving…' : 'Save'}
-              </Button>
-            </div>
-          </div>
-        </Card>
-      )}
-
       {/* Photos grid */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div className="px-5 py-4 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-700">Photos ({photos.length} uploaded)</h3>
+          <h3 className="text-sm font-semibold text-gray-700">Photos ({photos.length} recorded)</h3>
         </div>
         <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-3">
           {ALL_PHOTO_TYPES.map(type => {
             const photo = photos.find(p => p.photo_type === type);
+            const hasRealUpload = photo != null && photo.storage_path != null && photo.storage_path !== '';
+            const hasRecord = photo != null;
             const required = REQUIRED_PHOTO_TYPES.includes(type);
             return (
               <div key={type} className={`rounded-lg border p-3 ${
-                photo ? 'border-green-200 bg-green-50' : required ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50'
+                hasRealUpload ? 'border-green-200 bg-green-50'
+                : hasRecord ? 'border-amber-200 bg-amber-50'
+                : required ? 'border-red-200 bg-red-50'
+                : 'border-gray-200 bg-gray-50'
               }`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-medium text-gray-600">{ALL_PHOTO_LABELS[type]}</span>
-                  {photo
+                  {hasRealUpload
                     ? <CheckCircle size={13} className="text-green-500" />
-                    : required
-                      ? <AlertCircle size={13} className="text-red-400" />
-                      : null}
+                    : hasRecord
+                      ? <AlertCircle size={13} className="text-amber-400" />
+                      : required
+                        ? <AlertCircle size={13} className="text-red-400" />
+                        : null}
                 </div>
-                {photo ? (
-                  <p className="text-xs text-gray-500 truncate">{photo.file_name}</p>
+                {hasRealUpload ? (
+                  <p className="text-xs text-gray-500 truncate">{photo!.file_name}</p>
+                ) : hasRecord ? (
+                  <p className="text-xs text-amber-600">Filename recorded — upload pending</p>
                 ) : (
                   <p className="text-xs text-gray-400">{required ? 'Missing (Required)' : 'Not uploaded'}</p>
                 )}

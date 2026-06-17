@@ -2,21 +2,36 @@
 
 **Date:** 2026-06-17
 **Branch:** `feature/step-12c-vehicle-receiving-live-write`
-**Status:** COMPLETE — awaiting review
+**Status:** COMPLETE (safety-fixed) — awaiting review
 **Prerequisite:** Step 12B governance hardening merged at `ff90668` (migration 094)
+
+> **Safety Fix Applied (same branch, commit following initial implementation):**
+> Migration 094's `enforce_vehicle_photo_completion()` only checked `photo_type` presence.
+> Filename-only records (`storage_path = null`) could satisfy the acceptance gate without any
+> real uploaded file. Migration 095 (`095_vehicle_photo_storage_path_hardening.sql`) replaces
+> the trigger function to additionally require `storage_path IS NOT NULL AND storage_path <> ''`.
+> Application code updated to match: no filename-only photo records are inserted, and
+> Accept Vehicle is blocked with a clear message until real file upload is implemented.
 
 ---
 
 ## Executive Summary
 
-Step 12C converts the two Vehicle Receiving pages from placeholder/mock-only implementations to live Supabase reads and writes:
+Step 12C converts the two Vehicle Receiving pages from placeholder/mock-only implementations
+to live Supabase reads and writes, with a safety fix applied before PR merge to ensure the
+photo acceptance gate requires real uploaded files — not just filename references.
 
-- **`StoreVehicleReceivingNew.tsx`** — 3-step wizard now INSERTs `vehicle_receipts` and `vehicle_receipt_photos` into Supabase. "Save as Draft" sets `status='draft'`; "Mark as Received" sets `status='received'`.
-- **`StoreVehicleReceivingDetail.tsx`** — Detail page now loads live data from Supabase (with project join), and real UPDATE/INSERT handlers for status actions and photo additions.
+- **`StoreVehicleReceivingNew.tsx`** — 3-step wizard INSERTs `vehicle_receipts` into Supabase.
+  "Save as Draft" → `status='draft'`; "Mark as Received" → `status='received'`. Photo insertion
+  is intentionally omitted — photo file upload is deferred to a future step.
+- **`StoreVehicleReceivingDetail.tsx`** — Detail page loads live data from Supabase (with project
+  join). `handleAction()` UPDATEs `vehicle_receipts.status`. Accept Vehicle is blocked with a
+  clear message until photo file upload is implemented. Add Photo (filename-only form) removed.
+- **`095_vehicle_photo_storage_path_hardening.sql`** — Replaces `enforce_vehicle_photo_completion()`
+  to require `storage_path IS NOT NULL AND storage_path <> ''` for all 5 required photo types.
 
-App-layer validation mirrors the DB trigger `enforce_vehicle_photo_completion()` (migration 094): accepting a vehicle receipt is blocked unless all 5 required photo types are present. The DB trigger remains the final authority.
-
-No DB schema, migrations, RLS policies, routes, route guards, or non-Store modules were changed.
+No DB schema (beyond the trigger function update), RLS, routes, route guards, or non-Store
+modules were changed.
 
 ---
 
@@ -26,187 +41,177 @@ No DB schema, migrations, RLS policies, routes, route guards, or non-Store modul
 
 | File | Change |
 |---|---|
-| `src/pages/StoreVehicleReceivingNew.tsx` | Wizard `handleSave()` now INSERTs vehicle receipt + photos into Supabase |
-| `src/pages/StoreVehicleReceivingDetail.tsx` | Detail page loads live data; `handleAction()` and `handleAddPhoto()` write to Supabase |
+| `src/pages/StoreVehicleReceivingNew.tsx` | Wizard INSERTs vehicle receipt; photo insertion removed; Step 2 photo section replaced with deferred-upload notice |
+| `src/pages/StoreVehicleReceivingDetail.tsx` | Detail page loads live data; `handleAction()` writes to Supabase; `uploadedRequired` checks `storage_path`; Add Photo form removed; Accept Vehicle blocked with clear message |
 
 ### A.2 Files Created
 
 | File | Purpose |
 |---|---|
+| `supabase/migrations/095_vehicle_photo_storage_path_hardening.sql` | Replaces `enforce_vehicle_photo_completion()` to require real storage_path |
 | `docs/implementation/step-12c-vehicle-receiving-live-write.md` | This document |
 
 ### A.3 Not Changed
 
-- DB schema, migrations, RLS policies
+- DB schema (no new tables, columns, types, indexes)
+- RLS policies
 - Route paths or route guards
 - Custody pages (`CustodyNew.tsx`, `CustodyDetail.tsx`)
 - Store receipt pages (`StoreReceiptNew.tsx`, `StoreReceiptDetail.tsx`)
 - Any non-Store module
 - Visual design or component structure
-- Mock data files (still used for dev-mode fallback)
 
 ---
 
-## B. StoreVehicleReceivingNew.tsx
+## B. Migration 095 — Photo Storage Path Hardening
 
-### B.1 Change Summary
+### B.1 Problem
 
-The 3-step wizard was previously a stub that navigated away without writing anything to Supabase. It now performs a two-step INSERT:
+Migration 094 `enforce_vehicle_photo_completion()` counted `DISTINCT photo_type` presence only.
+The WHERE clause:
+```sql
+WHERE vehicle_receipt_id = NEW.id
+  AND photo_type::text IN ('front', 'rear', 'left_side', 'right_side', 'chassis_plate')
+```
 
-1. INSERT into `vehicle_receipts` — returns the new record `id`
-2. INSERT into `vehicle_receipt_photos` — one row per filename entered in the photo UI (filtered to non-empty entries)
+A record with `photo_type = 'front'` and `storage_path = null` (filename-only, no real file) was
+counted. Inserting five such records — one per required type — would satisfy the gate, allowing
+`status='accepted'` with no real photo files on Supabase Storage.
 
-The `handleSave` function signature changed from no-argument to `handleSave(targetStatus: 'draft' | 'received')`:
-- "Save as Draft" → `targetStatus='draft'`
-- "Mark as Received" → `targetStatus='received'`
+### B.2 Fix
 
-### B.2 Dev Mode Behaviour (unchanged)
+`CREATE OR REPLACE FUNCTION public.enforce_vehicle_photo_completion()` — updated WHERE clause:
+```sql
+WHERE vehicle_receipt_id = NEW.id
+  AND photo_type::text IN ('front', 'rear', 'left_side', 'right_side', 'chassis_plate')
+  AND storage_path IS NOT NULL
+  AND storage_path <> ''
+```
 
-When `isSupabaseConfigured` is false, `handleSave` immediately sets `devSuccess=true` and redirects after 1.5 seconds. No Supabase calls are made.
+Trigger `trg_vehicle_photo_completion` (migration 094) is unchanged — it calls the function by
+name. No DROP/CREATE of the trigger is required. No schema changes.
 
-### B.3 Validation Gates
+### B.3 Guard Behaviour
 
-| Gate | Behaviour |
+| Condition | Result |
 |---|---|
-| Chassis number required | `setSaveError('Chassis number is required.')` before Supabase call |
-| Auth guard | `setSaveError('Not authenticated...')` if `user?.id` is falsy |
-| Photo completeness advisory | Warning shown in Step 3 UI (not blocking — wizard allows draft without photos) |
-
-Photo completeness does NOT gate "Mark as Received" — only "Accept Vehicle" (in the detail page) requires all 5 photos. The DB trigger `enforce_vehicle_photo_completion()` gates the `status='accepted'` transition, not `status='received'`.
-
-### B.4 Photo Record Insertion
-
-Photos are recorded as `vehicle_receipt_photos` rows with:
-- `photo_type`: PhotoType ENUM value
-- `file_name`: text entered by the user
-- `storage_path`: `null` (text-input UI, not a real Supabase Storage upload — see limitation B.5)
-- `uploaded_by`: `user.id`
-
-The DB trigger counts `DISTINCT photo_type` presence, not `storage_path` presence, so filename-only records satisfy the photo completion gate.
-
-### B.5 Photo Storage Limitation
-
-The wizard photo UI uses `<input type="text">` for filename entry — it is NOT a real `<input type="file">` backed by Supabase Storage. Photo records are persisted (filenames recorded in the DB), but no actual file exists in Supabase Storage. `storage_path` is `null` for all photo records created through this UI. This limitation predates Step 12C and is tracked for a future file upload implementation.
+| `status != 'accepted'` | Pass through — no check |
+| UPDATE where `OLD.status = NEW.status` | Pass through — non-status update |
+| All 5 required types present with `storage_path IS NOT NULL AND storage_path <> ''` | Pass through |
+| Any required type missing OR any required type has `storage_path = null` | RAISE EXCEPTION |
 
 ---
 
-## C. StoreVehicleReceivingDetail.tsx
+## C. StoreVehicleReceivingNew.tsx
 
 ### C.1 Change Summary
 
-The detail page was previously static: it loaded from `MOCK_VEHICLE_RECEIPTS` synchronously, and all action buttons were stubs. It now:
+The 3-step wizard INSERTs `vehicle_receipts` into Supabase. Photo insertion is intentionally
+omitted — no `vehicle_receipt_photos` records are created by the wizard.
 
-1. **Loads live data** from `vehicle_receipts` with project join, plus `vehicle_receipt_photos`
-2. **`handleAction()`** performs a real `UPDATE vehicle_receipts SET status = $newStatus WHERE id = $id`
-3. **`handleAddPhoto()`** performs a real `INSERT INTO vehicle_receipt_photos`
+### C.2 Photo Section
 
-### C.2 Data Loading
+Step 2 "Photo Documentation" section replaced with an amber informational notice:
+> Photo file upload will be available in a future update. Save the receipt now — photos must
+> be uploaded as real files (not filenames) before acceptance is possible. Required: front,
+> rear, left side, right side, chassis plate.
 
-Data loading uses an async IIFE inside `useEffect`:
+No photo filename text inputs. No photo DB records inserted. No `storage_path: null` rows created.
+
+### C.3 Status Flow
+
+| Action | Status | Photo Gate |
+|---|---|---|
+| Save as Draft | `'draft'` | None — DB trigger only guards `'accepted'` |
+| Mark as Received | `'received'` | None |
+
+### C.4 Dev Mode Behaviour
+
+When `isSupabaseConfigured` is false: sets `devSuccess=true` and redirects after 1.5 seconds.
+
+---
+
+## D. StoreVehicleReceivingDetail.tsx
+
+### D.1 Change Summary
+
+Detail page loads live from Supabase (vehicle receipt + project join + photos). `handleAction()`
+UPDATEs vehicle receipt status. Add Photo form (filename-only) removed. `uploadedRequired` updated
+to count only photos with a real `storage_path`.
+
+### D.2 `uploadedRequired` Computation
 
 ```tsx
-useEffect(() => {
-  if (!id) return;
-  (async () => {
-    if (!isSupabaseConfigured || !supabase) {
-      // Dev-mode: load from MOCK_VEHICLE_RECEIPTS / getMockVehiclePhotos
-      return;
-    }
-    const { data, error } = await supabase
-      .from('vehicle_receipts')
-      .select('*, project:projects(project_code, so_number, customer_name)')
-      .eq('id', id)
-      .single();
-    if (error || !data) { setNotFound(true); setLoading(false); return; }
-    setVehicle(data as unknown as VehicleReceipt);
-    const { data: photoData } = await supabase
-      .from('vehicle_receipt_photos')
-      .select('*')
-      .eq('vehicle_receipt_id', id);
-    setPhotos((photoData as unknown as VehicleReceiptPhoto[]) ?? []);
-    setLoading(false);
-  })();
-}, [id]);
+// Only photos with a real storage_path count toward completion (migration 095).
+const uploadedRequired = photos.filter(
+  p => REQUIRED_PHOTO_TYPES.includes(p.photo_type) && p.storage_path != null && p.storage_path !== ''
+).length;
 ```
 
-The async IIFE pattern ensures all `setState` calls are inside an async context, avoiding the `react-hooks/set-state-in-effect` lint rule.
+### D.3 Accept Vehicle — Blocked
 
-Initial state uses `useState(Boolean(id))` for `loading` and `useState(!id)` for `notFound` so the `!id` guard does not require synchronous setState in the effect.
+`allRequiredUploaded` will be `false` until real photo file upload is implemented (no photos
+currently have `storage_path` set). Clicking "Accept Vehicle" surfaces a clear error:
 
-### C.3 handleAction() — Status Transitions
+> Vehicle acceptance requires all 5 required photos to be uploaded as real files (front, rear,
+> left side, right side, chassis plate). Photo file upload is not yet implemented — acceptance
+> is blocked until file upload functionality is available and all 5 photos are on file.
+
+### D.4 Photo Grid Display
+
+Photo slots now distinguish three states:
+- **Green** (`storage_path` non-null/non-empty): truly uploaded — shows filename
+- **Amber** (record exists, `storage_path = null`): "Filename recorded — upload pending"
+- **Red** (no record, required type): "Missing (Required)"
+- **Gray** (no record, optional type): "Not uploaded"
+
+### D.5 Add Photo Form — Removed
+
+The filename-only "Add Photo" form is removed. It inserted `storage_path: null` records which
+no longer satisfy the acceptance gate. File upload UI will be implemented in a future step
+alongside real Supabase Storage integration.
+
+### D.6 Status Actions
 
 | Action | New Status | Photo Gate |
 |---|---|---|
-| Accept Vehicle | `'accepted'` | App-layer check: all 5 required types must be present (mirrors DB trigger) |
+| Accept Vehicle | `'accepted'` | App-layer: `allRequiredUploaded` must be true (requires real storage_path); DB trigger enforces same |
 | Mark as Damaged | `'damaged'` | None |
 | Assign to Production | `'assigned_to_production'` | None |
 
-The app-layer photo gate for "Accept Vehicle":
-- Counts photos where `photo_type` is in `REQUIRED_PHOTO_TYPES`
-- If count < 5: sets `actionError` and returns without calling Supabase
-- Message: "All 5 required photos must be present before accepting this vehicle receipt. N of 5 recorded — add the missing photos first."
-- If the app-layer check is somehow bypassed, the DB trigger `enforce_vehicle_photo_completion()` (migration 094) raises an exception that surfaces as an `actionError`
+---
 
-### C.4 handleAddPhoto()
+## E. DB Governance Layer
 
-Inserts a new row into `vehicle_receipt_photos` and appends it to local state:
-
-```tsx
-{
-  vehicle_receipt_id: vehicle.id,
-  photo_type: addPhotoType,
-  file_name: addPhotoFile.trim(),
-  storage_path: null,
-  uploaded_by: user.id,
-}
-```
-
-Same `storage_path: null` limitation as the wizard (see B.5).
-
-### C.5 Dev Mode Behaviour (unchanged)
-
-When `isSupabaseConfigured` is false:
-- `handleAction()` sets `devMsg` indicating the action was recorded but not persisted
-- `handleAddPhoto()` sets `devMsg` and clears the form
-- Loading uses mock data from `MOCK_VEHICLE_RECEIPTS` and `getMockVehiclePhotos(id)`
+| Trigger | Table | Guards | Source |
+|---|---|---|---|
+| `trg_vehicle_photo_completion` | `vehicle_receipts` | `status='accepted'` requires all 5 photo types with `storage_path IS NOT NULL AND storage_path <> ''` (R-006) | migration 094 trigger / migration 095 function |
+| `trg_vehicle_receipts_updated_at` | `vehicle_receipts` | updated_at maintenance | migration 032 |
+| `trg_vehicle_receipts_auto_number` | `vehicle_receipts` | VR-YYYY-NNNN auto-number | migration 032 |
 
 ---
 
-## D. DB Governance Layer (unchanged)
-
-Migration 094 triggers remain the final authority:
-
-| Trigger | Table | Guards |
-|---|---|---|
-| `trg_vehicle_photo_completion` | `vehicle_receipts` | `status='accepted'` requires all 5 photo types (R-006) |
-| `trg_vehicle_receipts_updated_at` | `vehicle_receipts` | updated_at maintenance |
-| `trg_vehicle_receipts_auto_number` | `vehicle_receipts` | VR-YYYY-NNNN auto-number |
-
-RLS policies on `vehicle_receipts` and `vehicle_receipt_photos` (WITH CHECK hardened in migration 094) govern which roles can write. Roles `store_user`, `admin`, `operations_manager` have full access.
-
----
-
-## E. Deferred Items
+## F. Deferred Items
 
 | Item | Description | Reason Deferred |
 |---|---|---|
-| Real file upload | `storage_path` is `null`; photo filenames recorded but no file in Supabase Storage | Requires Storage bucket setup, file picker UI, and upload plumbing — out of scope for Step 12C |
+| Photo file upload | `storage_path` remains `null`; real Supabase Storage upload not yet wired for vehicle photos | Requires Storage bucket setup, `<input type="file">`, upload plumbing (see `DocumentPanel.tsx` for the only existing upload implementation) |
+| Accept Vehicle via UI | Permanently blocked until photo upload is implemented | Unblocked once F.1 is complete |
+| Add Photo form | Removed — will return as a real file picker backed by Supabase Storage | Deferred with photo upload |
 | Store receipt live writes | `StoreReceiptNew`, `StoreReceiptDetail` | Out of scope — Step 12C covers vehicle receiving only |
 | Custody live writes | `CustodyNew`, `CustodyDetail` | Out of scope — covered by future step |
 | `custody_records_factory_update` WITH CHECK | Deferred from Step 12A/12B audit | Awaiting UX review of acceptance workflow |
 
 ---
 
-## F. Validation Results
+## G. Validation Results
 
 ```
 Branch:              feature/step-12c-vehicle-receiving-live-write
 Base commit:         ff90668 (Step 12B merge)
 
 npm ci:              ✅ (dependencies unchanged)
-npm run build:       ✅ 5.56 s — 0 errors, 0 warnings
+npm run build:       ✅ 0 errors, 0 warnings
 npx tsc --noEmit:    ✅ 0 errors
 npm run lint:        ✅ 80 problems (64 errors, 16 warnings) — unchanged from Step 12B baseline
 ```
-
-**Lint note:** No new lint issues introduced. The 80 pre-existing issues are unchanged from the Step 12B baseline.
