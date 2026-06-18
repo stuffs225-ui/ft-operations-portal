@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Package, AlertTriangle } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_AFS_ARRIVAL_REPORTS, MOCK_AFS_MISSING_ITEMS } from '../data/mockAfs';
-import type { AfsArrivalReport, AfsMissingItem, UserRole } from '../types';
-import { isSupabaseConfigured } from '../lib/supabase';
 import { recordAfsAudit } from '../lib/afsAudit';
+import type { AfsArrivalReport, AfsMissingItem, UserRole } from '../types';
 
 const CAN_MANAGE: UserRole[] = ['admin', 'operations_manager', 'afs_user'];
 
@@ -32,19 +33,45 @@ export function DubaiAfsArrivalReportDetail() {
   const { role } = useAuth();
   const canManage = role ? CAN_MANAGE.includes(role) : false;
 
-  const base = MOCK_AFS_ARRIVAL_REPORTS.find(r => r.id === id);
-  const [report] = useState<AfsArrivalReport | undefined>(base);
-  const [missingItems, setMissingItems] = useState<AfsMissingItem[]>(
-    MOCK_AFS_MISSING_ITEMS.filter(i => i.arrival_report_id === id)
-  );
+  const [report, setReport] = useState<AfsArrivalReport | undefined>(undefined);
+  const [missingItems, setMissingItems] = useState<AfsMissingItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [devMessage, setDevMessage] = useState('');
 
-  // New missing item form
   const [showForm, setShowForm] = useState(false);
   const [newItemName, setNewItemName] = useState('');
   const [newItemCode, setNewItemCode] = useState('');
   const [newQtyExpected, setNewQtyExpected] = useState(1);
   const [newSeverity, setNewSeverity] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
+
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setReport(MOCK_AFS_ARRIVAL_REPORTS.find(r => r.id === id));
+        setMissingItems(MOCK_AFS_MISSING_ITEMS.filter(i => i.arrival_report_id === id));
+        setLoading(false);
+        return;
+      }
+      const [repRes, miRes] = await Promise.all([
+        supabase
+          .from('afs_arrival_reports')
+          .select('*, project:projects(project_code, customer_name), vehicle_line:project_vehicle_lines(vehicle_type, description)')
+          .eq('id', id!)
+          .single(),
+        supabase
+          .from('afs_missing_items')
+          .select('*')
+          .eq('arrival_report_id', id!)
+          .order('created_at', { ascending: false }),
+      ]);
+      setReport((repRes.data as unknown as AfsArrivalReport) ?? undefined);
+      setMissingItems((miRes.data as unknown as AfsMissingItem[]) ?? []);
+      setLoading(false);
+    })();
+  }, [id]);
+
+  if (loading) return <PageLoader />;
 
   if (!report) {
     return (
@@ -55,33 +82,54 @@ export function DubaiAfsArrivalReportDetail() {
     );
   }
 
-  function addMissingItem() {
+  async function addMissingItem() {
     if (!newItemName.trim()) return;
-    const item: AfsMissingItem = {
-      id: `ami-new-${Date.now()}`,
-      arrival_report_id: id!,
-      project_id: report!.project_id,
-      project_vehicle_line_id: report!.project_vehicle_line_id,
-      item_name: newItemName,
-      item_code: newItemCode || null,
-      quantity_expected: newQtyExpected,
-      quantity_received: 0,
-      missing_item_status: 'open',
-      severity: newSeverity,
-      store_request_id: null,
-      notes: null,
-      resolved_at: null,
-      resolved_by: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    setMissingItems(prev => [...prev, item]);
-    setNewItemName(''); setNewItemCode(''); setNewQtyExpected(1); setShowForm(false);
-    setDevMessage('Dev: Missing item added (not persisted)');
-    setTimeout(() => setDevMessage(''), 2000);
-    if (isSupabaseConfigured) {
-      recordAfsAudit('missing_item_added', id!, `Missing item added: ${newItemName}`, null);
+    setSaveError(null);
+
+    if (!isSupabaseConfigured || !supabase) {
+      const item: AfsMissingItem = {
+        id: `ami-new-${Date.now()}`,
+        arrival_report_id: id!,
+        project_id: report!.project_id,
+        project_vehicle_line_id: report!.project_vehicle_line_id,
+        item_name: newItemName,
+        item_code: newItemCode || null,
+        quantity_expected: newQtyExpected,
+        quantity_received: 0,
+        missing_item_status: 'open',
+        severity: newSeverity,
+        store_request_id: null,
+        notes: null,
+        resolved_at: null,
+        resolved_by: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      setMissingItems(prev => [item, ...prev]);
+      setNewItemName(''); setNewItemCode(''); setNewQtyExpected(1); setShowForm(false);
+      setDevMessage('Dev: Missing item added (not persisted)');
+      setTimeout(() => setDevMessage(''), 2000);
+      return;
     }
+
+    const { data: inserted, error } = await supabase
+      .from('afs_missing_items')
+      .insert({
+        arrival_report_id: id!,
+        project_id: report!.project_id,
+        item_name: newItemName,
+        item_code: newItemCode || null,
+        quantity_expected: newQtyExpected,
+        severity: newSeverity,
+      })
+      .select()
+      .single();
+
+    if (error) { setSaveError(error.message); return; }
+
+    setMissingItems(prev => [(inserted as unknown as AfsMissingItem), ...prev]);
+    void recordAfsAudit('missing_item_added', id!, `Missing item added: ${newItemName}`, null);
+    setNewItemName(''); setNewItemCode(''); setNewQtyExpected(1); setShowForm(false);
   }
 
   const openItems = missingItems.filter(i => i.missing_item_status === 'open' || i.missing_item_status === 'requested');
@@ -92,7 +140,11 @@ export function DubaiAfsArrivalReportDetail() {
         <Link to="/dubai-afs/arrival-reports" className="text-gray-400 hover:text-gray-600">
           <ArrowLeft size={18} />
         </Link>
-        <PageHeader title={report.arrival_report_number} subtitle="AFS Arrival Report" />
+        <PageHeader
+          title={report.arrival_report_number}
+          subtitle="AFS Arrival Report"
+          breadcrumb={[{ label: 'Dubai / AFS', href: '/dubai-afs' }, { label: 'Arrival Reports', href: '/dubai-afs/arrival-reports' }, { label: report.arrival_report_number }]}
+        />
         <Badge variant={report.arrival_status === 'arrived' ? 'success' : report.arrival_status === 'delayed' ? 'critical' : 'neutral'}>
           {report.arrival_status.replace(/_/g, ' ')}
         </Badge>
@@ -106,6 +158,10 @@ export function DubaiAfsArrivalReportDetail() {
 
       {devMessage && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-3 text-sm text-green-700">{devMessage}</div>
+      )}
+
+      {saveError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-3 text-sm text-red-700">{saveError}</div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -128,7 +184,6 @@ export function DubaiAfsArrivalReportDetail() {
         </Card>
       </div>
 
-      {/* Missing Items */}
       <Card>
         <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -197,7 +252,7 @@ export function DubaiAfsArrivalReportDetail() {
       </Card>
 
       <div className="flex justify-end">
-        <Link to={`/dubai-afs/predelivery-reports`}>
+        <Link to="/dubai-afs/predelivery-reports">
           <Button variant="secondary" size="sm">View Pre-Delivery Reports →</Button>
         </Link>
       </div>

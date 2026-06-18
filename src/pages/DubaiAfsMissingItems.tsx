@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Package } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_AFS_MISSING_ITEMS } from '../data/mockAfs';
 import { mockOrEmpty } from '../lib/dataMode';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
-import type { MissingItemStatus } from '../types';
+import type { AfsMissingItem, MissingItemStatus } from '../types';
 
 type Tab = 'all' | MissingItemStatus;
 const TABS: { key: Tab; label: string }[] = [
@@ -32,16 +34,36 @@ function severityVariant(s: string): 'neutral' | 'warning' | 'critical' | 'info'
 }
 
 export function DubaiAfsMissingItems() {
+  const [allItems, setAllItems] = useState<AfsMissingItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('all');
 
-  const items = mockOrEmpty(MOCK_AFS_MISSING_ITEMS).filter(i =>
-    tab === 'all' ? true : i.missing_item_status === tab
-  );
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setAllItems(mockOrEmpty(MOCK_AFS_MISSING_ITEMS));
+        setLoading(false);
+        return;
+      }
+      const { data } = await supabase
+        .from('afs_missing_items')
+        .select('*')
+        .order('created_at', { ascending: false });
+      setAllItems((data as unknown as AfsMissingItem[]) ?? []);
+      setLoading(false);
+    })();
+  }, []);
+
+  const items = allItems.filter(i => tab === 'all' ? true : i.missing_item_status === tab);
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Missing Items" subtitle="Track all missing items from AFS arrival inspections" />
-      <DataSourceBadge variant="preview" />
+      <PageHeader
+        title="Missing Items"
+        subtitle="Track all missing items from AFS arrival inspections"
+        breadcrumb={[{ label: 'Dubai / AFS', href: '/dubai-afs' }, { label: 'Missing Items' }]}
+      />
+      <DataSourceBadge variant="auto" />
 
       <div className="flex gap-1 border-b border-gray-100">
         {TABS.map(t => (
@@ -52,31 +74,35 @@ export function DubaiAfsMissingItems() {
         ))}
       </div>
 
-      <Card>
-        {items.length === 0 ? (
-          <div className="px-5 py-10 text-center text-sm text-gray-400">No missing items found.</div>
-        ) : (
-          <div className="divide-y divide-gray-50">
-            {items.map(item => (
-              <div key={item.id} className="px-5 py-3 flex items-start justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Package size={14} className="text-orange-500" />
-                    <span className="text-sm font-medium text-gray-900">{item.item_name}</span>
-                    {item.item_code && <span className="text-xs text-gray-400 font-mono">{item.item_code}</span>}
-                    <Badge variant={severityVariant(item.severity)}>{item.severity}</Badge>
-                    <Badge variant={statusVariant(item.missing_item_status)}>{item.missing_item_status.replace(/_/g, ' ')}</Badge>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    Qty received: {item.quantity_received} / {item.quantity_expected}
-                    {item.notes && ` — ${item.notes}`}
+      {loading ? (
+        <PageLoader />
+      ) : (
+        <Card>
+          {items.length === 0 ? (
+            <div className="px-5 py-10 text-center text-sm text-gray-400">No missing items found.</div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {items.map(item => (
+                <div key={item.id} className="px-5 py-3 flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Package size={14} className="text-orange-500" />
+                      <span className="text-sm font-medium text-gray-900">{item.item_name}</span>
+                      {item.item_code && <span className="text-xs text-gray-400 font-mono">{item.item_code}</span>}
+                      <Badge variant={severityVariant(item.severity)}>{item.severity}</Badge>
+                      <Badge variant={statusVariant(item.missing_item_status)}>{item.missing_item_status.replace(/_/g, ' ')}</Badge>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      Qty received: {item.quantity_received} / {item.quantity_expected}
+                      {item.notes && ` — ${item.notes}`}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
     </div>
   );
 }

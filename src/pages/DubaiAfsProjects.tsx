@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plane } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_DUBAI_FOLLOWUPS } from '../data/mockAfs';
 import { mockOrEmpty } from '../lib/dataMode';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
-import type { DubaiStatus } from '../types';
+import type { DubaiProjectFollowup, DubaiStatus } from '../types';
 
 type Tab = 'all' | 'active' | 'delayed' | 'arrived' | 'completed';
 
@@ -36,9 +38,27 @@ function etaVariant(s: string): 'neutral' | 'warning' | 'success' | 'critical' |
 }
 
 export function DubaiAfsProjects() {
+  const [items, setItems] = useState<DubaiProjectFollowup[]>([]);
+  const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('all');
 
-  const filtered = mockOrEmpty(MOCK_DUBAI_FOLLOWUPS).filter(f => {
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setItems(mockOrEmpty(MOCK_DUBAI_FOLLOWUPS));
+        setLoading(false);
+        return;
+      }
+      const { data } = await supabase
+        .from('dubai_project_followups')
+        .select('*, project:projects(project_code, customer_name, manufacturing_location), vehicle_line:project_vehicle_lines(vehicle_type, description, quantity)')
+        .order('updated_at', { ascending: false });
+      setItems((data as unknown as DubaiProjectFollowup[]) ?? []);
+      setLoading(false);
+    })();
+  }, []);
+
+  const filtered = items.filter(f => {
     if (tab === 'active') return !['completed', 'cancelled', 'arrived_ksa', 'handed_to_afs', 'ready_for_pre_delivery'].includes(f.dubai_status);
     if (tab === 'delayed') return f.eta_status === 'delayed';
     if (tab === 'arrived') return ['arrived_ksa', 'handed_to_afs', 'ready_for_pre_delivery'].includes(f.dubai_status);
@@ -48,8 +68,12 @@ export function DubaiAfsProjects() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Dubai Follow-ups" subtitle="Track vehicle ETA and Dubai project progress" />
-      <DataSourceBadge variant="preview" />
+      <PageHeader
+        title="Dubai Follow-ups"
+        subtitle="Track vehicle ETA and Dubai project progress"
+        breadcrumb={[{ label: 'Dubai / AFS', href: '/dubai-afs' }, { label: 'Follow-ups' }]}
+      />
+      <DataSourceBadge variant="auto" />
 
       <div className="flex gap-1 border-b border-gray-100 pb-0">
         {TABS.map(t => (
@@ -60,36 +84,40 @@ export function DubaiAfsProjects() {
         ))}
       </div>
 
-      <Card>
-        {filtered.length === 0 ? (
-          <div className="px-5 py-10 text-center text-sm text-gray-400">No follow-ups found.</div>
-        ) : (
-          <div className="divide-y divide-gray-50">
-            {filtered.map(f => (
-              <div key={f.id} className="px-5 py-4 flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Plane size={14} className="text-sky-500 shrink-0" />
-                    <span className="text-sm font-semibold text-gray-900">{f.project?.project_code}</span>
-                    <span className="text-sm text-gray-500">{f.project?.customer_name}</span>
-                    <Badge variant={statusVariant(f.dubai_status)}>{f.dubai_status.replace(/_/g, ' ')}</Badge>
-                    <Badge variant={etaVariant(f.eta_status)}>{f.eta_status.replace(/_/g, ' ')}</Badge>
+      {loading ? (
+        <PageLoader />
+      ) : (
+        <Card>
+          {filtered.length === 0 ? (
+            <div className="px-5 py-10 text-center text-sm text-gray-400">No follow-ups found.</div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {filtered.map(f => (
+                <div key={f.id} className="px-5 py-4 flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Plane size={14} className="text-sky-500 shrink-0" />
+                      <span className="text-sm font-semibold text-gray-900">{f.project?.project_code}</span>
+                      <span className="text-sm text-gray-500">{f.project?.customer_name}</span>
+                      <Badge variant={statusVariant(f.dubai_status)}>{f.dubai_status.replace(/_/g, ' ')}</Badge>
+                      <Badge variant={etaVariant(f.eta_status)}>{f.eta_status.replace(/_/g, ' ')}</Badge>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {f.vehicle_line?.vehicle_type ?? 'Project-wide'}
+                      {f.eta_date && ` — ETA: ${new Date(f.eta_date).toLocaleDateString('en-GB')}`}
+                      {f.dubai_po_number && ` — PO: ${f.dubai_po_number}`}
+                    </div>
+                    {f.remarks && <div className="text-xs text-gray-400 mt-1 truncate">{f.remarks}</div>}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {f.vehicle_line?.vehicle_type ?? 'Project-wide'}
-                    {f.eta_date && ` — ETA: ${new Date(f.eta_date).toLocaleDateString('en-GB')}`}
-                    {f.dubai_po_number && ` — PO: ${f.dubai_po_number}`}
-                  </div>
-                  {f.remarks && <div className="text-xs text-gray-400 mt-1 truncate">{f.remarks}</div>}
+                  <Link to={`/dubai-afs/projects/${f.id}`}>
+                    <Button variant="ghost" size="sm">View</Button>
+                  </Link>
                 </div>
-                <Link to={`/dubai-afs/projects/${f.id}`}>
-                  <Button variant="ghost" size="sm">View</Button>
-                </Link>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
     </div>
   );
 }

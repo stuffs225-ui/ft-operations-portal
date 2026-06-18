@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Plane, Clock, AlertTriangle } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_DUBAI_FOLLOWUPS, MOCK_DUBAI_ETA_HISTORY } from '../data/mockAfs';
-import type { DubaiProjectFollowup, UserRole } from '../types';
-import { isSupabaseConfigured } from '../lib/supabase';
 import { recordAfsEvent, recordAfsAudit } from '../lib/afsAudit';
+import type { DubaiProjectFollowup, DubaiEtaHistory, UserRole } from '../types';
 
 const CAN_UPDATE: UserRole[] = ['admin', 'operations_manager'];
 
@@ -25,13 +26,43 @@ export function DubaiAfsProjectDetail() {
   const { role, profile } = useAuth();
   const canUpdate = role ? CAN_UPDATE.includes(role) : false;
 
-  const base = MOCK_DUBAI_FOLLOWUPS.find(f => f.id === id);
-  const etaHistory = MOCK_DUBAI_ETA_HISTORY.filter(h => h.dubai_followup_id === id);
-  const [followup, setFollowup] = useState<DubaiProjectFollowup | undefined>(base);
+  const [followup, setFollowup] = useState<DubaiProjectFollowup | undefined>(undefined);
+  const [etaHistory, setEtaHistory] = useState<DubaiEtaHistory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [devMessage, setDevMessage] = useState('');
   const [newEta, setNewEta] = useState('');
   const [etaReason, setEtaReason] = useState('');
   const [remarks, setRemarks] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        const base = MOCK_DUBAI_FOLLOWUPS.find(f => f.id === id);
+        setFollowup(base);
+        setEtaHistory(MOCK_DUBAI_ETA_HISTORY.filter(h => h.dubai_followup_id === id));
+        setLoading(false);
+        return;
+      }
+      const [fpRes, histRes] = await Promise.all([
+        supabase
+          .from('dubai_project_followups')
+          .select('*, project:projects(project_code, customer_name, manufacturing_location), vehicle_line:project_vehicle_lines(vehicle_type, description, quantity)')
+          .eq('id', id!)
+          .single(),
+        supabase
+          .from('dubai_eta_history')
+          .select('*')
+          .eq('dubai_followup_id', id!)
+          .order('changed_at', { ascending: false }),
+      ]);
+      setFollowup((fpRes.data as unknown as DubaiProjectFollowup) ?? undefined);
+      setEtaHistory((histRes.data as unknown as DubaiEtaHistory[]) ?? []);
+      setLoading(false);
+    })();
+  }, [id]);
+
+  if (loading) return <PageLoader />;
 
   if (!followup) {
     return (
@@ -50,24 +81,61 @@ export function DubaiAfsProjectDetail() {
 
   async function handleUpdateEta() {
     if (!followup) return;
-    if (!newEta) { alert('New ETA date is required.'); return; }
-    if (!etaReason.trim()) { alert('Reason for ETA change is required.'); return; }
-    if (!isSupabaseConfigured) {
+    if (!newEta) { setSaveError('New ETA date is required.'); return; }
+    if (!etaReason.trim()) { setSaveError('Reason for ETA change is required.'); return; }
+    if (!followup.pn_reference_id) { setSaveError('PN is required before updating Dubai follow-up.'); return; }
+    setSaveError(null);
+
+    if (!isSupabaseConfigured || !supabase) {
       devUpdate({ eta_date: newEta, eta_status: 'changed' }, 'Dev: ETA updated');
       setNewEta(''); setEtaReason('');
       return;
     }
-    await recordAfsEvent(followup.project_id, 'eta_changed', `ETA updated for ${followup.project?.project_code}`, etaReason, profile?.id ?? null, profile?.full_name ?? null, { old_eta: followup.eta_date, new_eta: newEta });
-    await recordAfsAudit('eta_changed', id!, `ETA changed for follow-up ${id}`, profile?.id ?? null);
+
+    const { error } = await supabase
+      .from('dubai_project_followups')
+      .update({ eta_date: newEta, eta_status: 'changed' })
+      .eq('id', id!);
+    if (error) { setSaveError(error.message); return; }
+
+    if (profile?.id) {
+      await supabase.from('dubai_eta_history').insert({
+        dubai_followup_id: id!,
+        project_id: followup.project_id,
+        new_eta: newEta,
+        old_eta: followup.eta_date,
+        changed_by: profile.id,
+        changed_at: new Date().toISOString(),
+        reason: etaReason,
+      });
+    }
+
+    void recordAfsEvent(followup.project_id, 'eta_changed', `ETA updated for ${followup.project?.project_code}`, etaReason, profile?.id ?? null, profile?.full_name ?? null, { old_eta: followup.eta_date, new_eta: newEta });
+    void recordAfsAudit('eta_changed', id!, `ETA changed for follow-up ${id}`, profile?.id ?? null);
+
+    setFollowup(prev => prev ? { ...prev, eta_date: newEta, eta_status: 'changed' } : prev);
+    setEtaHistory(prev => profile?.id ? [{ id: `tmp-${Date.now()}`, dubai_followup_id: id!, project_id: followup.project_id, project_vehicle_line_id: null, old_eta: followup.eta_date, new_eta: newEta, changed_by: profile.id, changed_at: new Date().toISOString(), reason: etaReason, remarks: null }, ...prev] : prev);
+    setNewEta(''); setEtaReason('');
   }
 
   async function handleUpdateRemarks() {
     if (!followup) return;
-    if (!isSupabaseConfigured) {
+    if (!followup.pn_reference_id) { setSaveError('PN is required before updating Dubai follow-up.'); return; }
+    setSaveError(null);
+
+    if (!isSupabaseConfigured || !supabase) {
       devUpdate({ remarks }, 'Dev: Remarks updated');
       return;
     }
-    await recordAfsAudit('followup_updated', id!, 'Follow-up remarks updated', profile?.id ?? null);
+
+    const { error } = await supabase
+      .from('dubai_project_followups')
+      .update({ remarks: remarks.trim() || null })
+      .eq('id', id!);
+    if (error) { setSaveError(error.message); return; }
+
+    void recordAfsAudit('followup_updated', id!, 'Follow-up remarks updated', profile?.id ?? null);
+    setFollowup(prev => prev ? { ...prev, remarks: remarks.trim() || null } : prev);
   }
 
   return (
@@ -79,6 +147,7 @@ export function DubaiAfsProjectDetail() {
         <PageHeader
           title={followup.project?.project_code ?? 'Dubai Follow-up'}
           subtitle={followup.vehicle_line?.vehicle_type ?? 'Project-wide'}
+          breadcrumb={[{ label: 'Dubai / AFS', href: '/dubai-afs' }, { label: 'Follow-ups', href: '/dubai-afs/projects' }, { label: followup.project?.project_code ?? id! }]}
         />
         <Badge variant={etaVariant(followup.eta_status)}>{followup.eta_status.replace(/_/g, ' ')}</Badge>
       </div>
@@ -93,6 +162,10 @@ export function DubaiAfsProjectDetail() {
         <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-3 text-sm text-green-700">{devMessage}</div>
       )}
 
+      {saveError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-3 text-sm text-red-700">{saveError}</div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="p-5">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">Follow-up Details</h3>
@@ -102,7 +175,6 @@ export function DubaiAfsProjectDetail() {
             <div className="flex justify-between"><span className="text-gray-500">Vehicle Line</span><span>{followup.vehicle_line?.vehicle_type ?? 'Project-wide'}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">Dubai PO</span><span>{followup.dubai_po_number ?? '—'}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">Dubai PO Date</span><span>{followup.dubai_po_date ? new Date(followup.dubai_po_date).toLocaleDateString('en-GB') : '—'}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">Followed By</span><span>{followup.followed_by_profile?.full_name ?? '—'}</span></div>
           </div>
         </Card>
 
@@ -118,7 +190,6 @@ export function DubaiAfsProjectDetail() {
         </Card>
       </div>
 
-      {/* Update ETA */}
       {canUpdate && (
         <Card className="p-5">
           <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
@@ -143,7 +214,6 @@ export function DubaiAfsProjectDetail() {
         </Card>
       )}
 
-      {/* Remarks */}
       {canUpdate && (
         <Card className="p-5">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">Remarks</h3>
@@ -154,7 +224,6 @@ export function DubaiAfsProjectDetail() {
         </Card>
       )}
 
-      {/* ETA History */}
       <Card>
         <div className="px-5 py-3 border-b border-gray-100">
           <h3 className="text-sm font-semibold text-gray-700">ETA Change History ({etaHistory.length})</h3>
@@ -173,7 +242,6 @@ export function DubaiAfsProjectDetail() {
                 </div>
                 <p className="text-xs text-gray-600 mt-1">{h.reason}</p>
                 {h.remarks && <p className="text-xs text-gray-400 mt-0.5">{h.remarks}</p>}
-                <p className="text-xs text-gray-400 mt-0.5">By {h.changed_by_profile?.full_name ?? 'Unknown'}</p>
               </div>
             ))}
           </div>
