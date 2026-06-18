@@ -7,7 +7,9 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
+import { recordFactoryEvent } from '../lib/factoryAudit';
 import { MOCK_FACTORY_RECORDS as MOCK_FACTORY_RECORDS_RAW } from '../data/mockFactory';
 import { mockOrEmpty } from '../lib/dataMode';
 const MOCK_FACTORY_RECORDS = mockOrEmpty(MOCK_FACTORY_RECORDS_RAW);
@@ -46,41 +48,54 @@ interface UpdateFormState {
 }
 
 export function FactoryMonthlyUpdates() {
+  const { user } = useAuth();
   const [records, setRecords] = useState<FactoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [formState, setFormState] = useState<UpdateFormState>({ progress: '', remarks: '' });
   const [devSuccess, setDevSuccess] = useState<string>('');
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      const needsUpdate = MOCK_FACTORY_RECORDS.filter(
-        (r) => r.monthly_update_required || r.production_status === 'monthly_update_required',
-      );
-      setRecords(needsUpdate);
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        const needsUpdate = MOCK_FACTORY_RECORDS.filter(
+          (r) => r.monthly_update_required || r.production_status === 'monthly_update_required',
+        );
+        setRecords(needsUpdate);
+        setLoading(false);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('factory_records')
+        .select('*, project:projects(project_code, so_number, customer_name), vehicle_line:project_vehicle_lines(vehicle_type, description, quantity)')
+        .eq('monthly_update_required', true)
+        .order('last_updated_at', { ascending: true });
+
+      setRecords((data as unknown as FactoryRecord[]) ?? []);
       setLoading(false);
-      return;
-    }
-    // Supabase placeholder
-    setRecords([]);
-    setLoading(false);
+    })();
   }, []);
 
   function toggleExpand(recordId: string, currentProgress: number) {
     if (expandedId === recordId) {
       setExpandedId(null);
       setDevSuccess('');
+      setSaveError(null);
     } else {
       setExpandedId(recordId);
       setFormState({ progress: String(currentProgress), remarks: '' });
       setDevSuccess('');
+      setSaveError(null);
     }
   }
 
-  function submitUpdate(record: FactoryRecord) {
+  async function submitUpdate(record: FactoryRecord) {
     setSubmitting(true);
-    if (!isSupabaseConfigured) {
+    setSaveError(null);
+    if (!isSupabaseConfigured || !supabase) {
       setRecords((prev) =>
         prev.map((r) =>
           r.id === record.id
@@ -98,8 +113,48 @@ export function FactoryMonthlyUpdates() {
       setExpandedId(null);
       return;
     }
-    // Supabase mode would go here
+
+    const { error } = await supabase
+      .from('factory_records')
+      .update({
+        progress_percentage: Number(formState.progress),
+        remarks: formState.remarks.trim() || record.remarks || null,
+        monthly_update_required: false,
+        last_updated_by: user?.id ?? null,
+        last_updated_at: new Date().toISOString(),
+      })
+      .eq('id', record.id);
+
+    if (error) {
+      setSaveError(error.message);
+      setSubmitting(false);
+      return;
+    }
+
+    void recordFactoryEvent(
+      'factory_record',
+      record.id,
+      record.project_id,
+      'factory_progress_updated',
+      `Monthly progress updated to ${Number(formState.progress)}%.`,
+      user?.id ?? null,
+      { progress_percentage: Number(formState.progress) },
+    );
+
+    setRecords((prev) =>
+      prev.map((r) =>
+        r.id === record.id
+          ? {
+              ...r,
+              progress_percentage: Number(formState.progress),
+              remarks: formState.remarks.trim() || record.remarks || null,
+              monthly_update_required: false,
+            }
+          : r,
+      ),
+    );
     setSubmitting(false);
+    setDevSuccess('Progress updated successfully.');
     setExpandedId(null);
   }
 
@@ -228,6 +283,9 @@ export function FactoryMonthlyUpdates() {
                                 />
                               </div>
                             </div>
+                            {saveError && (
+                              <p className="text-xs text-red-600 mb-2">{saveError}</p>
+                            )}
                             <Button
                               size="sm"
                               loading={submitting}

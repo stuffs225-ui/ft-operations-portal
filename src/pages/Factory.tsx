@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { useAuth } from '../hooks/useAuth';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_FACTORY_RECORDS as MOCK_FACTORY_RECORDS_RAW, MOCK_FACTORY_REQUIREMENTS as MOCK_FACTORY_REQUIREMENTS_RAW, MOCK_RAW_MATERIAL_REQUESTS as MOCK_RAW_MATERIAL_REQUESTS_RAW } from '../data/mockFactory';
 import { MOCK_PROJECTS as MOCK_PROJECTS_RAW } from '../data/mockProjects';
 import { mockOrEmpty } from '../lib/dataMode';
@@ -31,68 +31,51 @@ export function Factory() {
   const [kpis, setKpis] = useState<KpiStat[]>([]);
 
   useEffect(() => {
-    const inProduction = MOCK_FACTORY_RECORDS.filter(
-      (r) => r.production_status === 'in_production',
-    ).length;
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        const inProduction = MOCK_FACTORY_RECORDS.filter(
+          (r) => r.production_status === 'in_production',
+        ).length;
+        const missingBoq = MOCK_FACTORY_REQUIREMENTS.filter(
+          (r) => r.requirement_type_id === 'rqt-001' && r.status === 'pending',
+        ).length;
+        const missingGa = MOCK_FACTORY_REQUIREMENTS.filter(
+          (r) => r.requirement_type_id === 'rqt-003' && r.status === 'pending',
+        ).length;
+        const monthlyRequired = MOCK_FACTORY_RECORDS.filter(
+          (r) => r.monthly_update_required,
+        ).length;
+        const openRmrs = MOCK_RAW_MATERIAL_REQUESTS.filter(
+          (r) => !['fulfilled', 'rejected', 'cancelled'].includes(r.status),
+        ).length;
+        const saudiInProduction = MOCK_PROJECTS.filter(
+          (p) => p.project_status === 'approved' && p.manufacturing_location === 'saudi',
+        ).length;
+        setKpis([
+          { label: 'In Production', value: inProduction, subtitle: `${saudiInProduction} approved Saudi project(s)`, borderColor: 'border-l-green-500', textColor: 'text-green-700' },
+          { label: 'Missing BOQ', value: missingBoq, subtitle: 'Pending bill of quantities', borderColor: 'border-l-amber-500', textColor: 'text-amber-700' },
+          { label: 'Missing GA Drawing', value: missingGa, subtitle: 'Pending GA drawings', borderColor: 'border-l-amber-500', textColor: 'text-amber-700' },
+          { label: 'Updates Required', value: monthlyRequired, subtitle: 'Monthly update overdue', borderColor: 'border-l-red-500', textColor: 'text-red-700' },
+          { label: 'Open RMRs', value: openRmrs, subtitle: 'Raw material requests open', borderColor: 'border-l-sky-500', textColor: 'text-sky-700' },
+        ]);
+        return;
+      }
 
-    const missingBoq = MOCK_FACTORY_REQUIREMENTS.filter(
-      (r) => r.requirement_type_id === 'rqt-001' && r.status === 'pending',
-    ).length;
+      const [inProdRes, pendingReqRes, monthlyReqRes, openRmrRes, saudiProjRes] = await Promise.all([
+        supabase.from('factory_records').select('*', { count: 'exact', head: true }).eq('production_status', 'in_production'),
+        supabase.from('factory_item_requirements').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('factory_records').select('*', { count: 'exact', head: true }).eq('monthly_update_required', true),
+        supabase.from('production_raw_material_requests').select('*', { count: 'exact', head: true }).not('status', 'in', '("fulfilled","rejected","cancelled")'),
+        supabase.from('projects').select('*', { count: 'exact', head: true }).eq('manufacturing_location', 'saudi').eq('project_status', 'approved'),
+      ]);
 
-    const missingGa = MOCK_FACTORY_REQUIREMENTS.filter(
-      (r) => r.requirement_type_id === 'rqt-003' && r.status === 'pending',
-    ).length;
-
-    const monthlyRequired = MOCK_FACTORY_RECORDS.filter(
-      (r) => r.monthly_update_required,
-    ).length;
-
-    const openRmrs = MOCK_RAW_MATERIAL_REQUESTS.filter(
-      (r) => !['fulfilled', 'rejected', 'cancelled'].includes(r.status),
-    ).length;
-
-    // Saudi projects count — used for KPI label context
-    const saudiInProduction = MOCK_PROJECTS.filter(
-      (p) => p.project_status === 'approved' && p.manufacturing_location === 'saudi',
-    ).length;
-
-    setKpis([
-      {
-        label: 'In Production',
-        value: inProduction,
-        subtitle: `${saudiInProduction} approved Saudi project(s)`,
-        borderColor: 'border-l-green-500',
-        textColor: 'text-green-700',
-      },
-      {
-        label: 'Missing BOQ',
-        value: missingBoq,
-        subtitle: 'Pending bill of quantities',
-        borderColor: 'border-l-amber-500',
-        textColor: 'text-amber-700',
-      },
-      {
-        label: 'Missing GA Drawing',
-        value: missingGa,
-        subtitle: 'Pending GA drawings',
-        borderColor: 'border-l-amber-500',
-        textColor: 'text-amber-700',
-      },
-      {
-        label: 'Updates Required',
-        value: monthlyRequired,
-        subtitle: 'Monthly update overdue',
-        borderColor: 'border-l-red-500',
-        textColor: 'text-red-700',
-      },
-      {
-        label: 'Open RMRs',
-        value: openRmrs,
-        subtitle: 'Raw material requests open',
-        borderColor: 'border-l-sky-500',
-        textColor: 'text-sky-700',
-      },
-    ]);
+      setKpis([
+        { label: 'In Production', value: inProdRes.count ?? 0, subtitle: `${saudiProjRes.count ?? 0} approved Saudi project(s)`, borderColor: 'border-l-green-500', textColor: 'text-green-700' },
+        { label: 'Pending Requirements', value: pendingReqRes.count ?? 0, subtitle: 'BOQ, BOM, GA, drawings pending', borderColor: 'border-l-amber-500', textColor: 'text-amber-700' },
+        { label: 'Updates Required', value: monthlyReqRes.count ?? 0, subtitle: 'Monthly update overdue', borderColor: 'border-l-red-500', textColor: 'text-red-700' },
+        { label: 'Open RMRs', value: openRmrRes.count ?? 0, subtitle: 'Raw material requests open', borderColor: 'border-l-sky-500', textColor: 'text-sky-700' },
+      ]);
+    })();
   }, []);
 
   if (!role || !FACTORY_ROLES.includes(role)) {
