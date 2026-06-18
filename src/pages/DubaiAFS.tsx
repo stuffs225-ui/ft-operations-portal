@@ -1,11 +1,14 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plane, Clock, AlertTriangle, CheckCircle, Package, FileSearch, Wrench, TrendingUp } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_DUBAI_FOLLOWUPS, MOCK_AFS_ARRIVAL_REPORTS, MOCK_AFS_MISSING_ITEMS, MOCK_AFS_PREDELIVERY_REPORTS } from '../data/mockAfs';
 import { mockOrEmpty } from '../lib/dataMode';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
+import type { DubaiProjectFollowup } from '../types';
 
 function KpiCard({ icon, label, value, sub, to, variant }: {
   icon: React.ReactNode; label: string; value: number | string;
@@ -30,41 +33,94 @@ function KpiCard({ icon, label, value, sub, to, variant }: {
   );
 }
 
-export function DubaiAFS() {
-  const followups = mockOrEmpty(MOCK_DUBAI_FOLLOWUPS);
-  const arrivalReports = mockOrEmpty(MOCK_AFS_ARRIVAL_REPORTS);
-  const missingItems = mockOrEmpty(MOCK_AFS_MISSING_ITEMS);
-  const predeliveryReports = mockOrEmpty(MOCK_AFS_PREDELIVERY_REPORTS);
+interface DashboardKpis {
+  activeFollowups: number;
+  delayedEta: number;
+  pendingArrival: number;
+  openMissing: number;
+  notReadyPredelivery: number;
+  readyForDelivery: number;
+  totalArrivals: number;
+  conditionReports: number;
+}
 
-  const activeFollowups = followups.filter(f => !['completed', 'cancelled'].includes(f.dubai_status)).length;
-  const delayedEta = followups.filter(f => f.eta_status === 'delayed').length;
-  const pendingArrival = arrivalReports.filter(r => r.arrival_status === 'pending').length;
-  const openMissing = missingItems.filter(i => i.missing_item_status === 'open' || i.missing_item_status === 'requested').length;
-  const notReadyPredelivery = predeliveryReports.filter(r => !r.ready_for_delivery).length;
-  const readyForDelivery = predeliveryReports.filter(r => r.ready_for_delivery).length;
+export function DubaiAFS() {
+  const [kpis, setKpis] = useState<DashboardKpis>({
+    activeFollowups: 0, delayedEta: 0, pendingArrival: 0, openMissing: 0,
+    notReadyPredelivery: 0, readyForDelivery: 0, totalArrivals: 0, conditionReports: 0,
+  });
+  const [recentFollowups, setRecentFollowups] = useState<DubaiProjectFollowup[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        const followups = mockOrEmpty(MOCK_DUBAI_FOLLOWUPS);
+        const arrivalReports = mockOrEmpty(MOCK_AFS_ARRIVAL_REPORTS);
+        const missingItems = mockOrEmpty(MOCK_AFS_MISSING_ITEMS);
+        const predeliveryReports = mockOrEmpty(MOCK_AFS_PREDELIVERY_REPORTS);
+        setKpis({
+          activeFollowups: followups.filter(f => !['completed', 'cancelled'].includes(f.dubai_status)).length,
+          delayedEta: followups.filter(f => f.eta_status === 'delayed').length,
+          pendingArrival: arrivalReports.filter(r => r.arrival_status === 'pending').length,
+          openMissing: missingItems.filter(i => i.missing_item_status === 'open' || i.missing_item_status === 'requested').length,
+          notReadyPredelivery: predeliveryReports.filter(r => !r.ready_for_delivery).length,
+          readyForDelivery: predeliveryReports.filter(r => r.ready_for_delivery).length,
+          totalArrivals: arrivalReports.length,
+          conditionReports: 0,
+        });
+        setRecentFollowups(followups.slice(0, 3));
+        return;
+      }
+      const [active, delayed, pendingArr, openMiss, notReady, ready, totalArr, condRep, recent] = await Promise.all([
+        supabase.from('dubai_project_followups').select('*', { count: 'exact', head: true }).not('dubai_status', 'in', '("completed","cancelled")'),
+        supabase.from('dubai_project_followups').select('*', { count: 'exact', head: true }).eq('eta_status', 'delayed'),
+        supabase.from('afs_arrival_reports').select('*', { count: 'exact', head: true }).eq('arrival_status', 'pending'),
+        supabase.from('afs_missing_items').select('*', { count: 'exact', head: true }).in('missing_item_status', ['open', 'requested']),
+        supabase.from('afs_predelivery_reports').select('*', { count: 'exact', head: true }).eq('ready_for_delivery', false),
+        supabase.from('afs_predelivery_reports').select('*', { count: 'exact', head: true }).eq('ready_for_delivery', true),
+        supabase.from('afs_arrival_reports').select('*', { count: 'exact', head: true }),
+        supabase.from('afs_condition_reports').select('*', { count: 'exact', head: true }),
+        supabase.from('dubai_project_followups')
+          .select('*, project:projects(project_code, customer_name, manufacturing_location)')
+          .not('dubai_status', 'in', '("completed","cancelled")')
+          .order('updated_at', { ascending: false })
+          .limit(3),
+      ]);
+      setKpis({
+        activeFollowups: active.count ?? 0,
+        delayedEta: delayed.count ?? 0,
+        pendingArrival: pendingArr.count ?? 0,
+        openMissing: openMiss.count ?? 0,
+        notReadyPredelivery: notReady.count ?? 0,
+        readyForDelivery: ready.count ?? 0,
+        totalArrivals: totalArr.count ?? 0,
+        conditionReports: condRep.count ?? 0,
+      });
+      setRecentFollowups((recent.data as unknown as DubaiProjectFollowup[]) ?? []);
+    })();
+  }, []);
 
   return (
     <div className="space-y-6">
       <PageHeader title="Dubai / AFS" subtitle="Dubai project follow-up, AFS arrival, pre-delivery and condition tracking" />
-      <DataSourceBadge variant="preview" />
+      <DataSourceBadge variant="auto" />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard icon={<TrendingUp size={18} className="text-sky-600" />} label="Active Follow-ups" value={activeFollowups} to="/dubai-afs/projects" />
-        <KpiCard icon={<Clock size={18} className="text-amber-600" />} label="Delayed ETAs" value={delayedEta} sub="ETA behind schedule" to="/dubai-afs/eta" variant={delayedEta > 0 ? 'warning' : 'default'} />
-        <KpiCard icon={<Plane size={18} className="text-sky-600" />} label="Pending Arrival" value={pendingArrival} sub="Vehicles not yet arrived" to="/dubai-afs/arrival-reports" />
-        <KpiCard icon={<AlertTriangle size={18} className="text-red-600" />} label="Open Missing Items" value={openMissing} sub="Blocking pre-delivery" to="/dubai-afs/missing-items" variant={openMissing > 0 ? 'critical' : 'default'} />
-        <KpiCard icon={<FileSearch size={18} className="text-orange-600" />} label="Not Ready for Delivery" value={notReadyPredelivery} to="/dubai-afs/predelivery-reports" variant={notReadyPredelivery > 0 ? 'warning' : 'default'} />
-        <KpiCard icon={<CheckCircle size={18} className="text-green-600" />} label="Ready for Delivery" value={readyForDelivery} to="/dubai-afs/predelivery-reports" variant={readyForDelivery > 0 ? 'success' : 'default'} />
-        <KpiCard icon={<Package size={18} className="text-gray-600" />} label="Total Arrivals" value={arrivalReports.length} to="/dubai-afs/arrival-reports" />
-        <KpiCard icon={<Wrench size={18} className="text-purple-600" />} label="Condition Reports" value={0} to="/dubai-afs/condition-reports" />
+        <KpiCard icon={<TrendingUp size={18} className="text-sky-600" />} label="Active Follow-ups" value={kpis.activeFollowups} to="/dubai-afs/projects" />
+        <KpiCard icon={<Clock size={18} className="text-amber-600" />} label="Delayed ETAs" value={kpis.delayedEta} sub="ETA behind schedule" to="/dubai-afs/eta" variant={kpis.delayedEta > 0 ? 'warning' : 'default'} />
+        <KpiCard icon={<Plane size={18} className="text-sky-600" />} label="Pending Arrival" value={kpis.pendingArrival} sub="Vehicles not yet arrived" to="/dubai-afs/arrival-reports" />
+        <KpiCard icon={<AlertTriangle size={18} className="text-red-600" />} label="Open Missing Items" value={kpis.openMissing} sub="Blocking pre-delivery" to="/dubai-afs/missing-items" variant={kpis.openMissing > 0 ? 'critical' : 'default'} />
+        <KpiCard icon={<FileSearch size={18} className="text-orange-600" />} label="Not Ready for Delivery" value={kpis.notReadyPredelivery} to="/dubai-afs/predelivery-reports" variant={kpis.notReadyPredelivery > 0 ? 'warning' : 'default'} />
+        <KpiCard icon={<CheckCircle size={18} className="text-green-600" />} label="Ready for Delivery" value={kpis.readyForDelivery} to="/dubai-afs/predelivery-reports" variant={kpis.readyForDelivery > 0 ? 'success' : 'default'} />
+        <KpiCard icon={<Package size={18} className="text-gray-600" />} label="Total Arrivals" value={kpis.totalArrivals} to="/dubai-afs/arrival-reports" />
+        <KpiCard icon={<Wrench size={18} className="text-purple-600" />} label="Condition Reports" value={kpis.conditionReports} to="/dubai-afs/condition-reports" />
       </div>
 
-      {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="p-5">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">Dubai Follow-ups</h3>
           <div className="space-y-2">
-            {followups.slice(0, 3).map(f => (
+            {recentFollowups.map(f => (
               <Link key={f.id} to={`/dubai-afs/projects/${f.id}`} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 text-sm">
                 <div>
                   <span className="font-medium text-gray-900">{f.project?.project_code}</span>

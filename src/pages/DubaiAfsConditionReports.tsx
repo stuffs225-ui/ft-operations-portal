@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Wrench } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_AFS_CONDITION_REPORTS } from '../data/mockAfs';
 import { mockOrEmpty } from '../lib/dataMode';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
-import type { ConditionReportStatus } from '../types';
+import type { AfsConditionReport, ConditionReportStatus } from '../types';
 
 type Tab = 'all' | ConditionReportStatus;
 const TABS: { key: Tab; label: string }[] = [
@@ -33,16 +35,36 @@ function overallVariant(s: string): 'neutral' | 'warning' | 'success' | 'critica
 }
 
 export function DubaiAfsConditionReports() {
+  const [items, setItems] = useState<AfsConditionReport[]>([]);
+  const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('all');
 
-  const reports = mockOrEmpty(MOCK_AFS_CONDITION_REPORTS).filter(r =>
-    tab === 'all' ? true : r.report_status === tab
-  );
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setItems(mockOrEmpty(MOCK_AFS_CONDITION_REPORTS));
+        setLoading(false);
+        return;
+      }
+      const { data } = await supabase
+        .from('afs_condition_reports')
+        .select('*, project:projects(project_code, customer_name), vehicle_line:project_vehicle_lines(vehicle_type, description)')
+        .order('report_date', { ascending: false });
+      setItems((data as unknown as AfsConditionReport[]) ?? []);
+      setLoading(false);
+    })();
+  }, []);
+
+  const reports = items.filter(r => tab === 'all' ? true : r.report_status === tab);
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Condition Reports" subtitle="Post-arrival vehicle condition assessments" />
-      <DataSourceBadge variant="preview" />
+      <PageHeader
+        title="Condition Reports"
+        subtitle="Post-arrival vehicle condition assessments"
+        breadcrumb={[{ label: 'Dubai / AFS', href: '/dubai-afs' }, { label: 'Condition Reports' }]}
+      />
+      <DataSourceBadge variant="auto" />
 
       <div className="flex gap-1 border-b border-gray-100">
         {TABS.map(t => (
@@ -53,29 +75,33 @@ export function DubaiAfsConditionReports() {
         ))}
       </div>
 
-      <Card>
-        {reports.length === 0 ? (
-          <div className="px-5 py-10 text-center text-sm text-gray-400">No condition reports found.</div>
-        ) : (
-          <div className="divide-y divide-gray-50">
-            {reports.map(r => (
-              <div key={r.id} className="px-5 py-4 flex items-start justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Wrench size={14} className="text-purple-500" />
-                    <span className="text-sm font-mono font-semibold text-sky-700">{r.condition_report_number}</span>
-                    <Badge variant={overallVariant(r.overall_condition)}>{r.overall_condition.replace(/_/g, ' ')}</Badge>
-                    <Badge variant={condVariant(r.report_status)}>{r.report_status.replace(/_/g, ' ')}</Badge>
+      {loading ? (
+        <PageLoader />
+      ) : (
+        <Card>
+          {reports.length === 0 ? (
+            <div className="px-5 py-10 text-center text-sm text-gray-400">No condition reports found.</div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {reports.map(r => (
+                <div key={r.id} className="px-5 py-4 flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Wrench size={14} className="text-purple-500" />
+                      <span className="text-sm font-mono font-semibold text-sky-700">{r.condition_report_number}</span>
+                      <Badge variant={overallVariant(r.overall_condition)}>{r.overall_condition.replace(/_/g, ' ')}</Badge>
+                      <Badge variant={condVariant(r.report_status)}>{r.report_status.replace(/_/g, ' ')}</Badge>
+                    </div>
+                    <div className="text-sm text-gray-700 mt-1">{r.project?.customer_name} — {r.vehicle_line?.vehicle_type ?? 'Project-wide'}</div>
+                    <p className="text-xs text-gray-500 mt-0.5 truncate max-w-md">{r.description}</p>
                   </div>
-                  <div className="text-sm text-gray-700 mt-1">{r.project?.customer_name} — {r.vehicle_line?.vehicle_type ?? 'Project-wide'}</div>
-                  <p className="text-xs text-gray-500 mt-0.5 truncate max-w-md">{r.description}</p>
+                  <Button variant="ghost" size="sm" disabled>View</Button>
                 </div>
-                <Button variant="ghost" size="sm" disabled>View</Button>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
     </div>
   );
 }
