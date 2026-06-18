@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Package, ChevronRight, ChevronLeft, Check, Info, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -8,7 +8,7 @@ import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { recordFactoryEvent } from '../lib/factoryAudit';
 import { MOCK_PROJECTS } from '../data/mockProjects';
-import type { RawMaterialRequestType } from '../types';
+import type { RawMaterialRequestType, Project } from '../types';
 
 const STEPS = ['Request Type', 'Linkage', 'File Upload', 'Review & Submit'];
 
@@ -50,10 +50,27 @@ export function FactoryRawMaterialRequestNew() {
   const [fileRemarks, setFileRemarks] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [devSuccess, setDevSuccess] = useState('');
+  const [saudiProjects, setSaudiProjects] = useState<Project[]>([]);
 
-  const saudiProjects = MOCK_PROJECTS.filter(
-    (p) => p.project_status === 'approved' && p.manufacturing_location === 'saudi',
-  );
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setSaudiProjects(
+          MOCK_PROJECTS.filter(
+            (p) => p.project_status === 'approved' && p.manufacturing_location === 'saudi',
+          ),
+        );
+        return;
+      }
+      const { data } = await supabase
+        .from('projects')
+        .select('id, project_code, so_number, customer_name, project_status, manufacturing_location, customer_delivery_date, updated_at, created_at')
+        .eq('manufacturing_location', 'saudi')
+        .eq('project_status', 'approved')
+        .order('project_code');
+      setSaudiProjects((data as unknown as Project[]) ?? []);
+    })();
+  }, []);
 
   function handleSubmit(action: 'draft' | 'submit' | 'procurement') {
     setSubmitting(true);
@@ -237,13 +254,6 @@ export function FactoryRawMaterialRequestNew() {
                   </select>
                 </div>
 
-                {projectId === 'proj-005' && (
-                  <div className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
-                    <Info size={13} className="text-brand-500 shrink-0" />
-                    WO: WO-2025-0041 (auto-populated from confirmed WO)
-                  </div>
-                )}
-
                 <div>
                   <label className="text-xs font-medium text-gray-700 mb-1 block">
                     Vehicle Line (optional)
@@ -379,7 +389,7 @@ export function FactoryRawMaterialRequestNew() {
                   <div>
                     <p className="text-gray-500">Project</p>
                     <p className="font-mono font-medium text-gray-900 mt-0.5">
-                      {MOCK_PROJECTS.find((p) => p.id === projectId)?.project_code ?? projectId}
+                      {saudiProjects.find((p) => p.id === projectId)?.project_code ?? projectId}
                     </p>
                   </div>
                 )}

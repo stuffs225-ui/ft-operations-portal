@@ -6,7 +6,7 @@ import { PageLoader } from '../components/ui/PageLoader';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_FACTORY_RECORDS as MOCK_FACTORY_RECORDS_RAW } from '../data/mockFactory';
 import { MOCK_PROJECTS as MOCK_PROJECTS_RAW } from '../data/mockProjects';
 import { mockOrEmpty } from '../lib/dataMode';
@@ -78,23 +78,42 @@ export function FactoryProjects() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      const saudiApproved = MOCK_PROJECTS.filter(
-        (p) => p.project_status === 'approved' && p.manufacturing_location === 'saudi',
-      );
-      const result: ProjectWithRecords[] = saudiApproved.map((p) => ({
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        const saudiApproved = MOCK_PROJECTS.filter(
+          (p) => p.project_status === 'approved' && p.manufacturing_location === 'saudi',
+        );
+        const result: ProjectWithRecords[] = saudiApproved.map((p) => ({
+          project: p,
+          records: MOCK_FACTORY_RECORDS.filter((r) => r.project_id === p.id),
+        }));
+        setItems(result);
+        setFiltered(result);
+        setLoading(false);
+        return;
+      }
+
+      const [projRes, recordsRes] = await Promise.all([
+        supabase
+          .from('projects')
+          .select('*')
+          .eq('manufacturing_location', 'saudi')
+          .eq('project_status', 'approved')
+          .order('project_code'),
+        supabase.from('factory_records').select('*'),
+      ]);
+
+      const projects = (projRes.data as unknown as Project[]) ?? [];
+      const allRecords = (recordsRes.data as unknown as FactoryRecord[]) ?? [];
+
+      const result: ProjectWithRecords[] = projects.map((p) => ({
         project: p,
-        records: MOCK_FACTORY_RECORDS.filter((r) => r.project_id === p.id),
+        records: allRecords.filter((r) => r.project_id === p.id),
       }));
       setItems(result);
       setFiltered(result);
       setLoading(false);
-      return;
-    }
-    // Supabase mode placeholder
-    setItems([]);
-    setFiltered([]);
-    setLoading(false);
+    })();
   }, []);
 
   useEffect(() => {

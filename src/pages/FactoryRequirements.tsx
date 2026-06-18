@@ -6,7 +6,7 @@ import { PageLoader } from '../components/ui/PageLoader';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_FACTORY_REQUIREMENTS } from '../data/mockFactory';
 import type { FactoryItemRequirement, FactoryReqStatus } from '../types';
 
@@ -45,16 +45,24 @@ export function FactoryRequirements() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setItems(MOCK_FACTORY_REQUIREMENTS);
-      setFiltered(MOCK_FACTORY_REQUIREMENTS);
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setItems(MOCK_FACTORY_REQUIREMENTS);
+        setFiltered(MOCK_FACTORY_REQUIREMENTS);
+        setLoading(false);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('factory_item_requirements')
+        .select('*, requirement_type:factory_requirement_types(*)')
+        .order('created_at', { ascending: false });
+
+      const loaded = (data as unknown as FactoryItemRequirement[]) ?? [];
+      setItems(loaded);
+      setFiltered(loaded);
       setLoading(false);
-      return;
-    }
-    // Supabase placeholder
-    setItems([]);
-    setFiltered([]);
-    setLoading(false);
+    })();
   }, []);
 
   useEffect(() => {

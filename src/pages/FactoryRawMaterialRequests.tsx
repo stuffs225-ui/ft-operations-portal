@@ -8,7 +8,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../hooks/useAuth';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_RAW_MATERIAL_REQUESTS } from '../data/mockFactory';
 import type { RawMaterialRequest, RawMaterialRequestStatus, UserRole } from '../types';
 
@@ -56,16 +56,24 @@ export function FactoryRawMaterialRequests() {
   const canCreate = !!role && CAN_CREATE_ROLES.includes(role);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setItems(MOCK_RAW_MATERIAL_REQUESTS);
-      setFiltered(MOCK_RAW_MATERIAL_REQUESTS);
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setItems(MOCK_RAW_MATERIAL_REQUESTS);
+        setFiltered(MOCK_RAW_MATERIAL_REQUESTS);
+        setLoading(false);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('production_raw_material_requests')
+        .select('*, project:projects(project_code, so_number, customer_name)')
+        .order('requested_at', { ascending: false });
+
+      const loaded = (data as unknown as RawMaterialRequest[]) ?? [];
+      setItems(loaded);
+      setFiltered(loaded);
       setLoading(false);
-      return;
-    }
-    // Supabase placeholder
-    setItems([]);
-    setFiltered([]);
-    setLoading(false);
+    })();
   }, []);
 
   useEffect(() => {
