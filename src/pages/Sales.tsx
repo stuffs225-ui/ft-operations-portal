@@ -11,8 +11,11 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Drawer } from '../components/ui/Drawer';
+import { ReportExportBar } from '../components/features/ReportExportBar';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { exportRowsToCsv } from '../lib/reportExport';
+import type { ReportColumn } from '../lib/reportExport';
 import { MOCK_QUOTATIONS } from '../data/mockQuotations';
 import { MOCK_PROJECTS } from '../data/mockProjects';
 import type {
@@ -167,9 +170,11 @@ export function Sales() {
   const [activeKpi, setActiveKpi] = useState<string | null>(null);
 
   const isBroadView = role ? BROAD_VIEW.includes(role) : false;
+  const isSalesUser = role === 'sales_user';
   const canCreateSO = role ? CAN_CREATE_SO.includes(role) : false;
   // Sales users see total_sales_value on their own projects; admin/ops_manager see all
   const showValue = role === 'admin' || role === 'operations_manager' || role === 'sales_user';
+  const reportDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
 
   // ── Load data ───────────────────────────────────────────────────────────────
 
@@ -320,6 +325,20 @@ export function Sales() {
     return map[activeKpi] ?? null;
   }, [activeKpi, quotations, projects]);
 
+  // ── Report export ────────────────────────────────────────────────────────────
+
+  function handleExportInvoicingPlan() {
+    const columns: ReportColumn<Project>[] = [
+      { key: 'customer_name', header: 'Customer', value: p => p.customer_name },
+      { key: 'project_code', header: 'Project Code', value: p => p.project_code },
+      { key: 'so_number', header: 'SO / JOH Number', value: p => p.so_number },
+      { key: 'total_sales_value', header: 'Total Value (SAR)', value: p => p.total_sales_value },
+      { key: 'customer_delivery_date', header: 'Delivery Date', value: p => p.customer_delivery_date },
+      { key: 'project_status', header: 'Status', value: p => p.project_status },
+    ];
+    exportRowsToCsv(`invoicing-plan-${new Date().toISOString().split('T')[0]}.csv`, projects, columns);
+  }
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
@@ -400,8 +419,8 @@ export function Sales() {
         </div>
       </Card>
 
-      {/* My Quotation Requests */}
-      <Card>
+      {/* My Quotation Requests — hidden for sales_user (use dedicated /quotations page) */}
+      {!isSalesUser && <Card>
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <FileText size={15} className="text-gray-400" />
@@ -463,7 +482,7 @@ export function Sales() {
             )}
           </div>
         )}
-      </Card>
+      </Card>}
 
       {/* My Projects */}
       <Card>
@@ -563,23 +582,82 @@ export function Sales() {
         </div>
       </Card>
 
-      {/* Invoicing Plan */}
+      {/* Invoicing Plan Report */}
       <Card>
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <ReceiptText size={15} className="text-indigo-500" /> Invoicing Plan & Milestones
+            <ReceiptText size={15} className="text-indigo-500" /> Invoicing Plan
           </h2>
-          <Link to="/projects" className="text-xs text-brand-600 hover:underline font-medium">
+          <Link to="/projects" className="text-xs text-brand-600 hover:underline font-medium no-print">
             Open Projects →
           </Link>
         </div>
-        <div className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
-          <p className="text-sm text-gray-600">
-            Define milestone-based invoicing per SO. Track invoice submission, approval, and payment. Access via any Project / SO detail page.
-          </p>
-          <Link to="/projects" className="shrink-0">
-            <Button size="sm" variant="secondary" icon={<FolderOpen size={13} />}>Open Projects / SO</Button>
-          </Link>
+        <div className="px-5 py-4 space-y-4">
+          <ReportExportBar
+            reportKey="sales_invoicing_plan"
+            reportTitle="Invoicing Plan"
+            department="Sales"
+            onExportCsv={handleExportInvoicingPlan}
+            summary={`${projects.length} project(s) — total SAR ${projects.reduce((s, p) => s + p.total_sales_value, 0).toLocaleString('en-SA')}`}
+          />
+          <div className="report-print-root">
+            {/* Print-only header */}
+            <div className="hidden print:block mb-6 pb-4 border-b-2 border-gray-800">
+              <h1 className="text-2xl font-bold text-gray-900">Invoicing Plan — {new Date().getFullYear()}</h1>
+              <p className="text-sm text-gray-700 mt-1">Salesperson: {profile?.full_name ?? '—'}</p>
+              <p className="text-sm text-gray-700">Generated: {reportDate}</p>
+            </div>
+            {/* Projects table */}
+            {projects.length === 0 ? (
+              <p className="text-sm text-gray-400 py-4 text-center">No projects found. Add projects to generate the invoicing plan.</p>
+            ) : (
+              <div className="overflow-x-auto border border-gray-100 rounded-lg">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 border-b border-gray-100">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">No.</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">Customer</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">Project / SO</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500">Total Value (SAR)</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 hidden md:table-cell">Delivery Date</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 hidden md:table-cell">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {projects.map((p, i) => (
+                      <tr key={p.id} className="hover:bg-gray-50">
+                        <td className="px-3 py-2 text-gray-500 text-xs">{i + 1}</td>
+                        <td className="px-3 py-2 text-gray-900 font-medium">{p.customer_name}</td>
+                        <td className="px-3 py-2 font-mono text-xs text-sky-700">
+                          {p.project_code} <span className="text-gray-400">/ {p.so_number}</span>
+                        </td>
+                        <td className="px-3 py-2 text-right font-medium text-gray-900 tabular-nums">
+                          {formatSAR(p.total_sales_value)}
+                        </td>
+                        <td className="px-3 py-2 text-gray-500 text-xs hidden md:table-cell">
+                          {formatDate(p.customer_delivery_date)}
+                        </td>
+                        <td className="px-3 py-2 hidden md:table-cell">
+                          <Badge variant={PROJECT_STATUS_MAP[p.project_status]?.variant ?? 'neutral'}>
+                            {PROJECT_STATUS_MAP[p.project_status]?.label ?? p.project_status}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
+                      <td className="px-3 py-2 text-xs text-gray-700" colSpan={3}>
+                        Total ({projects.length} project{projects.length !== 1 ? 's' : ''})
+                      </td>
+                      <td className="px-3 py-2 text-right text-gray-900 tabular-nums">
+                        {formatSAR(projects.reduce((s, p) => s + p.total_sales_value, 0))}
+                      </td>
+                      <td colSpan={2} />
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       </Card>
 

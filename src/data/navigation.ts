@@ -48,13 +48,6 @@ export const NAV_ITEMS: NavItem[] = [
     icon: '',
   },
   {
-    id: 'quotations',
-    label: 'Quotation Requests',
-    path: '/quotations',
-    icon: 'FileText',
-    roles: ['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'viewer'],
-  },
-  {
     id: 'sales',
     label: 'Sales Workspace',
     path: '/sales',
@@ -66,6 +59,13 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Hot Projects',
     path: '/hot-projects',
     icon: 'Flame',
+    roles: ['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'viewer'],
+  },
+  {
+    id: 'quotations',
+    label: 'Quotation Requests',
+    path: '/quotations',
+    icon: 'FileText',
     roles: ['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'viewer'],
   },
   {
