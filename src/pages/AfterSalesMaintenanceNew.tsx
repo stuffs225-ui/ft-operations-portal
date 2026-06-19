@@ -1,14 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_PROJECTS } from '../data/mockProjects';
-import { isSupabaseConfigured } from '../lib/supabase';
-import { mockOrEmpty } from '../lib/dataMode';
-import type { MaintenanceIssueType, MaintenancePriority } from '../types';
+import type { MaintenanceIssueType, MaintenancePriority, Project } from '../types';
 
 const ISSUE_TYPES: MaintenanceIssueType[] = ['mechanical', 'electrical', 'body_damage', 'software', 'upholstery', 'other'];
 const PRIORITIES: MaintenancePriority[] = ['low', 'medium', 'high', 'critical'];
@@ -18,6 +17,9 @@ export function AfterSalesMaintenanceNew() {
   const { profile } = useAuth();
   const [step, setStep] = useState(1);
   const [devMessage, setDevMessage] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const [projects, setProjects] = useState<Pick<Project, 'id' | 'project_code' | 'customer_name' | 'project_status'>[]>([]);
 
   // Step 1 — Basic Info
   const [customerName, setCustomerName] = useState('');
@@ -37,7 +39,20 @@ export function AfterSalesMaintenanceNew() {
   const [partsRequired, setPartsRequired] = useState(false);
   const [partsNotes, setPartsNotes] = useState('');
 
-  const projects = mockOrEmpty(MOCK_PROJECTS).filter(p => p.project_status === 'approved' || p.project_status === 'active' || p.project_status === 'completed');
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setProjects(MOCK_PROJECTS.filter(p => ['approved', 'active', 'completed'].includes(p.project_status)));
+        return;
+      }
+      const { data } = await supabase
+        .from('projects')
+        .select('id, project_code, customer_name, project_status')
+        .in('project_status', ['approved', 'active', 'completed'])
+        .order('project_code');
+      setProjects((data ?? []) as Pick<Project, 'id' | 'project_code' | 'customer_name' | 'project_status'>[]);
+    })();
+  }, []);
 
   const canProceedStep1 = customerName.trim() && title.trim() && reportedDate;
   const canProceedStep2 = description.trim();
@@ -45,23 +60,48 @@ export function AfterSalesMaintenanceNew() {
 
   async function handleSubmit() {
     if (!canSubmit) { alert('Please fill in all required fields.'); return; }
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseConfigured || !supabase) {
       setDevMessage('Dev Mode — maintenance request not persisted.');
       setTimeout(() => { navigate('/after-sales/maintenance'); }, 1500);
       return;
     }
-    // Supabase insert would go here
+    setSaving(true);
+    const year = new Date().getFullYear();
+    const { count } = await supabase.from('afs_maintenance_requests').select('*', { count: 'exact', head: true });
+    const seq = String((count ?? 0) + 1).padStart(4, '0');
+    const requestNumber = `MNT-${year}-${seq}`;
+    const { error } = await supabase.from('afs_maintenance_requests').insert({
+      maintenance_request_number: requestNumber,
+      customer_name: customerName,
+      project_id: projectId || null,
+      chassis_number: chassisNumber || null,
+      title,
+      issue_type: issueType,
+      priority,
+      reported_date: reportedDate,
+      description,
+      wo_reference: woReference || null,
+      pn_reference: pnReference || null,
+      parts_required: partsRequired,
+      parts_notes: partsNotes || null,
+      maintenance_status: 'open',
+      created_by: profile?.id ?? null,
+    });
+    setSaving(false);
+    if (error) {
+      alert('Failed to submit request. Please try again.');
+      return;
+    }
     navigate('/after-sales/maintenance');
   }
 
   return (
     <div className="space-y-5 max-w-2xl">
-      <div className="flex items-center gap-2">
-        <Link to="/after-sales/maintenance" className="text-gray-400 hover:text-gray-600">
-          <ArrowLeft size={18} />
-        </Link>
-        <PageHeader title="New Maintenance Request" subtitle="Log an after-sales maintenance or repair issue" />
-      </div>
+      <PageHeader
+        title="New Maintenance Request"
+        subtitle="Log an after-sales maintenance or repair issue"
+        breadcrumb={[{ label: 'After Sales', href: '/after-sales' }, { label: 'Maintenance Requests', href: '/after-sales/maintenance' }, { label: 'New Request' }]}
+      />
 
       {/* Step indicator */}
       <div className="flex items-center gap-2">
@@ -218,17 +258,20 @@ export function AfterSalesMaintenanceNew() {
           )}
           <div className="flex gap-2 justify-between">
             <Button variant="ghost" size="sm" onClick={() => setStep(3)}><ArrowLeft size={14} className="mr-1" /> Back</Button>
-            <Button variant="primary" size="sm" onClick={handleSubmit} disabled={!canSubmit}>
+            <Button variant="primary" size="sm" onClick={handleSubmit} disabled={!canSubmit || saving}>
               <Check size={14} className="mr-1" /> Submit Request
             </Button>
           </div>
         </Card>
       )}
 
-      {/* Submitter info */}
       {profile && (
         <p className="text-xs text-gray-400">Submitting as {profile.full_name ?? profile.email}</p>
       )}
+
+      <div className="flex items-center gap-2 text-xs text-gray-400">
+        <Link to="/after-sales/maintenance" className="hover:text-gray-600">← Back to maintenance list</Link>
+      </div>
     </div>
   );
 }

@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Wrench, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_AFS_MAINTENANCE_REQUESTS } from '../data/mockAfs';
-import { mockOrEmpty } from '../lib/dataMode';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
-import type { MaintenanceStatus, UserRole } from '../types';
+import type { AfsMaintenanceRequest, MaintenanceStatus, UserRole } from '../types';
 
 const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'sales_user', 'afs_user'];
 
@@ -41,23 +42,42 @@ export function AfterSalesMaintenance() {
   const { role } = useAuth();
   const canCreate = role ? CAN_CREATE.includes(role) : false;
   const [tab, setTab] = useState<Tab>('all');
+  const [allRequests, setAllRequests] = useState<AfsMaintenanceRequest[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const requests = mockOrEmpty(MOCK_AFS_MAINTENANCE_REQUESTS).filter(r =>
-    tab === 'all' ? true : r.maintenance_status === tab
-  );
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setAllRequests(MOCK_AFS_MAINTENANCE_REQUESTS);
+        setLoading(false);
+        return;
+      }
+      const { data } = await supabase
+        .from('afs_maintenance_requests')
+        .select('*, project:projects(project_code, customer_name)')
+        .order('created_at', { ascending: false });
+      setAllRequests((data as unknown as AfsMaintenanceRequest[]) ?? []);
+      setLoading(false);
+    })();
+  }, []);
+
+  if (loading) return <PageLoader />;
+
+  const requests = allRequests.filter(r => tab === 'all' ? true : r.maintenance_status === tab);
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Maintenance Requests"
         subtitle="After-sales maintenance and repair tracking"
+        breadcrumb={[{ label: 'After Sales', href: '/after-sales' }, { label: 'Maintenance Requests' }]}
         actions={canCreate ? (
           <Link to="/after-sales/maintenance/new">
             <Button variant="primary" size="sm"><Plus size={14} className="mr-1" /> New Request</Button>
           </Link>
         ) : undefined}
       />
-      <DataSourceBadge variant="preview" />
+      <DataSourceBadge variant="auto" />
 
       <div className="flex gap-1 border-b border-gray-100 overflow-x-auto">
         {TABS.map(t => (
