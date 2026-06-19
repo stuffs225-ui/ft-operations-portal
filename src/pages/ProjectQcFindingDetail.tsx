@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, AlertTriangle, CheckCircle, Wrench } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { AlertTriangle, CheckCircle, Wrench } from 'lucide-react';
+import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { useAuth } from '../hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_PROJECT_QC_FINDINGS } from '../data/mockQc';
 import type { ProjectQcFinding, UserRole } from '../types';
-import { isSupabaseConfigured } from '../lib/supabase';
 import { recordQcAudit, recordQcEvent } from '../lib/qcAudit';
 
 const CAN_CLOSE: UserRole[] = ['admin', 'operations_manager', 'qc_user'];
@@ -41,14 +42,47 @@ export function ProjectQcFindingDetail() {
   const canClose = role ? CAN_CLOSE.includes(role) : false;
   const canMarkRework = role ? CAN_MARK_REWORK.includes(role) : false;
 
-  const base = MOCK_PROJECT_QC_FINDINGS.find(f => f.id === id);
-  const [finding, setFinding] = useState<ProjectQcFinding | undefined>(base);
+  const [finding, setFinding] = useState<ProjectQcFinding | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [closureNotes, setClosureNotes] = useState('');
-  const [ownerRole, setOwnerRole] = useState(base?.owner_role ?? '');
-  const [dueDate, setDueDate] = useState(base?.due_date ?? '');
+  const [ownerRole, setOwnerRole] = useState('');
+  const [dueDate, setDueDate] = useState('');
   const [devMessage, setDevMessage] = useState('');
 
-  if (!finding) {
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        const found = MOCK_PROJECT_QC_FINDINGS.find(f => f.id === id);
+        if (found) {
+          setFinding({ ...found });
+          setOwnerRole(found.owner_role ?? '');
+          setDueDate(found.due_date ?? '');
+        } else {
+          setNotFound(true);
+        }
+        setLoading(false);
+        return;
+      }
+      const { data } = await supabase
+        .from('project_qc_findings')
+        .select('*, project:projects(project_code, customer_name), vehicle_line:project_vehicle_lines(vehicle_type, description)')
+        .eq('id', id!)
+        .single();
+      if (!data) { setNotFound(true); }
+      else {
+        const f = data as unknown as ProjectQcFinding;
+        setFinding(f);
+        setOwnerRole(f.owner_role ?? '');
+        setDueDate(f.due_date ?? '');
+      }
+      setLoading(false);
+    })();
+  }, [id]);
+
+  if (loading) return <PageLoader />;
+  if (notFound || !finding) {
     return (
       <div className="text-center py-16 text-gray-500">
         Finding not found.{' '}
@@ -57,7 +91,6 @@ export function ProjectQcFindingDetail() {
     );
   }
 
-  // finding is guaranteed non-null below this point
   const isClosed = finding.finding_status === 'closed' || finding.finding_status === 'cancelled';
   const canCloseNow = canClose && !isClosed && (!finding.rework_required || !!finding.rework_completed_at);
 
@@ -67,42 +100,86 @@ export function ProjectQcFindingDetail() {
     setTimeout(() => setDevMessage(''), 3000);
   }
 
+  async function handleUpdateAssignment() {
+    const currentFinding = finding;
+    if (!currentFinding) return;
+    if (!isSupabaseConfigured || !supabase) {
+      devUpdate({ owner_role: ownerRole, due_date: dueDate || null, finding_status: 'assigned' }, 'Dev: Assignment updated');
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from('project_qc_findings').update({
+      owner_role: ownerRole || null,
+      due_date: dueDate || null,
+      finding_status: 'assigned',
+    }).eq('id', id!);
+    if (!error) {
+      setFinding(prev => prev ? { ...prev, owner_role: ownerRole || null, due_date: dueDate || null, finding_status: 'assigned' } : prev);
+      void recordQcAudit('finding_assigned', id!, `Finding ${currentFinding.finding_number} assigned`, profile?.id ?? null);
+    }
+    setSaving(false);
+  }
+
   async function handleMarkReworkCompleted() {
-    if (!finding) return;
-    if (!isSupabaseConfigured) {
+    const currentFinding = finding;
+    if (!currentFinding) return;
+    if (!isSupabaseConfigured || !supabase) {
       devUpdate({ finding_status: 'pending_reinspection', rework_completed_by: profile?.id ?? 'user', rework_completed_at: new Date().toISOString() }, 'Dev: Rework marked completed');
       return;
     }
-    await recordQcEvent(finding.project_id, 'rework_completed', `Rework completed for ${finding.finding_number}`, null, profile?.id ?? null, profile?.full_name ?? null, null);
-    await recordQcAudit('rework_completed', id!, `Rework completed for ${finding.finding_number}`, profile?.id ?? null);
+    setSaving(true);
+    const reworkAt = new Date().toISOString();
+    const { error } = await supabase.from('project_qc_findings').update({
+      finding_status: 'pending_reinspection',
+      rework_completed_by: profile?.id ?? null,
+      rework_completed_at: reworkAt,
+    }).eq('id', id!);
+    if (!error) {
+      setFinding(prev => prev ? { ...prev, finding_status: 'pending_reinspection', rework_completed_by: profile?.id ?? null, rework_completed_at: reworkAt } : prev);
+      void recordQcEvent(currentFinding.project_id, 'rework_completed', `Rework completed for ${currentFinding.finding_number}`, null, profile?.id ?? null, profile?.full_name ?? null, null);
+      void recordQcAudit('rework_completed', id!, `Rework completed for ${currentFinding.finding_number}`, profile?.id ?? null);
+    }
+    setSaving(false);
   }
 
   async function handleClose() {
-    if (!finding) return;
+    const currentFinding = finding;
+    if (!currentFinding) return;
     if (!closureNotes.trim()) { alert('Closure notes are required.'); return; }
-    if (finding.rework_required && !finding.rework_completed_at) { alert('Rework must be completed before closing this finding.'); return; }
-    if (!isSupabaseConfigured) {
+    if (currentFinding.rework_required && !currentFinding.rework_completed_at) { alert('Rework must be completed before closing this finding.'); return; }
+    if (!isSupabaseConfigured || !supabase) {
       devUpdate({ finding_status: 'closed', closure_notes: closureNotes, closed_at: new Date().toISOString(), closed_by: profile?.id ?? 'user' }, 'Dev: Finding closed');
       return;
     }
-    await recordQcEvent(finding.project_id, 'finding_closed', `Finding ${finding.finding_number} closed`, closureNotes, profile?.id ?? null, profile?.full_name ?? null, null);
-    await recordQcAudit('finding_closed', id!, `Finding ${finding.finding_number} closed`, profile?.id ?? null);
-  }
-
-  function handleUpdateAssignment() {
-    devUpdate({ owner_role: ownerRole, due_date: dueDate || null, finding_status: 'assigned' }, 'Dev: Assignment updated');
+    setSaving(true);
+    const closedAt = new Date().toISOString();
+    const { error } = await supabase.from('project_qc_findings').update({
+      finding_status: 'closed',
+      closure_notes: closureNotes,
+      closed_at: closedAt,
+      closed_by: profile?.id ?? null,
+    }).eq('id', id!);
+    if (!error) {
+      setFinding(prev => prev ? { ...prev, finding_status: 'closed', closure_notes: closureNotes, closed_at: closedAt, closed_by: profile?.id ?? null } : prev);
+      void recordQcEvent(currentFinding.project_id, 'finding_closed', `Finding ${currentFinding.finding_number} closed`, closureNotes, profile?.id ?? null, profile?.full_name ?? null, null);
+      void recordQcAudit('finding_closed', id!, `Finding ${currentFinding.finding_number} closed`, profile?.id ?? null);
+    }
+    setSaving(false);
   }
 
   return (
     <div className="space-y-5 max-w-3xl">
-      <div className="flex items-center gap-2">
-        <Link to="/project-qc/findings" className="text-gray-400 hover:text-gray-600">
-          <ArrowLeft size={18} />
-        </Link>
-        <PageHeader title={finding.finding_number} subtitle="QC Finding" />
-        <Badge variant={severityVariant(finding.severity)}>{finding.severity}</Badge>
-        <Badge variant={statusVariant(finding.finding_status)}>{finding.finding_status.replace(/_/g, ' ')}</Badge>
-      </div>
+      <PageHeader
+        title={finding.finding_number}
+        subtitle="QC Finding"
+        breadcrumb={[{ label: 'Project QC', href: '/project-qc' }, { label: 'Findings', href: '/project-qc/findings' }, { label: finding.finding_number }]}
+        actions={
+          <div className="flex items-center gap-2">
+            <Badge variant={severityVariant(finding.severity)}>{finding.severity}</Badge>
+            <Badge variant={statusVariant(finding.finding_status)}>{finding.finding_status.replace(/_/g, ' ')}</Badge>
+          </div>
+        }
+      />
 
       {devMessage && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-3 text-sm text-green-700">{devMessage}</div>
@@ -157,7 +234,7 @@ export function ProjectQcFindingDetail() {
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
             </div>
           </div>
-          <Button variant="secondary" size="sm" className="mt-3" onClick={handleUpdateAssignment}>
+          <Button variant="secondary" size="sm" disabled={saving} className="mt-3" onClick={handleUpdateAssignment}>
             Save Assignment
           </Button>
         </Card>
@@ -170,7 +247,7 @@ export function ProjectQcFindingDetail() {
             <Wrench size={15} className="text-orange-500" /> Rework Completion
           </h3>
           <p className="text-xs text-gray-500 mb-3">After completing the required rework, mark it as done here. QC will then verify and close the finding.</p>
-          <Button variant="primary" size="sm" onClick={handleMarkReworkCompleted}>
+          <Button variant="primary" size="sm" disabled={saving} onClick={handleMarkReworkCompleted}>
             Mark Rework Completed
           </Button>
         </Card>
@@ -195,7 +272,7 @@ export function ProjectQcFindingDetail() {
                 placeholder="Describe how the finding was resolved."
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
             </div>
-            <Button variant="primary" size="sm" onClick={handleClose}>
+            <Button variant="primary" size="sm" disabled={saving} onClick={handleClose}>
               <CheckCircle size={14} className="mr-1" /> Close Finding
             </Button>
           </div>

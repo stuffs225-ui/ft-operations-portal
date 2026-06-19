@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, ChevronRight } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { StatusBadge } from '@/components/status/status-badge';
 import { PriorityBadge } from '@/components/status/priority-badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { DataSourceBadge } from '@/components/ui/DataSourceBadge';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { mockOrEmpty } from '@/lib/dataMode';
 import { MOCK_MATERIAL_NCRS } from '@/data/mockQc';
-import type { NcrStatus, NcrSeverity } from '@/types';
+import type { MaterialNcr, NcrStatus, NcrSeverity } from '@/types';
 
 type StatusTab = 'all' | NcrStatus;
 type SeverityFilter = 'all' | NcrSeverity;
@@ -24,16 +26,33 @@ const STATUS_TABS: { key: StatusTab; label: string }[] = [
   { key: 'cancelled', label: 'Cancelled' },
 ];
 
-
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 export function MaterialNcrs() {
+  const [items, setItems] = useState<MaterialNcr[]>([]);
+  const [loading, setLoading] = useState(true);
   const [statusTab, setStatusTab] = useState<StatusTab>('all');
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all');
 
-  const filtered = mockOrEmpty(MOCK_MATERIAL_NCRS).filter(n => {
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setItems(mockOrEmpty(MOCK_MATERIAL_NCRS));
+        setLoading(false);
+        return;
+      }
+      const { data } = await supabase
+        .from('material_ncrs')
+        .select('*, project:projects(project_code, customer_name), item:store_receipt_items(item_name, material_category)')
+        .order('created_at', { ascending: false });
+      setItems((data as unknown as MaterialNcr[]) ?? []);
+      setLoading(false);
+    })();
+  }, []);
+
+  const filtered = items.filter(n => {
     if (statusTab !== 'all' && n.ncr_status !== statusTab) return false;
     if (severityFilter !== 'all' && n.severity !== severityFilter) return false;
     return true;
@@ -41,9 +60,13 @@ export function MaterialNcrs() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Material NCRs" subtitle="Non-Conformance Reports for rejected or non-compliant materials" />
+      <PageHeader
+        title="Material NCRs"
+        subtitle="Non-Conformance Reports for rejected or non-compliant materials"
+        breadcrumb={[{ label: 'Material QC', href: '/material-qc' }, { label: 'NCRs' }]}
+      />
 
-      <DataSourceBadge variant="preview" />
+      <DataSourceBadge variant="auto" />
 
       <div className="flex flex-wrap gap-3 items-center">
         <div className="flex items-center gap-2">
@@ -71,7 +94,9 @@ export function MaterialNcrs() {
           ))}
         </div>
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="px-5 py-10"><PageLoader /></div>
+        ) : filtered.length === 0 ? (
           <div className="px-5 py-10">
             <EmptyState icon={<AlertTriangle size={24} className="text-gray-400" />} title="No NCRs" description="No NCRs match the current filter." />
           </div>

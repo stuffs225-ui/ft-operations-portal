@@ -1,16 +1,19 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ClipboardCheck, AlertTriangle, CheckCircle, XCircle, Clock, ChevronRight, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { useAuth } from '../hooks/useAuth';
 import {
   MOCK_MATERIAL_QC_INSPECTIONS,
   MOCK_MATERIAL_NCRS,
 } from '../data/mockQc';
-import type { UserRole } from '../types';
-import { isSupabaseConfigured } from '../lib/supabase';
+import type { MaterialQcInspection, MaterialNcr, UserRole } from '../types';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { mockOrEmpty } from '../lib/dataMode';
 
 const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'qc_user'];
@@ -43,27 +46,91 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+interface KpiData {
+  pending: number;
+  inProgress: number;
+  accepted: number;
+  rejected: number;
+  openNcrs: number;
+  medicalPending: number;
+  recentInspections: MaterialQcInspection[];
+  openNcrList: MaterialNcr[];
+}
+
 export function MaterialQC() {
   const { role } = useAuth();
   const canCreate = role ? CAN_CREATE.includes(role) : false;
+  const [data, setData] = useState<KpiData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const inspections = mockOrEmpty(MOCK_MATERIAL_QC_INSPECTIONS);
-  const ncrs = mockOrEmpty(MOCK_MATERIAL_NCRS);
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        const inspections = mockOrEmpty(MOCK_MATERIAL_QC_INSPECTIONS);
+        const ncrs = mockOrEmpty(MOCK_MATERIAL_NCRS);
+        setData({
+          pending: inspections.filter(i => i.inspection_status === 'pending').length,
+          inProgress: inspections.filter(i => i.inspection_status === 'in_progress').length,
+          accepted: inspections.filter(i => i.inspection_result === 'accepted' || i.inspection_result === 'accepted_with_comments').length,
+          rejected: inspections.filter(i => i.inspection_result === 'rejected').length,
+          openNcrs: ncrs.filter(n => n.ncr_status !== 'closed' && n.ncr_status !== 'cancelled').length,
+          medicalPending: inspections.filter(i => i.medical_serial_number_id !== null && i.inspection_status === 'pending').length,
+          recentInspections: inspections.slice(0, 5),
+          openNcrList: ncrs.filter(n => n.ncr_status !== 'closed' && n.ncr_status !== 'cancelled'),
+        });
+        setLoading(false);
+        return;
+      }
+      const [
+        { count: pending },
+        { count: inProgress },
+        { count: accepted },
+        { count: rejected },
+        { count: openNcrs },
+        { count: medicalPending },
+        { data: recentRaw },
+        { data: openNcrRaw },
+      ] = await Promise.all([
+        supabase.from('material_qc_inspections').select('*', { count: 'exact', head: true }).eq('inspection_status', 'pending'),
+        supabase.from('material_qc_inspections').select('*', { count: 'exact', head: true }).eq('inspection_status', 'in_progress'),
+        supabase.from('material_qc_inspections').select('*', { count: 'exact', head: true }).in('inspection_result', ['accepted', 'accepted_with_comments']),
+        supabase.from('material_qc_inspections').select('*', { count: 'exact', head: true }).eq('inspection_result', 'rejected'),
+        supabase.from('material_ncrs').select('*', { count: 'exact', head: true }).not('ncr_status', 'in', '(closed,cancelled)'),
+        supabase.from('material_qc_inspections').select('*', { count: 'exact', head: true }).eq('inspection_status', 'pending').not('medical_serial_number_id', 'is', null),
+        supabase.from('material_qc_inspections').select('*, project:projects(project_code, customer_name), item:store_receipt_items(item_name, item_code, material_category, quantity_received, unit)').order('created_at', { ascending: false }).limit(5),
+        supabase.from('material_ncrs').select('*, project:projects(project_code), item:store_receipt_items(item_name)').not('ncr_status', 'in', '(closed,cancelled)').order('created_at', { ascending: false }),
+      ]);
+      setData({
+        pending: pending ?? 0,
+        inProgress: inProgress ?? 0,
+        accepted: accepted ?? 0,
+        rejected: rejected ?? 0,
+        openNcrs: openNcrs ?? 0,
+        medicalPending: medicalPending ?? 0,
+        recentInspections: (recentRaw as unknown as MaterialQcInspection[]) ?? [],
+        openNcrList: (openNcrRaw as unknown as MaterialNcr[]) ?? [],
+      });
+      setLoading(false);
+    })();
+  }, []);
 
-  const pending = inspections.filter(i => i.inspection_status === 'pending').length;
-  const inProgress = inspections.filter(i => i.inspection_status === 'in_progress').length;
-  const accepted = inspections.filter(i => i.inspection_result === 'accepted' || i.inspection_result === 'accepted_with_comments').length;
-  const rejected = inspections.filter(i => i.inspection_result === 'rejected').length;
-  const openNcrs = ncrs.filter(n => n.ncr_status !== 'closed' && n.ncr_status !== 'cancelled').length;
-  const medicalPending = inspections.filter(i => i.medical_serial_number_id !== null && i.inspection_status === 'pending').length;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Material QC" subtitle="Inspect received materials, manage NCRs, and track serial numbers" />
+        <PageLoader />
+      </div>
+    );
+  }
 
+  const d = data!;
   const kpis = [
-    { label: 'Pending Inspection', value: pending, color: 'border-l-amber-400', icon: <Clock size={16} className="text-amber-500" /> },
-    { label: 'In Progress', value: inProgress, color: 'border-l-sky-400', icon: <ClipboardCheck size={16} className="text-sky-500" /> },
-    { label: 'Accepted', value: accepted, color: 'border-l-green-400', icon: <CheckCircle size={16} className="text-green-500" /> },
-    { label: 'Rejected', value: rejected, color: rejected > 0 ? 'border-l-red-500' : 'border-l-green-400', icon: <XCircle size={16} className="text-red-500" /> },
-    { label: 'Open NCRs', value: openNcrs, color: openNcrs > 0 ? 'border-l-red-500' : 'border-l-green-400', icon: <AlertTriangle size={16} className="text-red-500" /> },
-    { label: 'Medical Serials Pending', value: medicalPending, color: 'border-l-purple-400', icon: <ClipboardCheck size={16} className="text-purple-500" /> },
+    { label: 'Pending Inspection', value: d.pending, color: 'border-l-amber-400', icon: <Clock size={16} className="text-amber-500" /> },
+    { label: 'In Progress', value: d.inProgress, color: 'border-l-sky-400', icon: <ClipboardCheck size={16} className="text-sky-500" /> },
+    { label: 'Accepted', value: d.accepted, color: 'border-l-green-400', icon: <CheckCircle size={16} className="text-green-500" /> },
+    { label: 'Rejected', value: d.rejected, color: d.rejected > 0 ? 'border-l-red-500' : 'border-l-green-400', icon: <XCircle size={16} className="text-red-500" /> },
+    { label: 'Open NCRs', value: d.openNcrs, color: d.openNcrs > 0 ? 'border-l-red-500' : 'border-l-green-400', icon: <AlertTriangle size={16} className="text-red-500" /> },
+    { label: 'Medical Serials Pending', value: d.medicalPending, color: 'border-l-purple-400', icon: <ClipboardCheck size={16} className="text-purple-500" /> },
   ];
 
   return (
@@ -79,6 +146,8 @@ export function MaterialQC() {
           ) : undefined
         }
       />
+
+      <DataSourceBadge variant="auto" />
 
       {!isSupabaseConfigured && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 text-sm text-amber-700">
@@ -120,7 +189,7 @@ export function MaterialQC() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {inspections.slice(0, 5).map(i => (
+              {d.recentInspections.slice(0, 5).map(i => (
                 <tr key={i.id} className="hover:bg-gray-50">
                   <td className="px-4 py-2.5 text-sm font-mono text-sky-700">{i.inspection_number}</td>
                   <td className="px-4 py-2.5 text-sm text-gray-700 hidden md:table-cell">{i.item?.item_name ?? '—'}</td>
@@ -132,6 +201,9 @@ export function MaterialQC() {
                   </td>
                 </tr>
               ))}
+              {d.recentInspections.length === 0 && (
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-400">No inspections yet.</td></tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -145,7 +217,7 @@ export function MaterialQC() {
           </h3>
           <Link to="/material-qc/ncrs"><Button variant="ghost" size="sm">View All <ChevronRight size={14} /></Button></Link>
         </div>
-        {ncrs.filter(n => n.ncr_status !== 'closed' && n.ncr_status !== 'cancelled').length === 0 ? (
+        {d.openNcrList.length === 0 ? (
           <div className="px-5 py-6 text-sm text-gray-400 text-center">No open NCRs.</div>
         ) : (
           <div className="overflow-x-auto">
@@ -161,7 +233,7 @@ export function MaterialQC() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {ncrs.filter(n => n.ncr_status !== 'closed' && n.ncr_status !== 'cancelled').map(n => (
+                {d.openNcrList.map(n => (
                   <tr key={n.id} className={`hover:bg-gray-50 ${n.severity === 'critical' ? 'border-l-2 border-l-red-500' : ''}`}>
                     <td className="px-4 py-2.5 text-sm font-mono text-sky-700">{n.ncr_number}</td>
                     <td className="px-4 py-2.5"><Badge variant={severityVariant(n.severity)}>{n.severity}</Badge></td>

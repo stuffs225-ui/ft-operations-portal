@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ClipboardCheck, CheckCircle, XCircle, AlertTriangle, FileText } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { ClipboardCheck, CheckCircle, XCircle, AlertTriangle, FileText } from 'lucide-react';
+import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { useAuth } from '../hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_MATERIAL_QC_INSPECTIONS, MOCK_MATERIAL_NCRS } from '../data/mockQc';
-import type { MaterialQcInspection, InspectionStatus, MaterialInspectionResult, UserRole } from '../types';
-import { isSupabaseConfigured } from '../lib/supabase';
+import type { MaterialQcInspection, MaterialNcr, InspectionStatus, MaterialInspectionResult, UserRole } from '../types';
 import { recordQcAudit, recordQcEvent } from '../lib/qcAudit';
 
 const CAN_ACT: UserRole[] = ['admin', 'operations_manager', 'qc_user'];
@@ -42,15 +43,48 @@ export function MaterialQcInspectionDetail() {
   const { role, profile } = useAuth();
   const canAct = role ? CAN_ACT.includes(role) : false;
 
-  const base = MOCK_MATERIAL_QC_INSPECTIONS.find(i => i.id === id);
-  const [inspection, setInspection] = useState<MaterialQcInspection | undefined>(base);
+  const [inspection, setInspection] = useState<MaterialQcInspection | null>(null);
+  const [linkedNcrs, setLinkedNcrs] = useState<MaterialNcr[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
-  const [remarks, setRemarks] = useState(base?.remarks ?? '');
+  const [remarks, setRemarks] = useState('');
   const [devMessage, setDevMessage] = useState('');
 
-  const linkedNcrs = MOCK_MATERIAL_NCRS.filter(n => n.material_qc_inspection_id === id);
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        const found = MOCK_MATERIAL_QC_INSPECTIONS.find(i => i.id === id);
+        setInspection(found ? { ...found } : null);
+        setLinkedNcrs(MOCK_MATERIAL_NCRS.filter(n => n.material_qc_inspection_id === id));
+        setRemarks(found?.remarks ?? '');
+        if (!found) setNotFound(true);
+        setLoading(false);
+        return;
+      }
+      const [inspRes, ncrRes] = await Promise.all([
+        supabase.from('material_qc_inspections')
+          .select('*, project:projects(project_code, customer_name), item:store_receipt_items(item_name, item_code, material_category, quantity_received, unit)')
+          .eq('id', id!)
+          .single(),
+        supabase.from('material_ncrs')
+          .select('*')
+          .eq('material_qc_inspection_id', id!),
+      ]);
+      if (!inspRes.data) { setNotFound(true); }
+      else {
+        const insp = inspRes.data as unknown as MaterialQcInspection;
+        setInspection(insp);
+        setRemarks(insp.remarks ?? '');
+      }
+      setLinkedNcrs((ncrRes.data as unknown as MaterialNcr[]) ?? []);
+      setLoading(false);
+    })();
+  }, [id]);
 
-  if (!inspection) {
+  if (loading) return <PageLoader />;
+  if (notFound || !inspection) {
     return (
       <div className="text-center py-16 text-gray-500">
         Inspection not found.{' '}
@@ -71,12 +105,56 @@ export function MaterialQcInspectionDetail() {
     eventType: string,
     eventTitle: string,
   ) {
-    if (!isSupabaseConfigured) {
+    const currentInspection = inspection;
+    if (!currentInspection) return;
+    if (!isSupabaseConfigured || !supabase) {
       devUpdate({ inspection_status: status, inspection_result: result, inspected_at: new Date().toISOString() }, `Dev: ${eventTitle}`);
       return;
     }
-    await recordQcEvent(inspection!.project_id, eventType, eventTitle, null, profile?.id ?? null, profile?.full_name ?? null, null);
-    await recordQcAudit(eventType, id!, eventTitle, profile?.id ?? null);
+    setSaving(true);
+    const { error } = await supabase.from('material_qc_inspections').update({
+      inspection_status: status,
+      inspection_result: result,
+      inspected_at: new Date().toISOString(),
+      inspected_by: profile?.id ?? null,
+      remarks: remarks || null,
+    }).eq('id', id!);
+    if (error) { setSaving(false); return; }
+    void recordQcEvent(currentInspection.project_id, eventType, eventTitle, remarks || null, profile?.id ?? null, profile?.full_name ?? null, null);
+    void recordQcAudit(eventType, id!, eventTitle, profile?.id ?? null);
+    setSaving(false);
+    navigate('/material-qc/inspections');
+  }
+
+  async function handleReject() {
+    const currentInspection = inspection;
+    if (!currentInspection) return;
+    if (!rejectionReason.trim()) { alert('Rejection reason is required.'); return; }
+    if (!isSupabaseConfigured || !supabase) {
+      devUpdate({ inspection_status: 'completed', inspection_result: 'rejected', rejection_reason: rejectionReason, inspected_at: new Date().toISOString() }, 'Dev: Rejected — NCR created');
+      return;
+    }
+    setSaving(true);
+    const { error: updErr } = await supabase.from('material_qc_inspections').update({
+      inspection_status: 'completed',
+      inspection_result: 'rejected',
+      inspected_at: new Date().toISOString(),
+      inspected_by: profile?.id ?? null,
+      rejection_reason: rejectionReason,
+      remarks: remarks || null,
+    }).eq('id', id!);
+    if (updErr) { setSaving(false); return; }
+    await supabase.from('material_ncrs').insert({
+      material_qc_inspection_id: id!,
+      store_receipt_item_id: currentInspection.store_receipt_item_id,
+      project_id: currentInspection.project_id,
+      description: rejectionReason,
+      severity: 'medium',
+      created_by: profile?.id ?? null,
+    });
+    void recordQcEvent(currentInspection.project_id, 'material_qc_rejected', `${currentInspection.inspection_number} rejected — NCR created`, rejectionReason, profile?.id ?? null, profile?.full_name ?? null, null);
+    void recordQcAudit('material_qc_rejected', id!, `${currentInspection.inspection_number} rejected`, profile?.id ?? null);
+    setSaving(false);
     navigate('/material-qc/inspections');
   }
 
@@ -86,15 +164,11 @@ export function MaterialQcInspectionDetail() {
 
   return (
     <div className="space-y-5 max-w-3xl">
-      <div className="flex items-center gap-2">
-        <Link to="/material-qc/inspections" className="text-gray-400 hover:text-gray-600">
-          <ArrowLeft size={18} />
-        </Link>
-        <PageHeader
-          title={inspection.inspection_number}
-          subtitle={`Material QC Inspection — ${inspection.item?.item_name ?? 'Unknown item'}`}
-        />
-      </div>
+      <PageHeader
+        title={inspection.inspection_number}
+        subtitle={`Material QC Inspection — ${inspection.item?.item_name ?? 'Unknown item'}`}
+        breadcrumb={[{ label: 'Material QC', href: '/material-qc' }, { label: 'Inspections', href: '/material-qc/inspections' }, { label: inspection.inspection_number }]}
+      />
 
       {devMessage && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-3 text-sm text-green-700">
@@ -161,7 +235,7 @@ export function MaterialQcInspectionDetail() {
           <h3 className="text-sm font-semibold text-gray-700 mb-4">QC Actions</h3>
           <div className="space-y-4">
             {isPending && (
-              <Button variant="secondary" size="sm" onClick={() => handleAction('in_progress', 'pending', 'material_qc_started', `QC started for ${inspection.inspection_number}`)}>
+              <Button variant="secondary" size="sm" disabled={saving} onClick={() => handleAction('in_progress', 'pending', 'material_qc_started', `QC started for ${inspection.inspection_number}`)}>
                 <ClipboardCheck size={14} className="mr-1" /> Start Inspection
               </Button>
             )}
@@ -174,13 +248,13 @@ export function MaterialQcInspectionDetail() {
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="primary" size="sm" onClick={() => handleAction('completed', 'accepted', 'material_qc_accepted', `${inspection.inspection_number} accepted`)}>
+                  <Button variant="primary" size="sm" disabled={saving} onClick={() => handleAction('completed', 'accepted', 'material_qc_accepted', `${inspection.inspection_number} accepted`)}>
                     <CheckCircle size={14} className="mr-1" /> Accept
                   </Button>
-                  <Button variant="secondary" size="sm" onClick={() => handleAction('completed', 'accepted_with_comments', 'material_qc_accepted', `${inspection.inspection_number} accepted with comments`)}>
+                  <Button variant="secondary" size="sm" disabled={saving} onClick={() => handleAction('completed', 'accepted_with_comments', 'material_qc_accepted', `${inspection.inspection_number} accepted with comments`)}>
                     Accept with Comments
                   </Button>
-                  <Button variant="secondary" size="sm" onClick={() => handleAction('completed', 'pending_supplier_clarification', 'material_qc_started', `${inspection.inspection_number} pending supplier clarification`)}>
+                  <Button variant="secondary" size="sm" disabled={saving} onClick={() => handleAction('completed', 'pending_supplier_clarification', 'material_qc_started', `${inspection.inspection_number} pending supplier clarification`)}>
                     Pending Supplier Clarification
                   </Button>
                 </div>
@@ -193,14 +267,9 @@ export function MaterialQcInspectionDetail() {
                   <Button
                     variant="secondary"
                     size="sm"
+                    disabled={saving}
                     className="mt-2 border-red-200 text-red-700 hover:bg-red-50"
-                    onClick={() => {
-                      if (!rejectionReason.trim()) {
-                        alert('Rejection reason is required.');
-                        return;
-                      }
-                      handleAction('completed', 'rejected', 'material_qc_rejected', `${inspection.inspection_number} rejected — NCR created`);
-                    }}
+                    onClick={handleReject}
                   >
                     <XCircle size={14} className="mr-1" /> Reject &amp; Create NCR
                   </Button>

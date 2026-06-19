@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FileCheck, ChevronRight, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { useAuth } from '../hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { mockOrEmpty } from '../lib/dataMode';
 import { MOCK_RELEASE_NOTES } from '../data/mockQc';
-import type { ReleaseStatus, UserRole } from '../types';
+import type { ReleaseNote, ReleaseStatus, UserRole } from '../types';
 
 const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'qc_user'];
 
@@ -44,9 +46,27 @@ function formatDate(iso: string) {
 export function ProjectQcReleaseNotes() {
   const { role } = useAuth();
   const canCreate = role ? CAN_CREATE.includes(role) : false;
+  const [items, setItems] = useState<ReleaseNote[]>([]);
+  const [loading, setLoading] = useState(true);
   const [statusTab, setStatusTab] = useState<StatusTab>('all');
 
-  const filtered = mockOrEmpty(MOCK_RELEASE_NOTES).filter(r => {
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setItems(mockOrEmpty(MOCK_RELEASE_NOTES));
+        setLoading(false);
+        return;
+      }
+      const { data } = await supabase
+        .from('release_notes')
+        .select('*, project:projects(project_code, customer_name, manufacturing_location), vehicle_line:project_vehicle_lines(vehicle_type, description)')
+        .order('created_at', { ascending: false });
+      setItems((data as unknown as ReleaseNote[]) ?? []);
+      setLoading(false);
+    })();
+  }, []);
+
+  const filtered = items.filter(r => {
     if (statusTab !== 'all' && r.release_status !== statusTab) return false;
     return true;
   });
@@ -56,6 +76,7 @@ export function ProjectQcReleaseNotes() {
       <PageHeader
         title="Release Notes"
         subtitle="Issue Release Notes for projects and vehicle lines ready for customer delivery"
+        breadcrumb={[{ label: 'Project QC', href: '/project-qc' }, { label: 'Release Notes' }]}
         actions={
           canCreate ? (
             <Link to="/project-qc/release-notes/new">
@@ -65,7 +86,7 @@ export function ProjectQcReleaseNotes() {
         }
       />
 
-      <DataSourceBadge variant="preview" />
+      <DataSourceBadge variant="auto" />
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div className="flex items-center gap-1 px-4 pt-3 overflow-x-auto border-b border-gray-100">
@@ -79,7 +100,9 @@ export function ProjectQcReleaseNotes() {
           ))}
         </div>
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="px-5 py-10"><PageLoader /></div>
+        ) : filtered.length === 0 ? (
           <div className="px-5 py-10">
             <EmptyState icon={<FileCheck size={24} className="text-gray-400" />} title="No release notes" description="No release notes match the current filter." />
           </div>

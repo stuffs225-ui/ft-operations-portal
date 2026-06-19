@@ -1,17 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, ClipboardCheck, CheckCircle, XCircle, Wrench, AlertTriangle, Plus, FileText } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { ClipboardCheck, CheckCircle, XCircle, Wrench, AlertTriangle, Plus, FileText } from 'lucide-react';
+import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { useAuth } from '../hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_PROJECT_QC_INSPECTIONS, MOCK_PROJECT_QC_FINDINGS } from '../data/mockQc';
 import type {
   ProjectQcInspection, InspectionStatus, ProjectQcResult,
   ProjectQcFinding, FindingType, NcrSeverity, UserRole,
 } from '../types';
-import { isSupabaseConfigured } from '../lib/supabase';
 import { recordQcEvent, recordQcAudit } from '../lib/qcAudit';
 
 const CAN_ACT: UserRole[] = ['admin', 'operations_manager', 'qc_user'];
@@ -43,13 +44,13 @@ export function ProjectQcInspectionDetail() {
   const { role, profile } = useAuth();
   const canAct = role ? CAN_ACT.includes(role) : false;
 
-  const base = MOCK_PROJECT_QC_INSPECTIONS.find(i => i.id === id);
-  const [inspection, setInspection] = useState<ProjectQcInspection | undefined>(base);
-  const [findings, setFindings] = useState<ProjectQcFinding[]>(
-    MOCK_PROJECT_QC_FINDINGS.filter(f => f.project_qc_inspection_id === id)
-  );
+  const [inspection, setInspection] = useState<ProjectQcInspection | null>(null);
+  const [findings, setFindings] = useState<ProjectQcFinding[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [devMessage, setDevMessage] = useState('');
-  const [remarks, setRemarks] = useState(base?.remarks ?? '');
+  const [remarks, setRemarks] = useState('');
 
   // New finding form
   const [showFindingForm, setShowFindingForm] = useState(false);
@@ -59,7 +60,39 @@ export function ProjectQcInspectionDetail() {
   const [newAction, setNewAction] = useState('');
   const [newRework, setNewRework] = useState(false);
 
-  if (!inspection) {
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        const found = MOCK_PROJECT_QC_INSPECTIONS.find(i => i.id === id);
+        setInspection(found ? { ...found } : null);
+        setFindings(MOCK_PROJECT_QC_FINDINGS.filter(f => f.project_qc_inspection_id === id));
+        setRemarks(found?.remarks ?? '');
+        if (!found) setNotFound(true);
+        setLoading(false);
+        return;
+      }
+      const [inspRes, findRes] = await Promise.all([
+        supabase.from('project_qc_inspections')
+          .select('*, project:projects(project_code, customer_name, manufacturing_location), vehicle_line:project_vehicle_lines(vehicle_type, description, quantity)')
+          .eq('id', id!)
+          .single(),
+        supabase.from('project_qc_findings')
+          .select('*, project:projects(project_code), vehicle_line:project_vehicle_lines(vehicle_type)')
+          .eq('project_qc_inspection_id', id!),
+      ]);
+      if (!inspRes.data) { setNotFound(true); }
+      else {
+        const insp = inspRes.data as unknown as ProjectQcInspection;
+        setInspection(insp);
+        setRemarks(insp.remarks ?? '');
+      }
+      setFindings((findRes.data as unknown as ProjectQcFinding[]) ?? []);
+      setLoading(false);
+    })();
+  }, [id]);
+
+  if (loading) return <PageLoader />;
+  if (notFound || !inspection) {
     return (
       <div className="text-center py-16 text-gray-500">
         Inspection not found.{' '}
@@ -76,38 +109,86 @@ export function ProjectQcInspectionDetail() {
 
   async function handleResult(status: InspectionStatus, result: ProjectQcResult, eventType: string, title: string) {
     if (!inspection) return;
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseConfigured || !supabase) {
       devUpdate({ inspection_status: status, inspection_result: result, inspected_at: new Date().toISOString() }, `Dev: ${title}`);
       return;
     }
-    await recordQcEvent(inspection.project_id, eventType, title, remarks || null, profile?.id ?? null, profile?.full_name ?? null, null);
-    await recordQcAudit(eventType, id!, title, profile?.id ?? null);
+    setSaving(true);
+    const { error } = await supabase.from('project_qc_inspections').update({
+      inspection_status: status,
+      inspection_result: result,
+      inspected_at: new Date().toISOString(),
+      inspected_by: profile?.id ?? null,
+      remarks: remarks || null,
+    }).eq('id', id!);
+    if (!error) {
+      setInspection(prev => prev ? { ...prev, inspection_status: status, inspection_result: result, inspected_at: new Date().toISOString(), remarks: remarks || null } : prev);
+      void recordQcEvent(inspection.project_id, eventType, title, remarks || null, profile?.id ?? null, profile?.full_name ?? null, null);
+      void recordQcAudit(eventType, id!, title, profile?.id ?? null);
+    }
+    setSaving(false);
   }
 
-  function addFinding() {
+  async function handleMarkReady() {
+    if (!inspection || !isSupabaseConfigured || !supabase) {
+      devUpdate({ readiness_status: 'ready_for_release' }, 'Dev: Marked ready for release');
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from('project_qc_inspections').update({ readiness_status: 'ready_for_release' }).eq('id', id!);
+    if (!error) {
+      setInspection(prev => prev ? { ...prev, readiness_status: 'ready_for_release' } : prev);
+      void recordQcEvent(inspection.project_id, 'inspection_ready_for_release', `${inspection.inspection_number} ready for release`, null, profile?.id ?? null, profile?.full_name ?? null, null);
+      void recordQcAudit('inspection_ready_for_release', id!, `${inspection.inspection_number} ready for release`, profile?.id ?? null);
+    }
+    setSaving(false);
+  }
+
+  async function addFinding() {
     if (!inspection) return;
     if (!newDesc.trim() || !newAction.trim()) return;
-    const finding: ProjectQcFinding = {
-      id: `fnd-new-${Date.now()}`,
+    if (!isSupabaseConfigured || !supabase) {
+      const finding: ProjectQcFinding = {
+        id: `fnd-new-${Date.now()}`,
+        project_qc_inspection_id: id!,
+        project_id: inspection.project_id,
+        project_vehicle_line_id: inspection.project_vehicle_line_id,
+        finding_number: `FND-2025-${String(findings.length + 10).padStart(4, '0')}`,
+        finding_type: newFindingType,
+        severity: newSeverity,
+        description: newDesc,
+        required_action: newAction,
+        owner_role: null, owner_id: null, due_date: null,
+        finding_status: 'open',
+        rework_required: newRework,
+        rework_completed_by: null, rework_completed_at: null,
+        closure_notes: null, closed_by: null, closed_at: null,
+        created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      };
+      setFindings(prev => [...prev, finding]);
+      setNewDesc(''); setNewAction(''); setNewRework(false); setShowFindingForm(false);
+      setDevMessage('Dev: Finding added (not persisted)');
+      setTimeout(() => setDevMessage(''), 2000);
+      return;
+    }
+    setSaving(true);
+    const { data, error } = await supabase.from('project_qc_findings').insert({
       project_qc_inspection_id: id!,
       project_id: inspection.project_id,
       project_vehicle_line_id: inspection.project_vehicle_line_id,
-      finding_number: `FND-2025-${String(findings.length + 10).padStart(4, '0')}`,
       finding_type: newFindingType,
       severity: newSeverity,
       description: newDesc,
       required_action: newAction,
-      owner_role: null, owner_id: null, due_date: null,
-      finding_status: 'open',
       rework_required: newRework,
-      rework_completed_by: null, rework_completed_at: null,
-      closure_notes: null, closed_by: null, closed_at: null,
-      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-    };
-    setFindings(prev => [...prev, finding]);
+      finding_status: 'open',
+    }).select().single();
+    if (!error && data) {
+      setFindings(prev => [...prev, data as unknown as ProjectQcFinding]);
+      void recordQcAudit('finding_added', (data as { id: string }).id, `Finding added to ${inspection.inspection_number}`, profile?.id ?? null);
+    }
     setNewDesc(''); setNewAction(''); setNewRework(false); setShowFindingForm(false);
-    setDevMessage('Dev: Finding added (not persisted)');
-    setTimeout(() => setDevMessage(''), 2000);
+    setSaving(false);
   }
 
   const openFindings = findings.filter(f => f.finding_status !== 'closed' && f.finding_status !== 'cancelled');
@@ -118,15 +199,11 @@ export function ProjectQcInspectionDetail() {
 
   return (
     <div className="space-y-5 max-w-3xl">
-      <div className="flex items-center gap-2">
-        <Link to="/project-qc/inspections" className="text-gray-400 hover:text-gray-600">
-          <ArrowLeft size={18} />
-        </Link>
-        <PageHeader
-          title={inspection.inspection_number}
-          subtitle={`Project QC — ${inspection.project?.project_code ?? 'Unknown project'}`}
-        />
-      </div>
+      <PageHeader
+        title={inspection.inspection_number}
+        subtitle={`Project QC — ${inspection.project?.project_code ?? 'Unknown project'}`}
+        breadcrumb={[{ label: 'Project QC', href: '/project-qc' }, { label: 'Inspections', href: '/project-qc/inspections' }, { label: inspection.inspection_number }]}
+      />
 
       {devMessage && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-3 text-sm text-green-700">{devMessage}</div>
@@ -180,7 +257,7 @@ export function ProjectQcInspectionDetail() {
           <h3 className="text-sm font-semibold text-gray-700 mb-4">QC Actions</h3>
           <div className="space-y-4">
             {isPending && (
-              <Button variant="secondary" size="sm" onClick={() => handleResult('in_progress', 'pending', 'project_qc_started', `QC started for ${inspection.inspection_number}`)}>
+              <Button variant="secondary" size="sm" disabled={saving} onClick={() => handleResult('in_progress', 'pending', 'project_qc_started', `QC started for ${inspection.inspection_number}`)}>
                 <ClipboardCheck size={14} className="mr-1" /> Start Inspection
               </Button>
             )}
@@ -193,22 +270,22 @@ export function ProjectQcInspectionDetail() {
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="primary" size="sm" onClick={() => handleResult('completed', 'passed', 'project_qc_passed', `${inspection.inspection_number} passed`)}>
+                  <Button variant="primary" size="sm" disabled={saving} onClick={() => handleResult('completed', 'passed', 'project_qc_passed', `${inspection.inspection_number} passed`)}>
                     <CheckCircle size={14} className="mr-1" /> Pass
                   </Button>
-                  <Button variant="secondary" size="sm" onClick={() => handleResult('completed', 'passed_with_comments', 'project_qc_passed', `${inspection.inspection_number} passed with comments`)}>
+                  <Button variant="secondary" size="sm" disabled={saving} onClick={() => handleResult('completed', 'passed_with_comments', 'project_qc_passed', `${inspection.inspection_number} passed with comments`)}>
                     Pass with Comments
                   </Button>
-                  <Button variant="secondary" size="sm" onClick={() => { setShowFindingForm(true); handleResult('in_progress', 'rework_required', 'rework_required', `Rework required for ${inspection.inspection_number}`); }}>
+                  <Button variant="secondary" size="sm" disabled={saving} onClick={() => { setShowFindingForm(true); handleResult('in_progress', 'rework_required', 'rework_required', `Rework required for ${inspection.inspection_number}`); }}>
                     <Wrench size={14} className="mr-1" /> Rework Required
                   </Button>
-                  <Button variant="secondary" size="sm" className="border-red-200 text-red-700" onClick={() => { setShowFindingForm(true); handleResult('in_progress', 'failed', 'project_qc_failed', `${inspection.inspection_number} failed`); }}>
+                  <Button variant="secondary" size="sm" disabled={saving} className="border-red-200 text-red-700" onClick={() => { setShowFindingForm(true); handleResult('in_progress', 'failed', 'project_qc_failed', `${inspection.inspection_number} failed`); }}>
                     <XCircle size={14} className="mr-1" /> Fail
                   </Button>
                 </div>
 
-                {allFindingsClosed && (
-                  <Button variant="primary" size="sm" onClick={() => devUpdate({ readiness_status: 'ready_for_release' }, 'Dev: Marked ready for release')}>
+                {allFindingsClosed && inspection.readiness_status !== 'ready_for_release' && (
+                  <Button variant="primary" size="sm" disabled={saving} onClick={handleMarkReady}>
                     <CheckCircle size={14} className="mr-1" /> Mark Ready for Release
                   </Button>
                 )}
@@ -266,7 +343,7 @@ export function ProjectQcInspectionDetail() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="primary" size="sm" onClick={addFinding}>Add Finding</Button>
+              <Button variant="primary" size="sm" disabled={saving} onClick={addFinding}>Add Finding</Button>
               <Button variant="ghost" size="sm" onClick={() => setShowFindingForm(false)}>Cancel</Button>
             </div>
           </div>
