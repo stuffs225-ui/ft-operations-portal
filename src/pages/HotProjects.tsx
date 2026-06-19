@@ -7,7 +7,11 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PageLoader } from '../components/ui/PageLoader';
+import { ReportExportBar } from '../components/features/ReportExportBar';
+import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { exportRowsToCsv } from '../lib/reportExport';
+import type { ReportColumn } from '../lib/reportExport';
 import type { HotProject, HotProjectStage } from '../types';
 
 function formatSAR(v: number | null) {
@@ -34,25 +38,41 @@ const STAGE_CONFIG: Record<HotProjectStage, { label: string; variant: 'neutral' 
 const OPEN_STAGES: HotProjectStage[] = ['lead', 'qualified', 'proposal_required', 'quotation_requested', 'negotiation'];
 
 export function HotProjects() {
+  const { role, profile } = useAuth();
   const [records, setRecords] = useState<HotProject[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState<HotProjectStage | 'all'>('all');
 
+  const isBroadView = role === 'admin' || role === 'operations_manager';
+  const reportDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     setLoading(true);
-    supabase!
-      .from('hot_projects')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .then(({ data, error: err }) => {
-        if (err) setError(err.message);
-        else setRecords((data ?? []) as HotProject[]);
-        setLoading(false);
-      });
-  }, []);
+    const uid = profile?.id;
+    const query = supabase!.from('hot_projects').select('*').order('created_at', { ascending: false });
+    const scoped = (!isBroadView && uid) ? query.eq('sales_owner_id', uid) : query;
+    scoped.then(({ data, error: err }) => {
+      if (err) setError(err.message);
+      else setRecords((data ?? []) as HotProject[]);
+      setLoading(false);
+    });
+  }, [isBroadView, profile?.id]);
+
+  function handleExportCsv() {
+    const columns: ReportColumn<HotProject>[] = [
+      { key: 'hot_project_code', header: 'Code', value: r => r.hot_project_code },
+      { key: 'title', header: 'Title', value: r => r.title },
+      { key: 'customer_name', header: 'Customer', value: r => r.customer_name },
+      { key: 'stage', header: 'Stage', value: r => STAGE_CONFIG[r.stage]?.label ?? r.stage },
+      { key: 'probability', header: 'Probability (%)', value: r => r.probability },
+      { key: 'estimated_value', header: 'Estimated Value (SAR)', value: r => r.estimated_value },
+      { key: 'expected_close_date', header: 'Expected Close Date', value: r => r.expected_close_date },
+    ];
+    exportRowsToCsv(`hot-projects-${new Date().toISOString().split('T')[0]}.csv`, records, columns);
+  }
 
   const filtered = records.filter((r) => {
     const q = search.toLowerCase();
@@ -82,8 +102,16 @@ export function HotProjects() {
         }
       />
 
+      <ReportExportBar
+        reportKey="hot_projects_report"
+        reportTitle="Hot Projects Report"
+        department="Sales"
+        onExportCsv={handleExportCsv}
+        summary={`${records.length} opportunit${records.length !== 1 ? 'ies' : 'y'} · weighted pipeline SAR ${openRecords.reduce((s, r) => s + ((r.estimated_value ?? 0) * r.probability) / 100, 0).toLocaleString('en-SA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+      />
+
       {/* KPI strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 no-print">
         <Card className="p-4">
           <div className="text-xs text-gray-500 mb-1">Open Opportunities</div>
           <div className="text-2xl font-bold text-gray-900">{openRecords.length}</div>
@@ -103,7 +131,7 @@ export function HotProjects() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center">
+      <div className="flex flex-wrap gap-3 items-center no-print">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
@@ -125,70 +153,82 @@ export function HotProjects() {
         </select>
       </div>
 
-      {/* Table / states */}
-      {!isSupabaseConfigured ? (
-        <EmptyState
-          icon={<AlertCircle size={32} className="text-amber-400" />}
-          title="No live data source"
-          description="Connect Supabase to view hot projects."
-        />
-      ) : loading ? (
-        <PageLoader />
-      ) : error ? (
-        <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
-          <span>{error}</span>
+      {/* Table / states — wrapped in report-print-root so print targets only this section */}
+      <div className="report-print-root">
+        {/* Print-only header */}
+        <div className="hidden print:block mb-6 pb-4 border-b-2 border-gray-800">
+          <h1 className="text-2xl font-bold text-gray-900">Hot Projects Report — {new Date().getFullYear()}</h1>
+          <p className="text-sm text-gray-700 mt-1">Salesperson: {profile?.full_name ?? '—'}</p>
+          <p className="text-sm text-gray-700">Generated: {reportDate}</p>
+          <p className="text-sm text-gray-700 mt-1">
+            Open: {openRecords.length} · Weighted Pipeline: {formatSAR(weightedPipeline)}
+          </p>
         </div>
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          icon={<Flame size={32} className="text-gray-300" />}
-          title="No opportunities found"
-          description={search || stageFilter !== 'all' ? 'Try adjusting your filters.' : 'Create your first hot project to track the pipeline.'}
-          action={
-            <Link to="/hot-projects/new">
-              <Button icon={<Plus size={14} />} size="sm">New Opportunity</Button>
-            </Link>
-          }
-        />
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">Code</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">Title</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">Customer</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">Stage</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-500 text-xs">Probability</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-500 text-xs">Est. Value</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">Close Date</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filtered.map((hp) => {
-                const stageCfg = STAGE_CONFIG[hp.stage] ?? { label: hp.stage, variant: 'neutral' as const };
-                return (
-                  <tr key={hp.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-mono text-xs text-gray-500">{hp.hot_project_code}</td>
-                    <td className="px-4 py-3">
-                      <Link to={`/hot-projects/${hp.id}`} className="font-medium text-gray-900 hover:text-brand-600">
-                        {hp.title}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{hp.customer_name}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant={stageCfg.variant} size="sm">{stageCfg.label}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-right text-gray-700">{hp.probability}%</td>
-                    <td className="px-4 py-3 text-right font-medium text-gray-800">{formatSAR(hp.estimated_value)}</td>
-                    <td className="px-4 py-3 text-gray-500">{formatDate(hp.expected_close_date)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+        {!isSupabaseConfigured ? (
+          <EmptyState
+            icon={<AlertCircle size={32} className="text-amber-400" />}
+            title="No live data source"
+            description="Connect Supabase to view hot projects."
+          />
+        ) : loading ? (
+          <PageLoader />
+        ) : error ? (
+          <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
+            <span>{error}</span>
+          </div>
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon={<Flame size={32} className="text-gray-300" />}
+            title="No opportunities found"
+            description={search || stageFilter !== 'all' ? 'Try adjusting your filters.' : 'Create your first hot project to track the pipeline.'}
+            action={
+              <Link to="/hot-projects/new">
+                <Button icon={<Plus size={14} />} size="sm">New Opportunity</Button>
+              </Link>
+            }
+          />
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-100">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">Code</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">Title</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">Customer</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">Stage</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 text-xs">Probability</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 text-xs">Est. Value</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">Close Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filtered.map((hp) => {
+                  const stageCfg = STAGE_CONFIG[hp.stage] ?? { label: hp.stage, variant: 'neutral' as const };
+                  return (
+                    <tr key={hp.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 font-mono text-xs text-gray-500">{hp.hot_project_code}</td>
+                      <td className="px-4 py-3">
+                        <Link to={`/hot-projects/${hp.id}`} className="font-medium text-gray-900 hover:text-brand-600 no-print">
+                          {hp.title}
+                        </Link>
+                        <span className="hidden print:inline font-medium text-gray-900">{hp.title}</span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">{hp.customer_name}</td>
+                      <td className="px-4 py-3">
+                        <Badge variant={stageCfg.variant} size="sm">{stageCfg.label}</Badge>
+                      </td>
+                      <td className="px-4 py-3 text-right text-gray-700">{hp.probability}%</td>
+                      <td className="px-4 py-3 text-right font-medium text-gray-800">{formatSAR(hp.estimated_value)}</td>
+                      <td className="px-4 py-3 text-gray-500">{formatDate(hp.expected_close_date)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
