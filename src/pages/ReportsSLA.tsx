@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_SLA_RULES as MOCK_SLA_RULES_RAW, MOCK_SLA_EVENTS as MOCK_SLA_EVENTS_RAW, getOpenSlaBreaches as getOpenSlaBreachesRaw } from '../data/mockReports';
 import { mockOrEmpty, isLiveMode } from '../lib/dataMode';
 
@@ -51,6 +52,14 @@ function entityPath(entityType: string, entityId: string): string {
 
 export function ReportsSLA() {
   const [activeTab, setActiveTab] = useState<Tab>('Open Breaches');
+  const [liveRules, setLiveRules] = useState<Array<{ id: string; rule_name: string; module_name: string; duration_hours: number; severity: string; applies_to_roles: string[] }> | null>(null);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+    supabase!.from('sla_rules').select('id, rule_name, module_name, duration_hours, severity, applies_to_roles').then(({ data }) => {
+      if (data) setLiveRules(data as typeof liveRules);
+    });
+  }, []);
 
   const openBreaches = getOpenSlaBreaches();
   const escalatedCount = MOCK_SLA_EVENTS.filter(e => e.status === 'escalated').length;
@@ -87,6 +96,7 @@ export function ReportsSLA() {
       <PageHeader
         title="SLA & Escalations"
         subtitle="Service level rules, open breaches, and escalation tracking"
+        actions={<DataSourceBadge variant="auto" />}
       />
 
       <ReportExportBar
@@ -94,12 +104,6 @@ export function ReportsSLA() {
         reportTitle="SLA & Escalations"
         onExportCsv={handleExportCsv}
       />
-
-      {!isSupabaseConfigured && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
-          Dev mode — showing mock SLA event data.
-        </div>
-      )}
 
       {/* Summary strip */}
       <div className="grid grid-cols-3 gap-4">
@@ -257,17 +261,20 @@ export function ReportsSLA() {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_SLA_RULES.map(r => (
+                {(liveRules ?? MOCK_SLA_RULES).map(r => (
                   <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 font-medium text-gray-900">{r.rule_name}</td>
                     <td className="px-4 py-3 text-gray-600">{r.module_name}</td>
                     <td className="px-4 py-3 text-gray-700">{formatDuration(r.duration_hours)}</td>
                     <td className="px-4 py-3">
-                      <Badge variant={getSlaSeverityBadge(r.severity)}>{r.severity}</Badge>
+                      <Badge variant={getSlaSeverityBadge(r.severity as Parameters<typeof getSlaSeverityBadge>[0])}>{r.severity}</Badge>
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{r.applies_to_roles.join(', ')}</td>
+                    <td className="px-4 py-3 text-gray-600">{Array.isArray(r.applies_to_roles) ? r.applies_to_roles.join(', ') : r.applies_to_roles}</td>
                   </tr>
                 ))}
+                {(liveRules ?? MOCK_SLA_RULES).length === 0 && (
+                  <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">No SLA rules defined.</td></tr>
+                )}
               </tbody>
             </table>
           </div>

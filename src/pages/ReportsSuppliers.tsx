@@ -3,9 +3,9 @@ import { useAuth } from '../hooks/useAuth';
 import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
-import { isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_SUPPLIER_SCORECARDS as MOCK_SUPPLIER_SCORECARDS_RAW } from '../data/mockReports';
 import { mockOrEmpty } from '../lib/dataMode';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';;
 const MOCK_SUPPLIER_SCORECARDS = mockOrEmpty(MOCK_SUPPLIER_SCORECARDS_RAW);
 import type { SupplierScorecard, ScoreBand } from '../types';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -51,13 +51,8 @@ export function ReportsSuppliers() {
         title="Supplier Reports"
         subtitle="Scorecard, delivery performance, and NCR summary"
         breadcrumb={[{ label: 'Reports' }, { label: 'Suppliers' }]}
+        actions={<DataSourceBadge variant="preview" />}
       />
-
-      {!isSupabaseConfigured && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
-          Dev mode — showing mock supplier scorecard data.
-        </div>
-      )}
 
       {/* How scores are calculated */}
       <Card padding="sm">

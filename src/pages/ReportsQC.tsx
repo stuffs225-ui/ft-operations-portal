@@ -1,9 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ShieldCheck, AlertOctagon, Search, Wrench, FileCheck } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
+import { ReportExportBar } from '../components/features/ReportExportBar';
+import { exportRowsToCsv } from '../lib/reportExport';
+import type { ReportColumn } from '../lib/reportExport';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import {
   MOCK_MATERIAL_QC_INSPECTIONS as MOCK_MATERIAL_QC_INSPECTIONS_RAW,
   MOCK_MATERIAL_NCRS as MOCK_MATERIAL_NCRS_RAW,
@@ -18,6 +22,9 @@ const MOCK_MATERIAL_NCRS = mockOrEmpty(MOCK_MATERIAL_NCRS_RAW);
 const MOCK_PROJECT_QC_INSPECTIONS = mockOrEmpty(MOCK_PROJECT_QC_INSPECTIONS_RAW);
 const MOCK_PROJECT_QC_FINDINGS = mockOrEmpty(MOCK_PROJECT_QC_FINDINGS_RAW);
 const MOCK_RELEASE_NOTES = mockOrEmpty(MOCK_RELEASE_NOTES_RAW);
+
+interface QCSummary { openNcrs: number; openFindings: number; rnPending: number; rnIssued: number; }
+const EMPTY_SUMMARY: QCSummary = { openNcrs: 0, openFindings: 0, rnPending: 0, rnIssued: 0 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -95,11 +102,50 @@ type Tab = typeof TABS[number];
 
 export function ReportsQC() {
   const [activeTab, setActiveTab] = useState<Tab>('Material QC');
+  const [summary, setSummary] = useState<QCSummary>(EMPTY_SUMMARY);
+
+  useEffect(() => {
+    (async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      setSummary({
+        openNcrs: MOCK_MATERIAL_NCRS.filter(n => n.ncr_status === 'open').length,
+        openFindings: MOCK_PROJECT_QC_FINDINGS.filter(f => f.finding_status !== 'closed').length,
+        rnPending: MOCK_RELEASE_NOTES.filter(r => r.release_status === 'draft' || r.release_status === 'blocked' || r.release_status === 'ready_to_issue').length,
+        rnIssued: MOCK_RELEASE_NOTES.filter(r => r.release_status === 'issued').length,
+      });
+      return;
+    }
+      const [ncrRes, findingsRes, rnPendingRes, rnIssuedRes] = await Promise.all([
+        supabase!.from('material_ncrs').select('*', { count: 'exact', head: true }).in('ncr_status', ['open', 'assigned', 'corrective_action_in_progress', 'pending_evidence']),
+        supabase!.from('project_qc_findings').select('*', { count: 'exact', head: true }).in('finding_status', ['open', 'assigned', 'rework_in_progress', 'pending_reinspection']),
+        supabase!.from('release_notes').select('*', { count: 'exact', head: true }).in('release_status', ['draft', 'blocked', 'ready_to_issue']),
+        supabase!.from('release_notes').select('*', { count: 'exact', head: true }).eq('release_status', 'issued'),
+      ]);
+      setSummary({
+        openNcrs: ncrRes.count ?? 0,
+        openFindings: findingsRes.count ?? 0,
+        rnPending: rnPendingRes.count ?? 0,
+        rnIssued: rnIssuedRes.count ?? 0,
+      });
+    })();
+  }, []);
 
   const openNcrs = MOCK_MATERIAL_NCRS.filter((n) => n.ncr_status === 'open');
   const openFindings = MOCK_PROJECT_QC_FINDINGS.filter(
     (f) => f.finding_status !== 'closed',
   );
+
+  function handleExportCsv() {
+    type NcrRow = typeof MOCK_MATERIAL_NCRS[number];
+    const columns: ReportColumn<NcrRow>[] = [
+      { key: 'ncr_number', header: 'NCR #', value: n => n.ncr_number },
+      { key: 'severity', header: 'Severity', value: n => n.severity },
+      { key: 'ncr_status', header: 'Status', value: n => n.ncr_status },
+      { key: 'root_cause_category', header: 'Root Cause', value: n => n.root_cause_category ?? '' },
+      { key: 'due_date', header: 'Due Date', value: n => n.due_date ?? '' },
+    ];
+    exportRowsToCsv(`qc-ncrs-${new Date().toISOString().split('T')[0]}.csv`, MOCK_MATERIAL_NCRS, columns);
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -107,13 +153,31 @@ export function ReportsQC() {
         title="QC Reports"
         subtitle="Material inspections, NCRs, project QC findings, and release note readiness"
         breadcrumb={[{ label: 'Reports', href: '/reports' }, { label: 'QC' }]}
+        actions={<DataSourceBadge variant="auto" />}
       />
 
-      {!isSupabaseConfigured && (
-        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-2 text-xs text-amber-700">
-          Dev mode — showing mock data
-        </div>
-      )}
+      <ReportExportBar
+        reportKey="qc_ncrs"
+        reportTitle="QC NCR Report"
+        department="QC"
+        onExportCsv={handleExportCsv}
+        summary={`${summary.openNcrs} open NCR${summary.openNcrs !== 1 ? 's' : ''} · ${summary.openFindings} open finding${summary.openFindings !== 1 ? 's' : ''} · ${summary.rnIssued} release note${summary.rnIssued !== 1 ? 's' : ''} issued`}
+      />
+
+      {/* Summary strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          { label: 'Open NCRs', value: summary.openNcrs, accent: summary.openNcrs > 0 ? 'border-red-400' : 'border-gray-200' },
+          { label: 'Open Findings', value: summary.openFindings, accent: summary.openFindings > 0 ? 'border-amber-400' : 'border-gray-200' },
+          { label: 'Release Notes Pending', value: summary.rnPending, accent: summary.rnPending > 0 ? 'border-amber-400' : 'border-gray-200' },
+          { label: 'Release Notes Issued', value: summary.rnIssued, accent: 'border-green-400' },
+        ].map(card => (
+          <Card key={card.label} className={`border-l-4 ${card.accent}`} padding="sm">
+            <div className="text-2xl font-bold text-gray-900">{card.value}</div>
+            <div className="text-xs text-gray-500 mt-1">{card.label}</div>
+          </Card>
+        ))}
+      </div>
 
       {/* Tab bar */}
       <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">

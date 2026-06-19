@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   AlertTriangle, AlertCircle, ShoppingCart, PackageCheck, Truck,
@@ -13,7 +14,8 @@ import { PageHeader } from '@/components/common/page-header';
 import { SectionHeader } from '@/components/common/section-header';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { DASHBOARD_KPI_CARDS, AFS_KPI_CARDS, PROJECT_SUMMARY } from '../data/mockDashboard';
-import { mockOrEmpty, mockOrValue, isLiveMode } from '../lib/dataMode';
+import { mockOrEmpty, isLiveMode } from '../lib/dataMode';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import type { KpiCard, UserRole } from '../types';
 import { cn } from '../lib/utils';
@@ -253,7 +255,58 @@ function ModuleTileLink({ tile }: { tile: ModuleTile }) {
 export function Dashboard() {
   const { role } = useAuth();
 
-  const summary = mockOrValue(PROJECT_SUMMARY, EMPTY_SUMMARY);
+  // Project summary strip — live queries when Supabase is configured
+  const [summary, setSummary] = useState<typeof PROJECT_SUMMARY>(EMPTY_SUMMARY);
+
+  useEffect(() => {
+    (async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      setSummary(PROJECT_SUMMARY);
+      return;
+    }
+      const [
+        activeRes, saudiRes, dubaiRes,
+        woRes, pnRes, inProductionRes,
+        inQcRes, readyRes,
+      ] = await Promise.all([
+        supabase.from('projects').select('*', { count: 'exact', head: true })
+          .in('project_status', ['active', 'approved', 'submitted_for_approval']),
+        supabase.from('projects').select('*', { count: 'exact', head: true })
+          .in('project_status', ['active', 'approved'])
+          .eq('manufacturing_location', 'saudi'),
+        supabase.from('projects').select('*', { count: 'exact', head: true })
+          .in('project_status', ['active', 'approved'])
+          .eq('manufacturing_location', 'dubai'),
+        // Projects with at least one active WO reference
+        supabase.from('project_execution_references').select('project_id', { count: 'exact', head: true })
+          .eq('reference_type', 'wo')
+          .not('status', 'in', '(cancelled,superseded)'),
+        // Projects with at least one active PN reference
+        supabase.from('project_execution_references').select('project_id', { count: 'exact', head: true })
+          .eq('reference_type', 'pn')
+          .not('status', 'in', '(cancelled,superseded)'),
+        // In production: factory records exist (active projects with factory work)
+        supabase.from('factory_records').select('project_id', { count: 'exact', head: true }),
+        // In QC: active QC inspections
+        supabase.from('project_qc_inspections').select('*', { count: 'exact', head: true })
+          .in('inspection_status', ['in_progress', 'pending']),
+        // Ready to deliver: release notes issued
+        supabase.from('release_notes').select('*', { count: 'exact', head: true })
+          .eq('release_status', 'issued'),
+      ]);
+      setSummary({
+        totalActive: activeRes.count ?? 0,
+        saudi: saudiRes.count ?? 0,
+        dubai: dubaiRes.count ?? 0,
+        withWO: woRes.count ?? 0,
+        withPN: pnRes.count ?? 0,
+        inProduction: inProductionRes.count ?? 0,
+        inQC: inQcRes.count ?? 0,
+        readyToDeliver: readyRes.count ?? 0,
+      });
+    })();
+  }, []);
+
   const dashboardCards = mockOrEmpty(DASHBOARD_KPI_CARDS);
   const afsCards = mockOrEmpty(AFS_KPI_CARDS);
 
@@ -283,8 +336,7 @@ export function Dashboard() {
         <div className="flex items-start gap-2 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 mb-6 text-xs text-gray-600">
           <Activity size={15} className="shrink-0 mt-0.5 text-gray-400" />
           <span>
-            Summary figures populate from the module pages and Reports. Open any section below
-            for current, role-specific detail.
+            Summary figures above are live counts from the database. Open any module below for role-specific detail.
           </span>
         </div>
       )}
