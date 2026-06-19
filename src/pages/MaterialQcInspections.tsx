@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ClipboardCheck, ChevronRight, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { useAuth } from '../hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { mockOrEmpty } from '../lib/dataMode';
 import { MOCK_MATERIAL_QC_INSPECTIONS } from '../data/mockQc';
-import type { InspectionStatus, MaterialInspectionResult, UserRole } from '../types';
+import type { MaterialQcInspection, InspectionStatus, MaterialInspectionResult, UserRole } from '../types';
 
 const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'qc_user'];
 
@@ -47,10 +49,28 @@ function formatDate(iso: string) {
 export function MaterialQcInspections() {
   const { role } = useAuth();
   const canCreate = role ? CAN_CREATE.includes(role) : false;
+  const [items, setItems] = useState<MaterialQcInspection[]>([]);
+  const [loading, setLoading] = useState(true);
   const [statusTab, setStatusTab] = useState<StatusTab>('all');
   const [resultFilter, setResultFilter] = useState<ResultFilter>('all');
 
-  const filtered = mockOrEmpty(MOCK_MATERIAL_QC_INSPECTIONS).filter(i => {
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setItems(mockOrEmpty(MOCK_MATERIAL_QC_INSPECTIONS));
+        setLoading(false);
+        return;
+      }
+      const { data } = await supabase
+        .from('material_qc_inspections')
+        .select('*, project:projects(project_code, customer_name), item:store_receipt_items(item_name, item_code, material_category, quantity_received, unit)')
+        .order('created_at', { ascending: false });
+      setItems((data as unknown as MaterialQcInspection[]) ?? []);
+      setLoading(false);
+    })();
+  }, []);
+
+  const filtered = items.filter(i => {
     if (statusTab !== 'all' && i.inspection_status !== statusTab) return false;
     if (resultFilter !== 'all' && i.inspection_result !== resultFilter) return false;
     return true;
@@ -61,6 +81,7 @@ export function MaterialQcInspections() {
       <PageHeader
         title="Material QC Inspections"
         subtitle="Inspect received materials and record QC results"
+        breadcrumb={[{ label: 'Material QC', href: '/material-qc' }, { label: 'Inspections' }]}
         actions={
           canCreate ? (
             <Link to="/material-qc/inspections/new">
@@ -70,7 +91,7 @@ export function MaterialQcInspections() {
         }
       />
 
-      <DataSourceBadge variant="preview" />
+      <DataSourceBadge variant="auto" />
 
       <div className="flex flex-wrap gap-3 items-center">
         <div className="flex items-center gap-2">
@@ -100,7 +121,9 @@ export function MaterialQcInspections() {
           ))}
         </div>
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="px-5 py-10"><PageLoader /></div>
+        ) : filtered.length === 0 ? (
           <div className="px-5 py-10">
             <EmptyState icon={<ClipboardCheck size={24} className="text-gray-400" />} title="No inspections" description="No inspections match the current filter." />
           </div>

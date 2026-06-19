@@ -1,18 +1,21 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ClipboardCheck, AlertTriangle, CheckCircle, FileCheck, Wrench, ChevronRight, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { useAuth } from '../hooks/useAuth';
 import {
   MOCK_PROJECT_QC_INSPECTIONS,
   MOCK_PROJECT_QC_FINDINGS,
   MOCK_RELEASE_NOTES,
 } from '../data/mockQc';
-import type { UserRole } from '../types';
-import { isSupabaseConfigured } from '../lib/supabase';
+import type { ProjectQcInspection, ProjectQcFinding, ReleaseNote, UserRole } from '../types';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { mockOrEmpty } from '../lib/dataMode';
 
 const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'qc_user'];
@@ -41,30 +44,103 @@ function releaseVariant(r: string): 'neutral' | 'success' | 'warning' | 'critica
   return 'neutral';
 }
 
+interface KpiData {
+  pendingQc: number;
+  inProgress: number;
+  reworkRequired: number;
+  openFindings: number;
+  readyForRelease: number;
+  issued: number;
+  blocked: number;
+  recentInspections: ProjectQcInspection[];
+  openFindingList: ProjectQcFinding[];
+  blockedNoteList: ReleaseNote[];
+}
+
 export function ProjectQC() {
   const { role } = useAuth();
   const canCreate = role ? CAN_CREATE.includes(role) : false;
+  const [data, setData] = useState<KpiData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const inspections = mockOrEmpty(MOCK_PROJECT_QC_INSPECTIONS);
-  const findings = mockOrEmpty(MOCK_PROJECT_QC_FINDINGS);
-  const releaseNotes = mockOrEmpty(MOCK_RELEASE_NOTES);
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        const inspections = mockOrEmpty(MOCK_PROJECT_QC_INSPECTIONS);
+        const findings = mockOrEmpty(MOCK_PROJECT_QC_FINDINGS);
+        const releaseNotes = mockOrEmpty(MOCK_RELEASE_NOTES);
+        setData({
+          pendingQc: inspections.filter(i => i.inspection_status === 'pending').length,
+          inProgress: inspections.filter(i => i.inspection_status === 'in_progress').length,
+          reworkRequired: inspections.filter(i => i.inspection_result === 'rework_required').length,
+          openFindings: findings.filter(f => f.finding_status !== 'closed' && f.finding_status !== 'cancelled').length,
+          readyForRelease: inspections.filter(i => i.readiness_status === 'ready_for_release').length,
+          issued: releaseNotes.filter(r => r.release_status === 'issued').length,
+          blocked: releaseNotes.filter(r => r.release_status === 'blocked').length,
+          recentInspections: inspections.slice(0, 5),
+          openFindingList: findings.filter(f => f.finding_status !== 'closed' && f.finding_status !== 'cancelled'),
+          blockedNoteList: releaseNotes.filter(r => r.release_status === 'blocked'),
+        });
+        setLoading(false);
+        return;
+      }
+      const [
+        { count: pendingQc },
+        { count: inProgress },
+        { count: reworkRequired },
+        { count: openFindings },
+        { count: readyForRelease },
+        { count: issued },
+        { count: blocked },
+        { data: recentRaw },
+        { data: openFindRaw },
+        { data: blockedNoteRaw },
+      ] = await Promise.all([
+        supabase.from('project_qc_inspections').select('*', { count: 'exact', head: true }).eq('inspection_status', 'pending'),
+        supabase.from('project_qc_inspections').select('*', { count: 'exact', head: true }).eq('inspection_status', 'in_progress'),
+        supabase.from('project_qc_inspections').select('*', { count: 'exact', head: true }).eq('inspection_result', 'rework_required'),
+        supabase.from('project_qc_findings').select('*', { count: 'exact', head: true }).not('finding_status', 'in', '(closed,cancelled)'),
+        supabase.from('project_qc_inspections').select('*', { count: 'exact', head: true }).eq('readiness_status', 'ready_for_release'),
+        supabase.from('release_notes').select('*', { count: 'exact', head: true }).eq('release_status', 'issued'),
+        supabase.from('release_notes').select('*', { count: 'exact', head: true }).eq('release_status', 'blocked'),
+        supabase.from('project_qc_inspections').select('*, project:projects(project_code, customer_name, manufacturing_location), vehicle_line:project_vehicle_lines(vehicle_type, description, quantity)').order('created_at', { ascending: false }).limit(5),
+        supabase.from('project_qc_findings').select('*, project:projects(project_code), vehicle_line:project_vehicle_lines(vehicle_type)').not('finding_status', 'in', '(closed,cancelled)').order('created_at', { ascending: false }),
+        supabase.from('release_notes').select('*, project:projects(project_code, customer_name), vehicle_line:project_vehicle_lines(vehicle_type)').eq('release_status', 'blocked').order('created_at', { ascending: false }),
+      ]);
+      setData({
+        pendingQc: pendingQc ?? 0,
+        inProgress: inProgress ?? 0,
+        reworkRequired: reworkRequired ?? 0,
+        openFindings: openFindings ?? 0,
+        readyForRelease: readyForRelease ?? 0,
+        issued: issued ?? 0,
+        blocked: blocked ?? 0,
+        recentInspections: (recentRaw as unknown as ProjectQcInspection[]) ?? [],
+        openFindingList: (openFindRaw as unknown as ProjectQcFinding[]) ?? [],
+        blockedNoteList: (blockedNoteRaw as unknown as ReleaseNote[]) ?? [],
+      });
+      setLoading(false);
+    })();
+  }, []);
 
-  const pendingQc = inspections.filter(i => i.inspection_status === 'pending').length;
-  const inProgress = inspections.filter(i => i.inspection_status === 'in_progress').length;
-  const reworkRequired = inspections.filter(i => i.inspection_result === 'rework_required').length;
-  const openFindings = findings.filter(f => f.finding_status !== 'closed' && f.finding_status !== 'cancelled').length;
-  const readyForRelease = inspections.filter(i => i.readiness_status === 'ready_for_release').length;
-  const issued = releaseNotes.filter(r => r.release_status === 'issued').length;
-  const blocked = releaseNotes.filter(r => r.release_status === 'blocked').length;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Project / Vehicle QC" subtitle="Final vehicle and project quality inspection, findings, rework, and release notes" />
+        <PageLoader />
+      </div>
+    );
+  }
 
+  const d = data!;
   const kpis = [
-    { label: 'Pending QC', value: pendingQc, color: 'border-l-amber-400', icon: <ClipboardCheck size={16} className="text-amber-500" /> },
-    { label: 'In Progress', value: inProgress, color: 'border-l-sky-400', icon: <ClipboardCheck size={16} className="text-sky-500" /> },
-    { label: 'Rework Required', value: reworkRequired, color: reworkRequired > 0 ? 'border-l-orange-500' : 'border-l-green-400', icon: <Wrench size={16} className="text-orange-500" /> },
-    { label: 'Open Findings', value: openFindings, color: openFindings > 0 ? 'border-l-red-500' : 'border-l-green-400', icon: <AlertTriangle size={16} className="text-red-500" /> },
-    { label: 'Ready for Release', value: readyForRelease, color: 'border-l-green-400', icon: <CheckCircle size={16} className="text-green-500" /> },
-    { label: 'Release Notes Issued', value: issued, color: 'border-l-indigo-400', icon: <FileCheck size={16} className="text-indigo-500" /> },
-    { label: 'Blocked Release Notes', value: blocked, color: blocked > 0 ? 'border-l-red-500' : 'border-l-green-400', icon: <AlertTriangle size={16} className="text-red-500" /> },
+    { label: 'Pending QC', value: d.pendingQc, color: 'border-l-amber-400', icon: <ClipboardCheck size={16} className="text-amber-500" /> },
+    { label: 'In Progress', value: d.inProgress, color: 'border-l-sky-400', icon: <ClipboardCheck size={16} className="text-sky-500" /> },
+    { label: 'Rework Required', value: d.reworkRequired, color: d.reworkRequired > 0 ? 'border-l-orange-500' : 'border-l-green-400', icon: <Wrench size={16} className="text-orange-500" /> },
+    { label: 'Open Findings', value: d.openFindings, color: d.openFindings > 0 ? 'border-l-red-500' : 'border-l-green-400', icon: <AlertTriangle size={16} className="text-red-500" /> },
+    { label: 'Ready for Release', value: d.readyForRelease, color: 'border-l-green-400', icon: <CheckCircle size={16} className="text-green-500" /> },
+    { label: 'Release Notes Issued', value: d.issued, color: 'border-l-indigo-400', icon: <FileCheck size={16} className="text-indigo-500" /> },
+    { label: 'Blocked Release Notes', value: d.blocked, color: d.blocked > 0 ? 'border-l-red-500' : 'border-l-green-400', icon: <AlertTriangle size={16} className="text-red-500" /> },
   ];
 
   return (
@@ -80,6 +156,8 @@ export function ProjectQC() {
           ) : undefined
         }
       />
+
+      <DataSourceBadge variant="auto" />
 
       {!isSupabaseConfigured && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 text-sm text-amber-700">
@@ -109,7 +187,7 @@ export function ProjectQC() {
           <h3 className="text-sm font-semibold text-gray-700">Recent Project QC Inspections</h3>
           <Link to="/project-qc/inspections"><Button variant="ghost" size="sm">View All <ChevronRight size={14} /></Button></Link>
         </div>
-        {inspections.length === 0 ? (
+        {d.recentInspections.length === 0 ? (
           <div className="px-5 py-8">
             <EmptyState icon={<ClipboardCheck size={22} className="text-gray-400" />} title="No inspections" description="No project QC inspections yet." />
           </div>
@@ -127,7 +205,7 @@ export function ProjectQC() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {inspections.slice(0, 5).map(i => (
+                {d.recentInspections.map(i => (
                   <tr key={i.id} className="hover:bg-gray-50">
                     <td className="px-4 py-2.5 text-sm font-mono text-sky-700">{i.inspection_number}</td>
                     <td className="px-4 py-2.5 text-sm text-gray-500 hidden md:table-cell font-mono text-xs">{i.project?.project_code ?? '—'}</td>
@@ -153,11 +231,11 @@ export function ProjectQC() {
           </h3>
           <Link to="/project-qc/findings"><Button variant="ghost" size="sm">View All <ChevronRight size={14} /></Button></Link>
         </div>
-        {findings.filter(f => f.finding_status !== 'closed' && f.finding_status !== 'cancelled').length === 0 ? (
+        {d.openFindingList.length === 0 ? (
           <div className="px-5 py-6 text-sm text-gray-400 text-center">No open findings.</div>
         ) : (
           <div className="divide-y divide-gray-50">
-            {findings.filter(f => f.finding_status !== 'closed' && f.finding_status !== 'cancelled').map(f => (
+            {d.openFindingList.map(f => (
               <div key={f.id} className="px-5 py-3 flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -175,7 +253,7 @@ export function ProjectQC() {
       </Card>
 
       {/* Blocked release notes */}
-      {releaseNotes.filter(r => r.release_status === 'blocked').length > 0 && (
+      {d.blockedNoteList.length > 0 && (
         <Card>
           <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -184,7 +262,7 @@ export function ProjectQC() {
             <Link to="/project-qc/release-notes"><Button variant="ghost" size="sm">View All <ChevronRight size={14} /></Button></Link>
           </div>
           <div className="divide-y divide-gray-50">
-            {releaseNotes.filter(r => r.release_status === 'blocked').map(r => (
+            {d.blockedNoteList.map(r => (
               <div key={r.id} className="px-5 py-3 flex items-center justify-between">
                 <div>
                   <span className="text-sm font-mono text-sky-700">{r.release_note_number}</span>

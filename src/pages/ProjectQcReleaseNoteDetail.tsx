@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, FileCheck, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { FileCheck, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { useAuth } from '../hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import {
   MOCK_RELEASE_NOTES,
   MOCK_MATERIAL_NCRS,
@@ -13,10 +15,15 @@ import {
   MOCK_PROJECT_QC_INSPECTIONS,
 } from '../data/mockQc';
 import type { ReleaseNote, UserRole } from '../types';
-import { isSupabaseConfigured } from '../lib/supabase';
 import { recordQcEvent, recordQcAudit } from '../lib/qcAudit';
 
 const CAN_ISSUE: UserRole[] = ['admin', 'operations_manager', 'qc_user'];
+
+interface Blocker {
+  label: string;
+  ok: boolean;
+  detail: string;
+}
 
 function releaseVariant(r: string): 'neutral' | 'success' | 'warning' | 'critical' | 'info' | 'default' {
   if (r === 'issued') return 'success';
@@ -32,17 +39,87 @@ function formatDateTime(iso: string) {
   });
 }
 
+async function fetchLiveBlockers(projectId: string): Promise<Blocker[]> {
+  if (!supabase) return [];
+  const [ncrRes, findRes, reworkRes, inspRes] = await Promise.all([
+    supabase.from('material_ncrs').select('*', { count: 'exact', head: true }).eq('project_id', projectId).not('ncr_status', 'in', '(closed,cancelled)'),
+    supabase.from('project_qc_findings').select('*', { count: 'exact', head: true }).eq('project_id', projectId).not('finding_status', 'in', '(closed,cancelled)'),
+    supabase.from('project_qc_findings').select('*', { count: 'exact', head: true }).eq('project_id', projectId).eq('rework_required', true).is('rework_completed_at', null).not('finding_status', 'in', '(closed,cancelled)'),
+    supabase.from('project_qc_inspections').select('id, readiness_status').eq('project_id', projectId),
+  ]);
+  const openNcrs = ncrRes.count ?? 0;
+  const openFindings = findRes.count ?? 0;
+  const openRework = reworkRes.count ?? 0;
+  const inspections = (inspRes.data ?? []) as { id: string; readiness_status: string }[];
+  const allInspectionsReady = inspections.length > 0 && inspections.every(i => i.readiness_status === 'ready_for_release' || i.readiness_status === 'released');
+  return [
+    { label: 'Material NCRs all closed', ok: openNcrs === 0, detail: openNcrs > 0 ? `${openNcrs} open NCR(s)` : '' },
+    { label: 'Project QC inspection ready for release', ok: allInspectionsReady, detail: !allInspectionsReady ? 'QC inspection not ready' : '' },
+    { label: 'All QC findings closed', ok: openFindings === 0, detail: openFindings > 0 ? `${openFindings} open finding(s)` : '' },
+    { label: 'All rework completed', ok: openRework === 0, detail: openRework > 0 ? `${openRework} rework pending` : '' },
+  ];
+}
+
+function mockBlockers(projectId: string): Blocker[] {
+  const openNcrs = MOCK_MATERIAL_NCRS.filter(n => n.project_id === projectId && n.ncr_status !== 'closed' && n.ncr_status !== 'cancelled');
+  const openFindings = MOCK_PROJECT_QC_FINDINGS.filter(f => f.project_id === projectId && f.finding_status !== 'closed' && f.finding_status !== 'cancelled');
+  const openRework = MOCK_PROJECT_QC_FINDINGS.filter(f => f.project_id === projectId && f.rework_required && !f.rework_completed_at && f.finding_status !== 'closed');
+  const qcInspections = MOCK_PROJECT_QC_INSPECTIONS.filter(i => i.project_id === projectId);
+  const allInspectionsReady = qcInspections.length > 0 && qcInspections.every(i => i.readiness_status === 'ready_for_release' || i.readiness_status === 'released');
+  return [
+    { label: 'Material NCRs all closed', ok: openNcrs.length === 0, detail: openNcrs.length > 0 ? `${openNcrs.length} open NCR(s)` : '' },
+    { label: 'Project QC inspection ready for release', ok: allInspectionsReady, detail: !allInspectionsReady ? 'QC inspection not ready' : '' },
+    { label: 'All QC findings closed', ok: openFindings.length === 0, detail: openFindings.length > 0 ? `${openFindings.length} open finding(s)` : '' },
+    { label: 'All rework completed', ok: openRework.length === 0, detail: openRework.length > 0 ? `${openRework.length} rework pending` : '' },
+  ];
+}
+
 export function ProjectQcReleaseNoteDetail() {
   const { id } = useParams<{ id: string }>();
   const { role, profile } = useAuth();
   const canIssue = role ? CAN_ISSUE.includes(role) : false;
 
-  const base = MOCK_RELEASE_NOTES.find(r => r.id === id);
-  const [releaseNote, setReleaseNote] = useState<ReleaseNote | undefined>(base);
-  const [remarks, setRemarks] = useState(base?.remarks ?? '');
+  const [releaseNote, setReleaseNote] = useState<ReleaseNote | null>(null);
+  const [blockers, setBlockers] = useState<Blocker[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [remarks, setRemarks] = useState('');
   const [devMessage, setDevMessage] = useState('');
 
-  if (!releaseNote) {
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        const found = MOCK_RELEASE_NOTES.find(r => r.id === id);
+        if (found) {
+          setReleaseNote({ ...found });
+          setRemarks(found.remarks ?? '');
+          setBlockers(mockBlockers(found.project_id));
+        } else {
+          setNotFound(true);
+        }
+        setLoading(false);
+        return;
+      }
+      const { data } = await supabase
+        .from('release_notes')
+        .select('*, project:projects(project_code, customer_name, manufacturing_location), vehicle_line:project_vehicle_lines(vehicle_type, description)')
+        .eq('id', id!)
+        .single();
+      if (!data) { setNotFound(true); }
+      else {
+        const rn = data as unknown as ReleaseNote;
+        setReleaseNote(rn);
+        setRemarks(rn.remarks ?? '');
+        const liveBlockers = await fetchLiveBlockers(rn.project_id);
+        setBlockers(liveBlockers);
+      }
+      setLoading(false);
+    })();
+  }, [id]);
+
+  if (loading) return <PageLoader />;
+  if (notFound || !releaseNote) {
     return (
       <div className="text-center py-16 text-gray-500">
         Release note not found.{' '}
@@ -50,21 +127,6 @@ export function ProjectQcReleaseNoteDetail() {
       </div>
     );
   }
-
-  // Compute blocking conditions
-  const projectId = releaseNote.project_id;
-  const openNcrs = MOCK_MATERIAL_NCRS.filter(n => n.project_id === projectId && n.ncr_status !== 'closed' && n.ncr_status !== 'cancelled');
-  const openFindings = MOCK_PROJECT_QC_FINDINGS.filter(f => f.project_id === projectId && f.finding_status !== 'closed' && f.finding_status !== 'cancelled');
-  const openRework = MOCK_PROJECT_QC_FINDINGS.filter(f => f.project_id === projectId && f.rework_required && !f.rework_completed_at && f.finding_status !== 'closed');
-  const qcInspections = MOCK_PROJECT_QC_INSPECTIONS.filter(i => i.project_id === projectId);
-  const allInspectionsReady = qcInspections.length > 0 && qcInspections.every(i => i.readiness_status === 'ready_for_release' || i.readiness_status === 'released');
-
-  const blockers = [
-    { label: 'Material NCRs all closed', ok: openNcrs.length === 0, detail: openNcrs.length > 0 ? `${openNcrs.length} open NCR(s)` : '' },
-    { label: 'Project QC inspection ready for release', ok: allInspectionsReady, detail: !allInspectionsReady ? 'QC inspection not ready' : '' },
-    { label: 'All QC findings closed', ok: openFindings.length === 0, detail: openFindings.length > 0 ? `${openFindings.length} open finding(s)` : '' },
-    { label: 'All rework completed', ok: openRework.length === 0, detail: openRework.length > 0 ? `${openRework.length} rework pending` : '' },
-  ];
 
   const canIssueNow = blockers.every(b => b.ok) && releaseNote.release_status !== 'issued';
 
@@ -76,23 +138,41 @@ export function ProjectQcReleaseNoteDetail() {
 
   async function handleIssue() {
     if (!releaseNote || !canIssueNow) return;
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseConfigured || !supabase) {
       devUpdate({ release_status: 'issued', issued_at: new Date().toISOString() }, 'Dev: Release Note issued — Project is Ready for Delivery');
       return;
     }
-    await recordQcEvent(projectId, 'release_note_issued', `Release Note ${releaseNote.release_note_number} issued`, remarks || null, profile?.id ?? null, profile?.full_name ?? null, null);
-    await recordQcAudit('release_note_issued', id!, `Release Note ${releaseNote.release_note_number} issued`, profile?.id ?? null);
+    setSaving(true);
+    // Re-verify live blockers before issuing — governance gate is enforced at write time
+    const liveBlockers = await fetchLiveBlockers(releaseNote.project_id);
+    setBlockers(liveBlockers);
+    if (!liveBlockers.every(b => b.ok)) {
+      setSaving(false);
+      return;
+    }
+    const issuedAt = new Date().toISOString();
+    const { error } = await supabase.from('release_notes').update({
+      release_status: 'issued',
+      issued_at: issuedAt,
+      issued_by: profile?.id ?? null,
+      remarks: remarks || null,
+    }).eq('id', id!);
+    if (!error) {
+      setReleaseNote(prev => prev ? { ...prev, release_status: 'issued', issued_at: issuedAt, issued_by: profile?.id ?? null } : prev);
+      void recordQcEvent(releaseNote.project_id, 'release_note_issued', `Release Note ${releaseNote.release_note_number} issued`, remarks || null, profile?.id ?? null, profile?.full_name ?? null, null);
+      void recordQcAudit('release_note_issued', id!, `Release Note ${releaseNote.release_note_number} issued`, profile?.id ?? null);
+    }
+    setSaving(false);
   }
 
   return (
     <div className="space-y-5 max-w-3xl">
-      <div className="flex items-center gap-2">
-        <Link to="/project-qc/release-notes" className="text-gray-400 hover:text-gray-600">
-          <ArrowLeft size={18} />
-        </Link>
-        <PageHeader title={releaseNote.release_note_number} subtitle="Release Note" />
-        <Badge variant={releaseVariant(releaseNote.release_status)}>{releaseNote.release_status.replace(/_/g, ' ')}</Badge>
-      </div>
+      <PageHeader
+        title={releaseNote.release_note_number}
+        subtitle="Release Note"
+        breadcrumb={[{ label: 'Project QC', href: '/project-qc' }, { label: 'Release Notes', href: '/project-qc/release-notes' }, { label: releaseNote.release_note_number }]}
+        actions={<Badge variant={releaseVariant(releaseNote.release_status)}>{releaseNote.release_status.replace(/_/g, ' ')}</Badge>}
+      />
 
       {devMessage && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-3 text-sm text-green-700">{devMessage}</div>
@@ -158,24 +238,6 @@ export function ProjectQcReleaseNoteDetail() {
         </Card>
       )}
 
-      {/* Links to open items */}
-      {openNcrs.length > 0 && (
-        <div className="flex items-center gap-3 text-sm">
-          <span className="text-gray-500">Open NCRs:</span>
-          {openNcrs.map(n => (
-            <Link key={n.id} to={`/material-qc/ncrs/${n.id}`} className="text-sky-600 hover:underline font-mono text-xs">{n.ncr_number}</Link>
-          ))}
-        </div>
-      )}
-      {openFindings.length > 0 && (
-        <div className="flex items-center gap-3 text-sm">
-          <span className="text-gray-500">Open Findings:</span>
-          {openFindings.map(f => (
-            <Link key={f.id} to={`/project-qc/findings/${f.id}`} className="text-sky-600 hover:underline font-mono text-xs">{f.finding_number}</Link>
-          ))}
-        </div>
-      )}
-
       {/* Issue action */}
       {canIssue && canIssueNow && (
         <Card className="p-5">
@@ -191,7 +253,7 @@ export function ProjectQcReleaseNoteDetail() {
             <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500">
               Upload Release Note document — requires Supabase storage configuration.
             </div>
-            <Button variant="primary" size="sm" onClick={handleIssue}>
+            <Button variant="primary" size="sm" disabled={saving} onClick={handleIssue}>
               <FileCheck size={14} className="mr-1" /> Issue Release Note
             </Button>
           </div>

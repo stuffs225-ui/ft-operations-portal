@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, ChevronRight } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { mockOrEmpty } from '../lib/dataMode';
 import { MOCK_PROJECT_QC_FINDINGS } from '../data/mockQc';
-import type { FindingStatus } from '../types';
+import type { ProjectQcFinding, FindingStatus } from '../types';
 
 type StatusTab = 'all' | FindingStatus;
 
@@ -41,18 +43,40 @@ function formatDate(iso: string) {
 }
 
 export function ProjectQcFindings() {
+  const [items, setItems] = useState<ProjectQcFinding[]>([]);
+  const [loading, setLoading] = useState(true);
   const [statusTab, setStatusTab] = useState<StatusTab>('all');
 
-  const filtered = mockOrEmpty(MOCK_PROJECT_QC_FINDINGS).filter(f => {
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setItems(mockOrEmpty(MOCK_PROJECT_QC_FINDINGS));
+        setLoading(false);
+        return;
+      }
+      const { data } = await supabase
+        .from('project_qc_findings')
+        .select('*, project:projects(project_code, customer_name), vehicle_line:project_vehicle_lines(vehicle_type, description)')
+        .order('created_at', { ascending: false });
+      setItems((data as unknown as ProjectQcFinding[]) ?? []);
+      setLoading(false);
+    })();
+  }, []);
+
+  const filtered = items.filter(f => {
     if (statusTab !== 'all' && f.finding_status !== statusTab) return false;
     return true;
   });
 
   return (
     <div className="space-y-5">
-      <PageHeader title="QC Findings" subtitle="Findings raised during project and vehicle QC inspections" />
+      <PageHeader
+        title="QC Findings"
+        subtitle="Findings raised during project and vehicle QC inspections"
+        breadcrumb={[{ label: 'Project QC', href: '/project-qc' }, { label: 'Findings' }]}
+      />
 
-      <DataSourceBadge variant="preview" />
+      <DataSourceBadge variant="auto" />
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div className="flex items-center gap-1 px-4 pt-3 overflow-x-auto border-b border-gray-100">
@@ -66,7 +90,9 @@ export function ProjectQcFindings() {
           ))}
         </div>
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="px-5 py-10"><PageLoader /></div>
+        ) : filtered.length === 0 ? (
           <div className="px-5 py-10">
             <EmptyState icon={<AlertTriangle size={24} className="text-gray-400" />} title="No findings" description="No findings match the current filter." />
           </div>

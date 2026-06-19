@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, AlertTriangle, CheckCircle, FileText } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
+import { AlertTriangle, CheckCircle, FileText } from 'lucide-react';
+import { PageHeader } from '@/components/common/page-header';
+import { PageLoader } from '../components/ui/PageLoader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { useAuth } from '../hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_MATERIAL_NCRS } from '../data/mockQc';
 import type { MaterialNcr, NcrStatus, UserRole } from '../types';
-import { isSupabaseConfigured } from '../lib/supabase';
 import { recordQcAudit, recordQcEvent } from '../lib/qcAudit';
 
 const CAN_CLOSE: UserRole[] = ['admin', 'operations_manager', 'qc_user'];
@@ -42,15 +43,50 @@ export function MaterialNcrDetail() {
   const canClose = role ? CAN_CLOSE.includes(role) : false;
   const canRejectClosure = role ? CAN_REJECT_CLOSURE.includes(role) : false;
 
-  const base = MOCK_MATERIAL_NCRS.find(n => n.id === id);
-  const [ncr, setNcr] = useState<MaterialNcr | undefined>(base);
-  const [correctiveAction, setCorrectiveAction] = useState(base?.corrective_action ?? '');
-  const [preventiveAction, setPreventiveAction] = useState(base?.preventive_action ?? '');
-  const [rootCause, setRootCause] = useState(base?.root_cause_category ?? '');
+  const [ncr, setNcr] = useState<MaterialNcr | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [correctiveAction, setCorrectiveAction] = useState('');
+  const [preventiveAction, setPreventiveAction] = useState('');
+  const [rootCause, setRootCause] = useState('');
   const [closureRemarks, setClosureRemarks] = useState('');
   const [devMessage, setDevMessage] = useState('');
 
-  if (!ncr) {
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        const found = MOCK_MATERIAL_NCRS.find(n => n.id === id);
+        if (found) {
+          setNcr({ ...found });
+          setCorrectiveAction(found.corrective_action ?? '');
+          setPreventiveAction(found.preventive_action ?? '');
+          setRootCause(found.root_cause_category ?? '');
+        } else {
+          setNotFound(true);
+        }
+        setLoading(false);
+        return;
+      }
+      const { data } = await supabase
+        .from('material_ncrs')
+        .select('*, project:projects(project_code, customer_name), item:store_receipt_items(item_name, material_category)')
+        .eq('id', id!)
+        .single();
+      if (!data) { setNotFound(true); }
+      else {
+        const n = data as unknown as MaterialNcr;
+        setNcr(n);
+        setCorrectiveAction(n.corrective_action ?? '');
+        setPreventiveAction(n.preventive_action ?? '');
+        setRootCause(n.root_cause_category ?? '');
+      }
+      setLoading(false);
+    })();
+  }, [id]);
+
+  if (loading) return <PageLoader />;
+  if (notFound || !ncr) {
     return (
       <div className="text-center py-16 text-gray-500">
         NCR not found.{' '}
@@ -65,39 +101,80 @@ export function MaterialNcrDetail() {
     setTimeout(() => setDevMessage(''), 3000);
   }
 
+  async function handleUpdate(newStatus: NcrStatus) {
+    const currentNcr = ncr;
+    if (!currentNcr) return;
+    if (!isSupabaseConfigured || !supabase) {
+      devUpdate({ ncr_status: newStatus, corrective_action: correctiveAction, root_cause_category: rootCause, preventive_action: preventiveAction }, `Dev: NCR status updated to ${newStatus}`);
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from('material_ncrs').update({
+      ncr_status: newStatus,
+      root_cause_category: rootCause || null,
+      corrective_action: correctiveAction || null,
+      preventive_action: preventiveAction || null,
+    }).eq('id', id!);
+    if (!error) {
+      setNcr(prev => prev ? { ...prev, ncr_status: newStatus, root_cause_category: rootCause || null, corrective_action: correctiveAction || null, preventive_action: preventiveAction || null } : prev);
+      void recordQcAudit('ncr_updated', id!, `NCR ${currentNcr.ncr_number} updated`, profile?.id ?? null);
+    }
+    setSaving(false);
+  }
+
   async function handleClose() {
-    if (!ncr) return;
+    const currentNcr = ncr;
+    if (!currentNcr) return;
     if (!correctiveAction.trim()) { alert('Corrective action is required to close the NCR.'); return; }
     if (!closureRemarks.trim()) { alert('Closure remarks or evidence is required.'); return; }
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseConfigured || !supabase) {
       devUpdate({ ncr_status: 'closed', corrective_action: correctiveAction, preventive_action: preventiveAction, closed_at: new Date().toISOString() }, 'Dev: NCR closed');
       return;
     }
-    await recordQcEvent(ncr.project_id, 'material_ncr_closed', `NCR ${ncr.ncr_number} closed`, closureRemarks, profile?.id ?? null, profile?.full_name ?? null, null);
-    await recordQcAudit('ncr_closed', id!, `NCR ${ncr.ncr_number} closed`, profile?.id ?? null);
+    setSaving(true);
+    const { error } = await supabase.from('material_ncrs').update({
+      ncr_status: 'closed',
+      corrective_action: correctiveAction,
+      preventive_action: preventiveAction || null,
+      root_cause_category: rootCause || null,
+      closed_by: profile?.id ?? null,
+      closed_at: new Date().toISOString(),
+      remarks: closureRemarks,
+    }).eq('id', id!);
+    if (!error) {
+      setNcr(prev => prev ? { ...prev, ncr_status: 'closed', corrective_action: correctiveAction, closed_at: new Date().toISOString() } : prev);
+      void recordQcEvent(currentNcr.project_id, 'material_ncr_closed', `NCR ${currentNcr.ncr_number} closed`, closureRemarks, profile?.id ?? null, profile?.full_name ?? null, null);
+      void recordQcAudit('ncr_closed', id!, `NCR ${currentNcr.ncr_number} closed`, profile?.id ?? null);
+    }
+    setSaving(false);
   }
 
-  async function handleUpdate(_status: NcrStatus) {
-    if (!isSupabaseConfigured) {
-      devUpdate({ ncr_status: _status, corrective_action: correctiveAction, root_cause_category: rootCause }, `Dev: NCR status updated to ${_status}`);
+  async function handleRejectClosure() {
+    const currentNcr = ncr;
+    if (!currentNcr) return;
+    if (!isSupabaseConfigured || !supabase) {
+      devUpdate({ ncr_status: 'rejected_closure' }, 'Dev: Closure rejected');
       return;
     }
+    setSaving(true);
+    const { error } = await supabase.from('material_ncrs').update({ ncr_status: 'rejected_closure' }).eq('id', id!);
+    if (!error) {
+      setNcr(prev => prev ? { ...prev, ncr_status: 'rejected_closure' } : prev);
+      void recordQcAudit('ncr_closure_rejected', id!, `NCR ${currentNcr.ncr_number} closure rejected`, profile?.id ?? null);
+    }
+    setSaving(false);
   }
 
   const isClosed = ncr.ncr_status === 'closed' || ncr.ncr_status === 'cancelled';
 
   return (
     <div className="space-y-5 max-w-3xl">
-      <div className="flex items-center gap-2">
-        <Link to="/material-qc/ncrs" className="text-gray-400 hover:text-gray-600">
-          <ArrowLeft size={18} />
-        </Link>
-        <PageHeader
-          title={ncr.ncr_number}
-          subtitle="Non-Conformance Report"
-        />
-        <Badge variant={severityVariant(ncr.severity)}>{ncr.severity}</Badge>
-      </div>
+      <PageHeader
+        title={ncr.ncr_number}
+        subtitle="Non-Conformance Report"
+        breadcrumb={[{ label: 'Material QC', href: '/material-qc' }, { label: 'NCRs', href: '/material-qc/ncrs' }, { label: ncr.ncr_number }]}
+        actions={<Badge variant={severityVariant(ncr.severity)}>{ncr.severity}</Badge>}
+      />
 
       {devMessage && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-3 text-sm text-green-700">{devMessage}</div>
@@ -153,7 +230,7 @@ export function MaterialNcrDetail() {
                 placeholder="How will we prevent recurrence?"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
             </div>
-            <Button variant="secondary" size="sm" onClick={() => handleUpdate('corrective_action_in_progress')}>
+            <Button variant="secondary" size="sm" disabled={saving} onClick={() => handleUpdate('corrective_action_in_progress')}>
               Save Updates
             </Button>
           </div>
@@ -174,7 +251,7 @@ export function MaterialNcrDetail() {
             <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500">
               Document upload (NCR evidence) requires Supabase storage configuration.
             </div>
-            <Button variant="primary" size="sm" onClick={handleClose}>
+            <Button variant="primary" size="sm" disabled={saving} onClick={handleClose}>
               <CheckCircle size={14} className="mr-1" /> Close NCR
             </Button>
           </div>
@@ -197,8 +274,7 @@ export function MaterialNcrDetail() {
         <Card className="p-5">
           <h3 className="text-sm font-semibold text-gray-700 mb-2">Reject Closure</h3>
           <p className="text-xs text-gray-500 mb-3">If the provided closure evidence is insufficient, reject the closure request.</p>
-          <Button variant="secondary" size="sm" className="border-red-200 text-red-700"
-            onClick={() => devUpdate({ ncr_status: 'rejected_closure' }, 'Dev: Closure rejected')}>
+          <Button variant="secondary" size="sm" disabled={saving} className="border-red-200 text-red-700" onClick={handleRejectClosure}>
             Reject Closure
           </Button>
         </Card>
