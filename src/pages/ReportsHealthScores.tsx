@@ -6,6 +6,7 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { useAuth } from '../hooks/useAuth';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import {
   MOCK_PROJECT_HEALTH_SCORES as MOCK_PROJECT_HEALTH_SCORES_RAW,
   MOCK_DEPARTMENT_HEALTH_SCORES as MOCK_DEPARTMENT_HEALTH_SCORES_RAW,
@@ -98,6 +99,7 @@ export function ReportsHealthScores() {
       <PageHeader
         title="Health Scores"
         subtitle="Project, department, and supplier health with scoring transparency"
+        actions={<DataSourceBadge variant="preview" />}
       />
 
       {!isSupabaseConfigured && (

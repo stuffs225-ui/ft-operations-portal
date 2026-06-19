@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { MOCK_DATA_QUALITY_CHECKS as MOCK_DATA_QUALITY_CHECKS_RAW } from '../data/mockReports';
 import { mockOrEmpty } from '../lib/dataMode';
 const MOCK_DATA_QUALITY_CHECKS = mockOrEmpty(MOCK_DATA_QUALITY_CHECKS_RAW);
@@ -71,6 +72,7 @@ export function ReportsDataQuality() {
       <PageHeader
         title="Data Quality Dashboard"
         subtitle="Missing data gaps and recommended fixes across all modules"
+        actions={<DataSourceBadge variant="preview" />}
       />
 
       {!isSupabaseConfigured && (

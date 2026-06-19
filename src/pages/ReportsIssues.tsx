@@ -7,6 +7,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { MOCK_OPERATIONAL_ISSUES } from '../data/mockReports';
 import type { OperationalIssue, OperationalIssueStatus, IssueSeverity } from '../types';
 
@@ -98,9 +99,12 @@ export function ReportsIssues() {
         title="Issues & Risks"
         subtitle="Operational issues, blockers, and escalation register"
         actions={
-          <Button variant="primary" size="sm" onClick={handleNewIssue}>
-            New Issue
-          </Button>
+          <div className="flex items-center gap-2">
+            <DataSourceBadge variant="preview" />
+            <Button variant="primary" size="sm" onClick={handleNewIssue}>
+              New Issue
+            </Button>
+          </div>
         }
       />
 

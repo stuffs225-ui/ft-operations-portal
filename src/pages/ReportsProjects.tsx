@@ -1,12 +1,15 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, CheckCircle2, XCircle, ArrowRight, Download } from 'lucide-react';
+import { Search, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
+import { ReportExportBar } from '../components/features/ReportExportBar';
+import { exportRowsToCsv } from '../lib/reportExport';
+import type { ReportColumn } from '../lib/reportExport';
 import { useAuth } from '../hooks/useAuth';
-import { isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_PROJECTS as MOCK_PROJECTS_RAW } from '../data/mockProjects';
 import { getHealthScoreForProject } from '../data/mockReports';
 import { MOCK_EXECUTION_REFERENCES as MOCK_EXECUTION_REFERENCES_RAW } from '../data/mockExecutionReferences';
@@ -119,21 +122,30 @@ export function ReportsProjects() {
 
   return (
     <div className="space-y-6">
-      {!isSupabaseConfigured && (
-        <div className="text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-4 py-2">
-          Dev mode — displaying mock data
-        </div>
-      )}
-
       <PageHeader
         title="Project Reports"
         subtitle="Lifecycle status, WO/PN coverage, and health scores"
         breadcrumb={[{ label: 'Reports', href: '/reports' }, { label: 'Projects' }]}
-        actions={
-          <Button variant="secondary" size="sm" icon={<Download size={14} />} disabled>
-            Export (coming soon)
-          </Button>
-        }
+        actions={<DataSourceBadge variant="auto" />}
+      />
+
+      <ReportExportBar
+        reportKey="projects_report_view"
+        reportTitle="Project Status Report"
+        department="Operations"
+        onExportCsv={() => {
+          type PRow = typeof MOCK_PROJECTS[number];
+          const cols: ReportColumn<PRow>[] = [
+            { key: 'project_code', header: 'Project Code', value: p => p.project_code },
+            { key: 'so_number', header: 'SO Number', value: p => p.so_number },
+            { key: 'customer_name', header: 'Customer', value: p => p.customer_name },
+            { key: 'project_status', header: 'Status', value: p => p.project_status },
+            { key: 'manufacturing_location', header: 'Location', value: p => p.manufacturing_location },
+            { key: 'customer_delivery_date', header: 'Delivery Date', value: p => p.customer_delivery_date },
+          ];
+          exportRowsToCsv(`projects-report-${new Date().toISOString().split('T')[0]}.csv`, filtered, cols);
+        }}
+        summary={`${filtered.length} project${filtered.length !== 1 ? 's' : ''}`}
       />
 
       {/* Filters */}

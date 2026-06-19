@@ -4,7 +4,6 @@ import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { useAuth } from '../hooks/useAuth';
-import { isSupabaseConfigured } from '../lib/supabase';
 import {
   MOCK_PROCUREMENT_REQUESTS as MOCK_PROCUREMENT_REQUESTS_RAW,
   MOCK_PURCHASE_ORDERS as MOCK_PURCHASE_ORDERS_RAW,
@@ -15,6 +14,7 @@ import { mockOrEmpty } from '../lib/dataMode';
 const MOCK_PROCUREMENT_REQUESTS = mockOrEmpty(MOCK_PROCUREMENT_REQUESTS_RAW);
 const MOCK_PURCHASE_ORDERS = mockOrEmpty(MOCK_PURCHASE_ORDERS_RAW);
 const MOCK_SUPPLIER_SCORECARDS = mockOrEmpty(MOCK_SUPPLIER_SCORECARDS_RAW);
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { ReportExportBar } from '../components/features/ReportExportBar';
 import { exportRowsToCsv } from '../lib/reportExport';
 import type { ReportColumn } from '../lib/reportExport';
@@ -107,13 +107,8 @@ export function ReportsProcurement() {
         title="Procurement Reports"
         subtitle="PR pipeline, PO status, ETA coverage, and supplier performance"
         breadcrumb={[{ label: 'Reports', href: '/reports' }, { label: 'Procurement' }]}
+        actions={<DataSourceBadge variant="auto" />}
       />
-
-      {!isSupabaseConfigured && (
-        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-2 text-xs text-amber-700">
-          Dev mode — showing mock data
-        </div>
-      )}
 
       <ReportExportBar
         reportKey="procurement_pr_po"

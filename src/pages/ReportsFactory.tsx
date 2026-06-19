@@ -3,7 +3,6 @@ import { Wrench, FileX, RefreshCw, CheckCircle2, Package } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
-import { isSupabaseConfigured } from '../lib/supabase';
 import {
   MOCK_FACTORY_RECORDS as MOCK_FACTORY_RECORDS_RAW,
   MOCK_FACTORY_REQUIREMENTS as MOCK_FACTORY_REQUIREMENTS_RAW,
@@ -14,6 +13,7 @@ import { mockOrEmpty } from '../lib/dataMode';
 const MOCK_FACTORY_RECORDS = mockOrEmpty(MOCK_FACTORY_RECORDS_RAW);
 const MOCK_FACTORY_REQUIREMENTS = mockOrEmpty(MOCK_FACTORY_REQUIREMENTS_RAW);
 const MOCK_RAW_MATERIAL_REQUESTS = mockOrEmpty(MOCK_RAW_MATERIAL_REQUESTS_RAW);
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { ReportExportBar } from '../components/features/ReportExportBar';
 import { exportRowsToCsv } from '../lib/reportExport';
 import type { ReportColumn } from '../lib/reportExport';
@@ -122,13 +122,8 @@ export function ReportsFactory() {
         title="Factory Reports"
         subtitle="Production blockers, BOQ gaps, monthly updates, and QC readiness"
         breadcrumb={[{ label: 'Reports', href: '/reports' }, { label: 'Factory' }]}
+        actions={<DataSourceBadge variant="auto" />}
       />
-
-      {!isSupabaseConfigured && (
-        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-2 text-xs text-amber-700">
-          Dev mode — showing mock data
-        </div>
-      )}
 
       <ReportExportBar
         reportKey="factory_progress"

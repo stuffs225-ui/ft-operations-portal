@@ -6,6 +6,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { MOCK_CAPA_RECORDS } from '../data/mockReports';
 import type { CapaRecord, CapaStatus } from '../types';
 
@@ -105,9 +106,12 @@ export function ReportsCapa() {
         title="CAPA Records"
         subtitle="Corrective and preventive action tracking"
         actions={
-          <Button variant="primary" size="sm" onClick={handleNewCapa} disabled={!canManage}>
-            New CAPA
-          </Button>
+          <div className="flex items-center gap-2">
+            <DataSourceBadge variant="preview" />
+            <Button variant="primary" size="sm" onClick={handleNewCapa} disabled={!canManage}>
+              New CAPA
+            </Button>
+          </div>
         }
       />
 
