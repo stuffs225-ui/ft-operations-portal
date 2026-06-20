@@ -105,6 +105,7 @@ const ReportsHealthScores = lazy(() => import('../pages/ReportsHealthScores').th
 const ReportsIssues = lazy(() => import('../pages/ReportsIssues').then((m) => ({ default: m.ReportsIssues })));
 const ReportsCapa = lazy(() => import('../pages/ReportsCapa').then((m) => ({ default: m.ReportsCapa })));
 const Settings = lazy(() => import('../pages/Settings').then((m) => ({ default: m.Settings })));
+const AdminDashboard = lazy(() => import('../pages/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
 const AdminUsers = lazy(() => import('../pages/AdminUsers').then((m) => ({ default: m.AdminUsers })));
 const AuditLog = lazy(() => import('../pages/AuditLog').then((m) => ({ default: m.AuditLog })));
 import { RequestAccess } from '../pages/RequestAccess';
@@ -294,17 +295,18 @@ export function App() {
             <Route path="after-sales/maintenance/:id" element={<RequireRole roles={['afs_user', 'operations_manager']}><AfterSalesMaintenanceDetail /></RequireRole>} />
 
             {/* ── Admin only ── */}
+            <Route path="admin-dashboard" element={<RequireRole roles={['admin']}><AdminDashboard /></RequireRole>} />
             <Route path="settings" element={<RequireRole roles={['admin']}><Settings /></RequireRole>} />
             <Route path="admin/users" element={<RequireRole roles={['admin']}><AdminUsers /></RequireRole>} />
             <Route path="audit-log" element={<RequireRole roles={['admin']}><AuditLog /></RequireRole>} />
 
-            {/* ── Admin / Operations Manager ── */}
-            <Route path="templates/approvals" element={<RequireRole roles={['operations_manager']}><TemplateApprovals /></RequireRole>} />
-            <Route path="admin/access-requests" element={<RequireRole roles={['operations_manager']}><AdminAccessRequests /></RequireRole>} />
-            <Route path="admin/access-requests/:id" element={<RequireRole roles={['operations_manager']}><AdminAccessRequestDetail /></RequireRole>} />
-            <Route path="admin/notification-rules" element={<RequireRole roles={['operations_manager']}><AdminNotificationRules /></RequireRole>} />
-            <Route path="admin/report-subscriptions" element={<RequireRole roles={['operations_manager']}><AdminReportSubscriptions /></RequireRole>} />
-            <Route path="admin/report-subscriptions/:id" element={<RequireRole roles={['operations_manager']}><AdminReportSubscriptionDetail /></RequireRole>} />
+            {/* ── Admin governance routes ── */}
+            <Route path="templates/approvals" element={<RequireRole roles={['admin', 'operations_manager']}><TemplateApprovals /></RequireRole>} />
+            <Route path="admin/access-requests" element={<RequireRole roles={['admin']}><AdminAccessRequests /></RequireRole>} />
+            <Route path="admin/access-requests/:id" element={<RequireRole roles={['admin']}><AdminAccessRequestDetail /></RequireRole>} />
+            <Route path="admin/notification-rules" element={<RequireRole roles={['admin']}><AdminNotificationRules /></RequireRole>} />
+            <Route path="admin/report-subscriptions" element={<RequireRole roles={['admin']}><AdminReportSubscriptions /></RequireRole>} />
+            <Route path="admin/report-subscriptions/:id" element={<RequireRole roles={['admin']}><AdminReportSubscriptionDetail /></RequireRole>} />
 
             <Route path="*" element={<NotFound />} />
           </Route>

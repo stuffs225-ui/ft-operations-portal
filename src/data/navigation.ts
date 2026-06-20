@@ -1,12 +1,14 @@
 import type { NavItem } from '../types';
 
-// ─── Step 10.5C → 18.7H — Role-Based Navigation ──────────────────────────────
-// 18.7H changes: operations_manager removed from all module sub-items and generic
-// sections. Replaced with focused CONTROL TOWER, WORKSTREAM MONITORING, and
-// OPERATIONS REPORTING sections. Admin-only items (access-requests, notification-
-// rules, report-subscriptions) restricted to admin only. ops_mgr landing moved to
-// /control-tower. Route paths are UNCHANGED.
-// See: docs/implementation/step-18-7h-operations-manager-control-tower.md
+// ─── Step 10.5C → 18.7I — Role-Based Navigation ──────────────────────────────
+// 18.7H: ops_mgr focused CONTROL TOWER / WORKSTREAM MONITORING / OPERATIONS REPORTING.
+// 18.7I: admin focused SYSTEM ADMINISTRATION / SYSTEM GOVERNANCE sections.
+//        Admin landing moved to /admin-dashboard. Admin removed from all dept-specific
+//        workspace sub-items (PROCUREMENT, STORE OPERATIONS, QUALITY HANDOFF, QUALITY
+//        CONTROL, FACTORY EXECUTION, FACTORY MATERIALS, DUBAI/AFS EXECUTION, AFS
+//        MATERIALS, AFTER SALES). Admin keeps EXECUTION / QUALITY & RELEASE / DUBAI/AFS
+//        hub items for oversight. Route paths are UNCHANGED.
+// See: docs/implementation/step-18-7i-admin-work-center.md
 
 export const NAV_ITEMS: NavItem[] = [
   // ── 1. MY WORK ────────────────────────────────────────────────────────────
@@ -16,13 +18,21 @@ export const NAV_ITEMS: NavItem[] = [
     path: '#',
     icon: '',
   },
+  // admin lands on /admin-dashboard (System Administration)
+  {
+    id: 'admin-dashboard',
+    label: 'System Administration',
+    path: '/admin-dashboard',
+    icon: 'ShieldCheck',
+    roles: ['admin'],
+  },
   {
     id: 'dashboard',
     label: 'Dashboard',
     path: '/',
     icon: 'LayoutDashboard',
-    // ops_mgr lands on /control-tower; sales_user/coordinator have dedicated landing items
-    roles: ['admin', 'procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user', 'viewer'],
+    // ops_mgr lands on /control-tower; sales_user/coordinator have dedicated landing items; admin has admin-dashboard above
+    roles: ['procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user', 'viewer'],
   },
   {
     id: 'inbox',
@@ -189,23 +199,8 @@ export const NAV_ITEMS: NavItem[] = [
     icon: 'FolderKanban',
     roles: ['admin', 'viewer'],
   },
-  {
-    id: 'admin-approvals',
-    label: 'Admin Approvals',
-    path: '/admin-approvals',
-    icon: 'ShieldCheck',
-    // ops_mgr uses ops-approvals in CONTROL TOWER section
-    roles: ['admin'],
-  },
-  {
-    id: 'wo-pn-gate',
-    label: 'WO / PN Gate',
-    path: '/wo-pn-gate',
-    icon: 'GitBranch',
-    // ops_mgr uses ops-wo-pn-gate in CONTROL TOWER section
-    // factory_user uses factory-wo-gate in FACTORY EXECUTION section
-    roles: ['admin'],
-  },
+  // admin-approvals and wo-pn-gate moved to SYSTEM GOVERNANCE section for admin
+
 
   // ── 3B. PROCUREMENT (procurement_user workspace) ──────────────────────────
   {
@@ -219,43 +214,43 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Procurement Dashboard',
     path: '/procurement',
     icon: 'ShoppingCart',
-    // ops_mgr monitors Procurement via WORKSTREAM MONITORING (ops-procurement-monitor)
-    roles: ['admin', 'procurement_user'],
+    // admin accesses Procurement hub via EXECUTION section; ops_mgr via WORKSTREAM MONITORING
+    roles: ['procurement_user'],
   },
   {
     id: 'proc-requests',
     label: 'Purchase Requests',
     path: '/procurement/requests',
     icon: 'FileText',
-    roles: ['admin', 'procurement_user'],
+    roles: ['procurement_user'],
   },
   {
     id: 'proc-items-without-po',
     label: 'PR Items Without PO',
     path: '/procurement/pr-items-without-po',
     icon: 'AlertCircle',
-    roles: ['admin', 'procurement_user'],
+    roles: ['procurement_user'],
   },
   {
     id: 'proc-purchase-orders',
     label: 'PO to Supplier',
     path: '/procurement/purchase-orders',
     icon: 'ShoppingCart',
-    roles: ['admin', 'procurement_user'],
+    roles: ['procurement_user'],
   },
   {
     id: 'proc-eta',
     label: 'ETA Tracking',
     path: '/procurement/eta-history',
     icon: 'Clock',
-    roles: ['admin', 'procurement_user'],
+    roles: ['procurement_user'],
   },
   {
     id: 'proc-suppliers',
     label: 'Approved Suppliers',
     path: '/procurement/suppliers',
     icon: 'Users',
-    roles: ['admin', 'procurement_user'],
+    roles: ['procurement_user'],
   },
 
   // ── 3C. STORE OPERATIONS (store_user workspace) ───────────────────────────
@@ -270,64 +265,64 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Store Dashboard',
     path: '/store',
     icon: 'Warehouse',
-    // ops_mgr monitors Store via WORKSTREAM MONITORING (ops-store-monitor)
-    roles: ['admin', 'store_user'],
+    // admin accesses Store hub via EXECUTION section; ops_mgr via WORKSTREAM MONITORING
+    roles: ['store_user'],
   },
   {
     id: 'store-inventory',
     label: 'Inventory',
     path: '/store/inventory',
     icon: 'Layers',
-    roles: ['admin', 'store_user'],
+    roles: ['store_user'],
   },
   {
     id: 'store-receiving',
     label: 'Material Receiving',
     path: '/store/receipts',
     icon: 'Truck',
-    roles: ['admin', 'store_user'],
+    roles: ['store_user'],
   },
   {
     id: 'store-vehicle',
     label: 'Vehicle Receiving',
     path: '/store/vehicle-receiving',
     icon: 'Truck',
-    roles: ['admin', 'store_user'],
+    roles: ['store_user'],
   },
   {
     id: 'store-issuance',
     label: 'Material Issuance',
     path: '/store/issuance',
     icon: 'ArrowUpRight',
-    roles: ['admin', 'store_user'],
+    roles: ['store_user'],
   },
   {
     id: 'store-custody',
     label: 'Material Custody',
     path: '/custody',
     icon: 'ShieldCheck',
-    roles: ['admin', 'store_user'],
+    roles: ['store_user'],
   },
   {
     id: 'store-unallocated',
     label: 'Unallocated Materials',
     path: '/store/unallocated',
     icon: 'AlertCircle',
-    roles: ['admin', 'store_user'],
+    roles: ['store_user'],
   },
   {
     id: 'store-serials',
     label: 'Serial Register',
     path: '/store/serials',
     icon: 'Hash',
-    roles: ['admin', 'store_user'],
+    roles: ['store_user'],
   },
   {
     id: 'store-returns',
     label: 'Returns / Transfers',
     path: '/store/receipts',
     icon: 'RotateCcw',
-    roles: ['admin', 'store_user'],
+    roles: ['store_user'],
   },
 
   // ── 3D. QUALITY HANDOFF (store-side) ──────────────────────────────────────
@@ -342,21 +337,21 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Pending Material QC',
     path: '/store/qc-handoff',
     icon: 'ClipboardCheck',
-    roles: ['admin', 'store_user'],
+    roles: ['store_user'],
   },
   {
     id: 'store-qc-accepted',
     label: 'QC Accepted Items',
     path: '/store/qc-handoff?status=accepted',
     icon: 'CheckCircle2',
-    roles: ['admin', 'store_user'],
+    roles: ['store_user'],
   },
   {
     id: 'store-qc-rejected',
     label: 'QC Rejected / NCR',
     path: '/store/qc-handoff?status=rejected',
     icon: 'XCircle',
-    roles: ['admin', 'store_user'],
+    roles: ['store_user'],
   },
 
   // ── 3D-QC. QUALITY CONTROL (qc_user workspace) ───────────────────────────
@@ -371,71 +366,71 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'QC Dashboard',
     path: '/qc',
     icon: 'ShieldCheck',
-    // ops_mgr monitors QC via WORKSTREAM MONITORING (ops-qc-monitor)
-    roles: ['admin', 'qc_user'],
+    // admin accesses QC via QUALITY & RELEASE section; ops_mgr via WORKSTREAM MONITORING
+    roles: ['qc_user'],
   },
   {
     id: 'qc-work-queue',
     label: 'QC Work Queue',
     path: '/qc/work-queue',
     icon: 'ListChecks',
-    roles: ['admin', 'qc_user'],
+    roles: ['qc_user'],
   },
   {
     id: 'qc-material-qc',
     label: 'Material QC',
     path: '/material-qc',
     icon: 'Microscope',
-    roles: ['admin', 'qc_user'],
+    roles: ['qc_user'],
   },
   {
     id: 'qc-material-inspections',
     label: 'Material Inspections',
     path: '/material-qc/inspections',
     icon: 'ClipboardCheck',
-    roles: ['admin', 'qc_user'],
+    roles: ['qc_user'],
   },
   {
     id: 'qc-material-ncrs',
     label: 'Material NCRs',
     path: '/material-qc/ncrs',
     icon: 'AlertOctagon',
-    roles: ['admin', 'qc_user'],
+    roles: ['qc_user'],
   },
   {
     id: 'qc-project-qc',
     label: 'Project / Vehicle QC',
     path: '/project-qc',
     icon: 'ClipboardList',
-    roles: ['admin', 'qc_user'],
+    roles: ['qc_user'],
   },
   {
     id: 'qc-project-inspections',
     label: 'Project QC Inspections',
     path: '/project-qc/inspections',
     icon: 'Search',
-    roles: ['admin', 'qc_user'],
+    roles: ['qc_user'],
   },
   {
     id: 'qc-findings',
     label: 'QC Findings',
     path: '/project-qc/findings',
     icon: 'AlertTriangle',
-    roles: ['admin', 'qc_user'],
+    roles: ['qc_user'],
   },
   {
     id: 'qc-rework',
     label: 'Rework',
     path: '/qc/rework',
     icon: 'Wrench',
-    roles: ['admin', 'qc_user'],
+    roles: ['qc_user'],
   },
   {
     id: 'qc-release-notes',
     label: 'Release Notes',
     path: '/project-qc/release-notes',
     icon: 'FileCheck',
-    roles: ['admin', 'qc_user'],
+    roles: ['qc_user'],
   },
 
   // ── 3D-QC-R. QUALITY REPORTING ────────────────────────────────────────────
@@ -450,7 +445,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'QC Reports',
     path: '/reports/qc',
     icon: 'BarChart2',
-    roles: ['admin', 'qc_user'],
+    roles: ['qc_user'],
   },
 
   // ── 3E. FACTORY EXECUTION (factory_user workspace) ───────────────────────
@@ -465,57 +460,57 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Factory Dashboard',
     path: '/factory',
     icon: 'Factory',
-    // ops_mgr monitors Factory via WORKSTREAM MONITORING (ops-factory-monitor)
-    roles: ['admin', 'factory_user'],
+    // admin accesses Factory hub via EXECUTION section; ops_mgr via WORKSTREAM MONITORING
+    roles: ['factory_user'],
   },
   {
     id: 'factory-wo-gate',
     label: 'WO Gate / Missing WO',
     path: '/wo-pn-gate',
     icon: 'GitBranch',
-    roles: ['admin', 'factory_user'],
+    roles: ['factory_user'],
   },
   {
     id: 'factory-projects',
     label: 'Factory Projects',
     path: '/factory/projects',
     icon: 'Wrench',
-    roles: ['admin', 'factory_user'],
+    roles: ['factory_user'],
   },
   {
     id: 'factory-production-lines',
     label: 'Production Lines',
     path: '/factory/projects',
     icon: 'Layers',
-    roles: ['admin', 'factory_user'],
+    roles: ['factory_user'],
   },
   {
     id: 'factory-requirements',
     label: 'Factory Requirements',
     path: '/factory/requirements',
     icon: 'FileText',
-    roles: ['admin', 'factory_user'],
+    roles: ['factory_user'],
   },
   {
     id: 'factory-rmr',
     label: 'Raw Material Requests',
     path: '/factory/raw-material-requests',
     icon: 'Package',
-    roles: ['admin', 'factory_user'],
+    roles: ['factory_user'],
   },
   {
     id: 'factory-monthly-updates',
     label: 'Monthly Updates',
     path: '/factory/monthly-updates',
     icon: 'CalendarClock',
-    roles: ['admin', 'factory_user'],
+    roles: ['factory_user'],
   },
   {
     id: 'factory-send-to-qc',
     label: 'Send to QC',
     path: '/factory/send-to-qc',
     icon: 'CheckCircle2',
-    roles: ['admin', 'factory_user'],
+    roles: ['factory_user'],
   },
 
   // ── 3F. FACTORY MATERIALS ─────────────────────────────────────────────────
@@ -530,21 +525,21 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Materials Requested',
     path: '/factory/raw-material-requests',
     icon: 'Package',
-    roles: ['admin', 'factory_user'],
+    roles: ['factory_user'],
   },
   {
     id: 'factory-materials-issued',
     label: 'Materials Issued to Factory',
     path: '/custody',
     icon: 'PackageCheck',
-    roles: ['admin', 'factory_user'],
+    roles: ['factory_user'],
   },
   {
     id: 'factory-custody',
     label: 'Factory Custody',
     path: '/custody',
     icon: 'ShieldCheck',
-    roles: ['admin', 'factory_user'],
+    roles: ['factory_user'],
   },
 
   // ── 4. EXECUTION ──────────────────────────────────────────────────────────
@@ -625,57 +620,57 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'AFS Dashboard',
     path: '/dubai-afs',
     icon: 'Plane',
-    // ops_mgr monitors AFS via WORKSTREAM MONITORING (ops-afs-monitor)
-    roles: ['admin', 'afs_user'],
+    // admin accesses Dubai/AFS hub via DUBAI / AFS section; ops_mgr via WORKSTREAM MONITORING
+    roles: ['afs_user'],
   },
   {
     id: 'afs-pn-gate',
     label: 'PN Gate / Missing PN',
     path: '/afs/pn-gate',
     icon: 'ShieldCheck',
-    roles: ['admin', 'afs_user'],
+    roles: ['afs_user'],
   },
   {
     id: 'afs-followups',
     label: 'Dubai Follow-ups',
     path: '/dubai-afs/projects',
     icon: 'TrendingUp',
-    roles: ['admin', 'afs_user'],
+    roles: ['afs_user'],
   },
   {
     id: 'afs-eta',
     label: 'Dubai ETA Tracking',
     path: '/dubai-afs/eta',
     icon: 'Clock',
-    roles: ['admin', 'afs_user'],
+    roles: ['afs_user'],
   },
   {
     id: 'afs-arrivals',
     label: 'Vehicle Arrivals',
     path: '/dubai-afs/arrival-reports',
     icon: 'Truck',
-    roles: ['admin', 'afs_user'],
+    roles: ['afs_user'],
   },
   {
     id: 'afs-missing',
     label: 'Missing Items',
     path: '/dubai-afs/missing-items',
     icon: 'AlertTriangle',
-    roles: ['admin', 'afs_user'],
+    roles: ['afs_user'],
   },
   {
     id: 'afs-predelivery',
     label: 'Pre-Delivery Readiness',
     path: '/dubai-afs/predelivery-reports',
     icon: 'ClipboardCheck',
-    roles: ['admin', 'afs_user'],
+    roles: ['afs_user'],
   },
   {
     id: 'afs-ready-delivery',
     label: 'Ready for Delivery',
     path: '/afs/ready-for-delivery',
     icon: 'PackageCheck',
-    roles: ['admin', 'afs_user'],
+    roles: ['afs_user'],
   },
 
   // ── 3E-AFS-M. AFS MATERIALS ───────────────────────────────────────────────
@@ -690,14 +685,14 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'AFS Materials',
     path: '/afs/materials',
     icon: 'Package',
-    roles: ['admin', 'afs_user'],
+    roles: ['afs_user'],
   },
   {
     id: 'afs-custody',
     label: 'Materials in Custody',
     path: '/custody',
     icon: 'PackageCheck',
-    roles: ['admin', 'afs_user'],
+    roles: ['afs_user'],
   },
 
   // ── 3E-AFS-AS. AFTER SALES ────────────────────────────────────────────────
@@ -712,14 +707,14 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Maintenance Requests',
     path: '/after-sales/maintenance',
     icon: 'Wrench',
-    roles: ['admin', 'afs_user'],
+    roles: ['afs_user'],
   },
   {
     id: 'after-sales-new',
     label: 'New Maintenance Request',
     path: '/after-sales/maintenance/new',
     icon: 'FilePlus',
-    roles: ['admin', 'afs_user'],
+    roles: ['afs_user'],
   },
 
   // ── 6. DUBAI / AFS (admin generic — afs_user uses sections above) ─────────
@@ -903,26 +898,25 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['operations_manager'],
   },
 
-  // ── 8. ADMIN & SYSTEM ─────────────────────────────────────────────────────
+  // ── 8. SYSTEM ADMINISTRATION (admin only) ────────────────────────────────
   {
-    id: 'sep-7',
-    label: 'ADMIN & SYSTEM',
+    id: 'sep-system-admin',
+    label: 'SYSTEM ADMINISTRATION',
     path: '#',
     icon: '',
   },
   {
-    id: 'templates',
-    label: 'Document Templates',
-    path: '/templates',
-    icon: 'FileStack',
-    roles: ['admin', 'sales_user'],
+    id: 'admin-users',
+    label: 'User Management',
+    path: '/admin/users',
+    icon: 'Users',
+    roles: ['admin'],
   },
   {
     id: 'admin-access-requests',
     label: 'Access Requests',
     path: '/admin/access-requests',
     icon: 'UserPlus',
-    // User management is admin-only per governance rules
     roles: ['admin'],
   },
   {
@@ -930,7 +924,6 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Notification Rules',
     path: '/admin/notification-rules',
     icon: 'BellRing',
-    // System configuration is admin-only per governance rules
     roles: ['admin'],
   },
   {
@@ -940,18 +933,26 @@ export const NAV_ITEMS: NavItem[] = [
     icon: 'CalendarClock',
     roles: ['admin'],
   },
+
+  // ── 9. SYSTEM GOVERNANCE (admin only) ────────────────────────────────────
   {
-    id: 'admin-users',
-    label: 'Admin / Users',
-    path: '/admin/users',
-    icon: 'Users',
+    id: 'sep-system-gov',
+    label: 'SYSTEM GOVERNANCE',
+    path: '#',
+    icon: '',
+  },
+  {
+    id: 'sys-admin-approvals',
+    label: 'Admin Approvals',
+    path: '/admin-approvals',
+    icon: 'ShieldCheck',
     roles: ['admin'],
   },
   {
-    id: 'settings',
-    label: 'Settings',
-    path: '/settings',
-    icon: 'Settings',
+    id: 'sys-wo-pn-gate',
+    label: 'WO / PN Gate',
+    path: '/wo-pn-gate',
+    icon: 'GitBranch',
     roles: ['admin'],
   },
   {
@@ -960,5 +961,19 @@ export const NAV_ITEMS: NavItem[] = [
     path: '/audit-log',
     icon: 'ScrollText',
     roles: ['admin'],
+  },
+  {
+    id: 'settings',
+    label: 'System Settings',
+    path: '/settings',
+    icon: 'Settings',
+    roles: ['admin'],
+  },
+  {
+    id: 'templates',
+    label: 'Document Templates',
+    path: '/templates',
+    icon: 'FileStack',
+    roles: ['admin', 'sales_user'],
   },
 ];
