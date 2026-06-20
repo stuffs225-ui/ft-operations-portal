@@ -141,10 +141,13 @@ export const ROLE_MATRIX: Record<UserRole, RoleMatrixEntry> = {
     moduleAccentColor: 'bg-sky-600',
     badgeClass: 'bg-sky-100 text-sky-800',
     rules: [
-      'PN (Project Number) is mandatory before any Dubai AFS follow-up',
-      'No Dubai ETA, Dubai PO, or AFS readiness activities before PN',
-      'Arrival report must be completed within 48 hours of vehicle arrival',
-      'Pre-delivery inspection required before vehicle handover',
+      'PN is required before Dubai follow-up, ETA tracking, and pre-delivery readiness',
+      'Dubai projects are separate from Saudi factory execution',
+      'ETA changes require a documented reason',
+      'Arrival report must be recorded after vehicle arrival at AFS facility',
+      'Open missing items block pre-delivery readiness',
+      'QC Release Note is required before marking ready for delivery',
+      'After Sales Maintenance requests are post-delivery and must link to delivered project/vehicle',
     ],
   },
   viewer: {

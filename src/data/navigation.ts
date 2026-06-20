@@ -517,7 +517,114 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'operations_manager'],
   },
 
-  // ── 6. DUBAI / AFS ────────────────────────────────────────────────────────
+  // ── 3E-AFS. DUBAI/AFS EXECUTION (afs_user workspace) ────────────────────────
+  // 18.7E: dedicated AFS section replacing generic DUBAI/AFS for afs_user.
+  // Admin/ops_manager also see these for direct deep-link navigation.
+  {
+    id: 'sep-afs',
+    label: 'DUBAI / AFS EXECUTION',
+    path: '#',
+    icon: '',
+  },
+  {
+    id: 'afs-dashboard',
+    label: 'AFS Dashboard',
+    path: '/dubai-afs',
+    icon: 'Plane',
+    roles: ['admin', 'operations_manager', 'afs_user'],
+  },
+  {
+    id: 'afs-pn-gate',
+    label: 'PN Gate / Missing PN',
+    path: '/afs/pn-gate',
+    icon: 'ShieldCheck',
+    roles: ['admin', 'operations_manager', 'afs_user'],
+  },
+  {
+    id: 'afs-followups',
+    label: 'Dubai Follow-ups',
+    path: '/dubai-afs/projects',
+    icon: 'TrendingUp',
+    roles: ['admin', 'operations_manager', 'afs_user'],
+  },
+  {
+    id: 'afs-eta',
+    label: 'Dubai ETA Tracking',
+    path: '/dubai-afs/eta',
+    icon: 'Clock',
+    roles: ['admin', 'operations_manager', 'afs_user'],
+  },
+  {
+    id: 'afs-arrivals',
+    label: 'Vehicle Arrivals',
+    path: '/dubai-afs/arrival-reports',
+    icon: 'Truck',
+    roles: ['admin', 'operations_manager', 'afs_user'],
+  },
+  {
+    id: 'afs-missing',
+    label: 'Missing Items',
+    path: '/dubai-afs/missing-items',
+    icon: 'AlertTriangle',
+    roles: ['admin', 'operations_manager', 'afs_user'],
+  },
+  {
+    id: 'afs-predelivery',
+    label: 'Pre-Delivery Readiness',
+    path: '/dubai-afs/predelivery-reports',
+    icon: 'ClipboardCheck',
+    roles: ['admin', 'operations_manager', 'afs_user'],
+  },
+  {
+    id: 'afs-ready-delivery',
+    label: 'Ready for Delivery',
+    path: '/afs/ready-for-delivery',
+    icon: 'PackageCheck',
+    roles: ['admin', 'operations_manager', 'afs_user'],
+  },
+  // ── 3E-AFS-M. AFS MATERIALS ────────────────────────────────────────────────
+  {
+    id: 'sep-afs-materials',
+    label: 'AFS MATERIALS',
+    path: '#',
+    icon: '',
+  },
+  {
+    id: 'afs-materials',
+    label: 'AFS Materials',
+    path: '/afs/materials',
+    icon: 'Package',
+    roles: ['admin', 'operations_manager', 'afs_user'],
+  },
+  {
+    id: 'afs-custody',
+    label: 'Materials in Custody',
+    path: '/custody',
+    icon: 'PackageCheck',
+    roles: ['admin', 'operations_manager', 'afs_user'],
+  },
+  // ── 3E-AFS-AS. AFTER SALES ────────────────────────────────────────────────
+  {
+    id: 'sep-after-sales',
+    label: 'AFTER SALES',
+    path: '#',
+    icon: '',
+  },
+  {
+    id: 'after-sales-maintenance',
+    label: 'Maintenance Requests',
+    path: '/after-sales/maintenance',
+    icon: 'Wrench',
+    roles: ['admin', 'operations_manager', 'afs_user'],
+  },
+  {
+    id: 'after-sales-new',
+    label: 'New Maintenance Request',
+    path: '/after-sales/maintenance/new',
+    icon: 'FilePlus',
+    roles: ['admin', 'operations_manager', 'afs_user'],
+  },
+  // ── 6. DUBAI / AFS (admin/ops_manager generic — afs_user uses sections above) ─
   {
     id: 'sep-5',
     label: 'DUBAI / AFS',
@@ -529,14 +636,14 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Dubai / AFS',
     path: '/dubai-afs',
     icon: 'Plane',
-    roles: ['admin', 'operations_manager', 'afs_user'],
+    roles: ['admin', 'operations_manager'],
   },
   {
     id: 'after-sales',
     label: 'After Sales Maintenance',
     path: '/after-sales',
     icon: 'Wrench',
-    roles: ['admin', 'operations_manager', 'afs_user'],
+    roles: ['admin', 'operations_manager'],
   },
 
   // ── 7. REPORTING ─────────────────────────────────────────────────────────
