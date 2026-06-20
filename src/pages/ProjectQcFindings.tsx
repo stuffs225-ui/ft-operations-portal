@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, ChevronRight } from 'lucide-react';
+import { AlertTriangle, ChevronRight, XCircle } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { PageLoader } from '../components/ui/PageLoader';
 import { Badge } from '../components/ui/Badge';
@@ -83,7 +83,7 @@ export function ProjectQcFindings() {
           {STATUS_TABS.map(t => (
             <button key={t.key} onClick={() => setStatusTab(t.key)}
               className={`px-3 py-2 text-sm font-medium rounded-t whitespace-nowrap transition-colors ${
-                statusTab === t.key ? 'text-sky-700 border-b-2 border-sky-600' : 'text-gray-500 hover:text-gray-700'
+                statusTab === t.key ? 'text-violet-700 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700'
               }`}>
               {t.label}
             </button>
@@ -108,6 +108,7 @@ export function ProjectQcFindings() {
                   <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide hidden md:table-cell">Rework</th>
                   <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide hidden xl:table-cell">Due</th>
                   <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
+                  <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide hidden lg:table-cell">Blocks Release</th>
                   <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide"></th>
                 </tr>
               </thead>
@@ -125,6 +126,11 @@ export function ProjectQcFindings() {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500 hidden xl:table-cell">{f.due_date ? formatDate(f.due_date) : '—'}</td>
                     <td className="px-4 py-3"><Badge variant={statusVariant(f.finding_status)}>{f.finding_status.replace(/_/g, ' ')}</Badge></td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      {f.finding_status !== 'closed' && f.finding_status !== 'cancelled'
+                        ? <span className="inline-flex items-center gap-1 text-xs text-red-600 font-medium"><XCircle size={12} /> Blocking</span>
+                        : <Badge variant="success">No</Badge>}
+                    </td>
                     <td className="px-4 py-3">
                       <Link to={`/project-qc/findings/${f.id}`}>
                         <Button variant="ghost" size="sm">View <ChevronRight size={14} /></Button>

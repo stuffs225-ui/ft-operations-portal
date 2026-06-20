@@ -16,6 +16,10 @@ import {
   MOCK_RELEASE_NOTES as MOCK_RELEASE_NOTES_RAW,
 } from '../data/mockQc';
 import { mockOrEmpty } from '../lib/dataMode';
+import type {
+  MaterialQcInspection, MaterialNcr,
+  ProjectQcInspection, ProjectQcFinding, ReleaseNote,
+} from '../types';
 
 const MOCK_MATERIAL_QC_INSPECTIONS = mockOrEmpty(MOCK_MATERIAL_QC_INSPECTIONS_RAW);
 const MOCK_MATERIAL_NCRS = mockOrEmpty(MOCK_MATERIAL_NCRS_RAW);
@@ -25,6 +29,14 @@ const MOCK_RELEASE_NOTES = mockOrEmpty(MOCK_RELEASE_NOTES_RAW);
 
 interface QCSummary { openNcrs: number; openFindings: number; rnPending: number; rnIssued: number; }
 const EMPTY_SUMMARY: QCSummary = { openNcrs: 0, openFindings: 0, rnPending: 0, rnIssued: 0 };
+
+interface LiveData {
+  materialInspections: MaterialQcInspection[];
+  materialNcrs: MaterialNcr[];
+  projectInspections: ProjectQcInspection[];
+  findings: ProjectQcFinding[];
+  releaseNotes: ReleaseNote[];
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -103,23 +115,37 @@ type Tab = typeof TABS[number];
 export function ReportsQC() {
   const [activeTab, setActiveTab] = useState<Tab>('Material QC');
   const [summary, setSummary] = useState<QCSummary>(EMPTY_SUMMARY);
+  const [live, setLive] = useState<LiveData | null>(null);
 
   useEffect(() => {
     (async () => {
-    if (!isSupabaseConfigured || !supabase) {
-      setSummary({
-        openNcrs: MOCK_MATERIAL_NCRS.filter(n => n.ncr_status === 'open').length,
-        openFindings: MOCK_PROJECT_QC_FINDINGS.filter(f => f.finding_status !== 'closed').length,
-        rnPending: MOCK_RELEASE_NOTES.filter(r => r.release_status === 'draft' || r.release_status === 'blocked' || r.release_status === 'ready_to_issue').length,
-        rnIssued: MOCK_RELEASE_NOTES.filter(r => r.release_status === 'issued').length,
-      });
-      return;
-    }
-      const [ncrRes, findingsRes, rnPendingRes, rnIssuedRes] = await Promise.all([
-        supabase!.from('material_ncrs').select('*', { count: 'exact', head: true }).in('ncr_status', ['open', 'assigned', 'corrective_action_in_progress', 'pending_evidence']),
-        supabase!.from('project_qc_findings').select('*', { count: 'exact', head: true }).in('finding_status', ['open', 'assigned', 'rework_in_progress', 'pending_reinspection']),
+      if (!isSupabaseConfigured || !supabase) {
+        setSummary({
+          openNcrs: MOCK_MATERIAL_NCRS.filter(n => n.ncr_status !== 'closed' && n.ncr_status !== 'cancelled').length,
+          openFindings: MOCK_PROJECT_QC_FINDINGS.filter(f => f.finding_status !== 'closed' && f.finding_status !== 'cancelled').length,
+          rnPending: MOCK_RELEASE_NOTES.filter(r => r.release_status === 'draft' || r.release_status === 'blocked' || r.release_status === 'ready_to_issue').length,
+          rnIssued: MOCK_RELEASE_NOTES.filter(r => r.release_status === 'issued').length,
+        });
+        setLive({
+          materialInspections: MOCK_MATERIAL_QC_INSPECTIONS as unknown as MaterialQcInspection[],
+          materialNcrs: MOCK_MATERIAL_NCRS as unknown as MaterialNcr[],
+          projectInspections: MOCK_PROJECT_QC_INSPECTIONS as unknown as ProjectQcInspection[],
+          findings: MOCK_PROJECT_QC_FINDINGS as unknown as ProjectQcFinding[],
+          releaseNotes: MOCK_RELEASE_NOTES as unknown as ReleaseNote[],
+        });
+        return;
+      }
+      const [ncrRes, findingsRes, rnPendingRes, rnIssuedRes,
+        matInspData, matNcrData, projInspData, findData, rnData] = await Promise.all([
+        supabase!.from('material_ncrs').select('*', { count: 'exact', head: true }).not('ncr_status', 'in', '(closed,cancelled)'),
+        supabase!.from('project_qc_findings').select('*', { count: 'exact', head: true }).not('finding_status', 'in', '(closed,cancelled)'),
         supabase!.from('release_notes').select('*', { count: 'exact', head: true }).in('release_status', ['draft', 'blocked', 'ready_to_issue']),
         supabase!.from('release_notes').select('*', { count: 'exact', head: true }).eq('release_status', 'issued'),
+        supabase!.from('material_qc_inspections').select('*, project:projects(project_code), item:store_receipt_items(item_name, quantity_received, unit)').order('created_at', { ascending: false }).limit(200),
+        supabase!.from('material_ncrs').select('*, project:projects(project_code), item:store_receipt_items(item_name)').order('created_at', { ascending: false }).limit(200),
+        supabase!.from('project_qc_inspections').select('*, project:projects(project_code), vehicle_line:project_vehicle_lines(vehicle_type)').order('created_at', { ascending: false }).limit(200),
+        supabase!.from('project_qc_findings').select('*, project:projects(project_code), vehicle_line:project_vehicle_lines(vehicle_type)').order('created_at', { ascending: false }).limit(200),
+        supabase!.from('release_notes').select('*, project:projects(project_code), vehicle_line:project_vehicle_lines(vehicle_type)').order('created_at', { ascending: false }).limit(200),
       ]);
       setSummary({
         openNcrs: ncrRes.count ?? 0,
@@ -127,24 +153,34 @@ export function ReportsQC() {
         rnPending: rnPendingRes.count ?? 0,
         rnIssued: rnIssuedRes.count ?? 0,
       });
+      setLive({
+        materialInspections: (matInspData.data as unknown as MaterialQcInspection[]) ?? [],
+        materialNcrs: (matNcrData.data as unknown as MaterialNcr[]) ?? [],
+        projectInspections: (projInspData.data as unknown as ProjectQcInspection[]) ?? [],
+        findings: (findData.data as unknown as ProjectQcFinding[]) ?? [],
+        releaseNotes: (rnData.data as unknown as ReleaseNote[]) ?? [],
+      });
     })();
   }, []);
 
-  const openNcrs = MOCK_MATERIAL_NCRS.filter((n) => n.ncr_status === 'open');
-  const openFindings = MOCK_PROJECT_QC_FINDINGS.filter(
-    (f) => f.finding_status !== 'closed',
-  );
+  const matInsp = live?.materialInspections ?? (MOCK_MATERIAL_QC_INSPECTIONS as unknown as MaterialQcInspection[]);
+  const matNcrs = live?.materialNcrs ?? (MOCK_MATERIAL_NCRS as unknown as MaterialNcr[]);
+  const projInsp = live?.projectInspections ?? (MOCK_PROJECT_QC_INSPECTIONS as unknown as ProjectQcInspection[]);
+  const findings = live?.findings ?? (MOCK_PROJECT_QC_FINDINGS as unknown as ProjectQcFinding[]);
+  const releaseNotes = live?.releaseNotes ?? (MOCK_RELEASE_NOTES as unknown as ReleaseNote[]);
+
+  const openNcrs = matNcrs.filter((n) => n.ncr_status !== 'closed' && n.ncr_status !== 'cancelled');
+  const openFindings = findings.filter((f) => f.finding_status !== 'closed' && f.finding_status !== 'cancelled');
 
   function handleExportCsv() {
-    type NcrRow = typeof MOCK_MATERIAL_NCRS[number];
-    const columns: ReportColumn<NcrRow>[] = [
+    const columns: ReportColumn<MaterialNcr>[] = [
       { key: 'ncr_number', header: 'NCR #', value: n => n.ncr_number },
       { key: 'severity', header: 'Severity', value: n => n.severity },
       { key: 'ncr_status', header: 'Status', value: n => n.ncr_status },
       { key: 'root_cause_category', header: 'Root Cause', value: n => n.root_cause_category ?? '' },
       { key: 'due_date', header: 'Due Date', value: n => n.due_date ?? '' },
     ];
-    exportRowsToCsv(`qc-ncrs-${new Date().toISOString().split('T')[0]}.csv`, MOCK_MATERIAL_NCRS, columns);
+    exportRowsToCsv(`qc-ncrs-${new Date().toISOString().split('T')[0]}.csv`, matNcrs, columns);
   }
 
   return (
@@ -188,7 +224,7 @@ export function ReportsQC() {
             className={[
               'shrink-0 px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
               activeTab === tab
-                ? 'border-brand-600 text-brand-700'
+                ? 'border-violet-600 text-violet-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700',
             ].join(' ')}
           >
@@ -203,7 +239,7 @@ export function ReportsQC() {
           <div className="p-4 border-b border-gray-100 flex items-center gap-2">
             <Search className="w-4 h-4 text-gray-400" />
             <span className="font-semibold text-sm text-gray-700">
-              Material QC Inspections ({MOCK_MATERIAL_QC_INSPECTIONS.length})
+              Material QC Inspections ({matInsp.length})
             </span>
           </div>
           <div className="overflow-x-auto">
@@ -220,7 +256,7 @@ export function ReportsQC() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {MOCK_MATERIAL_QC_INSPECTIONS.map((insp) => (
+                {matInsp.map((insp) => (
                   <tr key={insp.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {insp.inspection_number}
@@ -250,7 +286,7 @@ export function ReportsQC() {
                     </td>
                   </tr>
                 ))}
-                {MOCK_MATERIAL_QC_INSPECTIONS.length === 0 && (
+                {matInsp.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
                       No material QC inspections found
@@ -278,7 +314,7 @@ export function ReportsQC() {
             <div className="p-4 border-b border-gray-100 flex items-center gap-2">
               <AlertOctagon className="w-4 h-4 text-red-500" />
               <span className="font-semibold text-sm text-gray-700">
-                All NCRs ({MOCK_MATERIAL_NCRS.length})
+                All NCRs ({matNcrs.length})
               </span>
             </div>
             <div className="overflow-x-auto">
@@ -295,7 +331,7 @@ export function ReportsQC() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {MOCK_MATERIAL_NCRS.map((ncr) => (
+                  {matNcrs.map((ncr) => (
                     <tr key={ncr.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900">{ncr.ncr_number}</td>
                       <td className="px-4 py-3 text-gray-600">
@@ -320,7 +356,7 @@ export function ReportsQC() {
                       <td className="px-4 py-3 text-gray-500">{formatDate(ncr.due_date)}</td>
                     </tr>
                   ))}
-                  {MOCK_MATERIAL_NCRS.length === 0 && (
+                  {matNcrs.length === 0 && (
                     <tr>
                       <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
                         No NCRs found
@@ -340,7 +376,7 @@ export function ReportsQC() {
           <div className="p-4 border-b border-gray-100 flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-gray-400" />
             <span className="font-semibold text-sm text-gray-700">
-              Project QC Inspections ({MOCK_PROJECT_QC_INSPECTIONS.length})
+              Project QC Inspections ({projInsp.length})
             </span>
           </div>
           <div className="overflow-x-auto">
@@ -357,7 +393,7 @@ export function ReportsQC() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {MOCK_PROJECT_QC_INSPECTIONS.map((insp) => (
+                {projInsp.map((insp) => (
                   <tr key={insp.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {insp.inspection_number}
@@ -386,7 +422,7 @@ export function ReportsQC() {
                     </td>
                   </tr>
                 ))}
-                {MOCK_PROJECT_QC_INSPECTIONS.length === 0 && (
+                {projInsp.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
                       No project QC inspections found
@@ -414,7 +450,7 @@ export function ReportsQC() {
             <div className="p-4 border-b border-gray-100 flex items-center gap-2">
               <Wrench className="w-4 h-4 text-amber-500" />
               <span className="font-semibold text-sm text-gray-700">
-                All Findings ({MOCK_PROJECT_QC_FINDINGS.length})
+                All Findings ({findings.length})
               </span>
             </div>
             <div className="overflow-x-auto">
@@ -431,7 +467,7 @@ export function ReportsQC() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {MOCK_PROJECT_QC_FINDINGS.map((f) => (
+                  {findings.map((f) => (
                     <tr key={f.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900">{f.finding_number}</td>
                       <td className="px-4 py-3 text-gray-600">
@@ -454,7 +490,7 @@ export function ReportsQC() {
                       <td className="px-4 py-3 text-gray-500">{formatDate(f.due_date)}</td>
                     </tr>
                   ))}
-                  {MOCK_PROJECT_QC_FINDINGS.length === 0 && (
+                  {findings.length === 0 && (
                     <tr>
                       <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
                         No findings found
@@ -474,7 +510,7 @@ export function ReportsQC() {
           <div className="p-4 border-b border-gray-100 flex items-center gap-2">
             <FileCheck className="w-4 h-4 text-gray-400" />
             <span className="font-semibold text-sm text-gray-700">
-              Release Notes ({MOCK_RELEASE_NOTES.length})
+              Release Notes ({releaseNotes.length})
             </span>
           </div>
           <div className="overflow-x-auto">
@@ -491,7 +527,7 @@ export function ReportsQC() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {MOCK_RELEASE_NOTES.map((rn) => (
+                {releaseNotes.map((rn) => (
                   <tr
                     key={rn.id}
                     className={
@@ -525,7 +561,7 @@ export function ReportsQC() {
                     </td>
                   </tr>
                 ))}
-                {MOCK_RELEASE_NOTES.length === 0 && (
+                {releaseNotes.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
                       No release notes found
