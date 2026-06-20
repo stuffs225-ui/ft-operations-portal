@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Package, AlertCircle } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
@@ -6,36 +6,127 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_STORE_RECEIPTS, MOCK_RECEIPT_ITEMS } from '../data/mockStore';
 import type { UserRole } from '../types';
-import { isSupabaseConfigured } from '../lib/supabase';
 import { mockOrEmpty } from '../lib/dataMode';
 
 const CAN_ASSIGN: UserRole[] = ['admin', 'operations_manager', 'store_user'];
 
+interface ProjectOption {
+  id: string;
+  project_code: string;
+  customer_name: string;
+}
+
+interface UnallocatedItem {
+  id: string;
+  item_name: string;
+  item_code: string | null;
+  material_category: string;
+  quantity_received: number;
+  unit: string;
+  status: string;
+  store_receipt_id: string;
+  receipt_number: string;
+  received_date: string;
+}
+
 export function StoreUnallocated() {
   const { role } = useAuth();
-  const [assigningItemId, setAssigningItemId] = useState<string | null>(null);
-  const [selectedProject, setSelectedProject] = useState('');
-  const [devMsgs, setDevMsgs] = useState<Record<string, string>>({});
-
   const canAssign = role ? CAN_ASSIGN.includes(role) : false;
 
-  // Find unallocated receipts and their items — empty in live mode to prevent mock data in production
-  const unallocatedReceipts = mockOrEmpty(MOCK_STORE_RECEIPTS).filter(r => !r.project_id);
-  const unallocatedItems = unallocatedReceipts.flatMap(r =>
-    (MOCK_RECEIPT_ITEMS[r.id] ?? []).map(item => ({ ...item, receipt_number: r.receipt_number, received_date: r.received_date }))
-  );
+  const [unallocatedItems, setUnallocatedItems] = useState<UnallocatedItem[]>([]);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [assigningItemId, setAssigningItemId] = useState<string | null>(null);
+  const [selectedProject, setSelectedProject] = useState('');
+  const [assigning, setAssigning] = useState(false);
+  const [devMsgs, setDevMsgs] = useState<Record<string, string>>({});
 
-  function handleAssign(itemId: string) {
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      if (isSupabaseConfigured && supabase) {
+        const [{ data: receipts }, { data: projData }] = await Promise.all([
+          supabase
+            .from('store_receipts')
+            .select('id, receipt_number, received_date, store_receipt_items(id, item_name, item_code, material_category, quantity_received, unit, status, store_receipt_id, project_id)')
+            .is('project_id', null)
+            .order('received_date', { ascending: false })
+            .limit(200),
+          supabase
+            .from('projects')
+            .select('id, project_code, customer_name')
+            .in('project_status', ['active', 'approved'])
+            .order('created_at', { ascending: false })
+            .limit(200),
+        ]);
+
+        if (receipts) {
+          const items: UnallocatedItem[] = [];
+          for (const r of (receipts as any[])) {
+            for (const item of (r.store_receipt_items ?? [])) {
+              if (!item.project_id) {
+                items.push({ ...item, receipt_number: r.receipt_number, received_date: r.received_date });
+              }
+            }
+          }
+          setUnallocatedItems(items);
+        }
+        if (projData) setProjects(projData as ProjectOption[]);
+      } else {
+        const result: UnallocatedItem[] = mockOrEmpty(MOCK_STORE_RECEIPTS)
+          .filter(r => !r.project_id)
+          .flatMap(r =>
+            (MOCK_RECEIPT_ITEMS[r.id] ?? []).map(item => ({
+              id: item.id,
+              item_name: item.item_name,
+              item_code: item.item_code ?? null,
+              material_category: item.material_category,
+              quantity_received: item.quantity_received,
+              unit: item.unit,
+              status: item.status,
+              store_receipt_id: item.store_receipt_id,
+              receipt_number: r.receipt_number,
+              received_date: r.received_date,
+            }))
+          );
+        setUnallocatedItems(result);
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  async function handleAssign(itemId: string) {
     if (!selectedProject) return;
-    if (!isSupabaseConfigured) {
-      setDevMsgs(prev => ({ ...prev, [itemId]: `Dev Mode — assigned to ${selectedProject} (not persisted)` }));
+
+    if (!isSupabaseConfigured || !supabase) {
+      const proj = projects.find(p => p.id === selectedProject);
+      const label = proj ? `${proj.project_code} — ${proj.customer_name}` : selectedProject;
+      setDevMsgs(prev => ({ ...prev, [itemId]: `Dev Mode — assigned to ${label} (not persisted)` }));
       setAssigningItemId(null);
       setSelectedProject('');
       return;
     }
+
+    setAssigning(true);
+    // project_id assignment updates the receipt so all its items inherit the project
+    const item = unallocatedItems.find(i => i.id === itemId);
+    const receiptId = item?.store_receipt_id;
+    const { error } = receiptId
+      ? await supabase
+          .from('store_receipts')
+          .update({ project_id: selectedProject })
+          .eq('id', receiptId)
+      : { error: new Error('Receipt not found') };
+    setAssigning(false);
+
+    if (!error) {
+      setUnallocatedItems(prev => prev.filter(i => i.id !== itemId));
+    }
     setAssigningItemId(null);
+    setSelectedProject('');
   }
 
   return (
@@ -43,18 +134,22 @@ export function StoreUnallocated() {
       <PageHeader
         title="Unallocated Materials"
         subtitle="Received items not yet linked to a project"
+        breadcrumb={[{ label: 'Store', href: '/store' }, { label: 'Unallocated Materials' }]}
       />
 
       <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 flex items-start gap-3">
         <AlertCircle size={18} className="text-amber-600 mt-0.5 flex-shrink-0" />
         <p className="text-sm text-amber-700">
-          Unallocated materials should be assigned to a project before issuance. Items without a project link cannot be tracked in Project Detail.
+          Unallocated materials should be assigned to a project before issuance.
+          Items without a project link cannot be tracked in Project Detail.
         </p>
       </div>
 
-      {unallocatedItems.length === 0 ? (
+      {loading ? (
+        <div className="py-12 text-center text-sm text-gray-400">Loading unallocated materials…</div>
+      ) : unallocatedItems.length === 0 ? (
         <EmptyState
-          icon={<Package size={24} className="text-gray-400" />}
+          icon={<Package size={24} className="text-green-400" />}
           title="No unallocated materials"
           description="All received materials are linked to projects."
         />
@@ -107,10 +202,20 @@ export function StoreUnallocated() {
                               className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-sky-300"
                             >
                               <option value="">Select project…</option>
-                              <option value="proj-005">FT-2025-0005 (GACA)</option>
-                              <option value="proj-006">FT-2025-0006 (Dubai CD)</option>
+                              {projects.map(p => (
+                                <option key={p.id} value={p.id}>
+                                  {p.project_code} ({p.customer_name})
+                                </option>
+                              ))}
                             </select>
-                            <Button variant="primary" size="sm" onClick={() => handleAssign(item.id)}>OK</Button>
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => handleAssign(item.id)}
+                              disabled={assigning || !selectedProject}
+                            >
+                              OK
+                            </Button>
                             <Button variant="ghost" size="sm" onClick={() => setAssigningItemId(null)}>✕</Button>
                           </div>
                         ) : (

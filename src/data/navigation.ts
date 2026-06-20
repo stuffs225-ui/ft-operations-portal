@@ -161,6 +161,105 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'operations_manager', 'procurement_user'],
   },
 
+  // ── 3C. STORE OPERATIONS (store_user workspace) ───────────────────────────
+  {
+    id: 'sep-store',
+    label: 'STORE OPERATIONS',
+    path: '#',
+    icon: '',
+  },
+  {
+    id: 'store-dashboard',
+    label: 'Store Dashboard',
+    path: '/store',
+    icon: 'Warehouse',
+    roles: ['admin', 'operations_manager', 'store_user'],
+  },
+  {
+    id: 'store-inventory',
+    label: 'Inventory',
+    path: '/store/inventory',
+    icon: 'Layers',
+    roles: ['admin', 'operations_manager', 'store_user'],
+  },
+  {
+    id: 'store-receiving',
+    label: 'Material Receiving',
+    path: '/store/receipts',
+    icon: 'Truck',
+    roles: ['admin', 'operations_manager', 'store_user'],
+  },
+  {
+    id: 'store-vehicle',
+    label: 'Vehicle Receiving',
+    path: '/store/vehicle-receiving',
+    icon: 'Truck',
+    roles: ['admin', 'operations_manager', 'store_user'],
+  },
+  {
+    id: 'store-issuance',
+    label: 'Material Issuance',
+    path: '/store/issuance',
+    icon: 'ArrowUpRight',
+    roles: ['admin', 'operations_manager', 'store_user'],
+  },
+  {
+    id: 'store-custody',
+    label: 'Material Custody',
+    path: '/custody',
+    icon: 'ShieldCheck',
+    roles: ['admin', 'operations_manager', 'store_user'],
+  },
+  {
+    id: 'store-unallocated',
+    label: 'Unallocated Materials',
+    path: '/store/unallocated',
+    icon: 'AlertCircle',
+    roles: ['admin', 'operations_manager', 'store_user'],
+  },
+  {
+    id: 'store-serials',
+    label: 'Serial Register',
+    path: '/store/serials',
+    icon: 'Hash',
+    roles: ['admin', 'operations_manager', 'store_user'],
+  },
+  {
+    id: 'store-returns',
+    label: 'Returns / Transfers',
+    path: '/store/receipts',
+    icon: 'RotateCcw',
+    roles: ['admin', 'operations_manager', 'store_user'],
+  },
+  // ── 3D. QUALITY HANDOFF (store-side) ──────────────────────────────────────
+  {
+    id: 'sep-store-qc',
+    label: 'QUALITY HANDOFF',
+    path: '#',
+    icon: '',
+  },
+  {
+    id: 'store-qc-pending',
+    label: 'Pending Material QC',
+    path: '/store/qc-handoff',
+    icon: 'ClipboardCheck',
+    roles: ['admin', 'operations_manager', 'store_user'],
+  },
+  {
+    id: 'store-qc-accepted',
+    label: 'QC Accepted Items',
+    path: '/store/qc-handoff?status=accepted',
+    icon: 'CheckCircle2',
+    roles: ['admin', 'operations_manager', 'store_user'],
+  },
+  {
+    id: 'store-qc-rejected',
+    label: 'QC Rejected / NCR',
+    path: '/store/qc-handoff?status=rejected',
+    icon: 'XCircle',
+    roles: ['admin', 'operations_manager', 'store_user'],
+  },
+
   // ── 4. EXECUTION ──────────────────────────────────────────────────────────
   {
     id: 'sep-3',
@@ -187,14 +286,14 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Store / Warehouse',
     path: '/store',
     icon: 'Warehouse',
-    roles: ['admin', 'operations_manager', 'store_user'],
+    roles: ['admin', 'operations_manager'],
   },
   {
     id: 'custody',
     label: 'Material Custody',
     path: '/custody',
     icon: 'PackageCheck',
-    roles: ['admin', 'operations_manager', 'store_user', 'factory_user', 'afs_user'],
+    roles: ['admin', 'operations_manager', 'factory_user', 'afs_user'],
   },
   {
     id: 'vehicle-receiving',

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Package, ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -8,6 +8,13 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { recordStoreAudit } from '../lib/storeAudit';
 import type { ReceiptType } from '../types';
+
+interface ProjectOption {
+  id: string;
+  project_code: string;
+  so_number: string;
+  customer_name: string;
+}
 
 const MATERIAL_CATEGORIES = ['general', 'electrical', 'mechanical', 'medical', 'chemical', 'hydraulic', 'structural', 'consumable'];
 const UNITS = ['unit', 'kg', 'litre', 'metre', 'set', 'box'];
@@ -29,6 +36,20 @@ export function StoreReceiptNew() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+    (async () => {
+      const { data } = await supabase
+        .from('projects')
+        .select('id, project_code, so_number, customer_name')
+        .in('project_status', ['active', 'approved'])
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (data) setProjects(data as ProjectOption[]);
+    })();
+  }, []);
 
   // Step 1 state
   const [receivedDate, setReceivedDate] = useState('');
@@ -191,8 +212,11 @@ export function StoreReceiptNew() {
               <select value={projectId} onChange={e => setProjectId(e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300">
                 <option value="">Unallocated</option>
-                <option value="proj-005">FT-2025-0005 — GACA (Saudi)</option>
-                <option value="proj-006">FT-2025-0006 — Dubai Civil Defence</option>
+                {projects.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.project_code} — {p.customer_name}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
