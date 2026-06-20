@@ -1,11 +1,10 @@
 import type { NavItem } from '../types';
 
-// ─── Step 10.5C — Role-Based Navigation Restructure ───────────────────────────
-// 8 sections replacing the former 7 (CONTROL CENTER renamed MY WORK;
-// OPERATIONS renamed EXECUTION; QUALITY renamed QUALITY & RELEASE;
-// REPORTS & ADMIN split into REPORTING + ADMIN & SYSTEM).
-// All route paths are UNCHANGED — this is a display/grouping restructure only.
-// See: docs/implementation/step-10-5c-role-based-navigation-restructure.md
+// ─── Step 10.5C → 18.6A — Role-Based Navigation ──────────────────────────────
+// 18.6A changes: Projects/SO restricted to oversight roles; generic Reports hub
+// restricted to management; per-role direct report links added for operational
+// roles; Document Templates restricted to sales/management roles.
+// Route paths are UNCHANGED. See: docs/implementation/step-18-6a-role-ia-visual-foundation.md
 
 export const NAV_ITEMS: NavItem[] = [
   // ── 1. MY WORK ────────────────────────────────────────────────────────────
@@ -20,7 +19,6 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Dashboard',
     path: '/',
     icon: 'LayoutDashboard',
-    // sales_user lands on /sales instead; Dashboard is for management/ops roles
     roles: ['admin', 'operations_manager', 'sales_coordinator', 'procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user', 'viewer'],
   },
   {
@@ -28,7 +26,6 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Action Inbox',
     path: '/inbox',
     icon: 'Inbox',
-    // No static badge — counts must come from real data only (see Sidebar).
   },
   {
     id: 'notifications',
@@ -39,8 +36,6 @@ export const NAV_ITEMS: NavItem[] = [
   },
 
   // ── 2. SALES & COMMERCIAL ─────────────────────────────────────────────────
-  // Renamed from "SALES & QUOTATION". Receivables moved here from REPORTS & ADMIN
-  // (Step 10.5B decision: Receivables is a commercial-finance tool, not an admin tool).
   {
     id: 'sep-1',
     label: 'SALES & COMMERCIAL',
@@ -84,8 +79,8 @@ export const NAV_ITEMS: NavItem[] = [
   },
 
   // ── 3. PROJECTS ───────────────────────────────────────────────────────────
-  // WO/PN Gate and Admin Approvals promoted here as project governance gates
-  // (Step 10.5B decision: governance gates belong alongside the Projects list).
+  // Restricted to oversight and commercial roles (18.6A).
+  // Operational roles access project context through their own module.
   {
     id: 'sep-2',
     label: 'PROJECTS',
@@ -97,6 +92,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Projects / SO',
     path: '/projects',
     icon: 'FolderKanban',
+    roles: ['admin', 'operations_manager', 'sales_user', 'viewer'],
   },
   {
     id: 'admin-approvals',
@@ -114,8 +110,6 @@ export const NAV_ITEMS: NavItem[] = [
   },
 
   // ── 4. EXECUTION ──────────────────────────────────────────────────────────
-  // Renamed from "OPERATIONS" — "Operations" is the name of the operations_manager
-  // role, causing persistent confusion. EXECUTION better reflects active production work.
   {
     id: 'sep-3',
     label: 'EXECUTION',
@@ -159,7 +153,6 @@ export const NAV_ITEMS: NavItem[] = [
   },
 
   // ── 5. QUALITY & RELEASE ─────────────────────────────────────────────────
-  // Renamed from "QUALITY" — Release Notes live here; name should reflect that.
   {
     id: 'sep-4',
     label: 'QUALITY & RELEASE',
@@ -204,9 +197,8 @@ export const NAV_ITEMS: NavItem[] = [
   },
 
   // ── 7. REPORTING ─────────────────────────────────────────────────────────
-  // Split from the former "REPORTS & ADMIN" — reporting tools only.
-  // Control Tower renamed "Operations Overview" to eliminate confusion with the
-  // Dashboard page (which is already titled "Operations Control Tower").
+  // Generic hub restricted to management/oversight (18.6A).
+  // Operational roles get direct role-specific report links instead.
   {
     id: 'sep-6',
     label: 'REPORTING',
@@ -222,17 +214,56 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'reports',
-    label: 'Reports',
+    label: 'Reports Hub',
     path: '/reports',
     icon: 'BarChart2',
-    // Sales reach their sales-specific figures via the Sales Workspace; the mixed
-    // Reports hub is reserved for management/operational roles to keep Sales focused.
-    roles: ['admin', 'operations_manager', 'procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user', 'sales_coordinator', 'viewer'],
+    roles: ['admin', 'operations_manager', 'viewer', 'sales_coordinator'],
+  },
+  // Per-role direct report links (avoids the broken Reports Hub for operational roles)
+  {
+    id: 'sales-reports',
+    label: 'Sales Reports',
+    path: '/reports/sales',
+    icon: 'TrendingUp',
+    roles: ['sales_user'],
+  },
+  {
+    id: 'procurement-reports',
+    label: 'Procurement Reports',
+    path: '/reports/procurement',
+    icon: 'ShoppingCart',
+    roles: ['procurement_user'],
+  },
+  {
+    id: 'factory-reports',
+    label: 'Factory Reports',
+    path: '/reports/factory',
+    icon: 'Factory',
+    roles: ['factory_user'],
+  },
+  {
+    id: 'store-reports',
+    label: 'Store Reports',
+    path: '/reports/store',
+    icon: 'Warehouse',
+    roles: ['store_user'],
+  },
+  {
+    id: 'qc-reports',
+    label: 'QC Reports',
+    path: '/reports/qc',
+    icon: 'ClipboardCheck',
+    roles: ['qc_user'],
+  },
+  {
+    id: 'afs-reports',
+    label: 'AFS Reports',
+    path: '/reports/afs',
+    icon: 'Plane',
+    roles: ['afs_user'],
   },
 
   // ── 8. ADMIN & SYSTEM ─────────────────────────────────────────────────────
-  // Split from the former "REPORTS & ADMIN" — admin/config tools only.
-  // Notifications moved to MY WORK; Receivables moved to SALES & COMMERCIAL.
   {
     id: 'sep-7',
     label: 'ADMIN & SYSTEM',
@@ -244,7 +275,9 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Document Templates',
     path: '/templates',
     icon: 'FileStack',
-    roles: ['admin', 'operations_manager', 'sales_user', 'procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user'],
+    // Restricted to sales/management in 18.6A — operational roles access
+    // templates through their module in a later role-specific PR.
+    roles: ['admin', 'operations_manager', 'sales_user', 'sales_coordinator'],
   },
   {
     id: 'admin-access-requests',
