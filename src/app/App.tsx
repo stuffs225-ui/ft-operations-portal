@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { PageLoader } from '../components/ui/PageLoader';
@@ -108,6 +108,7 @@ const NotificationSettings = lazy(() => import('../pages/NotificationSettings').
 const AdminNotificationRules = lazy(() => import('../pages/AdminNotificationRules').then((m) => ({ default: m.AdminNotificationRules })));
 const AdminReportSubscriptions = lazy(() => import('../pages/AdminReportSubscriptions').then((m) => ({ default: m.AdminReportSubscriptions })));
 const AdminReportSubscriptionDetail = lazy(() => import('../pages/AdminReportSubscriptionDetail').then((m) => ({ default: m.AdminReportSubscriptionDetail })));
+const NotFound = lazy(() => import('../pages/NotFound').then((m) => ({ default: m.NotFound })));
 const HotProjects = lazy(() => import('../pages/HotProjects').then((m) => ({ default: m.HotProjects })));
 const HotProjectNew = lazy(() => import('../pages/HotProjectNew').then((m) => ({ default: m.HotProjectNew })));
 const HotProjectDetail = lazy(() => import('../pages/HotProjectDetail').then((m) => ({ default: m.HotProjectDetail })));
@@ -277,7 +278,7 @@ export function App() {
             <Route path="admin/report-subscriptions" element={<RequireRole roles={['operations_manager']}><AdminReportSubscriptions /></RequireRole>} />
             <Route path="admin/report-subscriptions/:id" element={<RequireRole roles={['operations_manager']}><AdminReportSubscriptionDetail /></RequireRole>} />
 
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
         </Suspense>

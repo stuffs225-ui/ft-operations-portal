@@ -28,18 +28,18 @@ const REPORT_GROUPS: { heading: string; cards: ReportCardDef[] }[] = [
   {
     heading: 'Projects & Sales',
     cards: [
-      { title: 'Project Reports', description: 'Lifecycle status, blockers, WO/PN status, and health scores', path: '/reports/projects', icon: <FileText size={20} /> },
-      { title: 'Sales Reports', description: 'Quotation pipeline, conversion rates, and active projects', path: '/reports/sales', icon: <TrendingUp size={20} /> },
+      { title: 'Project Reports', description: 'Lifecycle status, blockers, WO/PN status, and health scores', path: '/reports/projects', icon: <FileText size={20} />, roles: ['admin', 'operations_manager', 'viewer', 'sales_coordinator'] },
+      { title: 'Sales Reports', description: 'Quotation pipeline, conversion rates, and active projects', path: '/reports/sales', icon: <TrendingUp size={20} />, roles: ['admin', 'operations_manager', 'viewer', 'sales_user', 'sales_coordinator'] },
     ],
   },
   {
     heading: 'Operations',
     cards: [
-      { title: 'Procurement Reports', description: 'PRs, PO to Supplier, ETA delays, and supplier status', path: '/reports/procurement', icon: <ShoppingCart size={20} /> },
-      { title: 'Factory Reports', description: 'Production blockers, BOQ gaps, monthly updates, QC readiness', path: '/reports/factory', icon: <Wrench size={20} /> },
-      { title: 'Store Reports', description: 'Material receipts, vehicle receiving, custody, and serial tracking', path: '/reports/store', icon: <Package size={20} /> },
-      { title: 'QC Reports', description: 'Material QC, NCRs, project QC findings, release note status', path: '/reports/qc', icon: <ClipboardCheck size={20} /> },
-      { title: 'Dubai / AFS Reports', description: 'Missing PN, ETA, arrival reports, pre-delivery, maintenance', path: '/reports/afs', icon: <Plane size={20} /> },
+      { title: 'Procurement Reports', description: 'PRs, PO to Supplier, ETA delays, and supplier status', path: '/reports/procurement', icon: <ShoppingCart size={20} />, roles: ['admin', 'operations_manager', 'procurement_user'] },
+      { title: 'Factory Reports', description: 'Production blockers, BOQ gaps, monthly updates, QC readiness', path: '/reports/factory', icon: <Wrench size={20} />, roles: ['admin', 'operations_manager', 'factory_user'] },
+      { title: 'Store Reports', description: 'Material receipts, vehicle receiving, custody, and serial tracking', path: '/reports/store', icon: <Package size={20} />, roles: ['admin', 'operations_manager', 'store_user'] },
+      { title: 'QC Reports', description: 'Material QC, NCRs, project QC findings, release note status', path: '/reports/qc', icon: <ClipboardCheck size={20} />, roles: ['admin', 'operations_manager', 'qc_user'] },
+      { title: 'Dubai / AFS Reports', description: 'Missing PN, ETA, arrival reports, pre-delivery, maintenance', path: '/reports/afs', icon: <Plane size={20} />, roles: ['admin', 'operations_manager', 'afs_user'] },
     ],
   },
   {
@@ -51,10 +51,10 @@ const REPORT_GROUPS: { heading: string; cards: ReportCardDef[] }[] = [
   {
     heading: 'Operational Excellence',
     cards: [
-      { title: 'SLA & Escalations', description: 'SLA rules, open breaches, escalation levels, and resolution tracking', path: '/reports/sla', icon: <AlertTriangle size={20} />, roles: ['admin', 'operations_manager'], badge: 'SLA' },
-      { title: 'Data Quality', description: 'Missing data, gaps, and recommended fixes across all modules', path: '/reports/data-quality', icon: <Database size={20} /> },
-      { title: 'Health Scores', description: 'Project, department, and supplier health scores with scoring transparency', path: '/reports/health-scores', icon: <Shield size={20} />, roles: ['admin', 'operations_manager'] },
-      { title: 'Issues & Risks', description: 'Operational issues, risk register, and escalations', path: '/reports/issues', icon: <AlertTriangle size={20} /> },
+      { title: 'SLA & Escalations', description: 'SLA rules, open breaches, escalation levels, and resolution tracking', path: '/reports/sla', icon: <AlertTriangle size={20} />, roles: ['admin', 'operations_manager', 'viewer'], badge: 'SLA' },
+      { title: 'Data Quality', description: 'Missing data, gaps, and recommended fixes across all modules', path: '/reports/data-quality', icon: <Database size={20} />, roles: ['admin', 'operations_manager', 'viewer'] },
+      { title: 'Health Scores', description: 'Project, department, and supplier health scores with scoring transparency', path: '/reports/health-scores', icon: <Shield size={20} />, roles: ['admin', 'operations_manager', 'viewer'] },
+      { title: 'Issues & Risks', description: 'Operational issues, risk register, and escalations', path: '/reports/issues', icon: <AlertTriangle size={20} />, roles: ['admin', 'operations_manager', 'viewer', 'qc_user'] },
       { title: 'CAPA Records', description: 'Corrective and preventive action records linked to issues and NCRs', path: '/reports/capa', icon: <CheckCircle size={20} />, roles: ['admin', 'operations_manager', 'qc_user'] },
     ],
   },
@@ -85,16 +85,31 @@ export function Reports() {
         }
       />
 
-      {REPORT_GROUPS.map(group => {
-        const visibleCards = group.cards.filter(
-          c => !c.roles || !role || c.roles.includes(role) || role === 'admin'
-        );
-        if (visibleCards.length === 0) return null;
-        return (
+      {(() => {
+        const visibleGroups = REPORT_GROUPS.map(group => ({
+          ...group,
+          cards: group.cards.filter(
+            c => role === 'admin' || (c.roles != null && role != null && c.roles.includes(role))
+          ),
+        })).filter(g => g.cards.length > 0);
+
+        if (visibleGroups.length === 0) {
+          return (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 text-gray-400">
+                <BarChart2 size={22} />
+              </div>
+              <p className="text-sm font-medium text-gray-600">No reports available for your role</p>
+              <p className="text-xs text-gray-400 mt-1">Contact your administrator to request access to specific reports.</p>
+            </div>
+          );
+        }
+
+        return visibleGroups.map(group => (
           <section key={group.heading}>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">{group.heading}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {visibleCards.map(card => (
+              {group.cards.map(card => (
                 <Link key={card.path} to={card.path} className="group">
                   <Card className="p-5 h-full hover:border-sky-300 hover:shadow-md transition-all cursor-pointer">
                     <div className="flex items-start gap-3">
@@ -114,8 +129,8 @@ export function Reports() {
               ))}
             </div>
           </section>
-        );
-      })}
+        ));
+      })()}
     </div>
   );
 }
