@@ -6,7 +6,7 @@ import {
   Settings, Users, X, ScrollText, FileStack, Bell, UserPlus, BellRing,
   CalendarClock, Activity, Flame, Package, Clock, AlertCircle, AlertTriangle,
   Layers, ArrowUpRight, Hash, RotateCcw, CheckCircle2, XCircle,
-  ListChecks, AlertOctagon, Search, FileCheck,
+  ListChecks, AlertOctagon, Search, FileCheck, FilePlus,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -22,7 +22,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Settings, Users, ScrollText, FileStack, Bell, UserPlus, BellRing,
   CalendarClock, Activity, Flame, Package, Clock, AlertCircle, AlertTriangle,
   Layers, ArrowUpRight, Hash, RotateCcw, CheckCircle2, XCircle,
-  ListChecks, AlertOctagon, Search, FileCheck,
+  ListChecks, AlertOctagon, Search, FileCheck, FilePlus,
 };
 
 interface SidebarProps {

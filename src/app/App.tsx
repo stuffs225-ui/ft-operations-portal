@@ -71,6 +71,9 @@ const ProjectQcFindingDetail = lazy(() => import('../pages/ProjectQcFindingDetai
 const ProjectQcReleaseNotes = lazy(() => import('../pages/ProjectQcReleaseNotes').then((m) => ({ default: m.ProjectQcReleaseNotes })));
 const ProjectQcReleaseNoteDetail = lazy(() => import('../pages/ProjectQcReleaseNoteDetail').then((m) => ({ default: m.ProjectQcReleaseNoteDetail })));
 const DubaiAFS = lazy(() => import('../pages/DubaiAFS').then((m) => ({ default: m.DubaiAFS })));
+const AFSPnGate = lazy(() => import('../pages/AFSPnGate').then((m) => ({ default: m.AFSPnGate })));
+const AFSReadyForDelivery = lazy(() => import('../pages/AFSReadyForDelivery').then((m) => ({ default: m.AFSReadyForDelivery })));
+const AFSMaterials = lazy(() => import('../pages/AFSMaterials').then((m) => ({ default: m.AFSMaterials })));
 const DubaiAfsProjects = lazy(() => import('../pages/DubaiAfsProjects').then((m) => ({ default: m.DubaiAfsProjects })));
 const DubaiAfsProjectDetail = lazy(() => import('../pages/DubaiAfsProjectDetail').then((m) => ({ default: m.DubaiAfsProjectDetail })));
 const DubaiAfsEta = lazy(() => import('../pages/DubaiAfsEta').then((m) => ({ default: m.DubaiAfsEta })));
@@ -278,6 +281,9 @@ export function App() {
             <Route path="dubai-afs/predelivery-reports" element={<RequireRole roles={['afs_user', 'operations_manager']}><DubaiAfsPredeliveryReports /></RequireRole>} />
             <Route path="dubai-afs/predelivery-reports/:id" element={<RequireRole roles={['afs_user', 'operations_manager']}><DubaiAfsPredeliveryReportDetail /></RequireRole>} />
             <Route path="dubai-afs/condition-reports" element={<RequireRole roles={['afs_user', 'operations_manager']}><DubaiAfsConditionReports /></RequireRole>} />
+            <Route path="afs/pn-gate" element={<RequireRole roles={['afs_user', 'operations_manager']}><AFSPnGate /></RequireRole>} />
+            <Route path="afs/ready-for-delivery" element={<RequireRole roles={['afs_user', 'operations_manager']}><AFSReadyForDelivery /></RequireRole>} />
+            <Route path="afs/materials" element={<RequireRole roles={['afs_user', 'operations_manager']}><AFSMaterials /></RequireRole>} />
 
             {/* ── After Sales / Maintenance ── */}
             <Route path="after-sales" element={<RequireRole roles={['afs_user', 'operations_manager']}><AfterSales /></RequireRole>} />
