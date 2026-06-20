@@ -3,16 +3,16 @@ import { Link } from 'react-router-dom';
 import {
   AlertTriangle, AlertCircle, ShoppingCart, PackageCheck, Truck,
   ClipboardX, ShieldAlert, Package, FileText, TrendingUp, TrendingDown,
-  Minus, ArrowRight, Send, CheckCircle, Wrench, Calendar, Clock,
+  Minus, Send, CheckCircle, Wrench, Calendar, Clock,
   ClipboardCheck, FileCheck, Plane, FileSearch, BarChart2, Activity,
   FolderKanban, Warehouse, Factory, Microscope, BarChart3,
   Inbox, Flame, GitBranch, ShieldCheck, UserCheck,
   type LucideIcon,
 } from 'lucide-react';
-import { Card } from '../components/ui/Card';
 import { PageHeader } from '@/components/common/page-header';
 import { SectionHeader } from '@/components/common/section-header';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
+import { RoleRulesCard } from '../components/ui/RoleRulesCard';
 import { DASHBOARD_KPI_CARDS, AFS_KPI_CARDS, PROJECT_SUMMARY } from '../data/mockDashboard';
 import { mockOrEmpty, isLiveMode } from '../lib/dataMode';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
@@ -56,8 +56,6 @@ const ROLE_SUBTITLES: Partial<Record<UserRole, string>> = {
 };
 
 // ─── My Work quick-access ─────────────────────────────────────────────────────
-// These cards sit at the top of the Dashboard as role-specific shortcuts to the
-// most time-critical tool for that role. No live counts — just quick navigation.
 
 type QuickCard = {
   id: string;
@@ -71,6 +69,7 @@ type QuickCard = {
 };
 
 const MY_WORK_CARDS: QuickCard[] = [
+  // Universal
   {
     id: 'inbox',
     label: 'Action Inbox',
@@ -80,6 +79,7 @@ const MY_WORK_CARDS: QuickCard[] = [
     iconClass: 'text-brand-600',
     borderClass: 'border-l-brand-500',
   },
+  // Admin / Ops
   {
     id: 'approvals',
     label: 'Pending Approvals',
@@ -90,6 +90,7 @@ const MY_WORK_CARDS: QuickCard[] = [
     borderClass: 'border-l-slate-400',
     roles: ['admin', 'operations_manager'],
   },
+  // Sales coordinator
   {
     id: 'coordinator-queue',
     label: 'Coordinator Queue',
@@ -100,15 +101,110 @@ const MY_WORK_CARDS: QuickCard[] = [
     borderClass: 'border-l-emerald-400',
     roles: ['sales_coordinator'],
   },
+  // Factory
   {
     id: 'wo-pn-shortcut',
     label: 'WO / PN Gate',
-    description: 'Manage work orders and project numbers',
+    description: 'Work orders and project numbers',
     path: '/wo-pn-gate',
     icon: GitBranch,
     iconClass: 'text-green-700',
     borderClass: 'border-l-green-500',
     roles: ['factory_user'],
+  },
+  {
+    id: 'factory-records',
+    label: 'Production Records',
+    description: 'BOQ, BOM, and production progress',
+    path: '/factory',
+    icon: Factory,
+    iconClass: 'text-orange-600',
+    borderClass: 'border-l-orange-400',
+    roles: ['factory_user'],
+  },
+  // Procurement
+  {
+    id: 'proc-requests',
+    label: 'Procurement Requests',
+    description: 'Open PRs awaiting action',
+    path: '/procurement/requests',
+    icon: ShoppingCart,
+    iconClass: 'text-amber-600',
+    borderClass: 'border-l-amber-400',
+    roles: ['procurement_user'],
+  },
+  {
+    id: 'proc-pos',
+    label: 'Purchase Orders',
+    description: 'Active POs and ETA tracking',
+    path: '/procurement/purchase-orders',
+    icon: FileCheck,
+    iconClass: 'text-yellow-700',
+    borderClass: 'border-l-yellow-500',
+    roles: ['procurement_user'],
+  },
+  // Store
+  {
+    id: 'store-receiving',
+    label: 'Receiving Queue',
+    description: 'Pending material receipts (GRN)',
+    path: '/store',
+    icon: Warehouse,
+    iconClass: 'text-cyan-600',
+    borderClass: 'border-l-cyan-400',
+    roles: ['store_user'],
+  },
+  {
+    id: 'vehicle-receiving-shortcut',
+    label: 'Vehicle Receiving',
+    description: 'Chassis, photos, serial tracking',
+    path: '/store/vehicle-receiving',
+    icon: Truck,
+    iconClass: 'text-teal-600',
+    borderClass: 'border-l-teal-400',
+    roles: ['store_user'],
+  },
+  // QC
+  {
+    id: 'material-qc-shortcut',
+    label: 'Material Inspections',
+    description: 'Open material QC inspections',
+    path: '/material-qc',
+    icon: Microscope,
+    iconClass: 'text-purple-600',
+    borderClass: 'border-l-purple-400',
+    roles: ['qc_user'],
+  },
+  {
+    id: 'release-notes-shortcut',
+    label: 'Release Notes',
+    description: 'Pending release notes queue',
+    path: '/project-qc',
+    icon: FileSearch,
+    iconClass: 'text-violet-600',
+    borderClass: 'border-l-violet-400',
+    roles: ['qc_user'],
+  },
+  // AFS
+  {
+    id: 'dubai-afs-shortcut',
+    label: 'Dubai Projects',
+    description: 'Active AFS project tracking',
+    path: '/dubai-afs',
+    icon: Plane,
+    iconClass: 'text-sky-600',
+    borderClass: 'border-l-sky-400',
+    roles: ['afs_user'],
+  },
+  {
+    id: 'after-sales-shortcut',
+    label: 'Maintenance Jobs',
+    description: 'After-sales maintenance queue',
+    path: '/after-sales',
+    icon: Wrench,
+    iconClass: 'text-rose-600',
+    borderClass: 'border-l-rose-400',
+    roles: ['afs_user'],
   },
 ];
 
@@ -125,8 +221,6 @@ type ModuleTile = {
 };
 
 // ─── Role-grouped module sections ─────────────────────────────────────────────
-// Aligned with the Step 10.5C navigation groups.
-// Each section renders only when the current role has at least one visible tile.
 
 type WorkSection = {
   id: string;
@@ -152,9 +246,10 @@ const WORK_SECTIONS: WorkSection[] = [
     label: 'Projects & Governance',
     accentClass: 'bg-indigo-500',
     tiles: [
-      { id: 'projects',        label: 'Projects / SO',    path: '/projects',        icon: FolderKanban, iconClass: 'text-indigo-600', borderClass: 'border-l-indigo-400' },
-      { id: 'admin-approvals', label: 'Admin Approvals',  path: '/admin-approvals', icon: ShieldCheck,  iconClass: 'text-slate-600',  borderClass: 'border-l-slate-400',  roles: ['admin','operations_manager'] },
-      { id: 'wo-pn-gate',      label: 'WO / PN Gate',     path: '/wo-pn-gate',      icon: GitBranch,    iconClass: 'text-green-600',  borderClass: 'border-l-green-400',  roles: ['admin','operations_manager','factory_user'] },
+      // Projects/SO visible only to oversight and commercial roles (18.6A)
+      { id: 'projects',        label: 'Projects / SO',    path: '/projects',        icon: FolderKanban, iconClass: 'text-indigo-600', borderClass: 'border-l-indigo-400',  roles: ['admin','operations_manager','sales_user','viewer'] },
+      { id: 'admin-approvals', label: 'Admin Approvals',  path: '/admin-approvals', icon: ShieldCheck,  iconClass: 'text-slate-600',  borderClass: 'border-l-slate-400',   roles: ['admin','operations_manager'] },
+      { id: 'wo-pn-gate',      label: 'WO / PN Gate',     path: '/wo-pn-gate',      icon: GitBranch,    iconClass: 'text-green-600',  borderClass: 'border-l-green-400',   roles: ['admin','operations_manager','factory_user'] },
     ],
   },
   {
@@ -162,11 +257,11 @@ const WORK_SECTIONS: WorkSection[] = [
     label: 'Execution',
     accentClass: 'bg-amber-500',
     tiles: [
-      { id: 'procurement',       label: 'Procurement',        path: '/procurement',           icon: ShoppingCart, iconClass: 'text-amber-600',  borderClass: 'border-l-amber-400',  roles: ['admin','operations_manager','procurement_user'] },
-      { id: 'factory',           label: 'Factory / Production',path: '/factory',              icon: Factory,      iconClass: 'text-orange-600', borderClass: 'border-l-orange-400', roles: ['admin','operations_manager','factory_user'] },
-      { id: 'store',             label: 'Store / Warehouse',  path: '/store',                 icon: Warehouse,    iconClass: 'text-teal-600',   borderClass: 'border-l-teal-400',   roles: ['admin','operations_manager','store_user'] },
-      { id: 'custody',           label: 'Material Custody',   path: '/custody',               icon: PackageCheck, iconClass: 'text-cyan-600',   borderClass: 'border-l-cyan-400',   roles: ['admin','operations_manager','store_user','factory_user','afs_user'] },
-      { id: 'vehicle-receiving', label: 'Vehicle Receiving',  path: '/store/vehicle-receiving',icon: Truck,       iconClass: 'text-slate-600',  borderClass: 'border-l-slate-400',  roles: ['admin','operations_manager','store_user'] },
+      { id: 'procurement',       label: 'Procurement',         path: '/procurement',            icon: ShoppingCart, iconClass: 'text-amber-600',  borderClass: 'border-l-amber-400',  roles: ['admin','operations_manager','procurement_user'] },
+      { id: 'factory',           label: 'Factory / Production', path: '/factory',               icon: Factory,      iconClass: 'text-orange-600', borderClass: 'border-l-orange-400', roles: ['admin','operations_manager','factory_user'] },
+      { id: 'store',             label: 'Store / Warehouse',   path: '/store',                  icon: Warehouse,    iconClass: 'text-teal-600',   borderClass: 'border-l-teal-400',   roles: ['admin','operations_manager','store_user'] },
+      { id: 'custody',           label: 'Material Custody',    path: '/custody',                icon: PackageCheck, iconClass: 'text-cyan-600',   borderClass: 'border-l-cyan-400',   roles: ['admin','operations_manager','store_user','factory_user','afs_user'] },
+      { id: 'vehicle-receiving', label: 'Vehicle Receiving',   path: '/store/vehicle-receiving', icon: Truck,       iconClass: 'text-slate-600',  borderClass: 'border-l-slate-400',  roles: ['admin','operations_manager','store_user'] },
     ],
   },
   {
@@ -174,8 +269,8 @@ const WORK_SECTIONS: WorkSection[] = [
     label: 'Quality & Release',
     accentClass: 'bg-purple-500',
     tiles: [
-      { id: 'material-qc', label: 'Material QC',         path: '/material-qc', icon: Microscope,    iconClass: 'text-purple-600', borderClass: 'border-l-purple-400', roles: ['admin','operations_manager','qc_user'] },
-      { id: 'project-qc',  label: 'Project / Vehicle QC',path: '/project-qc',  icon: ClipboardCheck,iconClass: 'text-violet-600', borderClass: 'border-l-violet-400', roles: ['admin','operations_manager','qc_user'] },
+      { id: 'material-qc', label: 'Material QC',          path: '/material-qc', icon: Microscope,    iconClass: 'text-purple-600', borderClass: 'border-l-purple-400', roles: ['admin','operations_manager','qc_user'] },
+      { id: 'project-qc',  label: 'Project / Vehicle QC', path: '/project-qc',  icon: ClipboardCheck,iconClass: 'text-violet-600', borderClass: 'border-l-violet-400', roles: ['admin','operations_manager','qc_user'] },
     ],
   },
   {
@@ -183,8 +278,8 @@ const WORK_SECTIONS: WorkSection[] = [
     label: 'Dubai / AFS',
     accentClass: 'bg-sky-500',
     tiles: [
-      { id: 'dubai-afs',   label: 'Dubai / AFS',           path: '/dubai-afs',   icon: Plane, iconClass: 'text-sky-600',  borderClass: 'border-l-sky-400',  roles: ['admin','operations_manager','afs_user'] },
-      { id: 'after-sales', label: 'After Sales Maintenance',path: '/after-sales', icon: Wrench,iconClass: 'text-rose-600', borderClass: 'border-l-rose-400', roles: ['admin','operations_manager','afs_user'] },
+      { id: 'dubai-afs',   label: 'Dubai / AFS',            path: '/dubai-afs',   icon: Plane, iconClass: 'text-sky-600',  borderClass: 'border-l-sky-400',  roles: ['admin','operations_manager','afs_user'] },
+      { id: 'after-sales', label: 'After Sales Maintenance', path: '/after-sales', icon: Wrench,iconClass: 'text-rose-600', borderClass: 'border-l-rose-400', roles: ['admin','operations_manager','afs_user'] },
     ],
   },
   {
@@ -192,8 +287,15 @@ const WORK_SECTIONS: WorkSection[] = [
     label: 'Reporting',
     accentClass: 'bg-cyan-600',
     tiles: [
-      { id: 'control-tower', label: 'Operations Overview', path: '/control-tower', icon: BarChart3, iconClass: 'text-purple-600', borderClass: 'border-l-purple-500', roles: ['admin','operations_manager','viewer'] },
-      { id: 'reports',       label: 'Reports Hub',         path: '/reports',       icon: BarChart2, iconClass: 'text-cyan-600',   borderClass: 'border-l-cyan-400',   roles: ['admin','operations_manager','procurement_user','factory_user','store_user','qc_user','afs_user','sales_coordinator','viewer'] },
+      { id: 'control-tower',       label: 'Operations Overview',  path: '/control-tower',       icon: BarChart3,    iconClass: 'text-purple-600', borderClass: 'border-l-purple-500', roles: ['admin','operations_manager','viewer'] },
+      { id: 'reports',             label: 'Reports Hub',          path: '/reports',             icon: BarChart2,    iconClass: 'text-cyan-600',   borderClass: 'border-l-cyan-400',   roles: ['admin','operations_manager','viewer','sales_coordinator'] },
+      // Per-role direct report tiles (18.6A — avoids broken hub for operational roles)
+      { id: 'sales-report-tile',   label: 'Sales Reports',        path: '/reports/sales',       icon: TrendingUp,   iconClass: 'text-emerald-600', borderClass: 'border-l-emerald-400', roles: ['sales_user'] },
+      { id: 'proc-report-tile',    label: 'Procurement Reports',  path: '/reports/procurement', icon: ShoppingCart, iconClass: 'text-amber-600',   borderClass: 'border-l-amber-400',   roles: ['procurement_user'] },
+      { id: 'factory-report-tile', label: 'Factory Reports',      path: '/reports/factory',     icon: Factory,      iconClass: 'text-orange-600',  borderClass: 'border-l-orange-400',  roles: ['factory_user'] },
+      { id: 'store-report-tile',   label: 'Store Reports',        path: '/reports/store',       icon: Warehouse,    iconClass: 'text-cyan-600',    borderClass: 'border-l-cyan-400',    roles: ['store_user'] },
+      { id: 'qc-report-tile',      label: 'QC Reports',           path: '/reports/qc',          icon: ClipboardCheck,iconClass: 'text-violet-600', borderClass: 'border-l-violet-400',  roles: ['qc_user'] },
+      { id: 'afs-report-tile',     label: 'AFS Reports',          path: '/reports/afs',         icon: Plane,        iconClass: 'text-sky-600',     borderClass: 'border-l-sky-400',     roles: ['afs_user'] },
     ],
   },
 ];
@@ -255,7 +357,6 @@ function ModuleTileLink({ tile }: { tile: ModuleTile }) {
 export function Dashboard() {
   const { role } = useAuth();
 
-  // Project summary strip — live queries when Supabase is configured
   const [summary, setSummary] = useState<typeof PROJECT_SUMMARY>(EMPTY_SUMMARY);
 
   useEffect(() => {
@@ -277,20 +378,15 @@ export function Dashboard() {
         supabase.from('projects').select('*', { count: 'exact', head: true })
           .in('project_status', ['active', 'approved'])
           .eq('manufacturing_location', 'dubai'),
-        // Projects with at least one active WO reference
         supabase.from('project_execution_references').select('project_id', { count: 'exact', head: true })
           .eq('reference_type', 'wo')
           .not('status', 'in', '(cancelled,superseded)'),
-        // Projects with at least one active PN reference
         supabase.from('project_execution_references').select('project_id', { count: 'exact', head: true })
           .eq('reference_type', 'pn')
           .not('status', 'in', '(cancelled,superseded)'),
-        // In production: factory records exist (active projects with factory work)
         supabase.from('factory_records').select('project_id', { count: 'exact', head: true }),
-        // In QC: active QC inspections
         supabase.from('project_qc_inspections').select('*', { count: 'exact', head: true })
           .in('inspection_status', ['in_progress', 'pending']),
-        // Ready to deliver: release notes issued
         supabase.from('release_notes').select('*', { count: 'exact', head: true })
           .eq('release_status', 'issued'),
       ]);
@@ -310,18 +406,18 @@ export function Dashboard() {
   const dashboardCards = mockOrEmpty(DASHBOARD_KPI_CARDS);
   const afsCards = mockOrEmpty(AFS_KPI_CARDS);
 
-  // Role helpers — all checks stay in the component, no new permission model
   const isTileVisible = (t: { roles?: UserRole[] }) =>
     !t.roles || !role || role === 'admin' || t.roles.includes(role);
 
-  // Project summary strip is most useful to oversight/management roles
   const showSummaryStrip =
     !role || ['admin', 'operations_manager', 'viewer', 'sales_coordinator'].includes(role);
 
   const subtitle = (role && ROLE_SUBTITLES[role]) ?? 'Operational status across all modules';
 
-  // MY WORK quick-access cards filtered to current role
   const myWorkCards = MY_WORK_CARDS.filter(isTileVisible);
+
+  // Management/admin see the full overview; operational roles see their module sections
+  const isManagement = !role || ['admin', 'operations_manager', 'viewer'].includes(role);
 
   return (
     <div>
@@ -336,12 +432,12 @@ export function Dashboard() {
         <div className="flex items-start gap-2 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 mb-6 text-xs text-gray-600">
           <Activity size={15} className="shrink-0 mt-0.5 text-gray-400" />
           <span>
-            Summary figures above are live counts from the database. Open any module below for role-specific detail.
+            Summary figures are live counts from the database. Open any module below for role-specific detail.
           </span>
         </div>
       )}
 
-      {/* My Work — quick-access strip for the most critical role-specific actions */}
+      {/* My Work — role-specific shortcuts to the most critical tools */}
       {myWorkCards.length > 0 && (
         <div className="mb-6">
           <SectionHeader title="My Work" accent="bg-brand-600" />
@@ -391,8 +487,8 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* KPI Cards — hidden in live mode until module data is wired (Phase 2+) */}
-      {dashboardCards.length > 0 && (
+      {/* KPI Cards — management/admin overview only; hidden in live mode until wired */}
+      {isManagement && dashboardCards.length > 0 && (
         <div className="mb-6">
           <SectionHeader title="Critical Operational Indicators" accent="bg-brand-600" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -403,8 +499,8 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* Dubai / AFS KPIs — hidden in live mode until module data is wired */}
-      {afsCards.length > 0 && (
+      {/* Dubai / AFS KPIs — management/admin only; hidden in live mode until wired */}
+      {isManagement && afsCards.length > 0 && (
         <div className="mb-6">
           <SectionHeader title="Dubai / AFS & After Sales" accent="bg-sky-600" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -415,7 +511,7 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* Role-grouped module sections — aligned with Step 10.5C navigation groups */}
+      {/* Role-grouped module sections */}
       {WORK_SECTIONS.map((section) => {
         const visibleTiles = section.tiles.filter(isTileVisible);
         if (visibleTiles.length === 0) return null;
@@ -431,37 +527,8 @@ export function Dashboard() {
         );
       })}
 
-      {/* Governance Rules Banner — active for all roles to reinforce playbook compliance */}
-      <Card className="bg-brand-950 border-brand-800 text-white">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex-1">
-            <div className="text-xs font-semibold text-brand-300 mb-1 uppercase tracking-wide">
-              Governance Golden Rules — Active
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-brand-200">
-              {[
-                'SO = commercial reference. WO = mandatory for Saudi. PN = mandatory for Dubai.',
-                'No BOQ, BOM, drawings, or Raw Material Requests before WO (Saudi).',
-                'No Dubai ETA, Dubai PO, or AFS readiness before PN (Dubai).',
-                'PO to Supplier > 10,000 SAR requires Admin or Operations Manager approval.',
-                'Temporary Custody requires Admin or Operations Manager approval.',
-                'Release Note blocked until all QC findings and rework are closed.',
-                'Medical items must be tracked by serial number.',
-                'Vehicle receiving requires chassis number and photos.',
-              ].map((rule) => (
-                <div key={rule} className="flex items-start gap-2">
-                  <span className="text-brand-400 shrink-0 mt-0.5">▸</span>
-                  <span>{rule}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="shrink-0 hidden lg:flex flex-col items-end gap-1 text-brand-400 text-xs">
-            <span>Playbook v3.2</span>
-            <ArrowRight size={16} />
-          </div>
-        </div>
-      </Card>
+      {/* Role-specific governance rules — replaces generic banner */}
+      <RoleRulesCard />
     </div>
   );
 }

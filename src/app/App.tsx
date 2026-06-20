@@ -7,6 +7,7 @@ import { AuthProvider } from '../context/AuthContext';
 import { AppLayout } from '../layouts/AppLayout';
 import { RequireRole } from '../components/auth/RequireRole';
 import { Login } from '../pages/Login';
+import { ROLE_MATRIX } from '../lib/roleMatrix';
 const Dashboard = lazy(() => import('../pages/Dashboard').then((m) => ({ default: m.Dashboard })));
 const ActionInbox = lazy(() => import('../pages/ActionInbox').then((m) => ({ default: m.ActionInbox })));
 const Quotations = lazy(() => import('../pages/Quotations').then((m) => ({ default: m.Quotations })));
@@ -113,17 +114,24 @@ const HotProjectDetail = lazy(() => import('../pages/HotProjectDetail').then((m)
 const ProjectInvoicing = lazy(() => import('../pages/ProjectInvoicing').then((m) => ({ default: m.ProjectInvoicing })));
 const Receivables = lazy(() => import('../pages/Receivables').then((m) => ({ default: m.Receivables })));
 
-// Redirect sales_user from / to /sales; all other roles see the Dashboard
+// Redirect to role-specific landing page on first visit to /.
+// Uses ROLE_MATRIX.landingRoute — roles with landingRoute '/' stay on Dashboard.
+// Falls back to Dashboard for unknown/null roles to prevent redirect loops.
 function RootRedirect() {
   const { role, loading } = useAuth();
   const navigate = useNavigate();
+
+  const landingRoute = role ? (ROLE_MATRIX[role]?.landingRoute ?? '/') : '/';
+  const shouldRedirect = landingRoute !== '/';
+
   useEffect(() => {
-    if (!loading && role === 'sales_user') {
-      navigate('/sales', { replace: true });
+    if (!loading && shouldRedirect) {
+      navigate(landingRoute, { replace: true });
     }
-  }, [role, loading, navigate]);
+  }, [role, loading, shouldRedirect, landingRoute, navigate]);
+
   if (loading) return null;
-  if (role === 'sales_user') return null;
+  if (shouldRedirect) return null;
   return <Dashboard />;
 }
 

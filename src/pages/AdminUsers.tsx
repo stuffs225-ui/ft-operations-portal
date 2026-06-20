@@ -20,10 +20,23 @@ function statusVariant(status: AccountStatus): 'success' | 'warning' | 'critical
 interface AssignRoleModalProps {
   user: UserAccount;
   onClose: () => void;
+  onSave: (userId: string, role: UserRole) => Promise<{ error: string | null }>;
+  saving: boolean;
 }
 
-function AssignRoleModal({ user, onClose }: AssignRoleModalProps) {
+function AssignRoleModal({ user, onClose, onSave, saving }: AssignRoleModalProps) {
   const [selectedRole, setSelectedRole] = useState<UserRole>(user.role);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  async function handleSave() {
+    setSaveError(null);
+    const { error } = await onSave(user.id, selectedRole);
+    if (error) {
+      setSaveError(error);
+    } else {
+      onClose();
+    }
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -60,11 +73,17 @@ function AssignRoleModal({ user, onClose }: AssignRoleModalProps) {
               <p className="mt-1.5 text-xs text-gray-500">{ROLE_CONFIGS[selectedRole].description}</p>
             )}
           </div>
+
+          {saveError && (
+            <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{saveError}</p>
+          )}
         </div>
 
         <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-200">
-          <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-          <Button size="sm" onClick={onClose}>Save Role</Button>
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button size="sm" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving…' : 'Save Role'}
+          </Button>
         </div>
       </div>
     </div>
@@ -144,14 +163,24 @@ export function AdminUsers() {
   const [assignTarget, setAssignTarget] = useState<UserAccount | null>(null);
   const [viewTarget, setViewTarget] = useState<UserAccount | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       if (!isSupabaseConfigured || !supabase) return;
-      const { data } = await supabase.from('profiles').select('*');
-      if (cancelled || !data) return;
-      const mapped: UserAccount[] = (data as unknown as Record<string, unknown>[]).map((row) => ({
+      const [{ data: profileData }, { data: rolesData }] = await Promise.all([
+        supabase.from('profiles').select('*'),
+        supabase.from('user_roles').select('user_id, role'),
+      ]);
+      if (cancelled || !profileData) return;
+      const rolesMap = new Map<string, UserRole>();
+      if (rolesData) {
+        (rolesData as unknown as { user_id: string; role: UserRole }[]).forEach((r) => {
+          rolesMap.set(r.user_id, r.role);
+        });
+      }
+      const mapped: UserAccount[] = (profileData as unknown as Record<string, unknown>[]).map((row) => ({
         id: String(row.id ?? ''),
         full_name: (row.full_name as string | null) ?? null,
         email: String(row.email ?? ''),
@@ -163,7 +192,7 @@ export function AdminUsers() {
         department: (row.department as string | null) ?? null,
         direct_manager_name: (row.direct_manager_name as string | null) ?? null,
         account_status: (row.account_status as AccountStatus) ?? 'active',
-        role: (row.role as UserRole) ?? 'viewer',
+        role: rolesMap.get(String(row.id ?? '')) ?? 'viewer',
         created_at: String(row.created_at ?? new Date().toISOString()),
         updated_at: String(row.updated_at ?? new Date().toISOString()),
       }));
@@ -174,6 +203,27 @@ export function AdminUsers() {
       cancelled = true;
     };
   }, []);
+
+  async function handleAssignRole(userId: string, role: UserRole): Promise<{ error: string | null }> {
+    setSaving(true);
+    try {
+      if (!isSupabaseConfigured || !supabase) {
+        // Dev mode: update local state only
+        setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role } : u)));
+        setAssignTarget((prev) => (prev ? { ...prev, role } : null));
+        return { error: null };
+      }
+      const { error } = await supabase
+        .from('user_roles')
+        .upsert({ user_id: userId, role }, { onConflict: 'user_id' });
+      if (error) return { error: error.message };
+      // Refresh local state immediately
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role } : u)));
+      return { error: null };
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const departments = Array.from(
     new Set(users.map((u) => u.department).filter((d): d is string => Boolean(d))),
@@ -385,7 +435,14 @@ export function AdminUsers() {
         )}
       </div>
 
-      {assignTarget && <AssignRoleModal user={assignTarget} onClose={() => setAssignTarget(null)} />}
+      {assignTarget && (
+        <AssignRoleModal
+          user={assignTarget}
+          onClose={() => setAssignTarget(null)}
+          onSave={handleAssignRole}
+          saving={saving}
+        />
+      )}
       {viewTarget && <ViewUserModal user={viewTarget} onClose={() => setViewTarget(null)} />}
     </div>
   );
