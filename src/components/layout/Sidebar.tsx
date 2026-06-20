@@ -4,7 +4,7 @@ import {
   ShieldCheck, GitBranch, ShoppingCart, Factory, Warehouse, PackageCheck,
   Truck, Microscope, ClipboardCheck, Plane, Wrench, BarChart2, BarChart3,
   Settings, Users, X, ScrollText, FileStack, Bell, UserPlus, BellRing,
-  CalendarClock, Activity, Flame,
+  CalendarClock, Activity, Flame, Package, Clock, AlertCircle,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -18,7 +18,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   ShieldCheck, GitBranch, ShoppingCart, Factory, Warehouse, PackageCheck,
   Truck, Microscope, ClipboardCheck, Plane, Wrench, BarChart2, BarChart3,
   Settings, Users, ScrollText, FileStack, Bell, UserPlus, BellRing,
-  CalendarClock, Activity, Flame,
+  CalendarClock, Activity, Flame, Package, Clock, AlertCircle,
 };
 
 interface SidebarProps {
