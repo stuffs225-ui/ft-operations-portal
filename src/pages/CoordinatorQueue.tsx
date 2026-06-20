@@ -140,25 +140,37 @@ export function CoordinatorQueue() {
   const [quickFilter, setQuickFilter] = useState<QuickFilter>(urlFilter ?? 'all');
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) {
-      const data = MOCK_QUOTATIONS.filter(q =>
-        !['draft'].includes((q as unknown as QuotationRequest).quotation_status)
-      );
-      setQuotations(data as unknown as QuotationRequest[]);
-      setLoading(false);
-      return;
-    }
+    let cancelled = false;
 
-    supabase
-      .from('quotation_requests')
-      .select('*, requested_by_profile:profiles!quotation_requests_requested_by_fkey(full_name, email), assigned_coordinator:profiles!quotation_requests_assigned_coordinator_id_fkey(full_name, email)')
-      .not('quotation_status', 'in', '("draft")')
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
+    async function load() {
+      if (!isSupabaseConfigured || !supabase) {
+        const data = MOCK_QUOTATIONS.filter(q =>
+          !['draft'].includes((q as unknown as QuotationRequest).quotation_status)
+        );
+        if (!cancelled) {
+          setQuotations(data as unknown as QuotationRequest[]);
+          setLoading(false);
+        }
+        return;
+      }
+
+      const { data } = await supabase
+        .from('quotation_requests')
+        .select('*, requested_by_profile:profiles!quotation_requests_requested_by_fkey(full_name, email), assigned_coordinator:profiles!quotation_requests_assigned_coordinator_id_fkey(full_name, email)')
+        .not('quotation_status', 'in', '("draft")')
+        .order('created_at', { ascending: false });
+
+      if (!cancelled) {
         setQuotations((data as unknown as QuotationRequest[]) ?? []);
         setLoading(false);
-      });
+      }
+    }
+
+    void load();
+    return () => { cancelled = true; };
   }, []);
+
+  const currentUserId = profile?.id ?? null;
 
   // Tab counts
   const tabCounts = useMemo(() => {
@@ -172,22 +184,22 @@ export function CoordinatorQueue() {
         ).length;
       } else if (t.key === 'mine') {
         counts[t.key] = quotations.filter(q =>
-          TAB_STATUSES.mine.includes(q.quotation_status) && profile?.id && q.assigned_coordinator_id === profile.id
+          TAB_STATUSES.mine.includes(q.quotation_status) && currentUserId != null && q.assigned_coordinator_id === currentUserId
         ).length;
       } else {
         counts[t.key] = quotations.filter(q => TAB_STATUSES[t.key].includes(q.quotation_status)).length;
       }
     }
     return counts;
-  }, [quotations, profile?.id]);
+  }, [quotations, currentUserId]);
 
   // Tab filter
   const tabFiltered = useMemo(() => {
     if (tab === 'all') return quotations;
     if (tab === 'unassigned') return quotations.filter(q => TAB_STATUSES.unassigned.includes(q.quotation_status) && !q.assigned_coordinator_id);
-    if (tab === 'mine') return quotations.filter(q => TAB_STATUSES.mine.includes(q.quotation_status) && profile?.id && q.assigned_coordinator_id === profile.id);
+    if (tab === 'mine') return quotations.filter(q => TAB_STATUSES.mine.includes(q.quotation_status) && currentUserId != null && q.assigned_coordinator_id === currentUserId);
     return quotations.filter(q => TAB_STATUSES[tab].includes(q.quotation_status));
-  }, [quotations, tab, profile?.id]);
+  }, [quotations, tab, currentUserId]);
 
   // Quick filter
   const quickFiltered = useMemo(() => {
