@@ -114,7 +114,7 @@ export function MaterialQcInspections() {
           {STATUS_TABS.map(t => (
             <button key={t.key} onClick={() => setStatusTab(t.key)}
               className={`px-3 py-2 text-sm font-medium rounded-t whitespace-nowrap transition-colors ${
-                statusTab === t.key ? 'text-sky-700 border-b-2 border-sky-600' : 'text-gray-500 hover:text-gray-700'
+                statusTab === t.key ? 'text-violet-700 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700'
               }`}>
               {t.label}
             </button>

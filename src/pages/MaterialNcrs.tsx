@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, ChevronRight } from 'lucide-react';
+import { AlertTriangle, ChevronRight, XCircle } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { PageLoader } from '../components/ui/PageLoader';
 import { StatusBadge } from '@/components/status/status-badge';
 import { PriorityBadge } from '@/components/status/priority-badge';
+import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { DataSourceBadge } from '@/components/ui/DataSourceBadge';
@@ -87,7 +88,7 @@ export function MaterialNcrs() {
           {STATUS_TABS.map(t => (
             <button key={t.key} onClick={() => setStatusTab(t.key)}
               className={`px-3 py-2 text-sm font-medium rounded-t whitespace-nowrap transition-colors ${
-                statusTab === t.key ? 'text-sky-700 border-b-2 border-sky-600' : 'text-gray-500 hover:text-gray-700'
+                statusTab === t.key ? 'text-violet-700 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700'
               }`}>
               {t.label}
             </button>
@@ -112,6 +113,7 @@ export function MaterialNcrs() {
                   <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide hidden md:table-cell">Root Cause</th>
                   <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
                   <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide hidden xl:table-cell">Due</th>
+                  <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide hidden lg:table-cell">Blocks Release</th>
                   <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide"></th>
                 </tr>
               </thead>
@@ -125,6 +127,11 @@ export function MaterialNcrs() {
                     <td className="px-4 py-3 text-sm text-gray-500 hidden md:table-cell">{n.root_cause_category ?? '—'}</td>
                     <td className="px-4 py-3"><StatusBadge status={n.ncr_status} /></td>
                     <td className="px-4 py-3 text-sm text-gray-500 hidden xl:table-cell">{n.due_date ? formatDate(n.due_date) : '—'}</td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      {n.ncr_status !== 'closed' && n.ncr_status !== 'cancelled' && n.project_id
+                        ? <span className="inline-flex items-center gap-1 text-xs text-red-600 font-medium"><XCircle size={12} /> Blocking</span>
+                        : <Badge variant="success">No</Badge>}
+                    </td>
                     <td className="px-4 py-3">
                       <Link to={`/material-qc/ncrs/${n.id}`}>
                         <Button variant="ghost" size="sm">View <ChevronRight size={14} /></Button>

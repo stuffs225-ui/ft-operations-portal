@@ -261,6 +261,99 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'operations_manager', 'store_user'],
   },
 
+  // ── 3D-QC. QUALITY CONTROL (qc_user workspace) ──────────────────────────────
+  // 18.7D: dedicated QC section replacing generic QUALITY & RELEASE for qc_user.
+  {
+    id: 'sep-qc',
+    label: 'QUALITY CONTROL',
+    path: '#',
+    icon: '',
+  },
+  {
+    id: 'qc-dashboard',
+    label: 'QC Dashboard',
+    path: '/qc',
+    icon: 'ShieldCheck',
+    roles: ['admin', 'operations_manager', 'qc_user'],
+  },
+  {
+    id: 'qc-work-queue',
+    label: 'QC Work Queue',
+    path: '/qc/work-queue',
+    icon: 'ListChecks',
+    roles: ['admin', 'operations_manager', 'qc_user'],
+  },
+  {
+    id: 'qc-material-qc',
+    label: 'Material QC',
+    path: '/material-qc',
+    icon: 'Microscope',
+    roles: ['admin', 'operations_manager', 'qc_user'],
+  },
+  {
+    id: 'qc-material-inspections',
+    label: 'Material Inspections',
+    path: '/material-qc/inspections',
+    icon: 'ClipboardCheck',
+    roles: ['admin', 'operations_manager', 'qc_user'],
+  },
+  {
+    id: 'qc-material-ncrs',
+    label: 'Material NCRs',
+    path: '/material-qc/ncrs',
+    icon: 'AlertOctagon',
+    roles: ['admin', 'operations_manager', 'qc_user'],
+  },
+  {
+    id: 'qc-project-qc',
+    label: 'Project / Vehicle QC',
+    path: '/project-qc',
+    icon: 'ClipboardList',
+    roles: ['admin', 'operations_manager', 'qc_user'],
+  },
+  {
+    id: 'qc-project-inspections',
+    label: 'Project QC Inspections',
+    path: '/project-qc/inspections',
+    icon: 'Search',
+    roles: ['admin', 'operations_manager', 'qc_user'],
+  },
+  {
+    id: 'qc-findings',
+    label: 'QC Findings',
+    path: '/project-qc/findings',
+    icon: 'AlertTriangle',
+    roles: ['admin', 'operations_manager', 'qc_user'],
+  },
+  {
+    id: 'qc-rework',
+    label: 'Rework',
+    path: '/qc/rework',
+    icon: 'Wrench',
+    roles: ['admin', 'operations_manager', 'qc_user'],
+  },
+  {
+    id: 'qc-release-notes',
+    label: 'Release Notes',
+    path: '/project-qc/release-notes',
+    icon: 'FileCheck',
+    roles: ['admin', 'operations_manager', 'qc_user'],
+  },
+  // ── 3D-QC-R. QUALITY REPORTING ────────────────────────────────────────────
+  {
+    id: 'sep-qc-reports',
+    label: 'QUALITY REPORTING',
+    path: '#',
+    icon: '',
+  },
+  {
+    id: 'qc-reports-link',
+    label: 'QC Reports',
+    path: '/reports/qc',
+    icon: 'BarChart2',
+    roles: ['admin', 'operations_manager', 'qc_user'],
+  },
+
   // ── 3E. FACTORY EXECUTION (factory_user workspace) ───────────────────────────
   // 18.7C: dedicated factory section replacing generic EXECUTION entry for
   // factory_user. Admin/ops_manager also see these as direct deep links.
@@ -401,6 +494,8 @@ export const NAV_ITEMS: NavItem[] = [
   },
 
   // ── 5. QUALITY & RELEASE ─────────────────────────────────────────────────
+  // qc_user uses the dedicated QUALITY CONTROL section above.
+  // Admin/ops_manager still see these for quick access.
   {
     id: 'sep-4',
     label: 'QUALITY & RELEASE',
@@ -412,14 +507,14 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Material QC',
     path: '/material-qc',
     icon: 'Microscope',
-    roles: ['admin', 'operations_manager', 'qc_user'],
+    roles: ['admin', 'operations_manager'],
   },
   {
     id: 'project-qc',
     label: 'Project / Vehicle QC',
     path: '/project-qc',
     icon: 'ClipboardCheck',
-    roles: ['admin', 'operations_manager', 'qc_user'],
+    roles: ['admin', 'operations_manager'],
   },
 
   // ── 6. DUBAI / AFS ────────────────────────────────────────────────────────

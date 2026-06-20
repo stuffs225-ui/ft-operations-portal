@@ -55,6 +55,9 @@ const StoreQCHandoff = lazy(() => import('../pages/StoreQCHandoff').then((m) => 
 const StoreUnallocated = lazy(() => import('../pages/StoreUnallocated').then((m) => ({ default: m.StoreUnallocated })));
 const CustodyNew = lazy(() => import('../pages/CustodyNew').then((m) => ({ default: m.CustodyNew })));
 const CustodyDetail = lazy(() => import('../pages/CustodyDetail').then((m) => ({ default: m.CustodyDetail })));
+const QC = lazy(() => import('../pages/QC').then((m) => ({ default: m.QC })));
+const QCWorkQueue = lazy(() => import('../pages/QCWorkQueue').then((m) => ({ default: m.QCWorkQueue })));
+const QCRework = lazy(() => import('../pages/QCRework').then((m) => ({ default: m.QCRework })));
 const MaterialQC = lazy(() => import('../pages/MaterialQC').then((m) => ({ default: m.MaterialQC })));
 const MaterialQcInspections = lazy(() => import('../pages/MaterialQcInspections').then((m) => ({ default: m.MaterialQcInspections })));
 const MaterialQcInspectionDetail = lazy(() => import('../pages/MaterialQcInspectionDetail').then((m) => ({ default: m.MaterialQcInspectionDetail })));
@@ -248,6 +251,9 @@ export function App() {
             <Route path="vehicle-receiving" element={<RequireRole roles={['store_user', 'operations_manager']}><VehicleReceiving /></RequireRole>} />
 
             {/* ── Quality Control ── */}
+            <Route path="qc" element={<RequireRole roles={['qc_user', 'operations_manager']}><QC /></RequireRole>} />
+            <Route path="qc/work-queue" element={<RequireRole roles={['qc_user', 'operations_manager']}><QCWorkQueue /></RequireRole>} />
+            <Route path="qc/rework" element={<RequireRole roles={['qc_user', 'operations_manager']}><QCRework /></RequireRole>} />
             <Route path="material-qc" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialQC /></RequireRole>} />
             <Route path="material-qc/inspections" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialQcInspections /></RequireRole>} />
             <Route path="material-qc/inspections/:id" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialQcInspectionDetail /></RequireRole>} />
