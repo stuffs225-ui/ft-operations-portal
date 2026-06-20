@@ -34,6 +34,14 @@ export const NAV_ITEMS: NavItem[] = [
     icon: 'Bell',
     roles: ['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user', 'viewer'],
   },
+  // sales_user gets their command center as the MY WORK landing item
+  {
+    id: 'sales-dashboard',
+    label: 'My Sales Dashboard',
+    path: '/sales',
+    icon: 'TrendingUp',
+    roles: ['sales_user'],
+  },
 
   // ── 2. SALES & COMMERCIAL ─────────────────────────────────────────────────
   {
@@ -47,7 +55,8 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Sales Workspace',
     path: '/sales',
     icon: 'TrendingUp',
-    roles: ['admin', 'operations_manager', 'sales_user', 'viewer'],
+    // sales_user accesses /sales via "My Sales Dashboard" in MY WORK section above
+    roles: ['admin', 'operations_manager', 'viewer'],
   },
   {
     id: 'hot-projects',
@@ -72,10 +81,32 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'receivables',
-    label: 'Receivables',
+    label: 'Receivables & Aging',
     path: '/receivables',
     icon: 'BarChart3',
-    roles: ['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'viewer'],
+    roles: ['admin', 'operations_manager', 'sales_coordinator', 'viewer'],
+  },
+  // sales_user-specific SALES & COMMERCIAL entries (Projects/SO, Receivables, Reports)
+  {
+    id: 'sales-receivables',
+    label: 'Receivables & Aging',
+    path: '/receivables',
+    icon: 'BarChart3',
+    roles: ['sales_user'],
+  },
+  {
+    id: 'sales-projects-link',
+    label: 'Projects / SO',
+    path: '/projects',
+    icon: 'FolderKanban',
+    roles: ['sales_user'],
+  },
+  {
+    id: 'sales-reports-commercial',
+    label: 'Sales Reports',
+    path: '/reports/sales',
+    icon: 'TrendingUp',
+    roles: ['sales_user'],
   },
 
   // ── 3. PROJECTS ───────────────────────────────────────────────────────────
@@ -92,7 +123,8 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Projects / SO',
     path: '/projects',
     icon: 'FolderKanban',
-    roles: ['admin', 'operations_manager', 'sales_user', 'viewer'],
+    // sales_user sees Projects/SO via SALES & COMMERCIAL section (sales-projects-link)
+    roles: ['admin', 'operations_manager', 'viewer'],
   },
   {
     id: 'admin-approvals',
@@ -670,13 +702,8 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'operations_manager', 'viewer', 'sales_coordinator'],
   },
   // Per-role direct report links (avoids the broken Reports Hub for operational roles)
-  {
-    id: 'sales-reports',
-    label: 'Sales Reports',
-    path: '/reports/sales',
-    icon: 'TrendingUp',
-    roles: ['sales_user'],
-  },
+  // sales_user sees Sales Reports in SALES & COMMERCIAL section (sales-reports-commercial)
+  // keeping this entry hidden for sales_user to avoid duplication
   {
     id: 'procurement-reports',
     label: 'Procurement Reports',

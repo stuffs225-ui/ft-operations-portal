@@ -49,10 +49,12 @@ export const ROLE_MATRIX: Record<UserRole, RoleMatrixEntry> = {
     moduleAccentColor: 'bg-emerald-600',
     badgeClass: 'bg-emerald-100 text-emerald-800',
     rules: [
-      'Convert quotations to SO only after estimation is complete',
-      'New project requires approved SO reference',
-      'Do not commit delivery dates without WO/PN confirmation',
-      'Hot Projects flag requires Operations Manager approval',
+      'Quotation requests must include enough detail for coordination — incomplete requests cause delays',
+      'Returned quotations require immediate review and a documented next action',
+      'SO / project creation follows the approval and routing workflow — do not bypass',
+      'Sales can track high-level execution status but cannot perform operational gate actions',
+      'Receivables must be reviewed when invoicing milestones are created or overdue',
+      'Commercial updates should be traceable — use timeline/audit where supported',
     ],
   },
   sales_coordinator: {

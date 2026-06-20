@@ -162,11 +162,22 @@ export function Receivables() {
           <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
           <span>{error}</span>
         </div>
+      ) : rows.length === 0 ? (
+        <EmptyState
+          icon={<BarChart3 size={32} className="text-gray-300" />}
+          title="No receivables data"
+          description="No open invoice milestones found. This could mean all milestones are paid, or invoicing plans haven't been created yet."
+          action={
+            <Link to="/projects" className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline font-medium">
+              View Projects <ExternalLink size={13} />
+            </Link>
+          }
+        />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<BarChart3 size={32} className="text-gray-300" />}
-          title="No outstanding milestones"
-          description={search || bucketFilter !== 'all' ? 'Try adjusting your search or filters.' : 'All milestones are paid, or no invoicing plans exist yet.'}
+          title="No results for current filters"
+          description="Try adjusting your search or aging bucket selection."
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">

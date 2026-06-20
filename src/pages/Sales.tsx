@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  FileText, FolderOpen, Plus, Search, ChevronRight,
-  Loader2, Clock, AlertCircle, CheckCircle,
-  Flame, ReceiptText, BarChart3, ArrowRight,
+  FileText, FolderOpen, Plus, ChevronRight,
+  Loader2, Clock, AlertCircle, CheckCircle2,
+  Flame, ReceiptText, BarChart3, ShieldCheck,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
@@ -11,17 +11,13 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Drawer } from '../components/ui/Drawer';
-import { ReportExportBar } from '../components/features/ReportExportBar';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { exportRowsToCsv } from '../lib/reportExport';
-import type { ReportColumn } from '../lib/reportExport';
 import { MOCK_QUOTATIONS } from '../data/mockQuotations';
 import { MOCK_PROJECTS } from '../data/mockProjects';
-import type {
-  QuotationRequest, QuotationStatus,
-  Project, ProjectStatus, UserRole,
-} from '../types';
+import { ROLE_MATRIX } from '../lib/roleMatrix';
+import type { QuotationRequest, QuotationStatus, Project, ProjectStatus, UserRole } from '../types';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -29,7 +25,7 @@ function formatSAR(value: number) {
   return 'SAR ' + value.toLocaleString('en-SA', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
-function formatDate(iso: string | null) {
+function formatDate(iso: string | null | undefined) {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
@@ -63,99 +59,14 @@ const PROJECT_STATUS_MAP: Record<ProjectStatus, { label: string; variant: 'neutr
 const CAN_CREATE_SO: UserRole[] = ['admin', 'operations_manager', 'sales_user'];
 const BROAD_VIEW: UserRole[] = ['admin', 'operations_manager'];
 
-// ── KPI card ──────────────────────────────────────────────────────────────────
-
-interface SalesKpi {
+interface KpiItem {
   id: string;
   label: string;
   value: number;
   sub: string;
   borderColor: string;
   icon: React.ReactNode;
-}
-
-function KpiStrip({ kpis, onSelect }: { kpis: SalesKpi[]; onSelect: (id: string) => void }) {
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-      {kpis.map(k => (
-        <button
-          key={k.id}
-          type="button"
-          onClick={() => onSelect(k.id)}
-          className={`text-left bg-white rounded-xl border border-gray-200 border-l-4 shadow-sm p-4 ${k.borderColor} hover:shadow-md hover:border-gray-300 transition-all focus:outline-none focus:ring-2 focus:ring-brand-400`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-gray-400">{k.icon}</div>
-            <ChevronRight size={14} className="text-gray-300" />
-          </div>
-          <div className="text-2xl font-bold text-gray-900">{k.value}</div>
-          <div className="text-sm font-semibold text-gray-700 mt-0.5">{k.label}</div>
-          <div className="text-xs text-gray-500 mt-0.5 leading-snug">{k.sub}</div>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ── Quotation row ──────────────────────────────────────────────────────────────
-
-function QuotationRow({ q }: { q: QuotationRequest }) {
-  const sm = QUOTATION_STATUS_MAP[q.quotation_status] ?? { label: q.quotation_status, variant: 'neutral' as const };
-  return (
-    <tr className="hover:bg-gray-50 transition-colors">
-      <td className="px-4 py-3 text-sm font-mono font-medium text-sky-700">
-        <Link to={`/quotations/${q.id}`} className="hover:underline">{q.quotation_code}</Link>
-      </td>
-      <td className="px-4 py-3 text-sm text-gray-800">{q.customer_name}</td>
-      <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">
-        {q.scope_summary
-          ? q.scope_summary.slice(0, 60) + (q.scope_summary.length > 60 ? '…' : '')
-          : '—'}
-      </td>
-      <td className="px-4 py-3">
-        <Badge variant={sm.variant}>{sm.label}</Badge>
-      </td>
-      <td className="px-4 py-3 text-sm text-gray-500 hidden lg:table-cell">
-        {formatDate(q.required_delivery_expectation)}
-      </td>
-      <td className="px-4 py-3">
-        <Link to={`/quotations/${q.id}`}>
-          <Button variant="ghost" size="sm">View <ChevronRight size={14} /></Button>
-        </Link>
-      </td>
-    </tr>
-  );
-}
-
-// ── Project row ───────────────────────────────────────────────────────────────
-
-function ProjectRow({ p, showValue }: { p: Project; showValue: boolean }) {
-  const sm = PROJECT_STATUS_MAP[p.project_status] ?? { label: p.project_status, variant: 'neutral' as const };
-  return (
-    <tr className="hover:bg-gray-50 transition-colors">
-      <td className="px-4 py-3 text-sm font-mono font-medium text-sky-700">
-        <Link to={`/projects/${p.id}`} className="hover:underline">{p.project_code}</Link>
-      </td>
-      <td className="px-4 py-3 text-sm text-gray-500 font-mono">{p.so_number}</td>
-      <td className="px-4 py-3 text-sm text-gray-800">{p.customer_name}</td>
-      <td className="px-4 py-3">
-        <Badge variant={sm.variant}>{sm.label}</Badge>
-      </td>
-      <td className="px-4 py-3 text-sm text-gray-500 hidden lg:table-cell">
-        {formatDate(p.customer_delivery_date)}
-      </td>
-      {showValue && (
-        <td className="px-4 py-3 text-sm text-gray-700 text-right tabular-nums hidden xl:table-cell">
-          {formatSAR(p.total_sales_value)}
-        </td>
-      )}
-      <td className="px-4 py-3">
-        <Link to={`/projects/${p.id}`}>
-          <Button variant="ghost" size="sm">View <ChevronRight size={14} /></Button>
-        </Link>
-      </td>
-    </tr>
-  );
+  urgent?: boolean;
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -165,51 +76,38 @@ export function Sales() {
   const [quotations, setQuotations] = useState<QuotationRequest[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
-  const [qSearch, setQSearch] = useState('');
-  const [pSearch, setPSearch] = useState('');
   const [activeKpi, setActiveKpi] = useState<string | null>(null);
 
   const isBroadView = role ? BROAD_VIEW.includes(role) : false;
   const isSalesUser = role === 'sales_user';
   const canCreateSO = role ? CAN_CREATE_SO.includes(role) : false;
-  // Sales users see total_sales_value on their own projects; admin/ops_manager see all
   const showValue = role === 'admin' || role === 'operations_manager' || role === 'sales_user';
-  const reportDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
 
   // ── Load data ───────────────────────────────────────────────────────────────
 
   useEffect(() => {
     setLoading(true);
-
     if (isSupabaseConfigured && supabase) {
       const uid = profile?.id;
       const qBase = supabase
         .from('quotation_requests')
         .select('*, requested_by_profile:profiles!requested_by(full_name,email), assigned_coordinator:profiles!assigned_coordinator_id(full_name,email)')
         .order('created_at', { ascending: false });
-
       const pBase = supabase
         .from('projects')
         .select('*, sales_owner:profiles!sales_owner_id(full_name,email)')
         .order('created_at', { ascending: false });
-
       const qQuery = (!isBroadView && uid) ? qBase.eq('requested_by', uid) : qBase;
       const pQuery = (!isBroadView && uid) ? pBase.eq('sales_owner_id', uid) : pBase;
-
       Promise.all([qQuery, pQuery]).then(([qRes, pRes]) => {
         if (!qRes.error) setQuotations((qRes.data ?? []) as unknown as QuotationRequest[]);
         if (!pRes.error) setProjects((pRes.data ?? []) as unknown as Project[]);
         setLoading(false);
       });
     } else {
-      // Dev mode — use mock data
       const uid = profile?.id ?? 'dev-usr-001';
-      const qs = isBroadView
-        ? MOCK_QUOTATIONS
-        : MOCK_QUOTATIONS.filter(q => q.requested_by === uid || q.created_by === uid);
-      const ps = isBroadView
-        ? MOCK_PROJECTS
-        : MOCK_PROJECTS.filter(p => p.sales_owner_id === uid || p.created_by === uid);
+      const qs = isBroadView ? MOCK_QUOTATIONS : MOCK_QUOTATIONS.filter(q => q.requested_by === uid || q.created_by === uid);
+      const ps = isBroadView ? MOCK_PROJECTS : MOCK_PROJECTS.filter(p => p.sales_owner_id === uid || p.created_by === uid);
       setQuotations(qs);
       setProjects(ps);
       setLoading(false);
@@ -218,470 +116,334 @@ export function Sales() {
 
   // ── KPI derivation ──────────────────────────────────────────────────────────
 
-  const kpis: SalesKpi[] = useMemo(() => {
-    const activeProjects = projects.filter(p =>
-      ['approved', 'active'].includes(p.project_status)
-    ).length;
-
+  const kpis: KpiItem[] = useMemo(() => {
     const openQuotations = quotations.filter(q =>
-      ['draft', 'submitted_by_sales', 'received_by_coordinator',
-       'sent_to_estimation', 'waiting_for_estimation',
-       'need_clarification', 'quotation_received'].includes(q.quotation_status)
+      ['draft', 'submitted_by_sales', 'received_by_coordinator', 'sent_to_estimation', 'waiting_for_estimation', 'quotation_received'].includes(q.quotation_status)
     ).length;
-
-    const returnedQuotations = quotations.filter(q => q.quotation_status === 'returned_to_sales').length;
-    const soDrafts = projects.filter(p => p.project_status === 'draft').length;
-    const pendingApproval = projects.filter(p => p.project_status === 'submitted_for_approval').length;
-    const approvedProjects = projects.filter(p =>
-      ['approved', 'active', 'completed'].includes(p.project_status)
-    ).length;
-    const sentBack = projects.filter(p => p.project_status === 'sent_back_for_revision').length;
+    const returnedToSales = quotations.filter(q => q.quotation_status === 'returned_to_sales').length;
     const needClarification = quotations.filter(q => q.quotation_status === 'need_clarification').length;
+    const openHotProjects = 0; // hot_projects not loaded here — link out to /hot-projects
+    const approvedSOs = projects.filter(p => ['approved', 'active'].includes(p.project_status)).length;
+    const atRisk = projects.filter(p => p.project_status === 'sent_back_for_revision').length;
+    const pendingApproval = projects.filter(p => p.project_status === 'submitted_for_approval').length;
+    const soDrafts = projects.filter(p => p.project_status === 'draft').length;
 
     return [
-      {
-        id: 'active-projects', label: 'Active Projects', value: activeProjects,
-        sub: 'Approved & in progress', borderColor: 'border-l-sky-400',
-        icon: <FolderOpen size={18} />,
-      },
-      {
-        id: 'open-quotations', label: 'Open Quotations', value: openQuotations,
-        sub: 'In pipeline', borderColor: 'border-l-amber-400',
-        icon: <FileText size={18} />,
-      },
-      {
-        id: 'returned-quotations', label: 'Returned to Sales', value: returnedQuotations,
-        sub: 'Awaiting your action', borderColor: 'border-l-orange-400',
-        icon: <AlertCircle size={18} />,
-      },
-      {
-        id: 'so-drafts', label: 'SO Drafts', value: soDrafts,
-        sub: 'Not yet submitted', borderColor: 'border-l-gray-400',
-        icon: <FileText size={18} />,
-      },
-      {
-        id: 'pending-approval', label: 'Pending Approval', value: pendingApproval,
-        sub: 'Awaiting admin review', borderColor: 'border-l-indigo-400',
-        icon: <Clock size={18} />,
-      },
-      {
-        id: 'approved-projects', label: 'Approved Projects', value: approvedProjects,
-        sub: 'Approved / active / done', borderColor: 'border-l-green-400',
-        icon: <CheckCircle size={18} />,
-      },
-      {
-        id: 'sent-back', label: 'Sent Back', value: sentBack,
-        sub: 'Needs revision', borderColor: 'border-l-red-400',
-        icon: <AlertCircle size={18} />,
-      },
-      {
-        id: 'clarification', label: 'Need Clarification', value: needClarification,
-        sub: 'Coordinator requested info', borderColor: 'border-l-yellow-400',
-        icon: <AlertCircle size={18} />,
-      },
+      { id: 'open-quotations',   label: 'Open Quotations',     value: openQuotations,   sub: 'In pipeline',             borderColor: 'border-l-emerald-400', icon: <FileText size={18} /> },
+      { id: 'returned',          label: 'Returned to Sales',   value: returnedToSales,  sub: 'Awaiting your action',    borderColor: returnedToSales > 0 ? 'border-l-orange-500' : 'border-l-gray-200', icon: <AlertCircle size={18} />, urgent: returnedToSales > 0 },
+      { id: 'clarification',     label: 'Need Clarification',  value: needClarification,sub: 'Info requested',          borderColor: needClarification > 0 ? 'border-l-amber-500' : 'border-l-gray-200', icon: <AlertCircle size={18} />, urgent: needClarification > 0 },
+      { id: 'hot-projects-kpi',  label: 'Hot Projects',        value: openHotProjects,  sub: 'View pipeline',           borderColor: 'border-l-orange-400', icon: <Flame size={18} /> },
+      { id: 'approved-sos',      label: 'Approved SOs',        value: approvedSOs,      sub: 'Approved & active',       borderColor: 'border-l-emerald-500', icon: <CheckCircle2 size={18} /> },
+      { id: 'at-risk',           label: 'Projects At Risk',    value: atRisk,           sub: 'Sent back for revision',  borderColor: atRisk > 0 ? 'border-l-red-500' : 'border-l-gray-200', icon: <AlertCircle size={18} />, urgent: atRisk > 0 },
+      { id: 'pending-approval',  label: 'Pending Approval',    value: pendingApproval,  sub: 'Awaiting admin review',   borderColor: 'border-l-indigo-400', icon: <Clock size={18} /> },
+      { id: 'so-drafts',         label: 'SO Drafts',           value: soDrafts,         sub: 'Not yet submitted',       borderColor: 'border-l-gray-400', icon: <FolderOpen size={18} /> },
     ];
   }, [quotations, projects]);
 
-  // ── Filtered lists ──────────────────────────────────────────────────────────
+  // ── KPI drawer ───────────────────────────────────────────────────────────────
 
-  const filteredQuotations = useMemo(() => {
-    const q = qSearch.toLowerCase();
-    if (!q) return quotations;
-    return quotations.filter(x =>
-      x.quotation_code.toLowerCase().includes(q) ||
-      x.customer_name.toLowerCase().includes(q)
-    );
-  }, [quotations, qSearch]);
-
-  const filteredProjects = useMemo(() => {
-    const q = pSearch.toLowerCase();
-    if (!q) return projects;
-    return projects.filter(x =>
-      x.project_code.toLowerCase().includes(q) ||
-      x.so_number.toLowerCase().includes(q) ||
-      x.customer_name.toLowerCase().includes(q)
-    );
-  }, [projects, pSearch]);
-
-  // ── KPI drawer: resolve the records behind the selected summary card ─────────
   const kpiDetail = useMemo(() => {
     if (!activeKpi) return null;
-    const open = ['draft', 'submitted_by_sales', 'received_by_coordinator',
-      'sent_to_estimation', 'waiting_for_estimation', 'need_clarification',
-      'quotation_received'];
     type Detail =
       | { title: string; subtitle: string; kind: 'quotation'; items: QuotationRequest[] }
       | { title: string; subtitle: string; kind: 'project'; items: Project[] };
+    const open = ['draft', 'submitted_by_sales', 'received_by_coordinator', 'sent_to_estimation', 'waiting_for_estimation', 'quotation_received'];
     const map: Record<string, Detail> = {
-      'active-projects':      { title: 'Active Projects', subtitle: 'Approved & in progress', kind: 'project', items: projects.filter(p => ['approved', 'active'].includes(p.project_status)) },
-      'open-quotations':      { title: 'Open Quotations', subtitle: 'In the quotation pipeline', kind: 'quotation', items: quotations.filter(q => open.includes(q.quotation_status)) },
-      'returned-quotations':  { title: 'Returned to Sales', subtitle: 'Ready for your action — review and convert to SO', kind: 'quotation', items: quotations.filter(q => q.quotation_status === 'returned_to_sales') },
-      'so-drafts':            { title: 'SO Drafts', subtitle: 'Not yet submitted for approval', kind: 'project', items: projects.filter(p => p.project_status === 'draft') },
-      'pending-approval':     { title: 'Pending Approval', subtitle: 'Awaiting admin review', kind: 'project', items: projects.filter(p => p.project_status === 'submitted_for_approval') },
-      'approved-projects':    { title: 'Approved Projects', subtitle: 'Approved / active / completed', kind: 'project', items: projects.filter(p => ['approved', 'active', 'completed'].includes(p.project_status)) },
-      'sent-back':            { title: 'Sent Back for Revision', subtitle: 'Needs your changes and resubmission', kind: 'project', items: projects.filter(p => p.project_status === 'sent_back_for_revision') },
-      'clarification':        { title: 'Need Clarification', subtitle: 'Coordinator requested more information', kind: 'quotation', items: quotations.filter(q => q.quotation_status === 'need_clarification') },
+      'open-quotations':  { title: 'Open Quotations',        subtitle: 'In pipeline',                   kind: 'quotation', items: quotations.filter(q => open.includes(q.quotation_status)) },
+      'returned':         { title: 'Returned to Sales',      subtitle: 'Review and take action',        kind: 'quotation', items: quotations.filter(q => q.quotation_status === 'returned_to_sales') },
+      'clarification':    { title: 'Need Clarification',     subtitle: 'Coordinator requested info',    kind: 'quotation', items: quotations.filter(q => q.quotation_status === 'need_clarification') },
+      'approved-sos':     { title: 'Approved SOs',           subtitle: 'Approved / active projects',    kind: 'project',   items: projects.filter(p => ['approved', 'active'].includes(p.project_status)) },
+      'at-risk':          { title: 'Projects At Risk',       subtitle: 'Sent back for revision',        kind: 'project',   items: projects.filter(p => p.project_status === 'sent_back_for_revision') },
+      'pending-approval': { title: 'Pending Approval',       subtitle: 'Awaiting admin review',         kind: 'project',   items: projects.filter(p => p.project_status === 'submitted_for_approval') },
+      'so-drafts':        { title: 'SO Drafts',              subtitle: 'Not yet submitted',             kind: 'project',   items: projects.filter(p => p.project_status === 'draft') },
     };
     return map[activeKpi] ?? null;
   }, [activeKpi, quotations, projects]);
 
-  // ── Report export ────────────────────────────────────────────────────────────
+  // ── Action-required work queue ───────────────────────────────────────────────
 
-  function handleExportInvoicingPlan() {
-    const columns: ReportColumn<Project>[] = [
-      { key: 'customer_name', header: 'Customer', value: p => p.customer_name },
-      { key: 'project_code', header: 'Project Code', value: p => p.project_code },
-      { key: 'so_number', header: 'SO / JOH Number', value: p => p.so_number },
-      { key: 'total_sales_value', header: 'Total Value (SAR)', value: p => p.total_sales_value },
-      { key: 'customer_delivery_date', header: 'Delivery Date', value: p => p.customer_delivery_date },
-      { key: 'project_status', header: 'Status', value: p => p.project_status },
-    ];
-    exportRowsToCsv(`invoicing-plan-${new Date().toISOString().split('T')[0]}.csv`, projects, columns);
-  }
-
-  // ── Render ──────────────────────────────────────────────────────────────────
+  const actionRequired = quotations.filter(q =>
+    ['returned_to_sales', 'need_clarification'].includes(q.quotation_status)
+  );
+  const pendingApprovalProjects = projects.filter(p => p.project_status === 'submitted_for_approval');
+  const atRiskProjects = projects.filter(p => p.project_status === 'sent_back_for_revision');
+  const draftProjects = projects.filter(p => p.project_status === 'draft');
+  const salesRules = ROLE_MATRIX.sales_user.rules;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Sales Workspace"
-        subtitle={isBroadView ? 'All quotations and projects' : 'Your quotations and projects'}
+        title="My Sales Dashboard"
+        subtitle="Track quotation requests, hot projects, SOs, receivables, and commercial follow-up actions."
         actions={
           <div className="flex items-center gap-2 flex-wrap">
-            <Link to="/hot-projects/new">
-              <Button variant="secondary" size="sm" icon={<Flame size={14} />}>New Opportunity</Button>
-            </Link>
-            <Link to="/quotations/new">
-              <Button variant="secondary" size="sm" icon={<FileText size={14} />}>New Quotation</Button>
-            </Link>
-            {canCreateSO && (
-              <Link to="/projects/new">
-                <Button size="sm" icon={<Plus size={14} />}>New SO / Project</Button>
-              </Link>
+            {role && (
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ROLE_MATRIX.sales_user.badgeClass}`}>
+                Sales User
+              </span>
             )}
+            <DataSourceBadge variant="auto" />
           </div>
         }
       />
 
-      {/* KPI Strip */}
-      {loading ? (
-        <div className="flex items-center gap-2 text-gray-500 text-sm py-4">
-          <Loader2 size={16} className="animate-spin" /> Loading workspace data…
+      {/* Top Actions */}
+      <div className="flex flex-wrap gap-2">
+        <Link to="/quotations/new">
+          <Button variant="primary" size="sm"><FileText size={13} className="mr-1" /> New Quotation Request</Button>
+        </Link>
+        {canCreateSO && (
+          <Link to="/projects/new">
+            <Button variant="secondary" size="sm"><Plus size={13} className="mr-1" /> Create SO / Project</Button>
+          </Link>
+        )}
+        <Link to="/hot-projects/new">
+          <Button variant="secondary" size="sm"><Flame size={13} className="mr-1" /> Add Hot Project</Button>
+        </Link>
+        <Link to="/receivables">
+          <Button variant="secondary" size="sm"><ReceiptText size={13} className="mr-1" /> View Receivables</Button>
+        </Link>
+        <Link to="/reports/sales">
+          <Button variant="secondary" size="sm"><BarChart3 size={13} className="mr-1" /> Sales Reports</Button>
+        </Link>
+      </div>
+
+      {/* Critical alerts */}
+      {!loading && actionRequired.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-sm text-amber-800">
+            <AlertCircle size={15} className="shrink-0 text-amber-500" />
+            <span>
+              <strong>{actionRequired.length}</strong> quotation{actionRequired.length !== 1 ? 's' : ''} require your action —{' '}
+              {quotations.filter(q => q.quotation_status === 'returned_to_sales').length > 0 && (
+                <span>{quotations.filter(q => q.quotation_status === 'returned_to_sales').length} returned, </span>
+              )}
+              {quotations.filter(q => q.quotation_status === 'need_clarification').length > 0 && (
+                <span>{quotations.filter(q => q.quotation_status === 'need_clarification').length} need clarification</span>
+              )}
+            </span>
+          </div>
+          <Link to="/quotations">
+            <Button variant="secondary" size="sm">View Quotations</Button>
+          </Link>
         </div>
-      ) : (
-        <KpiStrip kpis={kpis} onSelect={setActiveKpi} />
       )}
 
-      {/* Sales workflow strip */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        {[
-          { label: 'Hot Project', icon: <Flame size={13} className="text-orange-500" />, path: '/hot-projects', color: 'border-orange-200 bg-orange-50' },
-          { label: 'Quotation', icon: <FileText size={13} className="text-sky-500" />, path: '/quotations', color: 'border-sky-200 bg-sky-50' },
-          { label: 'SO / Project', icon: <FolderOpen size={13} className="text-indigo-500" />, path: '/projects', color: 'border-indigo-200 bg-indigo-50' },
-          { label: 'Invoicing', icon: <ReceiptText size={13} className="text-emerald-500" />, path: '/projects', color: 'border-emerald-200 bg-emerald-50' },
-          { label: 'Receivables', icon: <BarChart3 size={13} className="text-rose-500" />, path: '/receivables', color: 'border-rose-200 bg-rose-50' },
-        ].map((step, i, arr) => (
-          <div key={step.label} className="flex items-center gap-2 shrink-0">
-            <Link to={step.path} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium text-gray-700 hover:shadow-sm transition-all ${step.color}`}>
-              {step.icon} {step.label}
-            </Link>
-            {i < arr.length - 1 && <ArrowRight size={12} className="text-gray-300 shrink-0" />}
+      {/* KPI Cards */}
+      {loading ? (
+        <div className="flex items-center gap-2 text-gray-500 text-sm py-4">
+          <Loader2 size={16} className="animate-spin" /> Loading dashboard data…
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {kpis.map(k => (
+            k.id === 'hot-projects-kpi' ? (
+              <Link key={k.id} to="/hot-projects">
+                <div className={`bg-white rounded-xl border border-gray-200 border-l-4 shadow-sm p-4 hover:shadow-md transition-shadow ${k.borderColor}`}>
+                  <div className="text-gray-400 mb-2">{k.icon}</div>
+                  <div className="text-2xl font-bold text-gray-900">—</div>
+                  <div className="text-sm font-semibold text-gray-700 mt-0.5">{k.label}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{k.sub}</div>
+                </div>
+              </Link>
+            ) : (
+              <button
+                key={k.id}
+                type="button"
+                onClick={() => setActiveKpi(k.id)}
+                className={`text-left bg-white rounded-xl border border-gray-200 border-l-4 shadow-sm p-4 hover:shadow-md transition-all ${k.borderColor} ${k.urgent ? 'ring-1 ring-orange-200' : ''}`}
+              >
+                <div className={`mb-2 ${k.urgent ? 'text-orange-500' : 'text-gray-400'}`}>{k.icon}</div>
+                <div className={`text-2xl font-bold ${k.urgent && k.value > 0 ? 'text-orange-600' : 'text-gray-900'}`}>{k.value}</div>
+                <div className="text-sm font-semibold text-gray-700 mt-0.5">{k.label}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{k.sub}</div>
+              </button>
+            )
+          ))}
+        </div>
+      )}
+
+      {/* Work Queues */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* Action Required */}
+        <Card>
+          <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <AlertCircle size={14} className="text-orange-500" /> Action Required
+              {actionRequired.length > 0 && (
+                <span className="bg-orange-100 text-orange-700 text-xs font-semibold px-1.5 py-0.5 rounded-full">{actionRequired.length}</span>
+              )}
+            </h3>
+            <Link to="/quotations"><Button variant="ghost" size="sm">View All <ChevronRight size={13} /></Button></Link>
           </div>
+          {actionRequired.length === 0 ? (
+            <div className="px-5 py-6 text-center">
+              <CheckCircle2 size={22} className="mx-auto text-emerald-400 mb-1" />
+              <p className="text-sm text-gray-500">No quotations require your action.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {actionRequired.slice(0, 5).map(q => {
+                const sm = QUOTATION_STATUS_MAP[q.quotation_status];
+                return (
+                  <div key={q.id} className="px-5 py-3 flex items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-mono font-medium text-emerald-700">{q.quotation_code}</span>
+                        <Badge variant={sm.variant}>{sm.label}</Badge>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">{q.customer_name}</p>
+                    </div>
+                    <Link to={`/quotations/${q.id}`}><Button variant="ghost" size="sm">View</Button></Link>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+
+        {/* Pending Approval */}
+        <Card>
+          <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <Clock size={14} className="text-indigo-500" /> Pending Approval
+              {pendingApprovalProjects.length > 0 && (
+                <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-1.5 py-0.5 rounded-full">{pendingApprovalProjects.length}</span>
+              )}
+            </h3>
+            <Link to="/projects"><Button variant="ghost" size="sm">View All <ChevronRight size={13} /></Button></Link>
+          </div>
+          {pendingApprovalProjects.length === 0 ? (
+            <div className="px-5 py-6 text-center">
+              <CheckCircle2 size={22} className="mx-auto text-emerald-400 mb-1" />
+              <p className="text-sm text-gray-500">No projects awaiting approval.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {pendingApprovalProjects.slice(0, 5).map(p => (
+                <div key={p.id} className="px-5 py-3 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-mono font-medium text-emerald-700">{p.project_code}</span>
+                      <Badge variant="info">Pending</Badge>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">{p.customer_name} · {p.so_number}</p>
+                  </div>
+                  <Link to={`/projects/${p.id}`}><Button variant="ghost" size="sm">View</Button></Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* At Risk / Sent Back */}
+        <Card>
+          <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <AlertCircle size={14} className="text-red-500" /> Projects At Risk
+              {atRiskProjects.length > 0 && (
+                <span className="bg-red-100 text-red-700 text-xs font-semibold px-1.5 py-0.5 rounded-full">{atRiskProjects.length}</span>
+              )}
+            </h3>
+            <Link to="/projects"><Button variant="ghost" size="sm">View All <ChevronRight size={13} /></Button></Link>
+          </div>
+          {atRiskProjects.length === 0 ? (
+            <div className="px-5 py-6 text-center">
+              <CheckCircle2 size={22} className="mx-auto text-emerald-400 mb-1" />
+              <p className="text-sm text-gray-500">No projects sent back for revision.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {atRiskProjects.slice(0, 5).map(p => (
+                <div key={p.id} className="px-5 py-3 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-mono font-medium text-emerald-700">{p.project_code}</span>
+                      <Badge variant="warning">Sent Back</Badge>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">{p.customer_name} · Delivery: {formatDate(p.customer_delivery_date)}</p>
+                  </div>
+                  <Link to={`/projects/${p.id}`}><Button variant="ghost" size="sm">View</Button></Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Draft SOs */}
+        <Card>
+          <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <FolderOpen size={14} className="text-gray-400" /> Draft SOs / Projects
+              {draftProjects.length > 0 && (
+                <span className="bg-gray-100 text-gray-600 text-xs font-semibold px-1.5 py-0.5 rounded-full">{draftProjects.length}</span>
+              )}
+            </h3>
+            {canCreateSO && <Link to="/projects/new"><Button variant="ghost" size="sm">New SO <ChevronRight size={13} /></Button></Link>}
+          </div>
+          {draftProjects.length === 0 ? (
+            <div className="px-5 py-6 text-center">
+              <p className="text-sm text-gray-500">No draft SOs.</p>
+              {canCreateSO && (
+                <div className="mt-2">
+                  <Link to="/projects/new"><Button size="sm" variant="secondary"><Plus size={13} className="mr-1" /> Create SO</Button></Link>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {draftProjects.slice(0, 5).map(p => (
+                <div key={p.id} className="px-5 py-3 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-mono font-medium text-gray-700">{p.project_code || p.so_number}</span>
+                      <Badge variant="neutral">Draft</Badge>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">{p.customer_name}</p>
+                  </div>
+                  <Link to={`/projects/${p.id}`}><Button variant="ghost" size="sm">Continue</Button></Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* Commercial Pipeline Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {[
+          { label: 'Hot Projects Pipeline', icon: <Flame size={14} className="mr-1.5 text-orange-500" />, to: '/hot-projects', description: 'Track leads, negotiations, and won opportunities' },
+          { label: 'Invoicing Plan', icon: <ReceiptText size={14} className="mr-1.5 text-indigo-500" />, to: '/sales', description: `${projects.length} project${projects.length !== 1 ? 's' : ''} — total SAR ${projects.reduce((s, p) => s + p.total_sales_value, 0).toLocaleString('en-SA')}` },
+          { label: 'Receivables & Aging', icon: <BarChart3 size={14} className="mr-1.5 text-rose-500" />, to: '/receivables', description: 'Outstanding invoice milestones by aging bucket' },
+        ].map(t => (
+          <Link key={t.label} to={t.to}>
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:border-emerald-300 hover:shadow-md transition-all">
+              <div className="flex items-center text-sm font-semibold text-gray-700 mb-1">{t.icon}{t.label}</div>
+              <p className="text-xs text-gray-500">{t.description}</p>
+            </div>
+          </Link>
         ))}
       </div>
 
-      {/* Quick Actions */}
+      {/* Sales Governance Rules */}
       <Card>
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-700">Quick Actions</h2>
+        <div className="px-5 py-3 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <ShieldCheck size={14} className="text-emerald-500" /> Sales Governance Rules
+          </h3>
         </div>
-        <div className="px-5 py-4 flex flex-wrap gap-3">
-          <Link to="/hot-projects/new">
-            <Button variant="secondary" size="sm" icon={<Flame size={14} />}>New Hot Project</Button>
-          </Link>
-          <Link to="/quotations/new">
-            <Button variant="secondary" size="sm" icon={<FileText size={14} />}>New Quotation Request</Button>
-          </Link>
-          {canCreateSO && (
-            <Link to="/projects/new">
-              <Button variant="secondary" size="sm" icon={<Plus size={14} />}>Register New SO</Button>
-            </Link>
-          )}
-          <Link to="/quotations">
-            <Button variant="secondary" size="sm" icon={<AlertCircle size={14} />}>My Quotations</Button>
-          </Link>
-          <Link to="/projects">
-            <Button variant="secondary" size="sm" icon={<FolderOpen size={14} />}>My Projects</Button>
-          </Link>
-          <Link to="/receivables">
-            <Button variant="secondary" size="sm" icon={<BarChart3 size={14} />}>Receivables</Button>
-          </Link>
-        </div>
-      </Card>
-
-      {/* My Quotation Requests — hidden for sales_user (use dedicated /quotations page) */}
-      {!isSalesUser && <Card>
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
-          <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <FileText size={15} className="text-gray-400" />
-            {isBroadView ? 'All Quotation Requests' : 'My Quotation Requests'}
-            <span className="ml-1 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-              {filteredQuotations.length}
-            </span>
-          </h2>
-          <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              value={qSearch}
-              onChange={e => setQSearch(e.target.value)}
-              placeholder="Search quotations…"
-              className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-300 w-52"
-            />
-          </div>
-        </div>
-        {filteredQuotations.length === 0 ? (
-          <div className="px-5 py-8">
-            <EmptyState
-              icon={<FileText size={24} className="text-gray-400" />}
-              title="No quotation requests yet"
-              description={qSearch ? 'No results match your search.' : 'Create a quotation request or start from a Hot Project opportunity.'}
-            />
-            {!qSearch && (
-              <div className="flex gap-3 justify-center mt-4">
-                <Link to="/quotations/new"><Button size="sm" icon={<Plus size={14} />}>New Quotation</Button></Link>
-                <Link to="/hot-projects/new"><Button size="sm" variant="secondary" icon={<Flame size={14} />}>New Hot Project</Button></Link>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Code</th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Customer</th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide hidden md:table-cell">Scope</th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide hidden lg:table-cell">Expected Delivery</th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filteredQuotations.slice(0, 10).map(q => (
-                  <QuotationRow key={q.id} q={q} />
-                ))}
-              </tbody>
-            </table>
-            {filteredQuotations.length > 10 && (
-              <div className="px-4 py-3 border-t border-gray-100 text-center">
-                <Link to="/quotations" className="text-sm text-sky-600 hover:underline font-medium">
-                  View all {filteredQuotations.length} quotations →
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
-      </Card>}
-
-      {/* My Projects */}
-      <Card>
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
-          <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <FolderOpen size={15} className="text-gray-400" />
-            {isBroadView ? 'All Projects' : 'My Projects'}
-            <span className="ml-1 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-              {filteredProjects.length}
-            </span>
-          </h2>
-          <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              value={pSearch}
-              onChange={e => setPSearch(e.target.value)}
-              placeholder="Search projects…"
-              className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-300 w-52"
-            />
-          </div>
-        </div>
-        {filteredProjects.length === 0 ? (
-          <div className="px-5 py-8">
-            <EmptyState
-              icon={<FolderOpen size={24} className="text-gray-400" />}
-              title="No active SOs / projects yet"
-              description={
-                pSearch
-                  ? 'No results match your search.'
-                  : canCreateSO
-                  ? 'Register a new Sales Order when a quotation is won, or convert a Returned-to-Sales quotation to SO.'
-                  : 'No projects assigned to you yet.'
-              }
-            />
-            {!pSearch && canCreateSO && (
-              <div className="flex justify-center mt-4">
-                <Link to="/projects/new"><Button size="sm" icon={<Plus size={14} />}>Register New SO</Button></Link>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Project</th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">SO Number</th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Customer</th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide hidden lg:table-cell">Delivery Date</th>
-                  {showValue && (
-                    <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide text-right hidden xl:table-cell">Sales Value</th>
-                  )}
-                  <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filteredProjects.slice(0, 10).map(p => (
-                  <ProjectRow key={p.id} p={p} showValue={showValue} />
-                ))}
-              </tbody>
-            </table>
-            {filteredProjects.length > 10 && (
-              <div className="px-4 py-3 border-t border-gray-100 text-center">
-                <Link to="/projects" className="text-sm text-sky-600 hover:underline font-medium">
-                  View all {filteredProjects.length} projects →
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
-      </Card>
-
-      {/* Hot Projects */}
-      <Card>
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <Flame size={15} className="text-orange-500" /> Hot Projects
-          </h2>
-          <Link to="/hot-projects" className="text-xs text-brand-600 hover:underline font-medium">
-            View all →
-          </Link>
-        </div>
-        <div className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
-          <p className="text-sm text-gray-600">
-            Track pre-SO sales opportunities. Link to quotations and convert to SO when won.
-          </p>
-          <div className="flex gap-3 shrink-0">
-            <Link to="/hot-projects">
-              <Button size="sm" variant="secondary" icon={<Flame size={13} />}>View Pipeline</Button>
-            </Link>
-            <Link to="/hot-projects/new">
-              <Button size="sm" icon={<Plus size={13} />}>New Opportunity</Button>
-            </Link>
-          </div>
-        </div>
-      </Card>
-
-      {/* Invoicing Plan Report */}
-      <Card>
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <ReceiptText size={15} className="text-indigo-500" /> Invoicing Plan
-          </h2>
-          <Link to="/projects" className="text-xs text-brand-600 hover:underline font-medium no-print">
-            Open Projects →
-          </Link>
-        </div>
-        <div className="px-5 py-4 space-y-4">
-          <ReportExportBar
-            reportKey="sales_invoicing_plan"
-            reportTitle="Invoicing Plan"
-            department="Sales"
-            onExportCsv={handleExportInvoicingPlan}
-            summary={`${projects.length} project(s) — total SAR ${projects.reduce((s, p) => s + p.total_sales_value, 0).toLocaleString('en-SA')}`}
-          />
-          <div className="report-print-root">
-            {/* Print-only header */}
-            <div className="hidden print:block mb-6 pb-4 border-b-2 border-gray-800">
-              <h1 className="text-2xl font-bold text-gray-900">Invoicing Plan — {new Date().getFullYear()}</h1>
-              <p className="text-sm text-gray-700 mt-1">Salesperson: {profile?.full_name ?? '—'}</p>
-              <p className="text-sm text-gray-700">Generated: {reportDate}</p>
+        <div className="px-5 py-4 space-y-2">
+          {salesRules.map((rule, i) => (
+            <div key={i} className="flex items-start gap-2 text-sm text-gray-600">
+              <span className="text-emerald-500 mt-0.5 shrink-0">▸</span>
+              <span>{rule}</span>
             </div>
-            {/* Projects table */}
-            {projects.length === 0 ? (
-              <p className="text-sm text-gray-400 py-4 text-center">No projects found. Add projects to generate the invoicing plan.</p>
-            ) : (
-              <div className="overflow-x-auto border border-gray-100 rounded-lg">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-100">
-                    <tr>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">No.</th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">Customer</th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">Project / SO</th>
-                      <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500">Total Value (SAR)</th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 hidden md:table-cell">Delivery Date</th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 hidden md:table-cell">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {projects.map((p, i) => (
-                      <tr key={p.id} className="hover:bg-gray-50">
-                        <td className="px-3 py-2 text-gray-500 text-xs">{i + 1}</td>
-                        <td className="px-3 py-2 text-gray-900 font-medium">{p.customer_name}</td>
-                        <td className="px-3 py-2 font-mono text-xs text-sky-700">
-                          {p.project_code} <span className="text-gray-400">/ {p.so_number}</span>
-                        </td>
-                        <td className="px-3 py-2 text-right font-medium text-gray-900 tabular-nums">
-                          {formatSAR(p.total_sales_value)}
-                        </td>
-                        <td className="px-3 py-2 text-gray-500 text-xs hidden md:table-cell">
-                          {formatDate(p.customer_delivery_date)}
-                        </td>
-                        <td className="px-3 py-2 hidden md:table-cell">
-                          <Badge variant={PROJECT_STATUS_MAP[p.project_status]?.variant ?? 'neutral'}>
-                            {PROJECT_STATUS_MAP[p.project_status]?.label ?? p.project_status}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                    <tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
-                      <td className="px-3 py-2 text-xs text-gray-700" colSpan={3}>
-                        Total ({projects.length} project{projects.length !== 1 ? 's' : ''})
-                      </td>
-                      <td className="px-3 py-2 text-right text-gray-900 tabular-nums">
-                        {formatSAR(projects.reduce((s, p) => s + p.total_sales_value, 0))}
-                      </td>
-                      <td colSpan={2} />
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          ))}
         </div>
       </Card>
 
-      {/* Aging / Receivables */}
-      <Card>
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <BarChart3 size={15} className="text-rose-500" /> Aging & Receivables
-          </h2>
-          <Link to="/receivables" className="text-xs text-brand-600 hover:underline font-medium">
-            Open Dashboard →
-          </Link>
-        </div>
-        <div className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
-          <p className="text-sm text-gray-600">
-            Track outstanding invoice milestones by aging bucket (0–30 / 31–60 / 61–90 / 90+ days).
-          </p>
-          <Link to="/receivables" className="shrink-0">
-            <Button size="sm" variant="secondary" icon={<BarChart3 size={13} />}>View Receivables</Button>
-          </Link>
-        </div>
-      </Card>
-
-      {/* KPI detail drawer — opens when a summary card is clicked */}
+      {/* KPI detail drawer */}
       <Drawer
         open={kpiDetail !== null}
         onClose={() => setActiveKpi(null)}
@@ -690,8 +452,8 @@ export function Sales() {
       >
         {kpiDetail && kpiDetail.items.length === 0 ? (
           <EmptyState
-            icon={<FileText size={24} className="text-gray-400" />}
-            title="Nothing here yet"
+            icon={<CheckCircle2 size={24} className="text-emerald-400" />}
+            title="Nothing here"
             description="There are no records in this category right now."
           />
         ) : kpiDetail?.kind === 'quotation' ? (
@@ -706,7 +468,7 @@ export function Sales() {
                     className="flex items-center justify-between gap-3 py-3 px-1 hover:bg-gray-50 rounded-lg transition-colors"
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-mono font-medium text-brand-700">{q.quotation_code}</p>
+                      <p className="text-sm font-mono font-medium text-emerald-700">{q.quotation_code}</p>
                       <p className="text-sm text-gray-800 truncate">{q.customer_name}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -730,9 +492,12 @@ export function Sales() {
                     className="flex items-center justify-between gap-3 py-3 px-1 hover:bg-gray-50 rounded-lg transition-colors"
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-mono font-medium text-brand-700">{p.project_code}</p>
+                      <p className="text-sm font-mono font-medium text-emerald-700">{p.project_code}</p>
                       <p className="text-sm text-gray-800 truncate">{p.customer_name}</p>
                       <p className="text-xs text-gray-400 font-mono">{p.so_number}</p>
+                      {showValue && p.total_sales_value > 0 && (
+                        <p className="text-xs text-emerald-700 font-medium">{formatSAR(p.total_sales_value)}</p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge variant={sm.variant}>{sm.label}</Badge>
@@ -745,6 +510,55 @@ export function Sales() {
           </ul>
         ) : null}
       </Drawer>
+
+      {/* Invoicing Plan (visible to all roles) */}
+      {!isSalesUser && (
+        <Card>
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <ReceiptText size={15} className="text-indigo-500" /> Invoicing Plan
+            </h2>
+            <Link to="/projects" className="text-xs text-emerald-600 hover:underline font-medium">
+              Open Projects →
+            </Link>
+          </div>
+          <div className="px-5 py-4">
+            {projects.length === 0 ? (
+              <p className="text-sm text-gray-400 py-4 text-center">No projects found.</p>
+            ) : (
+              <div className="overflow-x-auto border border-gray-100 rounded-lg">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 border-b border-gray-100">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">Customer</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">Project / SO</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500">Value (SAR)</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 hidden md:table-cell">Delivery</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 hidden md:table-cell">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {projects.map(p => (
+                      <tr key={p.id} className="hover:bg-gray-50">
+                        <td className="px-3 py-2 text-gray-900 font-medium text-sm">{p.customer_name}</td>
+                        <td className="px-3 py-2 font-mono text-xs text-emerald-700">{p.project_code} <span className="text-gray-400">/ {p.so_number}</span></td>
+                        <td className="px-3 py-2 text-right font-medium text-gray-900 tabular-nums">{formatSAR(p.total_sales_value)}</td>
+                        <td className="px-3 py-2 text-gray-500 text-xs hidden md:table-cell">{formatDate(p.customer_delivery_date)}</td>
+                        <td className="px-3 py-2 hidden md:table-cell"><Badge variant={PROJECT_STATUS_MAP[p.project_status]?.variant ?? 'neutral'}>{PROJECT_STATUS_MAP[p.project_status]?.label ?? p.project_status}</Badge></td>
+                      </tr>
+                    ))}
+                    <tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
+                      <td className="px-3 py-2 text-xs text-gray-700" colSpan={2}>Total ({projects.length})</td>
+                      <td className="px-3 py-2 text-right text-gray-900 tabular-nums">{formatSAR(projects.reduce((s, p) => s + p.total_sales_value, 0))}</td>
+                      <td colSpan={2} />
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
