@@ -173,14 +173,6 @@ export const NAV_ITEMS: NavItem[] = [
     icon: 'GitBranch',
     roles: ['operations_manager'],
   },
-  {
-    id: 'ops-sla',
-    label: 'SLA & Delays',
-    path: '/reports/sla',
-    icon: 'Clock',
-    roles: ['operations_manager'],
-  },
-
   // ── 3. PROJECTS ───────────────────────────────────────────────────────────
   // ops_mgr sees Projects/SO via WORKSTREAM MONITORING (ops-projects).
   // ops_mgr sees Approvals/WO Gate via CONTROL TOWER section above.
