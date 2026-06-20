@@ -48,6 +48,9 @@ const StoreVehicleReceiving = lazy(() => import('../pages/StoreVehicleReceiving'
 const StoreVehicleReceivingNew = lazy(() => import('../pages/StoreVehicleReceivingNew').then((m) => ({ default: m.StoreVehicleReceivingNew })));
 const StoreVehicleReceivingDetail = lazy(() => import('../pages/StoreVehicleReceivingDetail').then((m) => ({ default: m.StoreVehicleReceivingDetail })));
 const StoreInventory = lazy(() => import('../pages/StoreInventory').then((m) => ({ default: m.StoreInventory })));
+const StoreIssuance = lazy(() => import('../pages/StoreIssuance').then((m) => ({ default: m.StoreIssuance })));
+const StoreSerials = lazy(() => import('../pages/StoreSerials').then((m) => ({ default: m.StoreSerials })));
+const StoreQCHandoff = lazy(() => import('../pages/StoreQCHandoff').then((m) => ({ default: m.StoreQCHandoff })));
 const StoreUnallocated = lazy(() => import('../pages/StoreUnallocated').then((m) => ({ default: m.StoreUnallocated })));
 const CustodyNew = lazy(() => import('../pages/CustodyNew').then((m) => ({ default: m.CustodyNew })));
 const CustodyDetail = lazy(() => import('../pages/CustodyDetail').then((m) => ({ default: m.CustodyDetail })));
@@ -233,6 +236,9 @@ export function App() {
             <Route path="store/vehicle-receiving/new" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreVehicleReceivingNew /></RequireRole>} />
             <Route path="store/vehicle-receiving/:id" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreVehicleReceivingDetail /></RequireRole>} />
             <Route path="store/inventory" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreInventory /></RequireRole>} />
+            <Route path="store/issuance" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreIssuance /></RequireRole>} />
+            <Route path="store/serials" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreSerials /></RequireRole>} />
+            <Route path="store/qc-handoff" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreQCHandoff /></RequireRole>} />
             <Route path="store/unallocated" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreUnallocated /></RequireRole>} />
             <Route path="custody" element={<RequireRole roles={['store_user', 'factory_user', 'afs_user', 'operations_manager']}><MaterialCustody /></RequireRole>} />
             <Route path="custody/new" element={<RequireRole roles={['store_user', 'factory_user', 'afs_user', 'operations_manager']}><CustodyNew /></RequireRole>} />

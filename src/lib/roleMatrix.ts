@@ -107,10 +107,12 @@ export const ROLE_MATRIX: Record<UserRole, RoleMatrixEntry> = {
     moduleAccentColor: 'bg-cyan-600',
     badgeClass: 'bg-cyan-100 text-cyan-800',
     rules: [
-      'Vehicle receiving requires chassis number and photo documentation',
-      'Medical items must be tracked by serial number',
-      'Temporary Custody requires Admin or Operations Manager approval',
+      'Vehicle receiving requires chassis number and all 5 required photos before acceptance',
+      'Medical and serialized items must be tracked by serial number before issuance',
+      'Temporary Custody requires Admin or Operations Manager approval and receiver acceptance',
+      'Materials requiring QC must not be issued before QC acceptance',
       'All material issuance must be logged against a project',
+      'Unallocated materials should be assigned, stocked, or resolved — not left open',
     ],
   },
   qc_user: {

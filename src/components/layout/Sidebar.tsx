@@ -5,6 +5,7 @@ import {
   Truck, Microscope, ClipboardCheck, Plane, Wrench, BarChart2, BarChart3,
   Settings, Users, X, ScrollText, FileStack, Bell, UserPlus, BellRing,
   CalendarClock, Activity, Flame, Package, Clock, AlertCircle,
+  Layers, ArrowUpRight, Hash, RotateCcw, CheckCircle2, XCircle,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -19,6 +20,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Truck, Microscope, ClipboardCheck, Plane, Wrench, BarChart2, BarChart3,
   Settings, Users, ScrollText, FileStack, Bell, UserPlus, BellRing,
   CalendarClock, Activity, Flame, Package, Clock, AlertCircle,
+  Layers, ArrowUpRight, Hash, RotateCcw, CheckCircle2, XCircle,
 };
 
 interface SidebarProps {

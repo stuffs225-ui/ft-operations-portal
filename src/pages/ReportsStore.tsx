@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Package, Truck, UserCheck, Inbox, Stethoscope } from 'lucide-react';
+import { Package, Truck, UserCheck, Inbox, Stethoscope, AlertCircle, Link as LinkIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -10,6 +11,7 @@ import {
   MOCK_CUSTODY_RECORDS as MOCK_CUSTODY_RECORDS_RAW,
   MOCK_MEDICAL_SERIALS as MOCK_MEDICAL_SERIALS_RAW,
   MOCK_RECEIPT_ITEMS as MOCK_RECEIPT_ITEMS_RAW,
+  MOCK_VEHICLE_PHOTOS,
 } from '../data/mockStore';
 import { mockOrEmpty } from '../lib/dataMode';
 
@@ -68,9 +70,14 @@ function qcStatusVariant(
   return 'neutral';
 }
 
+import type { PhotoType } from '../types';
+
+const REQUIRED_PHOTOS: PhotoType[] = ['front', 'rear', 'left_side', 'right_side', 'chassis_plate'];
+
 const TABS = [
   'Material Receipts',
   'Vehicle Receipts',
+  'Missing Photos',
   'Custody Pending',
   'Unallocated Materials',
   'Medical Serials',
@@ -90,6 +97,13 @@ export function ReportsStore() {
   const custodyPending = MOCK_CUSTODY_RECORDS.filter(
     (c) => c.status === 'pending_approval',
   );
+
+  // Vehicles missing one or more required photos
+  const vehiclesMissingPhotos = MOCK_VEHICLE_RECEIPTS.filter(v => {
+    const photos = MOCK_VEHICLE_PHOTOS[v.id] ?? [];
+    const presentTypes = photos.filter(p => p.storage_path).map(p => p.photo_type);
+    return REQUIRED_PHOTOS.some(t => !presentTypes.includes(t));
+  });
 
   // Unallocated: receipt items with no project assigned
   const unallocatedItems = Object.values(MOCK_RECEIPT_ITEMS)
@@ -229,7 +243,89 @@ export function ReportsStore() {
         </Card>
       )}
 
-      {/* Tab 3 — Custody Pending */}
+      {/* Tab 3 — Missing Photos */}
+      {activeTab === 'Missing Photos' && (
+        <div className="space-y-4">
+          {vehiclesMissingPhotos.length > 0 && (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>
+                <strong>{vehiclesMissingPhotos.length}</strong> vehicle receipt{vehiclesMissingPhotos.length !== 1 ? 's' : ''} missing required photos —
+                vehicles cannot be accepted until all 5 photos are uploaded.
+              </span>
+            </div>
+          )}
+          <Card padding="none">
+            <div className="p-4 border-b border-gray-100 flex items-center gap-2">
+              <Truck className="w-4 h-4 text-red-500" />
+              <span className="font-semibold text-sm text-gray-700">
+                Vehicles Missing Required Photos ({vehiclesMissingPhotos.length})
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Chassis #</th>
+                    <th className="px-4 py-3 text-left">Vehicle Type</th>
+                    <th className="px-4 py-3 text-left">Project</th>
+                    <th className="px-4 py-3 text-left">Missing Photos</th>
+                    <th className="px-4 py-3 text-left">Status</th>
+                    <th className="px-4 py-3 text-left">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {vehiclesMissingPhotos.map(vr => {
+                    const photos = MOCK_VEHICLE_PHOTOS[vr.id] ?? [];
+                    const presentTypes = photos.filter(p => p.storage_path).map(p => p.photo_type);
+                    const missing = REQUIRED_PHOTOS.filter(t => !presentTypes.includes(t));
+                    return (
+                      <tr key={vr.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 font-mono text-xs font-medium text-red-700">
+                          {vr.chassis_number}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">{vr.vehicle_type}</td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {vr.project?.project_code ?? '—'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-1">
+                            {missing.map(t => (
+                              <span key={t} className="text-[10px] bg-red-100 text-red-700 rounded px-1.5 py-0.5 font-medium">
+                                {t.replace(/_/g, ' ')}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant="warning">{vr.status.replace(/_/g, ' ')}</Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Link
+                            to={`/store/vehicle-receiving/${vr.id}`}
+                            className="text-xs text-cyan-600 hover:underline flex items-center gap-1"
+                          >
+                            <LinkIcon size={12} /> Upload Photos
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {vehiclesMissingPhotos.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
+                        All vehicles have complete photo documentation
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Tab 4 — Custody Pending */}
       {activeTab === 'Custody Pending' && (
         <div className="space-y-4">
           {custodyPending.length > 0 && (
