@@ -115,50 +115,44 @@ export function ProcurementRequestDetail() {
   const canUpdateStatus = role ? CAN_UPDATE_STATUS.includes(role as UserRole) : false;
 
   useEffect(() => {
-    if (!id) { setNotFound(true); setLoading(false); return; }
+    (async () => {
+      if (!id) { setNotFound(true); setLoading(false); return; }
 
-    if (!isSupabaseConfigured || !supabase) {
-      const found = MOCK_PROCUREMENT_REQUESTS.find((p) => p.id === id);
-      if (!found) { setNotFound(true); setLoading(false); return; }
-      setPr(found);
-      setNewStatus(found.status);
-      setItems(getMockPRItems(id));
-      setRelatedPOs(getMockPOsForProject(found.project_id).filter(
-        (po) => po.procurement_request_id === id,
-      ));
-      setLoading(false);
-      return;
-    }
+      if (!isSupabaseConfigured || !supabase) {
+        const found = MOCK_PROCUREMENT_REQUESTS.find((p) => p.id === id);
+        if (!found) { setNotFound(true); setLoading(false); return; }
+        setPr(found);
+        setNewStatus(found.status);
+        setItems(getMockPRItems(id));
+        setRelatedPOs(getMockPOsForProject(found.project_id).filter(
+          (po) => po.procurement_request_id === id,
+        ));
+        setLoading(false);
+        return;
+      }
 
-    const sb = supabase;
-    sb
-      .from('procurement_requests')
-      .select('*, project:projects(project_code, so_number, customer_name)')
-      .eq('id', id)
-      .single()
-      .then(({ data, error }) => {
-        if (error || !data) { setNotFound(true); setLoading(false); return; }
-        const prData = data as unknown as ProcurementRequest;
-        setPr(prData);
-        setNewStatus(prData.status);
+      const sb = supabase;
+      const { data, error } = await sb
+        .from('procurement_requests')
+        .select('*, project:projects(project_code, so_number, customer_name)')
+        .eq('id', id)
+        .single();
+      if (error || !data) { setNotFound(true); setLoading(false); return; }
+      const prData = data as unknown as ProcurementRequest;
+      setPr(prData);
+      setNewStatus(prData.status);
 
-        sb
-          .from('procurement_request_items')
-          .select('*')
-          .eq('procurement_request_id', id)
-          .then(({ data: itemData }) => {
-            setItems((itemData as unknown as ProcurementRequestItem[]) ?? []);
-          });
-
+      const [{ data: itemData }, { data: poData }] = await Promise.all([
+        sb.from('procurement_request_items').select('*').eq('procurement_request_id', id),
         sb
           .from('purchase_orders_to_supplier')
           .select('*, project:projects(project_code, so_number, customer_name)')
-          .eq('procurement_request_id', id)
-          .then(({ data: poData }) => {
-            setRelatedPOs((poData as unknown as PurchaseOrder[]) ?? []);
-            setLoading(false);
-          });
-      });
+          .eq('procurement_request_id', id),
+      ]);
+      setItems((itemData as unknown as ProcurementRequestItem[]) ?? []);
+      setRelatedPOs((poData as unknown as PurchaseOrder[]) ?? []);
+      setLoading(false);
+    })();
   }, [id]);
 
   function handleStatusSave() {

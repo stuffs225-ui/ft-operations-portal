@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Package } from 'lucide-react';
+import { Search, Package, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { PageLoader } from '../components/ui/PageLoader';
 import { Badge } from '../components/ui/Badge';
@@ -10,7 +10,9 @@ import { useAuth } from '../hooks/useAuth';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { supabase } from '../lib/supabase';
 import { MOCK_PROCUREMENT_REQUESTS } from '../data/mockProcurement';
-import type { ProcurementRequest } from '../types';
+import type { ProcurementRequest, UserRole } from '../types';
+
+const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'procurement_user'];
 
 type PRStatus = 'all' | 'draft' | 'pr_received' | 'in_progress' | 'partially_ordered' | 'fully_ordered' | 'cancelled' | 'closed';
 
@@ -42,7 +44,7 @@ function prStatusBadge(status: string) {
 export function ProcurementRequests() {
   const navigate = useNavigate();
   const { role } = useAuth();
-  void role;
+  const canCreate = role ? CAN_CREATE.includes(role as UserRole) : false;
 
   const [requests, setRequests] = useState<ProcurementRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,20 +52,20 @@ export function ProcurementRequests() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) {
-      setRequests(MOCK_PROCUREMENT_REQUESTS);
-      setLoading(false);
-      return;
-    }
-    supabase
-      .from('procurement_requests')
-      .select('*, project:projects(project_code, so_number, customer_name)')
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => {
-        if (error) console.error(error);
-        setRequests((data as unknown as ProcurementRequest[]) ?? []);
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setRequests(MOCK_PROCUREMENT_REQUESTS);
         setLoading(false);
-      });
+        return;
+      }
+      const { data, error } = await supabase
+        .from('procurement_requests')
+        .select('*, project:projects(project_code, so_number, customer_name)')
+        .order('created_at', { ascending: false });
+      if (error) console.error(error);
+      setRequests((data as unknown as ProcurementRequest[]) ?? []);
+      setLoading(false);
+    })();
   }, []);
 
   const filtered = requests.filter((pr) => {
@@ -88,6 +90,16 @@ export function ProcurementRequests() {
           { label: 'Procurement', href: '/procurement' },
           { label: 'Purchase Requests' },
         ]}
+        actions={
+          canCreate ? (
+            <Link to="/procurement/requests/new">
+              <button className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                <Plus size={15} />
+                Register PR
+              </button>
+            </Link>
+          ) : undefined
+        }
         className="mb-6"
       />
 
@@ -132,7 +144,17 @@ export function ProcurementRequests() {
         <EmptyState
           icon={<Package size={28} />}
           title="No purchase requests found"
-          description={search ? 'Try adjusting your search terms.' : 'No PRs match the selected filter.'}
+          description={search ? 'Try adjusting your search terms.' : 'No purchase requests registered yet.'}
+          action={
+            !search && canCreate ? (
+              <Link to="/procurement/requests/new">
+                <button className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors mx-auto">
+                  <Plus size={14} />
+                  Register First PR
+                </button>
+              </Link>
+            ) : undefined
+          }
         />
       ) : (
         <Card>

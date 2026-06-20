@@ -77,10 +77,12 @@ export const ROLE_MATRIX: Record<UserRole, RoleMatrixEntry> = {
     moduleAccentColor: 'bg-amber-600',
     badgeClass: 'bg-amber-100 text-amber-800',
     rules: [
-      'PO to Supplier > 10,000 SAR requires Admin or Operations Manager approval',
-      'Always link procurement requests to the correct project',
-      'Supplier must be on the approved list before issuing PO',
-      'Record ETA confirmation for all open POs',
+      'PR items must be linked to a PO before placing a supplier order',
+      'PO to Supplier > SAR 10,000 requires Admin or Operations Manager approval',
+      'Do not mark PO as sent/active before required approval is granted',
+      'Supplier must be on the approved register before issuing a PO',
+      'ETA changes require a reason — record all updates in ETA Tracking',
+      'Received materials must be handed off to Store Receiving promptly',
     ],
   },
   factory_user: {

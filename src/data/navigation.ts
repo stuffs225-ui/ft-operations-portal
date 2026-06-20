@@ -109,6 +109,58 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'operations_manager', 'factory_user'],
   },
 
+  // ── 3B. PROCUREMENT (procurement_user workspace) ──────────────────────────
+  // 18.7A: dedicated procurement section replacing generic EXECUTION entry for
+  // procurement_user. Admin/ops_manager also see these as direct deep links.
+  {
+    id: 'sep-proc',
+    label: 'PROCUREMENT',
+    path: '#',
+    icon: '',
+  },
+  {
+    id: 'proc-dashboard',
+    label: 'Procurement Dashboard',
+    path: '/procurement',
+    icon: 'ShoppingCart',
+    roles: ['admin', 'operations_manager', 'procurement_user'],
+  },
+  {
+    id: 'proc-requests',
+    label: 'Purchase Requests',
+    path: '/procurement/requests',
+    icon: 'FileText',
+    roles: ['admin', 'operations_manager', 'procurement_user'],
+  },
+  {
+    id: 'proc-items-without-po',
+    label: 'PR Items Without PO',
+    path: '/procurement/pr-items-without-po',
+    icon: 'AlertCircle',
+    roles: ['admin', 'operations_manager', 'procurement_user'],
+  },
+  {
+    id: 'proc-purchase-orders',
+    label: 'PO to Supplier',
+    path: '/procurement/purchase-orders',
+    icon: 'ShoppingCart',
+    roles: ['admin', 'operations_manager', 'procurement_user'],
+  },
+  {
+    id: 'proc-eta',
+    label: 'ETA Tracking',
+    path: '/procurement/eta-history',
+    icon: 'Clock',
+    roles: ['admin', 'operations_manager', 'procurement_user'],
+  },
+  {
+    id: 'proc-suppliers',
+    label: 'Approved Suppliers',
+    path: '/procurement/suppliers',
+    icon: 'Users',
+    roles: ['admin', 'operations_manager', 'procurement_user'],
+  },
+
   // ── 4. EXECUTION ──────────────────────────────────────────────────────────
   {
     id: 'sep-3',
@@ -121,7 +173,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Procurement',
     path: '/procurement',
     icon: 'ShoppingCart',
-    roles: ['admin', 'operations_manager', 'procurement_user'],
+    roles: ['admin', 'operations_manager'],
   },
   {
     id: 'factory',

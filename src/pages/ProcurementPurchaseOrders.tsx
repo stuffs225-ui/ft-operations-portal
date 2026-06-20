@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Search, AlertTriangle } from 'lucide-react';
+import { ShoppingCart, Search, AlertTriangle, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { PageLoader } from '../components/ui/PageLoader';
 import { Badge } from '../components/ui/Badge';
@@ -48,6 +48,7 @@ function poStatusBadge(status: string) {
 }
 
 const COST_VISIBLE_ROLES: UserRole[] = ['admin', 'operations_manager', 'procurement_user'];
+const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'procurement_user'];
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -63,22 +64,23 @@ export function ProcurementPurchaseOrders() {
   const [search, setSearch] = useState('');
 
   const canSeeCost = role ? COST_VISIBLE_ROLES.includes(role as UserRole) : false;
+  const canCreate = role ? CAN_CREATE.includes(role as UserRole) : false;
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) {
-      setOrders(MOCK_PURCHASE_ORDERS);
-      setLoading(false);
-      return;
-    }
-    supabase
-      .from('purchase_orders_to_supplier')
-      .select('*, project:projects(project_code, so_number, customer_name)')
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => {
-        if (error) console.error(error);
-        setOrders((data as unknown as PurchaseOrder[]) ?? []);
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setOrders(MOCK_PURCHASE_ORDERS);
         setLoading(false);
-      });
+        return;
+      }
+      const { data, error } = await supabase
+        .from('purchase_orders_to_supplier')
+        .select('*, project:projects(project_code, so_number, customer_name)')
+        .order('created_at', { ascending: false });
+      if (error) console.error(error);
+      setOrders((data as unknown as PurchaseOrder[]) ?? []);
+      setLoading(false);
+    })();
   }, []);
 
   const filtered = orders.filter((po) => {
@@ -98,11 +100,21 @@ export function ProcurementPurchaseOrders() {
     <div>
       <PageHeader
         title="PO to Supplier"
-        subtitle="All Purchase Orders sent to suppliers."
+        subtitle="All Purchase Orders sent to suppliers. POs above SAR 10,000 require approval before sending."
         breadcrumb={[
           { label: 'Procurement', href: '/procurement' },
           { label: 'PO to Supplier' },
         ]}
+        actions={
+          canCreate ? (
+            <Link to="/procurement/purchase-orders/new">
+              <button className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                <Plus size={15} />
+                Create PO
+              </button>
+            </Link>
+          ) : undefined
+        }
         className="mb-6"
       />
 

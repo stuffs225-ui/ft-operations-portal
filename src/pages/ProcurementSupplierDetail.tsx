@@ -151,46 +151,45 @@ export function ProcurementSupplierDetail() {
   const canUpdateQC = role ? CAN_UPDATE_QC.includes(role as UserRole) : false;
 
   useEffect(() => {
-    if (!id) { setNotFound(true); setLoading(false); return; }
+    (async () => {
+      if (!id) { setNotFound(true); setLoading(false); return; }
 
-    if (!isSupabaseConfigured || !supabase) {
-      const found = MOCK_SUPPLIERS.find((s) => s.id === id);
-      if (!found) { setNotFound(true); setLoading(false); return; }
-      setSupplier(found);
-      setNewProcStatus(found.procurement_status);
-      setProcRemarks(found.procurement_remarks ?? '');
-      setNewQCStatus(found.qc_status);
-      setNewQualityRating(found.quality_rating ?? 0);
-      setQcRemarks(found.qc_remarks ?? '');
-      setSupplierPOs(MOCK_PURCHASE_ORDERS.filter((po) => po.supplier_id === id));
+      if (!isSupabaseConfigured || !supabase) {
+        const found = MOCK_SUPPLIERS.find((s) => s.id === id);
+        if (!found) { setNotFound(true); setLoading(false); return; }
+        setSupplier(found);
+        setNewProcStatus(found.procurement_status);
+        setProcRemarks(found.procurement_remarks ?? '');
+        setNewQCStatus(found.qc_status);
+        setNewQualityRating(found.quality_rating ?? 0);
+        setQcRemarks(found.qc_remarks ?? '');
+        setSupplierPOs(MOCK_PURCHASE_ORDERS.filter((po) => po.supplier_id === id));
+        setLoading(false);
+        return;
+      }
+
+      const sb = supabase;
+      const { data, error } = await sb
+        .from('approved_suppliers')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (error || !data) { setNotFound(true); setLoading(false); return; }
+      const sup = data as unknown as ApprovedSupplier;
+      setSupplier(sup);
+      setNewProcStatus(sup.procurement_status);
+      setProcRemarks(sup.procurement_remarks ?? '');
+      setNewQCStatus(sup.qc_status);
+      setNewQualityRating(sup.quality_rating ?? 0);
+      setQcRemarks(sup.qc_remarks ?? '');
+
+      const { data: poData } = await sb
+        .from('purchase_orders_to_supplier')
+        .select('*, project:projects(project_code, so_number, customer_name)')
+        .eq('supplier_id', id);
+      setSupplierPOs((poData as unknown as PurchaseOrder[]) ?? []);
       setLoading(false);
-      return;
-    }
-
-    supabase
-      .from('approved_suppliers')
-      .select('*')
-      .eq('id', id)
-      .single()
-      .then(({ data, error }) => {
-        if (error || !data) { setNotFound(true); setLoading(false); return; }
-        const sup = data as unknown as ApprovedSupplier;
-        setSupplier(sup);
-        setNewProcStatus(sup.procurement_status);
-        setProcRemarks(sup.procurement_remarks ?? '');
-        setNewQCStatus(sup.qc_status);
-        setNewQualityRating(sup.quality_rating ?? 0);
-        setQcRemarks(sup.qc_remarks ?? '');
-
-        supabase!
-          .from('purchase_orders_to_supplier')
-          .select('*, project:projects(project_code, so_number, customer_name)')
-          .eq('supplier_id', id)
-          .then(({ data: poData }) => {
-            setSupplierPOs((poData as unknown as PurchaseOrder[]) ?? []);
-            setLoading(false);
-          });
-      });
+    })();
   }, [id]);
 
   function handleProcStatusSave() {

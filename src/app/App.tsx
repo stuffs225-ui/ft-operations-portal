@@ -28,6 +28,9 @@ const ProcurementPODetail = lazy(() => import('../pages/ProcurementPODetail').th
 const ProcurementSuppliers = lazy(() => import('../pages/ProcurementSuppliers').then((m) => ({ default: m.ProcurementSuppliers })));
 const ProcurementSupplierDetail = lazy(() => import('../pages/ProcurementSupplierDetail').then((m) => ({ default: m.ProcurementSupplierDetail })));
 const ProcurementEtaHistory = lazy(() => import('../pages/ProcurementEtaHistory').then((m) => ({ default: m.ProcurementEtaHistory })));
+const ProcurementRequestNew = lazy(() => import('../pages/ProcurementRequestNew').then((m) => ({ default: m.ProcurementRequestNew })));
+const ProcurementPurchaseOrderNew = lazy(() => import('../pages/ProcurementPurchaseOrderNew').then((m) => ({ default: m.ProcurementPurchaseOrderNew })));
+const ProcurementPrItemsWithoutPo = lazy(() => import('../pages/ProcurementPrItemsWithoutPo').then((m) => ({ default: m.ProcurementPrItemsWithoutPo })));
 const Factory = lazy(() => import('../pages/Factory').then((m) => ({ default: m.Factory })));
 const FactoryProjects = lazy(() => import('../pages/FactoryProjects').then((m) => ({ default: m.FactoryProjects })));
 const FactoryProjectWorkspace = lazy(() => import('../pages/FactoryProjectWorkspace').then((m) => ({ default: m.FactoryProjectWorkspace })));
@@ -201,9 +204,12 @@ export function App() {
             {/* ── Procurement ── */}
             <Route path="procurement" element={<RequireRole roles={['procurement_user', 'operations_manager']}><Procurement /></RequireRole>} />
             <Route path="procurement/requests" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementRequests /></RequireRole>} />
+            <Route path="procurement/requests/new" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementRequestNew /></RequireRole>} />
             <Route path="procurement/requests/:id" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementRequestDetail /></RequireRole>} />
             <Route path="procurement/purchase-orders" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementPurchaseOrders /></RequireRole>} />
+            <Route path="procurement/purchase-orders/new" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementPurchaseOrderNew /></RequireRole>} />
             <Route path="procurement/purchase-orders/:id" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementPODetail /></RequireRole>} />
+            <Route path="procurement/pr-items-without-po" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementPrItemsWithoutPo /></RequireRole>} />
             <Route path="procurement/suppliers" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementSuppliers /></RequireRole>} />
             <Route path="procurement/suppliers/:id" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementSupplierDetail /></RequireRole>} />
             <Route path="procurement/eta-history" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementEtaHistory /></RequireRole>} />
