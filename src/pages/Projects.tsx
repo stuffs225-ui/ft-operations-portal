@@ -23,12 +23,14 @@ import type { Project, ProjectStatus, ManufacturingLocation, MedicalItems, UserR
 type StatusTab = 'all' | ProjectStatus;
 
 const STATUS_TABS: { key: StatusTab; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'draft', label: 'Draft' },
-  { key: 'submitted_for_approval', label: 'Submitted' },
-  { key: 'sent_back_for_revision', label: 'Sent Back' },
-  { key: 'approved', label: 'Approved' },
-  { key: 'rejected', label: 'Rejected' },
+  { key: 'all',                      label: 'All'          },
+  { key: 'draft',                    label: 'Draft'        },
+  { key: 'submitted_for_approval',   label: 'Submitted'    },
+  { key: 'sent_back_for_revision',   label: 'Sent Back'    },
+  { key: 'approved',                 label: 'Approved'     },
+  { key: 'active',                   label: 'Active'       },
+  { key: 'completed',                label: 'Completed'    },
+  { key: 'rejected',                 label: 'Rejected'     },
 ];
 
 
@@ -69,6 +71,7 @@ export function Projects() {
   const canCreate = role ? CAN_CREATE.includes(role) : false;
   const canSeeMoney = canViewCosts;
   const isBroadView = role === 'admin' || role === 'operations_manager';
+  const isSalesUser = role === 'sales_user';
   const reportDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
 
   // Load data
@@ -125,7 +128,9 @@ export function Projects() {
     <div>
       <PageHeader
         title="Projects / SO"
-        subtitle="Sales Orders and project lifecycle management"
+        subtitle={isSalesUser
+          ? 'Your Sales Orders and projects — track approval status, delivery dates, and commercial value'
+          : 'Sales Orders and project lifecycle management'}
         actions={
           canCreate ? (
             <Link to="/projects/new">
@@ -148,25 +153,30 @@ export function Projects() {
       {/* Filters row */}
       <div className="flex flex-col gap-3 mb-5">
         {/* Status tabs */}
-        <div className="flex items-center gap-1 flex-wrap border-b border-gray-200 pb-3">
-          {STATUS_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setStatusTab(tab.key)}
-              className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${
-                statusTab === tab.key
-                  ? 'bg-brand-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {tab.label}
-              {tab.key !== 'all' && (
-                <span className="ml-1.5 text-xs opacity-70">
-                  {projects.filter((p) => p.project_status === tab.key).length}
-                </span>
-              )}
-            </button>
-          ))}
+        <div className="flex items-center gap-1 flex-wrap border-b border-gray-100 overflow-x-auto">
+          {STATUS_TABS.map((tab) => {
+            const count = tab.key === 'all' ? projects.length : projects.filter((p) => p.project_status === tab.key).length;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setStatusTab(tab.key)}
+                className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
+                  statusTab === tab.key
+                    ? 'text-emerald-700 border-b-2 border-emerald-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {tab.label}
+                {count > 0 && (
+                  <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                    statusTab === tab.key ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Secondary filters + search */}
@@ -179,7 +189,7 @@ export function Projects() {
               placeholder="Search SO, customer, code…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-transparent"
             />
           </div>
 

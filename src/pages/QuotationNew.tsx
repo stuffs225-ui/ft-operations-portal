@@ -441,6 +441,7 @@ export function QuotationNew() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Customer / Entity Name <span className="text-red-500">*</span></label>
               <input value={form.customer_name} onChange={(e) => setForm((f) => ({ ...f, customer_name: e.target.value }))}
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="e.g. General Authority of Civil Aviation" />
+              <p className="mt-1 text-xs text-gray-400">Use the official entity or company name — this appears on the quotation document.</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
@@ -471,21 +472,25 @@ export function QuotationNew() {
                 <option value="high">High</option>
                 <option value="urgent">Urgent</option>
               </select>
+              <p className="mt-1 text-xs text-gray-400">High and Urgent are escalated to the coordinator immediately.</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Required Delivery Expectation</label>
               <input type="date" value={form.required_delivery_expectation} onChange={(e) => setForm((f) => ({ ...f, required_delivery_expectation: e.target.value }))}
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              <p className="mt-1 text-xs text-gray-400">Approximate customer expectation — helps coordinator prioritize. Not a committed delivery date.</p>
             </div>
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Scope Summary</label>
               <textarea rows={3} value={form.scope_summary} onChange={(e) => setForm((f) => ({ ...f, scope_summary: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" placeholder="Brief description of what is being requested…" />
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" placeholder="Brief description of what is being requested, including any special requirements or context…" />
+              <p className="mt-1 text-xs text-gray-400">Include enough context for the coordinator — incomplete scope is the most common cause of delays.</p>
             </div>
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Sales Remarks</label>
               <textarea rows={2} value={form.sales_remarks} onChange={(e) => setForm((f) => ({ ...f, sales_remarks: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" placeholder="Internal notes for the coordinator…" />
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" placeholder="Internal notes for the coordinator — not visible to the customer…" />
+              <p className="mt-1 text-xs text-gray-400">Internal only — use this for urgency context, relationship notes, or known constraints.</p>
             </div>
           </div>
           <div className="flex justify-end">
@@ -497,7 +502,10 @@ export function QuotationNew() {
       {/* Step 2 — Vehicle Lines */}
       {step === 1 && (
         <Card className="p-6 space-y-5">
-          <h2 className="text-base font-semibold text-gray-900">Requested Vehicles / Items</h2>
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Requested Vehicles / Items</h2>
+            <p className="text-sm text-gray-500 mt-1">At least one item line is required. The more detail you include, the faster the coordinator can process your request.</p>
+          </div>
 
           {/* Add line form */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-4 bg-gray-50 p-4 rounded-lg border border-gray-200">

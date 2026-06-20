@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Flame, Plus, Search, AlertCircle } from 'lucide-react';
+import { Flame, Plus, Search, AlertCircle, ChevronRight, TrendingUp } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -36,6 +36,41 @@ const STAGE_CONFIG: Record<HotProjectStage, { label: string; variant: 'neutral' 
 };
 
 const OPEN_STAGES: HotProjectStage[] = ['lead', 'qualified', 'proposal_required', 'quotation_requested', 'negotiation'];
+const CLOSED_STAGES: HotProjectStage[] = ['won', 'lost', 'cancelled'];
+
+function nextAction(r: HotProject): string {
+  switch (r.stage) {
+    case 'lead':                return 'Qualify and assess customer need';
+    case 'qualified':           return r.linked_quotation_id ? 'Follow up on quotation' : 'Request quotation or proposal';
+    case 'proposal_required':   return 'Prepare or request proposal';
+    case 'quotation_requested': return 'Follow up with coordinator';
+    case 'negotiation':         return 'Close or escalate negotiation';
+    case 'won':                 return r.linked_project_id ? 'Monitor project execution' : 'Create SO / Project';
+    case 'lost':                return r.lost_reason ? 'Document learnings' : 'Record lost reason';
+    case 'cancelled':           return 'Archive record';
+  }
+}
+
+function isClosingThisMonth(r: HotProject): boolean {
+  if (!r.expected_close_date) return false;
+  const d = new Date(r.expected_close_date);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+}
+
+function hasNoNextAction(r: HotProject): boolean {
+  return OPEN_STAGES.includes(r.stage) && !r.linked_quotation_id && !r.notes;
+}
+
+type TabKey = 'all' | 'mine' | 'closing' | 'no_action' | 'closed';
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'all',       label: 'All Open'       },
+  { key: 'mine',      label: 'My Pipeline'    },
+  { key: 'closing',   label: 'Closing This Month' },
+  { key: 'no_action', label: 'No Next Action' },
+  { key: 'closed',    label: 'Won / Lost'     },
+];
 
 export function HotProjects() {
   const { role, profile } = useAuth();
@@ -43,6 +78,7 @@ export function HotProjects() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [tab, setTab] = useState<TabKey>('all');
   const [stageFilter, setStageFilter] = useState<HotProjectStage | 'all'>('all');
 
   const isBroadView = role === 'admin' || role === 'operations_manager';
@@ -70,11 +106,22 @@ export function HotProjects() {
       { key: 'probability', header: 'Probability (%)', value: r => r.probability },
       { key: 'estimated_value', header: 'Estimated Value (SAR)', value: r => r.estimated_value },
       { key: 'expected_close_date', header: 'Expected Close Date', value: r => r.expected_close_date },
+      { key: 'next_action', header: 'Next Action', value: r => nextAction(r) },
     ];
     exportRowsToCsv(`hot-projects-${new Date().toISOString().split('T')[0]}.csv`, records, columns);
   }
 
-  const filtered = records.filter((r) => {
+  const tabFiltered = records.filter(r => {
+    switch (tab) {
+      case 'all':       return OPEN_STAGES.includes(r.stage);
+      case 'mine':      return OPEN_STAGES.includes(r.stage) && r.sales_owner_id === profile?.id;
+      case 'closing':   return OPEN_STAGES.includes(r.stage) && isClosingThisMonth(r);
+      case 'no_action': return hasNoNextAction(r);
+      case 'closed':    return CLOSED_STAGES.includes(r.stage);
+    }
+  });
+
+  const filtered = tabFiltered.filter((r) => {
     const q = search.toLowerCase();
     const matchSearch =
       !q ||
@@ -90,11 +137,21 @@ export function HotProjects() {
   const weightedPipeline = openRecords.reduce((s, r) => s + ((r.estimated_value ?? 0) * r.probability) / 100, 0);
   const wonCount = records.filter((r) => r.stage === 'won').length;
 
+  const tabCounts: Record<TabKey, number> = {
+    all:       records.filter(r => OPEN_STAGES.includes(r.stage)).length,
+    mine:      records.filter(r => OPEN_STAGES.includes(r.stage) && r.sales_owner_id === profile?.id).length,
+    closing:   records.filter(r => OPEN_STAGES.includes(r.stage) && isClosingThisMonth(r)).length,
+    no_action: records.filter(r => hasNoNextAction(r)).length,
+    closed:    records.filter(r => CLOSED_STAGES.includes(r.stage)).length,
+  };
+
+  const noActionCount = tabCounts.no_action;
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Hot Projects"
-        subtitle="Opportunity pipeline — active leads and negotiations"
+        subtitle="Opportunity pipeline — active leads, negotiations, and commercial wins"
         actions={
           <Link to="/hot-projects/new">
             <Button icon={<Plus size={15} />} size="sm">New Opportunity</Button>
@@ -107,7 +164,7 @@ export function HotProjects() {
         reportTitle="Hot Projects Report"
         department="Sales"
         onExportCsv={handleExportCsv}
-        summary={`${records.length} opportunit${records.length !== 1 ? 'ies' : 'y'} · weighted pipeline SAR ${openRecords.reduce((s, r) => s + ((r.estimated_value ?? 0) * r.probability) / 100, 0).toLocaleString('en-SA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+        summary={`${openRecords.length} open · weighted pipeline ${formatSAR(weightedPipeline)}`}
       />
 
       {/* KPI strip */}
@@ -122,12 +179,39 @@ export function HotProjects() {
         </Card>
         <Card className="p-4">
           <div className="text-xs text-gray-500 mb-1">Weighted Pipeline</div>
-          <div className="text-xl font-bold text-brand-600 truncate">{formatSAR(weightedPipeline)}</div>
+          <div className="text-xl font-bold text-emerald-700 truncate">{formatSAR(weightedPipeline)}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-xs text-gray-500 mb-1">Won This Period</div>
+          <div className="flex items-center gap-1.5 mb-1">
+            <TrendingUp size={12} className="text-emerald-500" />
+            <div className="text-xs text-gray-500">Won This Period</div>
+          </div>
           <div className="text-2xl font-bold text-emerald-600">{wonCount}</div>
         </Card>
+      </div>
+
+      {noActionCount > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-amber-800">
+          <AlertCircle size={14} className="text-amber-500 shrink-0" />
+          <span>
+            <strong>{noActionCount}</strong> open opportunit{noActionCount !== 1 ? 'ies' : 'y'} with no documented next action — update notes or request a quotation.
+          </span>
+        </div>
+      )}
+
+      {/* Tab filters */}
+      <div className="flex gap-1 border-b border-gray-100 no-print">
+        {TABS.map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${tab === t.key ? 'text-emerald-700 border-b-2 border-emerald-600' : 'text-gray-500 hover:text-gray-700'}`}>
+            {t.label}
+            {tabCounts[t.key] > 0 && (
+              <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full font-medium ${tab === t.key ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                {tabCounts[t.key]}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
       {/* Filters */}
@@ -138,13 +222,13 @@ export function HotProjects() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search title, customer, code…"
-            className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-600/30"
+            className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
           />
         </div>
         <select
           value={stageFilter}
           onChange={(e) => setStageFilter(e.target.value as HotProjectStage | 'all')}
-          className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-600/30"
+          className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
         >
           <option value="all">All Stages</option>
           {(Object.keys(STAGE_CONFIG) as HotProjectStage[]).map((s) => (
@@ -153,7 +237,7 @@ export function HotProjects() {
         </select>
       </div>
 
-      {/* Table / states — wrapped in report-print-root so print targets only this section */}
+      {/* Table / states */}
       <div className="report-print-root">
         {/* Print-only header */}
         <div className="hidden print:block mb-6 pb-4 border-b-2 border-gray-800">
@@ -193,34 +277,45 @@ export function HotProjects() {
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">Code</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">Title</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">Customer</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">Stage</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 text-xs">Probability</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 text-xs">Est. Value</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">Close Date</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wide">Opportunity</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wide">Customer</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wide">Stage</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 text-xs uppercase tracking-wide hidden sm:table-cell">Prob.</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 text-xs uppercase tracking-wide hidden md:table-cell">Est. Value</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wide hidden md:table-cell">Close Date</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wide hidden lg:table-cell">Next Action</th>
+                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.map((hp) => {
                   const stageCfg = STAGE_CONFIG[hp.stage] ?? { label: hp.stage, variant: 'neutral' as const };
+                  const action = nextAction(hp);
+                  const noAction = hasNoNextAction(hp);
                   return (
-                    <tr key={hp.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 font-mono text-xs text-gray-500">{hp.hot_project_code}</td>
+                    <tr key={hp.id} className={`hover:bg-gray-50 transition-colors ${noAction ? 'bg-amber-50/30' : ''}`}>
                       <td className="px-4 py-3">
-                        <Link to={`/hot-projects/${hp.id}`} className="font-medium text-gray-900 hover:text-brand-600 no-print">
+                        <div className="font-mono text-xs text-gray-400">{hp.hot_project_code}</div>
+                        <Link to={`/hot-projects/${hp.id}`} className="font-medium text-gray-900 hover:text-emerald-700 no-print">
                           {hp.title}
                         </Link>
                         <span className="hidden print:inline font-medium text-gray-900">{hp.title}</span>
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{hp.customer_name}</td>
+                      <td className="px-4 py-3 text-gray-600 text-sm">{hp.customer_name}</td>
                       <td className="px-4 py-3">
                         <Badge variant={stageCfg.variant} size="sm">{stageCfg.label}</Badge>
                       </td>
-                      <td className="px-4 py-3 text-right text-gray-700">{hp.probability}%</td>
-                      <td className="px-4 py-3 text-right font-medium text-gray-800">{formatSAR(hp.estimated_value)}</td>
-                      <td className="px-4 py-3 text-gray-500">{formatDate(hp.expected_close_date)}</td>
+                      <td className="px-4 py-3 text-right text-gray-700 hidden sm:table-cell">{hp.probability}%</td>
+                      <td className="px-4 py-3 text-right font-medium text-gray-800 hidden md:table-cell">{formatSAR(hp.estimated_value)}</td>
+                      <td className="px-4 py-3 text-gray-500 text-sm hidden md:table-cell">{formatDate(hp.expected_close_date)}</td>
+                      <td className="px-4 py-3 hidden lg:table-cell">
+                        <span className={`text-xs ${noAction ? 'text-amber-600 font-medium' : 'text-gray-500'}`}>{action}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Link to={`/hot-projects/${hp.id}`}>
+                          <Button variant="ghost" size="sm">View <ChevronRight size={12} /></Button>
+                        </Link>
+                      </td>
                     </tr>
                   );
                 })}
