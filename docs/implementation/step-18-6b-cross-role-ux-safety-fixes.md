@@ -142,16 +142,26 @@ Example for `qc_user` landing on `/reports/executive`:
 
 ---
 
-## Action Button Audit Results
+## Action Button Audit Results (Complete)
 
-Reviewed Factory, MaterialQC, ProjectQC, DubaiAFS pages for exposed action buttons:
+Full audit of all high-risk action buttons across 8 pages. All existing buttons are properly gated — no changes required.
 
-- **Factory pages**: No `canCreate` guard needed — pages only accessible to `factory_user` + `operations_manager` (both should create records). No role mismatch.
-- **MaterialQC / ProjectQC**: `canCreate` guard already present on MaterialQC.tsx (`CAN_CREATE` array). Pattern is consistent.
-- **DubaiAFS**: No buttons exposed to wrong roles — routes restricted to `afs_user` + `operations_manager`.
-- **Quotations, Sales, Store**: Already have `canCreate`/`canCreateSO` guards per 18.5A baseline.
+| Page | Button | Gate | Roles Allowed | Fix Needed |
+|---|---|---|---|---|
+| Quotations.tsx | New Quotation Request | `canCreate` vs `CAN_CREATE` | admin, operations_manager, sales_user | No |
+| Projects.tsx | New SO / Project | `canCreate` vs `CAN_CREATE` | admin, operations_manager, sales_user | No |
+| ProcurementPurchaseOrders.tsx | (no create button) | — | — | No (missing button is a feature gap, out of scope) |
+| MaterialCustody.tsx | Issue Custody | `canCreate` vs `CAN_CREATE` | admin, operations_manager, store_user | No |
+| MaterialQcInspections.tsx | New Inspection | `canCreate` vs `CAN_CREATE` | admin, operations_manager, qc_user | No |
+| StoreVehicleReceiving.tsx | New Vehicle Receipt | `canCreate` vs `CAN_CREATE` | admin, operations_manager, store_user | No |
+| AfterSalesMaintenance.tsx | New Request | `canCreate` vs `CAN_CREATE` | admin, operations_manager, afs_user, sales_user* | No |
+| AdminApprovals.tsx | Approve / Send Back / Reject | `isPending` status guard + route guard | operations_manager (+ admin via RequireRole bypass) | No |
 
-No additional action button changes required in this PR.
+*`sales_user` is listed in `AfterSalesMaintenance.CAN_CREATE` but the route guard (`['afs_user','operations_manager']`) blocks sales_user from reaching the page — dead code, no security impact.
+
+**Approval buttons (AdminApprovals.tsx):** Buttons are status-gated (`isPending`). The route guard (`RequireRole roles={['operations_manager']}`) already ensures only `operations_manager` and `admin` can reach the page. Adding a redundant role check inside the component is unnecessary — the route guard is the authoritative control.
+
+No action button visibility changes made in this step.
 
 ---
 
