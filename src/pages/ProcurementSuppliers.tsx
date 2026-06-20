@@ -49,20 +49,20 @@ export function ProcurementSuppliers() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) {
-      setSuppliers(MOCK_SUPPLIERS);
-      setLoading(false);
-      return;
-    }
-    supabase
-      .from('approved_suppliers')
-      .select('*')
-      .order('supplier_name')
-      .then(({ data, error }) => {
-        if (error) console.error(error);
-        setSuppliers((data as unknown as ApprovedSupplier[]) ?? []);
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setSuppliers(MOCK_SUPPLIERS);
         setLoading(false);
-      });
+        return;
+      }
+      const { data, error } = await supabase
+        .from('approved_suppliers')
+        .select('*')
+        .order('supplier_name');
+      if (error) console.error(error);
+      setSuppliers((data as unknown as ApprovedSupplier[]) ?? []);
+      setLoading(false);
+    })();
   }, []);
 
   const filtered = suppliers.filter((s) => {
@@ -130,8 +130,14 @@ export function ProcurementSuppliers() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<Users size={28} />}
-          title="No suppliers found"
-          description={search ? 'Try adjusting your search terms.' : 'No suppliers match the selected filter.'}
+          title={search ? 'No suppliers found' : activeStatus === 'all' ? 'No suppliers registered' : 'No suppliers match this status'}
+          description={
+            search
+              ? 'Try adjusting your search terms.'
+              : activeStatus === 'all'
+              ? 'Suppliers must be added to the register and approved before issuing a PO. Contact your procurement manager.'
+              : 'No suppliers currently have this status.'
+          }
         />
       ) : (
         <Card>
@@ -145,8 +151,7 @@ export function ProcurementSuppliers() {
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">Procurement Status</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">QC Status</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">Quality</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Medical Items</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Critical Items</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Special</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">Actions</th>
                 </tr>
               </thead>
@@ -162,19 +167,30 @@ export function ProcurementSuppliers() {
                   >
                     <td className="px-4 py-3 font-medium text-gray-900">{supplier.supplier_name}</td>
                     <td className="px-4 py-3 text-gray-700">{supplier.supplier_category ?? '—'}</td>
-                    <td className="px-4 py-3 text-gray-700">{supplier.contact_person ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      <div className="text-gray-700">{supplier.contact_person ?? '—'}</div>
+                      {supplier.email && (
+                        <div className="text-xs text-gray-400">{supplier.email}</div>
+                      )}
+                      {supplier.phone && (
+                        <div className="text-xs text-gray-400">{supplier.phone}</div>
+                      )}
+                    </td>
                     <td className="px-4 py-3"><StatusBadge status={supplier.procurement_status} /></td>
                     <td className="px-4 py-3"><StatusBadge status={supplier.qc_status} /></td>
                     <td className="px-4 py-3"><StarRating rating={supplier.quality_rating} /></td>
                     <td className="px-4 py-3">
-                      <Badge variant={supplier.approved_for_medical_items ? 'success' : 'neutral'}>
-                        {supplier.approved_for_medical_items ? 'Yes' : 'No'}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={supplier.approved_for_critical_items ? 'success' : 'neutral'}>
-                        {supplier.approved_for_critical_items ? 'Yes' : 'No'}
-                      </Badge>
+                      <div className="flex flex-col gap-1">
+                        {supplier.approved_for_medical_items && (
+                          <Badge variant="info">Medical</Badge>
+                        )}
+                        {supplier.approved_for_critical_items && (
+                          <Badge variant="warning">Critical</Badge>
+                        )}
+                        {!supplier.approved_for_medical_items && !supplier.approved_for_critical_items && (
+                          <span className="text-xs text-gray-400">Standard</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <Link

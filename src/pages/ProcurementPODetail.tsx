@@ -125,52 +125,46 @@ export function ProcurementPODetail() {
   const canApprove = role ? CAN_APPROVE.includes(role as UserRole) : false;
 
   useEffect(() => {
-    if (!id) { setNotFound(true); setLoading(false); return; }
+    (async () => {
+      if (!id) { setNotFound(true); setLoading(false); return; }
 
-    if (!isSupabaseConfigured || !supabase) {
-      const found = MOCK_PURCHASE_ORDERS.find((p) => p.id === id);
-      if (!found) { setNotFound(true); setLoading(false); return; }
-      setPo(found);
-      setNewStatus(found.po_status);
-      setNewEta(found.eta_date ?? '');
-      setItems(getMockPOItems(id));
-      setEtaHistory(getMockEtaHistory(id));
-      setLoading(false);
-      return;
-    }
+      if (!isSupabaseConfigured || !supabase) {
+        const found = MOCK_PURCHASE_ORDERS.find((p) => p.id === id);
+        if (!found) { setNotFound(true); setLoading(false); return; }
+        setPo(found);
+        setNewStatus(found.po_status);
+        setNewEta(found.eta_date ?? '');
+        setItems(getMockPOItems(id));
+        setEtaHistory(getMockEtaHistory(id));
+        setLoading(false);
+        return;
+      }
 
-    const sb = supabase;
-    sb
-      .from('purchase_orders_to_supplier')
-      .select('*, project:projects(project_code, so_number, customer_name), approved_by_profile:profiles!purchase_orders_to_supplier_approved_by_fkey(full_name)')
-      .eq('id', id)
-      .single()
-      .then(({ data, error }) => {
-        if (error || !data) { setNotFound(true); setLoading(false); return; }
-        const poData = data as unknown as PurchaseOrder;
-        setPo(poData);
-        setNewStatus(poData.po_status);
-        setNewEta(poData.eta_date ?? '');
+      const sb = supabase;
+      const { data, error } = await sb
+        .from('purchase_orders_to_supplier')
+        .select('*, project:projects(project_code, so_number, customer_name), approved_by_profile:profiles!purchase_orders_to_supplier_approved_by_fkey(full_name)')
+        .eq('id', id)
+        .single();
+      if (error || !data) { setNotFound(true); setLoading(false); return; }
+      const poData = data as unknown as PurchaseOrder;
+      setPo(poData);
+      setNewStatus(poData.po_status);
+      setNewEta(poData.eta_date ?? '');
 
-        sb
-          .from('purchase_order_items')
-          .select('*')
-          .eq('purchase_order_id', id)
-          .then(({ data: itemData }) => {
-            setItems((itemData as unknown as PurchaseOrderItem[]) ?? []);
-          });
-
+      const [{ data: itemData }, { data: etaData }] = await Promise.all([
+        sb.from('purchase_order_items').select('*').eq('purchase_order_id', id),
         sb
           .from('eta_change_history')
           .select('*')
           .eq('entity_id', id)
           .eq('entity_type', 'po_to_supplier')
-          .order('changed_at', { ascending: false })
-          .then(({ data: etaData }) => {
-            setEtaHistory((etaData as unknown as EtaChangeHistory[]) ?? []);
-            setLoading(false);
-          });
-      });
+          .order('changed_at', { ascending: false }),
+      ]);
+      setItems((itemData as unknown as PurchaseOrderItem[]) ?? []);
+      setEtaHistory((etaData as unknown as EtaChangeHistory[]) ?? []);
+      setLoading(false);
+    })();
   }, [id]);
 
   function handleStatusSave() {

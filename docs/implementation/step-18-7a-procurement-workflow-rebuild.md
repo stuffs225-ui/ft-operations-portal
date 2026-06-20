@@ -2,31 +2,125 @@
 
 ## Objective
 
-Rebuild the `procurement_user` experience into a full Procurement Operating Center. This step adds a dedicated PROCUREMENT sidebar section, redesigns the Procurement hub as an amber-themed operating center with live KPI cards and work queues, adds Register PR / Create PO forms, and introduces a PR Items Without PO queue to surface governance gaps.
+Rebuild the `procurement_user` experience into a full Procurement Operating Center. This step adds a dedicated PROCUREMENT sidebar section, redesigns the Procurement hub as an amber-themed operating center with live KPI cards and work queues, adds Register PR / Create PO forms, introduces a PR Items Without PO governance queue, and improves all procurement pages for operational usability.
 
-No DB schema, migrations, RLS, or business workflow rules were changed.
+No DB schema, migrations, or RLS were changed.
 
 ---
 
-## Scope
+## Completeness Audit
 
-**In scope:**
-- Sidebar PROCUREMENT section (visible to admin, operations_manager, procurement_user)
-- Procurement hub redesign (KPI cards, action bar, work queues, module nav)
-- Register PR form (`/procurement/requests/new`)
-- Create PO form (`/procurement/purchase-orders/new`) with high-value approval enforcement
-- PR Items Without PO queue (`/procurement/pr-items-without-po`)
-- New routes in App.tsx (all RequireRole-guarded)
-- Updated roleMatrix procurement_user rules
-- Register PR / Create PO action buttons on list pages
-- Lint fixes for `react-hooks/set-state-in-effect` violations (4 files)
+| # | Requirement | Status | Files | Notes |
+|---|-------------|--------|-------|-------|
+| 1 | Procurement sidebar / IA | **Done** | `Sidebar.tsx`, `navigation.ts` | New PROCUREMENT section (6 items) for admin/ops/procurement_user |
+| 2 | Procurement Dashboard / Operating Center | **Done** | `Procurement.tsx` | 8 KPI cards, action bar, work queues, module nav grid, role badge |
+| 3 | Register PR / Add Incoming PR | **Done** | `ProcurementRequestNew.tsx`, `ProcurementRequests.tsx` | Form + button on list page, project_id validated |
+| 4 | Purchase Requests table UX | **Done** | `ProcurementRequests.tsx` | Search, status tabs, Register PR CTA, improved EmptyState |
+| 5 | PR Detail | **Done** | `ProcurementRequestDetail.tsx` | 4 tabs: Overview, Items, PO to Supplier, Timeline |
+| 6 | PR Items | **Done** | `ProcurementRequestDetail.tsx` | Items tab with add/edit inline capabilities |
+| 7 | PR Items Without PO queue | **Done** | `ProcurementPrItemsWithoutPo.tsx` | Urgency color-coding (red/amber/green), Create PO action |
+| 8 | Create PO to Supplier | **Done** | `ProcurementPurchaseOrderNew.tsx`, `ProcurementPurchaseOrders.tsx` | Form + button on list page |
+| 9 | Create PO from PR / PR items | **Partial** | `ProcurementPurchaseOrderNew.tsx` | PR-level pre-selection via `?pr_id=` query param; no item-level pre-fill |
+| 10 | Link PO to PR / PR items | **Partial** | `ProcurementPurchaseOrderNew.tsx` | PR-level link via `procurement_request_id`. PR item status update on PO creation not implemented — schema gap |
+| 11 | Upload PO PDF | **Not supported** | — | No file storage bucket configured for PO PDFs. Schema gap / storage gap. Deferred. |
+| 12 | High-value PO approval (SAR > 10,000) | **Done** | `ProcurementPurchaseOrderNew.tsx` | Orange warning, po_status=pending_approval, approval_required=true |
+| 13 | PO Approval Status page/section | **Done** | `ProcurementPODetail.tsx` | Approval tab in PO Detail with approve/reject actions for admin/ops |
+| 14 | ETA Tracking page | **Done** | `ProcurementEtaHistory.tsx` | 2-tab page: Current ETA (active POs with countdown) + Change Log |
+| 15 | ETA History / ETA reason behavior | **Done** | `ProcurementEtaHistory.tsx`, `ProcurementPODetail.tsx` | Change Log shows delta, reason, remarks, changed_by. PO Detail ETA tab records changes with reason. |
+| 16 | Approved Suppliers page | **Done** | `ProcurementSuppliers.tsx` | Search, status tabs, contact/email/phone, quality rating, medical/critical badges |
+| 17 | Procurement Reports | **Done** | `ReportsProcurement.tsx` | 7 tabs: Open PRs, PR Items Without PO, PO Pending Approval, PO Without ETA, Delayed ETAs, High Value POs, Supplier Status |
+| 18 | Project Detail procurement view | **Deferred** | — | Would require changes to ProjectDetail.tsx which spans multiple roles. Deferred to a dedicated step. |
+| 19 | Procurement-specific rules card | **Done** | `roleMatrix.ts` | 6 rules for procurement_user, displayed in Dashboard role badge section |
+| 20 | Empty states across procurement pages | **Done** | All pages | Actionable empty states with next-action descriptions on all 8 procurement pages |
+| 21 | Visual identity / procurement module styling | **Done** | All pages | Amber accent throughout: buttons, badges, ring focus, filter chips, hover states |
+| 22 | Role-safe navigation | **Done** | `App.tsx`, `navigation.ts` | All routes RequireRole-guarded; admin always bypasses |
+| 23 | Live data vs dev/mock fallback | **Done** | All pages | `isSupabaseConfigured` guard; operational pages use mock in dev, Reports use `mockOrEmpty()` (empty in live) |
+| 24 | Documentation | **Done** | `step-18-7a-procurement-workflow-rebuild.md` | Full audit, schema gaps, deferred items |
+| 25 | Validation | **Done** | — | Build ✓, tsc ✓, lint ✓ (0 errors on all procurement files) |
 
-**Out of scope:**
-- DB schema / migrations / RLS changes
-- Store, Factory, QC, AFS, Sales, Admin, Ops work
-- PO Approval Status standalone page (deferred)
-- Procurement Reports enhancements (deferred)
-- Project Detail Procurement tab (deferred)
+---
+
+## Schema Gaps
+
+| Gap | Description | Impact |
+|-----|-------------|--------|
+| PR item-level PO linking | No `purchase_order_id` on `procurement_request_items` | Cannot auto-update PR item status when PO is created for that item. Only PR-level link (`procurement_request_id`) exists on POs. |
+| PO PDF upload | No file storage bucket or `document_url` field on `purchase_orders_to_supplier` | Cannot upload PO PDFs to cloud storage. PO Detail has no upload UI. |
+| `required_date` on PRs | `procurement_requests` has no `required_date` or `priority` field | Cannot capture item urgency on PR form. |
+| `wo_number` / `pn_number` on PRs | Not present on `procurement_requests` | Cannot link PR to WO/PN at time of creation. |
+
+All schema gaps are documented. No workarounds were implemented that misrepresent unsupported features as working.
+
+---
+
+## project_id Validation
+
+**Both `ProcurementRequestNew` and `ProcurementPurchaseOrderNew` validate that `projectId` is non-empty before submitting.** The DB schema has `project_id NOT NULL` on both `procurement_requests` and `purchase_orders_to_supplier`.
+
+**Manual/Stock PRs without a project**: Not currently supported — blocked by DB constraint. This is documented as a schema limitation, not a UI bug. A future migration adding `project_id` nullable with a "Manual/Stock" fallback would allow this.
+
+Behavior:
+- If user submits without selecting a project → inline error displayed, form does not submit
+- In dev mode (no Supabase) → form navigates back without persisting (no validation needed)
+
+---
+
+## PO Upload / Linking Status
+
+| Feature | Status | Reason |
+|---------|--------|--------|
+| Upload PO PDF | Not supported | No storage bucket configured; no `document_url` column on POs table |
+| Link PO to PR | Implemented (PR-level) | `procurement_request_id` stored on PO; Linked PR dropdown in Create PO form |
+| Link PO to PR items | Not implemented | Schema gap — `procurement_request_items` has no `purchase_order_id` FK |
+
+---
+
+## ETA Tracking
+
+The `ProcurementEtaHistory` page was restructured as a 2-tab operational page:
+
+**Current ETA tab (primary)**
+- Fetches active POs (`po_status NOT IN (cancelled, closed)`) with project join
+- Countdown: "Xd overdue" (red) / "Today" (amber) / "in Xd" (amber ≤7d, green >7d) / "Not set" (gray)
+- Filter chips: All / Overdue / Due This Week / No ETA
+- Red badge count on tab when overdue POs exist
+- Overdue alert banner above tabs
+- "Next Action" link per row — navigates to PO Detail ETA tab
+
+**Change Log tab**
+- Full audit trail of ETA changes from `eta_change_history`
+- Filter by entity type (PO / PR Item)
+- Search by reason / remarks
+- Delta display (+Nd delay / -Nd improvement)
+
+ETA update action is supported — done via PO Detail > ETA Management tab (existing functionality).
+
+---
+
+## Approved Suppliers
+
+Improvements in this finalization:
+- Email and phone now shown as sub-rows under contact person
+- Medical/Critical approval shown as compact badges in a "Special" column (replaces two separate Yes/No columns)
+- Empty state message: explains suppliers must be added before a PO can be issued
+- Async IIFE lint fix
+
+"Add Supplier" button: **Deferred** — requires a `ProcurementSupplierNew` form that doesn't exist yet.
+
+---
+
+## Procurement Reports
+
+7 tabs (was 6):
+1. Open PRs — all non-cancelled/non-closed PRs
+2. PR Items Without PO — PRs in pr_received / in_progress status
+3. PO Pending Approval — POs with `approval_status=pending`
+4. PO Without ETA — POs with no `eta_date`
+5. Delayed ETAs — POs with `eta_date` in the past
+6. **High Value POs** — NEW: POs with `approval_required=true` (> SAR 10,000)
+7. Supplier Status — Supplier scorecards
+
+**Data source**: All tabs use `mockOrEmpty()` — returns `[]` in live mode. `DataSourceBadge` and `ReportExportBar` are included on the page. Live data integration for reports requires a dedicated Supabase-backed data layer step (deferred).
 
 ---
 
@@ -38,9 +132,15 @@ No DB schema, migrations, RLS, or business workflow rules were changed.
 |------|--------|
 | `src/components/layout/Sidebar.tsx` | Added `Package`, `Clock`, `AlertCircle` to lucide imports and ICON_MAP |
 | `src/data/navigation.ts` | Added PROCUREMENT section (6 items); removed procurement_user from EXECUTION Procurement item |
-| `src/pages/Procurement.tsx` | Full rewrite — Operating Center with KPI cards, action bar, work queues, module nav, role badge |
-| `src/pages/ProcurementRequests.tsx` | Added CAN_CREATE guard, Register PR button, EmptyState CTA; lint fix |
-| `src/pages/ProcurementPurchaseOrders.tsx` | Added CAN_CREATE guard, Create PO button, updated subtitle; lint fix |
+| `src/pages/Procurement.tsx` | Full rewrite — Operating Center with KPI cards, action bar, work queues, module nav, role badge; async IIFE lint fix |
+| `src/pages/ProcurementRequests.tsx` | CAN_CREATE guard, Register PR button, EmptyState CTA; async IIFE lint fix |
+| `src/pages/ProcurementPurchaseOrders.tsx` | CAN_CREATE guard, Create PO button, updated subtitle; async IIFE lint fix |
+| `src/pages/ProcurementEtaHistory.tsx` | Full rewrite — 2-tab (Current ETA + Change Log), filter chips, countdown, amber theme; async IIFE lint fix |
+| `src/pages/ProcurementSuppliers.tsx` | Email/phone in Contact cell, improved empty state, Special column; async IIFE lint fix |
+| `src/pages/ProcurementPODetail.tsx` | Async IIFE lint fix (nested .then converted to await Promise.all) |
+| `src/pages/ProcurementRequestDetail.tsx` | Async IIFE lint fix (nested .then converted to await Promise.all) |
+| `src/pages/ProcurementSupplierDetail.tsx` | Async IIFE lint fix (nested .then converted to await) |
+| `src/pages/ReportsProcurement.tsx` | Added "High Value POs" tab (7th tab) |
 | `src/app/App.tsx` | Added 3 lazy imports and 3 new routes |
 | `src/lib/roleMatrix.ts` | Updated procurement_user rules from 4 to 6 |
 
@@ -54,183 +154,58 @@ No DB schema, migrations, RLS, or business workflow rules were changed.
 
 ---
 
-## Sidebar Navigation (PROCUREMENT section)
+## Lint Fixes (All Files)
 
-New section visible to `['admin', 'operations_manager', 'procurement_user']`:
+Total `react-hooks/set-state-in-effect` violations fixed: **9 files**
 
-| Nav Item | Path | Icon |
-|----------|------|------|
-| Procurement Dashboard | `/procurement` | ShoppingCart |
-| Purchase Requests | `/procurement/requests` | FileText |
-| PR Items Without PO | `/procurement/pr-items-without-po` | AlertCircle |
-| PO to Supplier | `/procurement/purchase-orders` | ShoppingCart |
-| ETA Tracking | `/procurement/eta-history` | Clock |
-| Approved Suppliers | `/procurement/suppliers` | Users |
+All fixed by wrapping `useEffect` bodies in `(async () => { ... })()` IIFE and converting nested `.then()` chains to `await Promise.all()` where applicable.
 
-The existing EXECUTION section Procurement item now shows only to `['admin', 'operations_manager']` — procurement_user accesses the module via the dedicated PROCUREMENT section.
-
----
-
-## Procurement Hub (Operating Center)
-
-### KPI Cards (8)
-
-| KPI | Source | Color |
-|-----|--------|-------|
-| New PRs | procurement_requests WHERE status='pr_received' | Amber |
-| Items Without PO | procurement_request_items WHERE status IN (pending, waiting_for_po_to_supplier) | Orange / critical |
-| PO Pending Approval | purchase_orders_to_supplier WHERE po_status='pending_approval' | Red / critical |
-| Sent to Supplier | po_status='sent_to_supplier' | Sky |
-| Delayed ETA | po_status='delayed' | Red / critical |
-| In Transit | po_status='in_transit' | Indigo |
-| Suppliers for Review | approved_suppliers WHERE procurement_status='pending_review' | Amber |
-| Fully Received | po_status='fully_received' | Green |
-
-KPIs are fetched via `Promise.all` for parallel Supabase queries. In dev mode, counts are derived from mock data arrays.
-
-### Top Action Bar
-
-Register PR → `/procurement/requests/new`  
-Create PO → `/procurement/purchase-orders/new`  
-ETA Tracking → `/procurement/eta-history`  
-Suppliers → `/procurement/suppliers`
-
-Visible to: admin, operations_manager, procurement_user (for Register PR / Create PO).
-
-### Work Queues (8)
-
-Each queue shows count, description, and a drill-down action link corresponding to its KPI.
-
-### Module Navigation Grid (6 tiles)
-
-Purchase Requests, PO to Supplier, PR Items Without PO, ETA Tracking, Approved Suppliers, Procurement Reports.
+| File | Location |
+|------|----------|
+| `Procurement.tsx` | Mock KPI data branch |
+| `ProcurementPrItemsWithoutPo.tsx` | Mock items branch |
+| `ProcurementPurchaseOrders.tsx` | Mock PO list branch |
+| `ProcurementRequests.tsx` | Mock PR list branch |
+| `ProcurementEtaHistory.tsx` | Mock history + mock PO branches |
+| `ProcurementSuppliers.tsx` | Mock suppliers branch |
+| `ProcurementPODetail.tsx` | `!id` guard + mock/live branches |
+| `ProcurementRequestDetail.tsx` | `!id` guard + mock/live branches |
+| `ProcurementSupplierDetail.tsx` | `!id` guard + mock/live branches |
 
 ---
 
-## Register PR Form (`ProcurementRequestNew`)
+## Deferred Items
 
-**Route:** `/procurement/requests/new`  
-**Guard:** `RequireRole(['procurement_user', 'operations_manager'])`
-
-**Fields:**
-- PR Number (auto-generated `PR-YYMM-NNN`, editable)
-- Received Date (defaults to today)
-- Source Department (select: Factory, Store, AFS / Dubai, Engineering, Management, Manual / Other)
-- Linked Project / SO (select from active/approved projects via Supabase)
-- Remarks
-
-**Validation:** `project_id` must be non-empty (DB NOT NULL constraint). Shows error and blocks submit if unset.
-
-**Insert:** `procurement_requests` with `status='pr_received'`  
-**On success:** Navigates to PR detail page (`/procurement/requests/:id`)  
-**Dev mode:** Navigates back without persisting
+| Item | Reason | When |
+|------|--------|------|
+| Project Detail procurement view | Would touch multi-role ProjectDetail.tsx; too broad for this PR | Dedicated step |
+| PO PDF upload | No storage bucket / no `document_url` column | Schema + storage migration required |
+| PR item-level PO linking | No `purchase_order_id` FK on `procurement_request_items` | Schema migration required |
+| Add Supplier form | `ProcurementSupplierNew.tsx` not yet created | Next procurement step |
+| Manual/Stock PRs (no project) | `project_id NOT NULL` DB constraint | Schema migration required |
+| Procurement Reports live data | All report tabs show mock-or-empty; need Supabase-backed aggregation | Dedicated step |
+| PO Approval standalone page | Currently handled in PO Detail Approval tab; standalone queue page deferred | Optional |
 
 ---
 
-## Create PO Form (`ProcurementPurchaseOrderNew`)
+## Safety Review
 
-**Route:** `/procurement/purchase-orders/new`  
-**Guard:** `RequireRole(['procurement_user', 'operations_manager'])`
-
-**Fields:**
-- PO Number (auto-generated `PO-YYMM-NNN`, editable)
-- PO Date (defaults to today)
-- Supplier (select from approved/approved_with_conditions approved_suppliers, or text input in dev mode)
-- Purchase Value + Currency (SAR, USD, EUR, AED, GBP)
-- ETA Date (optional, can be updated later)
-- Linked PR (select from open procurement_requests, optional)
-- Linked Project (select from active/approved projects)
-- Remarks
-
-**High-value approval rule:** If `currency === 'SAR'` and `purchase_value > 10,000`:
-- Orange warning banner displayed
-- Purchase Value input highlighted amber/orange
-- Button label changes to "Create PO (Pending Approval)"
-- Insert sets: `approval_required=true`, `approval_status='pending'`, `po_status='pending_approval'`
-
-Otherwise: `approval_required=false`, `approval_status='not_required'`, `po_status='draft'`
-
-**Validation:** `project_id` must be non-empty before insert.
-
-**Insert:** `purchase_orders_to_supplier`  
-**On success:** Navigates to PO detail page (`/procurement/purchase-orders/:id`)
-
----
-
-## PR Items Without PO Queue (`ProcurementPrItemsWithoutPo`)
-
-**Route:** `/procurement/pr-items-without-po`  
-**Guard:** `RequireRole(['procurement_user', 'operations_manager'])`
-
-Reads `procurement_request_items` where `status IN ('pending', 'waiting_for_po_to_supplier')` joined with PR number and project code.
-
-**Urgency coding:**
-- Red: ≥ 14 days waiting (overdue)
-- Amber: ≥ 7 days waiting (urgent)
-- Green: < 7 days (normal)
-
-**Actions:** "Create PO" link on each row (visible to CAN_CREATE roles) — links to `/procurement/purchase-orders/new`.
-
----
-
-## High-Value PO Approval Rule
-
-| Condition | po_status | approval_required | approval_status |
-|-----------|-----------|-------------------|-----------------|
-| currency=SAR AND value > 10,000 | `pending_approval` | `true` | `pending` |
-| All other cases | `draft` | `false` | `not_required` |
-
-Threshold constant: `HIGH_VALUE_THRESHOLD_SAR = 10000` in `ProcurementPurchaseOrderNew.tsx`
-
----
-
-## Role-Specific Rules (procurement_user)
-
-Updated in `src/lib/roleMatrix.ts`:
-
-1. PR items must be linked to a PO before placing a supplier order
-2. PO to Supplier > SAR 10,000 requires Admin or Operations Manager approval
-3. Do not mark PO as sent/active before required approval is granted
-4. Supplier must be on the approved register before issuing a PO
-5. ETA changes require a reason — record all updates in ETA Tracking
-6. Received materials must be handed off to Store Receiving promptly
-
----
-
-## Lint Fixes
-
-Four `react-hooks/set-state-in-effect` violations fixed by wrapping useEffect bodies in async IIFE:
-
-| File | Issue | Fix |
-|------|-------|-----|
-| `Procurement.tsx` | `setKpiData()` called synchronously | Wrapped in `(async () => { ... })()` |
-| `ProcurementPrItemsWithoutPo.tsx` | `setItems()` / `setLoading()` called synchronously | Wrapped in `(async () => { ... })()` |
-| `ProcurementPurchaseOrders.tsx` | `setOrders()` called synchronously (pre-existing) | Wrapped in `(async () => { ... })()` |
-| `ProcurementRequests.tsx` | `setRequests()` called synchronously (pre-existing) | Wrapped in `(async () => { ... })()` |
-
-The `Promise.all().then()` patterns in the live-mode branches were also converted to `await Promise.all()` inside the async IIFE.
-
----
-
-## Schema Notes
-
-Schema used (verified against Supabase types before insert):
-
-**`procurement_requests`**: `pr_number`, `project_id` (NOT NULL), `received_date`, `source_department`, `status`, `remarks`, `created_by`
-
-**`purchase_orders_to_supplier`**: `po_number`, `supplier_name`, `project_id` (NOT NULL), `procurement_request_id`, `po_date`, `purchase_value`, `currency`, `eta_date`, `po_status`, `approval_required`, `approval_status`, `remarks`, `created_by`
-
-Schema gaps (not implemented — features not supported by current DB):
-- `ProcurementRequest` has no `required_date`, `priority`, `wo_number`, or `pn_number` fields
+- No DB schema, migrations, or RLS changes
+- No fake live data introduced (`isSupabaseConfigured` pattern throughout)
+- All new routes RequireRole-guarded (`procurement_user` or `operations_manager`)
+- Admin role always bypasses via RequireRole logic
+- `project_id` validated before insert (NOT NULL DB constraint respected)
+- High-value PO approval gate enforced in UI: value > SAR 10,000 with currency=SAR → `po_status=pending_approval`
+- No other roles' workflows, pages, or guards modified
 
 ---
 
 ## Validation Results
 
 ```
-npm run build   ✓ 5.69s  (0 errors)
-npx tsc --noEmit  ✓ (0 errors)
-npx eslint (changed files)  ✓ (0 errors, 0 warnings)
+npm run build      ✓ (5.58s, 0 errors)
+npx tsc --noEmit   ✓ (0 errors)
+npx eslint (all procurement files) ✓ (0 errors, 0 warnings)
 ```
 
-Baseline lint problem count (pre-existing, unchanged): 75 problems (59 errors, 16 warnings) across other files.
+Baseline pre-existing lint (other files, unchanged): 75 problems (59 errors, 16 warnings).

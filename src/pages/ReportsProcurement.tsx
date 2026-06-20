@@ -54,6 +54,7 @@ const TABS = [
   'PO Pending Approval',
   'PO Without ETA',
   'Delayed ETAs',
+  'High Value POs',
   'Supplier Status',
 ] as const;
 
@@ -87,6 +88,10 @@ export function ReportsProcurement() {
   const now = new Date();
   const delayedETAs = MOCK_PURCHASE_ORDERS.filter(
     (po) => po.eta_date && new Date(po.eta_date) < now,
+  );
+
+  const highValuePos = MOCK_PURCHASE_ORDERS.filter(
+    (po) => po.approval_required,
   );
 
   function handleExportCsv() {
@@ -423,7 +428,70 @@ export function ReportsProcurement() {
         </Card>
       )}
 
-      {/* Tab 6 — Supplier Status */}
+      {/* Tab 6 — High Value POs */}
+      {activeTab === 'High Value POs' && (
+        <Card padding="none">
+          <div className="p-4 border-b border-gray-100 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
+            <span className="font-semibold text-sm text-gray-700">
+              High Value POs — Approval Required ({highValuePos.length})
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                <tr>
+                  <th className="px-4 py-3 text-left">PO Number</th>
+                  <th className="px-4 py-3 text-left">Supplier</th>
+                  <th className="px-4 py-3 text-left">Project</th>
+                  {canSeeCost && (
+                    <th className="px-4 py-3 text-right">Value</th>
+                  )}
+                  <th className="px-4 py-3 text-left">Currency</th>
+                  <th className="px-4 py-3 text-left">Approval</th>
+                  <th className="px-4 py-3 text-left">PO Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {highValuePos.map((po) => (
+                  <tr key={po.id} className="hover:bg-amber-50/40">
+                    <td className="px-4 py-3 font-medium text-gray-900">{po.po_number}</td>
+                    <td className="px-4 py-3 text-gray-600">{po.supplier_name}</td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {po.project?.project_code ?? po.project_id}
+                    </td>
+                    {canSeeCost && (
+                      <td className="px-4 py-3 text-right font-semibold text-gray-900">
+                        {po.purchase_value.toLocaleString()}
+                      </td>
+                    )}
+                    <td className="px-4 py-3 text-gray-600">{po.currency}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant={approvalVariant(po.approval_status)}>
+                        {po.approval_status.replace(/_/g, ' ')}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant="neutral">
+                        {po.po_status?.replace(/_/g, ' ') ?? '—'}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+                {highValuePos.length === 0 && (
+                  <tr>
+                    <td colSpan={canSeeCost ? 7 : 6} className="px-4 py-8 text-center text-gray-400">
+                      No high-value POs requiring approval
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* Tab 7 — Supplier Status */}
       {activeTab === 'Supplier Status' && (
         <Card padding="none">
           <div className="p-4 border-b border-gray-100 flex items-center gap-2">
