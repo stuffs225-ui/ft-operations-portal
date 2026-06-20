@@ -38,6 +38,7 @@ const FactoryRequirements = lazy(() => import('../pages/FactoryRequirements').th
 const FactoryRawMaterialRequests = lazy(() => import('../pages/FactoryRawMaterialRequests').then((m) => ({ default: m.FactoryRawMaterialRequests })));
 const FactoryRawMaterialRequestNew = lazy(() => import('../pages/FactoryRawMaterialRequestNew').then((m) => ({ default: m.FactoryRawMaterialRequestNew })));
 const FactoryMonthlyUpdates = lazy(() => import('../pages/FactoryMonthlyUpdates').then((m) => ({ default: m.FactoryMonthlyUpdates })));
+const FactorySendToQC = lazy(() => import('../pages/FactorySendToQC').then((m) => ({ default: m.FactorySendToQC })));
 const Store = lazy(() => import('../pages/Store').then((m) => ({ default: m.Store })));
 const MaterialCustody = lazy(() => import('../pages/MaterialCustody').then((m) => ({ default: m.MaterialCustody })));
 const VehicleReceiving = lazy(() => import('../pages/VehicleReceiving').then((m) => ({ default: m.VehicleReceiving })));
@@ -225,6 +226,7 @@ export function App() {
             <Route path="factory/raw-material-requests" element={<RequireRole roles={['factory_user', 'operations_manager']}><FactoryRawMaterialRequests /></RequireRole>} />
             <Route path="factory/raw-material-requests/new" element={<RequireRole roles={['factory_user', 'operations_manager']}><FactoryRawMaterialRequestNew /></RequireRole>} />
             <Route path="factory/monthly-updates" element={<RequireRole roles={['factory_user', 'operations_manager']}><FactoryMonthlyUpdates /></RequireRole>} />
+            <Route path="factory/send-to-qc" element={<RequireRole roles={['factory_user', 'operations_manager']}><FactorySendToQC /></RequireRole>} />
             <Route path="factory/pending-raw-materials" element={<RequireRole roles={['factory_user', 'operations_manager']}><FactoryRawMaterialRequests /></RequireRole>} />
 
             {/* ── Store / Warehouse ── */}
