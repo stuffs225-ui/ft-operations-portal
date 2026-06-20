@@ -79,6 +79,21 @@ function quotationNextAction(q: QuotationRequest): string {
   }
 }
 
+function coordinatorNextAction(q: QuotationRequest): string {
+  switch (q.quotation_status) {
+    case 'submitted_by_sales':       return 'Mark received and assign to coordinator';
+    case 'received_by_coordinator':  return 'Send to estimation team';
+    case 'sent_to_estimation':       return 'Follow up with estimation team';
+    case 'waiting_for_estimation':   return 'Record quotation when received from estimation';
+    case 'need_clarification':       return 'Awaiting clarification from Sales';
+    case 'quotation_received':       return 'Enter quotation number and return to Sales';
+    case 'returned_to_sales':        return 'Returned — awaiting Sales next action';
+    case 'converted_to_hot_project': return 'Converted';
+    case 'converted_to_so':          return 'Converted to SO';
+    default:                         return '—';
+  }
+}
+
 type StatusGroup =
   | 'action_required'
   | 'all'
@@ -117,12 +132,17 @@ export function Quotations() {
   const [quotations, setQuotations] = useState<QuotationRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusGroup, setStatusGroup] = useState<StatusGroup>('action_required');
+  const isCoordinator = role === 'sales_coordinator';
+  const [statusGroup, setStatusGroup] = useState<StatusGroup>(isCoordinator ? 'submitted' : 'action_required');
   const [priority, setPriority] = useState<QuotationPriority | 'all'>('all');
 
   const isSalesUser = role === 'sales_user';
   const canCreate = role && CAN_CREATE.includes(role);
   const canSeeFinancials = role === 'admin' || role === 'operations_manager';
+
+  const accentActive = isCoordinator ? 'text-teal-700 border-b-2 border-teal-600' : 'text-emerald-700 border-b-2 border-emerald-600';
+  const accentBadge = isCoordinator ? 'bg-teal-100 text-teal-700' : 'bg-emerald-100 text-emerald-700';
+  const accentRing = isCoordinator ? 'focus:ring-teal-600/30' : 'focus:ring-emerald-600/30';
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
@@ -196,6 +216,8 @@ export function Quotations() {
         title="Quotation Requests"
         subtitle={isSalesUser
           ? 'Your quotation requests — track status, respond to clarifications, and convert to projects'
+          : isCoordinator
+          ? 'All quotation requests — process new submissions, coordinate with estimation, and return completed quotations to Sales'
           : 'Pre-sales quotation management and Sales Coordinator workflow'}
         actions={
           canCreate ? (
@@ -206,7 +228,25 @@ export function Quotations() {
         }
       />
 
-      {!loading && actionRequired.length > 0 && (
+      {!loading && isCoordinator && (() => {
+        const unprocessed = quotations.filter(q => q.quotation_status === 'submitted_by_sales');
+        const clarification = quotations.filter(q => q.quotation_status === 'need_clarification');
+        const ready = quotations.filter(q => q.quotation_status === 'quotation_received');
+        const total = unprocessed.length + clarification.length + ready.length;
+        return total > 0 ? (
+          <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-teal-800">
+            <AlertTriangle size={14} className="text-teal-500 shrink-0" />
+            <span>
+              {unprocessed.length > 0 && <><strong>{unprocessed.length}</strong> new{unprocessed.length !== 1 ? ' requests' : ' request'} pending pickup</>}
+              {unprocessed.length > 0 && (clarification.length > 0 || ready.length > 0) && ' · '}
+              {clarification.length > 0 && <><strong>{clarification.length}</strong> awaiting clarification</>}
+              {clarification.length > 0 && ready.length > 0 && ' · '}
+              {ready.length > 0 && <><strong>{ready.length}</strong> ready to return to Sales</>}
+            </span>
+          </div>
+        ) : null;
+      })()}
+      {!loading && !isCoordinator && actionRequired.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-amber-800">
           <AlertTriangle size={14} className="text-amber-500 shrink-0" />
           <span>
@@ -222,15 +262,13 @@ export function Quotations() {
             key={tab.key}
             onClick={() => setStatusGroup(tab.key)}
             className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
-              statusGroup === tab.key
-                ? 'text-emerald-700 border-b-2 border-emerald-600'
-                : 'text-gray-500 hover:text-gray-700'
+              statusGroup === tab.key ? accentActive : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             {tab.label}
             {tabCounts[tab.key] > 0 && (
               <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                statusGroup === tab.key ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
+                statusGroup === tab.key ? accentBadge : 'bg-gray-100 text-gray-500'
               }`}>
                 {tabCounts[tab.key]}
               </span>
@@ -248,13 +286,13 @@ export function Quotations() {
             placeholder="Search by code, customer, scope…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
+            className={`w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 ${accentRing}`}
           />
         </div>
         <select
           value={priority}
           onChange={(e) => setPriority(e.target.value as QuotationPriority | 'all')}
-          className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
+          className={`text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${accentRing}`}
         >
           <option value="all">All Priorities</option>
           <option value="urgent">Urgent</option>
@@ -290,6 +328,9 @@ export function Quotations() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Customer</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden sm:table-cell">Priority</th>
+                  {isCoordinator && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Sales Owner</th>
+                  )}
                   {!isSalesUser && (
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Coordinator</th>
                   )}
@@ -304,10 +345,12 @@ export function Quotations() {
               <tbody className="divide-y divide-gray-50 bg-white">
                 {filtered.map((q) => {
                   const overdue = isQuotationOverdue(q);
-                  const isActionable = STATUS_GROUP_FILTER.action_required.includes(q.quotation_status);
-                  const action = quotationNextAction(q);
+                  const isActionable = isCoordinator
+                    ? ['submitted_by_sales', 'quotation_received'].includes(q.quotation_status)
+                    : STATUS_GROUP_FILTER.action_required.includes(q.quotation_status);
+                  const action = isCoordinator ? coordinatorNextAction(q) : quotationNextAction(q);
                   return (
-                    <tr key={q.id} className={`hover:bg-gray-50 transition-colors ${isActionable ? 'bg-amber-50/30' : ''}`}>
+                    <tr key={q.id} className={`hover:bg-gray-50 transition-colors ${isCoordinator && isActionable ? 'bg-teal-50/20' : !isCoordinator && isActionable ? 'bg-amber-50/30' : ''}`}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-mono font-medium text-gray-900">{q.quotation_code}</span>
@@ -330,6 +373,13 @@ export function Quotations() {
                           {q.priority}
                         </Badge>
                       </td>
+                      {isCoordinator && (
+                        <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">
+                          {q.requested_by_profile?.full_name ?? (
+                            <span className="text-gray-400 italic">Unknown</span>
+                          )}
+                        </td>
+                      )}
                       {!isSalesUser && (
                         <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">
                           {q.assigned_coordinator?.full_name ?? (
@@ -353,7 +403,7 @@ export function Quotations() {
                         )}
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
-                        <span className={`text-xs ${isActionable ? 'text-amber-700 font-medium' : 'text-gray-500'}`}>
+                        <span className={`text-xs ${isActionable ? (isCoordinator ? 'text-teal-700 font-medium' : 'text-amber-700 font-medium') : 'text-gray-500'}`}>
                           {action}
                         </span>
                       </td>

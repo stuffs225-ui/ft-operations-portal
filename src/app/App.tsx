@@ -15,6 +15,7 @@ const QuotationNew = lazy(() => import('../pages/QuotationNew').then((m) => ({ d
 const QuotationDetail = lazy(() => import('../pages/QuotationDetail').then((m) => ({ default: m.QuotationDetail })));
 const Sales = lazy(() => import('../pages/Sales').then((m) => ({ default: m.Sales })));
 const SalesCoordinator = lazy(() => import('../pages/SalesCoordinator').then((m) => ({ default: m.SalesCoordinator })));
+const CoordinatorQueue = lazy(() => import('../pages/CoordinatorQueue').then((m) => ({ default: m.CoordinatorQueue })));
 const Projects = lazy(() => import('../pages/Projects').then((m) => ({ default: m.Projects })));
 const ProjectNew = lazy(() => import('../pages/ProjectNew').then((m) => ({ default: m.ProjectNew })));
 const ProjectDetail = lazy(() => import('../pages/ProjectDetail').then((m) => ({ default: m.ProjectDetail })));
@@ -205,6 +206,7 @@ export function App() {
 
             {/* ── Sales coordinator only ── */}
             <Route path="sales-coordinator" element={<RequireRole roles={['sales_coordinator', 'operations_manager']}><SalesCoordinator /></RequireRole>} />
+            <Route path="coordinator-queue" element={<RequireRole roles={['sales_coordinator', 'operations_manager']}><CoordinatorQueue /></RequireRole>} />
 
             {/* ── Operations manager only ── */}
             <Route path="admin-approvals" element={<RequireRole roles={['operations_manager']}><AdminApprovals /></RequireRole>} />
