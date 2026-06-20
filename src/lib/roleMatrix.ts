@@ -65,10 +65,14 @@ export const ROLE_MATRIX: Record<UserRole, RoleMatrixEntry> = {
     moduleAccentColor: 'bg-teal-600',
     badgeClass: 'bg-teal-100 text-teal-800',
     rules: [
-      'Process all incoming quotation requests within 24 hours',
-      'Upload estimation PDF before returning to Sales',
-      'Do not close a quotation without recording a reason',
-      'Line values must be entered before sending to estimation',
+      'Process all incoming quotation requests within 24 hours — new requests trigger the SLA clock',
+      'Assign or acknowledge each new request before beginning processing',
+      'Record sent-to-estimation date when forwarding to the estimation team',
+      'Request clarification from Sales when scope or customer details are incomplete',
+      'Upload or record the quotation output (number and value) before returning to Sales',
+      'Return completed quotations to Sales with the quotation number and coordinator remarks',
+      'Do not close or cancel a quotation without recording the reason in coordinator remarks',
+      'Do not bypass the Sales or SO approval workflow — quotation conversion is a Sales action',
     ],
   },
   procurement_user: {

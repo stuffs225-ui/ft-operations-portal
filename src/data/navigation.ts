@@ -19,7 +19,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Dashboard',
     path: '/',
     icon: 'LayoutDashboard',
-    roles: ['admin', 'operations_manager', 'sales_coordinator', 'procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user', 'viewer'],
+    roles: ['admin', 'operations_manager', 'procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user', 'viewer'],
   },
   {
     id: 'inbox',
@@ -42,6 +42,14 @@ export const NAV_ITEMS: NavItem[] = [
     icon: 'TrendingUp',
     roles: ['sales_user'],
   },
+  // sales_coordinator gets their coordination dashboard as the MY WORK landing item
+  {
+    id: 'coordinator-landing',
+    label: 'Coordinator Dashboard',
+    path: '/sales-coordinator',
+    icon: 'ClipboardList',
+    roles: ['sales_coordinator'],
+  },
 
   // ── 2. SALES & COMMERCIAL ─────────────────────────────────────────────────
   {
@@ -63,28 +71,21 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Hot Projects',
     path: '/hot-projects',
     icon: 'Flame',
-    roles: ['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'viewer'],
+    roles: ['admin', 'operations_manager', 'sales_user', 'viewer'],
   },
   {
     id: 'quotations',
     label: 'Quotation Requests',
     path: '/quotations',
     icon: 'FileText',
-    roles: ['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'viewer'],
-  },
-  {
-    id: 'sales-coordinator',
-    label: 'Sales Coordinator',
-    path: '/sales-coordinator',
-    icon: 'UserCheck',
-    roles: ['admin', 'operations_manager', 'sales_coordinator'],
+    roles: ['admin', 'operations_manager', 'sales_user', 'viewer'],
   },
   {
     id: 'receivables',
     label: 'Receivables & Aging',
     path: '/receivables',
     icon: 'BarChart3',
-    roles: ['admin', 'operations_manager', 'sales_coordinator', 'viewer'],
+    roles: ['admin', 'operations_manager', 'viewer'],
   },
   // sales_user-specific SALES & COMMERCIAL entries (Projects/SO, Receivables, Reports)
   {
@@ -107,6 +108,35 @@ export const NAV_ITEMS: NavItem[] = [
     path: '/reports/sales',
     icon: 'TrendingUp',
     roles: ['sales_user'],
+  },
+
+  // ── 2B. SALES COORDINATION (sales_coordinator workspace) ──────────────────
+  {
+    id: 'sep-coord',
+    label: 'SALES COORDINATION',
+    path: '#',
+    icon: '',
+  },
+  {
+    id: 'coord-quotations',
+    label: 'Quotation Requests',
+    path: '/quotations',
+    icon: 'FileText',
+    roles: ['sales_coordinator'],
+  },
+  {
+    id: 'coord-queue',
+    label: 'Coordinator Queue',
+    path: '/coordinator-queue',
+    icon: 'ClipboardList',
+    roles: ['sales_coordinator'],
+  },
+  {
+    id: 'coord-reports',
+    label: 'Coordination Reports',
+    path: '/reports/sales',
+    icon: 'BarChart2',
+    roles: ['sales_coordinator'],
   },
 
   // ── 3. PROJECTS ───────────────────────────────────────────────────────────
@@ -699,7 +729,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Reports Hub',
     path: '/reports',
     icon: 'BarChart2',
-    roles: ['admin', 'operations_manager', 'viewer', 'sales_coordinator'],
+    roles: ['admin', 'operations_manager', 'viewer'],
   },
   // Per-role direct report links (avoids the broken Reports Hub for operational roles)
   // sales_user sees Sales Reports in SALES & COMMERCIAL section (sales-reports-commercial)
@@ -754,7 +784,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: 'FileStack',
     // Restricted to sales/management in 18.6A — operational roles access
     // templates through their module in a later role-specific PR.
-    roles: ['admin', 'operations_manager', 'sales_user', 'sales_coordinator'],
+    roles: ['admin', 'operations_manager', 'sales_user'],
   },
   {
     id: 'admin-access-requests',
