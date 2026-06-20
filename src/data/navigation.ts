@@ -106,7 +106,8 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'WO / PN Gate',
     path: '/wo-pn-gate',
     icon: 'GitBranch',
-    roles: ['admin', 'operations_manager', 'factory_user'],
+    // factory_user accesses WO Gate via FACTORY EXECUTION section
+    roles: ['admin', 'operations_manager'],
   },
 
   // ── 3B. PROCUREMENT (procurement_user workspace) ──────────────────────────
@@ -260,6 +261,100 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'operations_manager', 'store_user'],
   },
 
+  // ── 3E. FACTORY EXECUTION (factory_user workspace) ───────────────────────────
+  // 18.7C: dedicated factory section replacing generic EXECUTION entry for
+  // factory_user. Admin/ops_manager also see these as direct deep links.
+  {
+    id: 'sep-factory',
+    label: 'FACTORY EXECUTION',
+    path: '#',
+    icon: '',
+  },
+  {
+    id: 'factory-dashboard',
+    label: 'Factory Dashboard',
+    path: '/factory',
+    icon: 'Factory',
+    roles: ['admin', 'operations_manager', 'factory_user'],
+  },
+  {
+    id: 'factory-wo-gate',
+    label: 'WO Gate / Missing WO',
+    path: '/wo-pn-gate',
+    icon: 'GitBranch',
+    roles: ['admin', 'operations_manager', 'factory_user'],
+  },
+  {
+    id: 'factory-projects',
+    label: 'Factory Projects',
+    path: '/factory/projects',
+    icon: 'Wrench',
+    roles: ['admin', 'operations_manager', 'factory_user'],
+  },
+  {
+    id: 'factory-production-lines',
+    label: 'Production Lines',
+    path: '/factory/projects',
+    icon: 'Layers',
+    roles: ['admin', 'operations_manager', 'factory_user'],
+  },
+  {
+    id: 'factory-requirements',
+    label: 'Factory Requirements',
+    path: '/factory/requirements',
+    icon: 'FileText',
+    roles: ['admin', 'operations_manager', 'factory_user'],
+  },
+  {
+    id: 'factory-rmr',
+    label: 'Raw Material Requests',
+    path: '/factory/raw-material-requests',
+    icon: 'Package',
+    roles: ['admin', 'operations_manager', 'factory_user'],
+  },
+  {
+    id: 'factory-monthly-updates',
+    label: 'Monthly Updates',
+    path: '/factory/monthly-updates',
+    icon: 'CalendarClock',
+    roles: ['admin', 'operations_manager', 'factory_user'],
+  },
+  {
+    id: 'factory-send-to-qc',
+    label: 'Send to QC',
+    path: '/factory/send-to-qc',
+    icon: 'CheckCircle2',
+    roles: ['admin', 'operations_manager', 'factory_user'],
+  },
+  // ── 3F. FACTORY MATERIALS ─────────────────────────────────────────────────────
+  {
+    id: 'sep-factory-materials',
+    label: 'FACTORY MATERIALS',
+    path: '#',
+    icon: '',
+  },
+  {
+    id: 'factory-materials-requested',
+    label: 'Materials Requested',
+    path: '/factory/raw-material-requests',
+    icon: 'Package',
+    roles: ['admin', 'operations_manager', 'factory_user'],
+  },
+  {
+    id: 'factory-materials-issued',
+    label: 'Materials Issued to Factory',
+    path: '/custody',
+    icon: 'PackageCheck',
+    roles: ['admin', 'operations_manager', 'factory_user'],
+  },
+  {
+    id: 'factory-custody',
+    label: 'Factory Custody',
+    path: '/custody',
+    icon: 'ShieldCheck',
+    roles: ['admin', 'operations_manager', 'factory_user'],
+  },
+
   // ── 4. EXECUTION ──────────────────────────────────────────────────────────
   {
     id: 'sep-3',
@@ -279,7 +374,8 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Factory / Production',
     path: '/factory',
     icon: 'Factory',
-    roles: ['admin', 'operations_manager', 'factory_user'],
+    // factory_user uses the dedicated FACTORY EXECUTION section above
+    roles: ['admin', 'operations_manager'],
   },
   {
     id: 'store',
@@ -293,7 +389,8 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Material Custody',
     path: '/custody',
     icon: 'PackageCheck',
-    roles: ['admin', 'operations_manager', 'factory_user', 'afs_user'],
+    // factory_user uses FACTORY MATERIALS section above; afs_user keeps this entry
+    roles: ['admin', 'operations_manager', 'afs_user'],
   },
   {
     id: 'vehicle-receiving',

@@ -1,202 +1,288 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Wrench, FileText, Package, Calendar, AlertTriangle, ChevronRight } from 'lucide-react';
+import {
+  Factory as FactoryIcon, GitBranch, Wrench, FileText, Package,
+  CalendarClock, CheckCircle2, AlertTriangle, AlertCircle,
+  ChevronRight, ArrowUpRight, ShieldCheck,
+} from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
-import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/Button';
+import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { MOCK_FACTORY_RECORDS as MOCK_FACTORY_RECORDS_RAW, MOCK_FACTORY_REQUIREMENTS as MOCK_FACTORY_REQUIREMENTS_RAW, MOCK_RAW_MATERIAL_REQUESTS as MOCK_RAW_MATERIAL_REQUESTS_RAW } from '../data/mockFactory';
+import {
+  MOCK_FACTORY_RECORDS as MOCK_FACTORY_RECORDS_RAW,
+  MOCK_FACTORY_REQUIREMENTS as MOCK_FACTORY_REQUIREMENTS_RAW,
+  MOCK_RAW_MATERIAL_REQUESTS as MOCK_RAW_MATERIAL_REQUESTS_RAW,
+} from '../data/mockFactory';
 import { MOCK_PROJECTS as MOCK_PROJECTS_RAW } from '../data/mockProjects';
 import { mockOrEmpty } from '../lib/dataMode';
+import { ROLE_MATRIX } from '../lib/roleMatrix';
 
 const MOCK_FACTORY_RECORDS = mockOrEmpty(MOCK_FACTORY_RECORDS_RAW);
 const MOCK_FACTORY_REQUIREMENTS = mockOrEmpty(MOCK_FACTORY_REQUIREMENTS_RAW);
 const MOCK_RAW_MATERIAL_REQUESTS = mockOrEmpty(MOCK_RAW_MATERIAL_REQUESTS_RAW);
 const MOCK_PROJECTS = mockOrEmpty(MOCK_PROJECTS_RAW);
-import type { UserRole } from '../types';
 
-const FACTORY_ROLES: UserRole[] = ['admin', 'operations_manager', 'factory_user'];
-
-interface KpiStat {
-  label: string;
-  value: number;
-  subtitle: string;
-  borderColor: string;
-  textColor: string;
+interface FactoryKpis {
+  missingWo: number;
+  readyToStart: number;
+  inProduction: number;
+  waitingMaterials: number;
+  updateDue: number;
+  updateOverdue: number;
+  readyForQc: number;
+  blocked: number;
 }
+
+const EMPTY_KPIS: FactoryKpis = {
+  missingWo: 0, readyToStart: 0, inProduction: 0, waitingMaterials: 0,
+  updateDue: 0, updateOverdue: 0, readyForQc: 0, blocked: 0,
+};
 
 export function Factory() {
   const { role } = useAuth();
-  const [kpis, setKpis] = useState<KpiStat[]>([]);
+  const [kpis, setKpis] = useState<FactoryKpis>(EMPTY_KPIS);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
+      setLoading(true);
       if (!isSupabaseConfigured || !supabase) {
-        const inProduction = MOCK_FACTORY_RECORDS.filter(
-          (r) => r.production_status === 'in_production',
+        const saudiApproved = MOCK_PROJECTS.filter(
+          (p) => p.project_status === 'approved' && p.manufacturing_location === 'saudi',
+        );
+        const projectsWithWo = new Set(
+          MOCK_FACTORY_RECORDS.filter((r) => r.wo_reference_id).map((r) => r.project_id),
+        );
+        const missingWo = saudiApproved.filter((p) => !projectsWithWo.has(p.id)).length;
+        const readyToStart = MOCK_FACTORY_RECORDS.filter((r) => r.production_status === 'not_started' && r.wo_reference_id).length;
+        const inProduction = MOCK_FACTORY_RECORDS.filter((r) => r.production_status === 'in_production').length;
+        const waitingMaterials = MOCK_FACTORY_RECORDS.filter((r) => r.production_status === 'pending_raw_materials').length;
+        const updateDue = MOCK_FACTORY_RECORDS.filter((r) => r.monthly_update_required).length;
+        const updateOverdue = MOCK_FACTORY_RECORDS.filter(
+          (r) => r.monthly_update_required && (Date.now() - new Date(r.last_updated_at).getTime()) > 30 * 86400000,
         ).length;
-        const missingBoq = MOCK_FACTORY_REQUIREMENTS.filter(
-          (r) => r.requirement_type_id === 'rqt-001' && r.status === 'pending',
-        ).length;
-        const missingGa = MOCK_FACTORY_REQUIREMENTS.filter(
-          (r) => r.requirement_type_id === 'rqt-003' && r.status === 'pending',
-        ).length;
-        const monthlyRequired = MOCK_FACTORY_RECORDS.filter(
-          (r) => r.monthly_update_required,
-        ).length;
+        const readyForQc = MOCK_FACTORY_RECORDS.filter((r) => r.production_status === 'production_completed').length;
+        const blocked = MOCK_FACTORY_RECORDS.filter((r) => r.production_status === 'on_hold').length;
+        const pendingReqs = MOCK_FACTORY_REQUIREMENTS.filter((r) => r.status === 'pending').length;
         const openRmrs = MOCK_RAW_MATERIAL_REQUESTS.filter(
           (r) => !['fulfilled', 'rejected', 'cancelled'].includes(r.status),
         ).length;
-        const saudiInProduction = MOCK_PROJECTS.filter(
-          (p) => p.project_status === 'approved' && p.manufacturing_location === 'saudi',
-        ).length;
-        setKpis([
-          { label: 'In Production', value: inProduction, subtitle: `${saudiInProduction} approved Saudi project(s)`, borderColor: 'border-l-green-500', textColor: 'text-green-700' },
-          { label: 'Missing BOQ', value: missingBoq, subtitle: 'Pending bill of quantities', borderColor: 'border-l-amber-500', textColor: 'text-amber-700' },
-          { label: 'Missing GA Drawing', value: missingGa, subtitle: 'Pending GA drawings', borderColor: 'border-l-amber-500', textColor: 'text-amber-700' },
-          { label: 'Updates Required', value: monthlyRequired, subtitle: 'Monthly update overdue', borderColor: 'border-l-red-500', textColor: 'text-red-700' },
-          { label: 'Open RMRs', value: openRmrs, subtitle: 'Raw material requests open', borderColor: 'border-l-sky-500', textColor: 'text-sky-700' },
-        ]);
+        setKpis({ missingWo, readyToStart, inProduction, waitingMaterials, updateDue, updateOverdue, readyForQc, blocked });
+        void pendingReqs; void openRmrs;
+        setLoading(false);
         return;
       }
 
-      const [inProdRes, pendingReqRes, monthlyReqRes, openRmrRes, saudiProjRes] = await Promise.all([
-        supabase.from('factory_records').select('*', { count: 'exact', head: true }).eq('production_status', 'in_production'),
-        supabase.from('factory_item_requirements').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      const [saudiProjRes, recordsRes, monthlyRes, rmrRes] = await Promise.all([
+        supabase.from('projects').select('id', { count: 'exact' }).eq('manufacturing_location', 'saudi').eq('project_status', 'approved'),
+        supabase.from('factory_records').select('production_status, monthly_update_required, last_updated_at, wo_reference_id'),
         supabase.from('factory_records').select('*', { count: 'exact', head: true }).eq('monthly_update_required', true),
         supabase.from('production_raw_material_requests').select('*', { count: 'exact', head: true }).not('status', 'in', '("fulfilled","rejected","cancelled")'),
-        supabase.from('projects').select('*', { count: 'exact', head: true }).eq('manufacturing_location', 'saudi').eq('project_status', 'approved'),
       ]);
 
-      setKpis([
-        { label: 'In Production', value: inProdRes.count ?? 0, subtitle: `${saudiProjRes.count ?? 0} approved Saudi project(s)`, borderColor: 'border-l-green-500', textColor: 'text-green-700' },
-        { label: 'Pending Requirements', value: pendingReqRes.count ?? 0, subtitle: 'BOQ, BOM, GA, drawings pending', borderColor: 'border-l-amber-500', textColor: 'text-amber-700' },
-        { label: 'Updates Required', value: monthlyReqRes.count ?? 0, subtitle: 'Monthly update overdue', borderColor: 'border-l-red-500', textColor: 'text-red-700' },
-        { label: 'Open RMRs', value: openRmrRes.count ?? 0, subtitle: 'Raw material requests open', borderColor: 'border-l-sky-500', textColor: 'text-sky-700' },
-      ]);
+      const allRecords = (recordsRes.data ?? []) as { production_status: string; monthly_update_required: boolean; last_updated_at: string; wo_reference_id: string | null }[];
+      const projectsWithWo = new Set(allRecords.filter((r) => r.wo_reference_id).map((r) => (r as unknown as { project_id: string }).project_id));
+      void rmrRes;
+
+      setKpis({
+        missingWo: (saudiProjRes.count ?? 0) - projectsWithWo.size,
+        readyToStart: allRecords.filter((r) => r.production_status === 'not_started' && r.wo_reference_id).length,
+        inProduction: allRecords.filter((r) => r.production_status === 'in_production').length,
+        waitingMaterials: allRecords.filter((r) => r.production_status === 'pending_raw_materials').length,
+        updateDue: monthlyRes.count ?? 0,
+        updateOverdue: allRecords.filter(
+          (r) => r.monthly_update_required && (Date.now() - new Date(r.last_updated_at).getTime()) > 30 * 86400000,
+        ).length,
+        readyForQc: allRecords.filter((r) => r.production_status === 'production_completed').length,
+        blocked: allRecords.filter((r) => r.production_status === 'on_hold').length,
+      });
+      setLoading(false);
     })();
   }, []);
 
-  if (!role || !FACTORY_ROLES.includes(role)) {
-    return (
-      <div className="p-6">
-        <PageHeader title="Factory / Production" />
-        <Card className="p-8 text-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center">
-              <AlertTriangle size={22} className="text-red-500" />
-            </div>
-            <p className="text-sm font-semibold text-gray-800">
-              Access restricted to Factory / Production team
-            </p>
-            <p className="text-xs text-gray-500">
-              Contact your administrator if you require access to this module.
-            </p>
-          </div>
-        </Card>
-      </div>
-    );
-  }
+  const factoryRules = ROLE_MATRIX.factory_user?.rules ?? [];
 
-  const navSections = [
-    {
-      title: 'Factory Projects',
-      description: 'Approved Saudi projects with active WO',
-      path: '/factory/projects',
-      icon: <Wrench size={18} className="text-brand-600" />,
-    },
-    {
-      title: 'Requirements',
-      description: 'BOQ, BOM, GA Drawing, Detail Drawings status',
-      path: '/factory/requirements',
-      icon: <FileText size={18} className="text-brand-600" />,
-    },
-    {
-      title: 'Raw Material Requests',
-      description: 'Project-related and stock RMRs',
-      path: '/factory/raw-material-requests',
-      icon: <Package size={18} className="text-brand-600" />,
-    },
-    {
-      title: 'Monthly Updates',
-      description: 'Projects requiring production updates',
-      path: '/factory/monthly-updates',
-      icon: <Calendar size={18} className="text-brand-600" />,
-    },
-    {
-      title: 'Pending Raw Materials',
-      description: 'Items awaiting procurement fulfillment',
-      path: '/factory/pending-raw-materials',
-      icon: <Package size={18} className="text-brand-600" />,
-    },
+  const kpiCards = [
+    { label: 'Missing WO', value: kpis.missingWo, link: '/wo-pn-gate', accent: kpis.missingWo > 0 ? 'border-l-red-500' : 'border-l-gray-200', valueClass: kpis.missingWo > 0 ? 'text-red-600' : 'text-gray-900' },
+    { label: 'Ready to Start', value: kpis.readyToStart, link: '/factory/projects', accent: 'border-l-orange-400', valueClass: 'text-orange-700' },
+    { label: 'In Production', value: kpis.inProduction, link: '/factory/projects', accent: 'border-l-green-500', valueClass: 'text-green-700' },
+    { label: 'Waiting Materials', value: kpis.waitingMaterials, link: '/factory/raw-material-requests', accent: kpis.waitingMaterials > 0 ? 'border-l-amber-500' : 'border-l-gray-200', valueClass: kpis.waitingMaterials > 0 ? 'text-amber-700' : 'text-gray-900' },
+    { label: 'Update Due', value: kpis.updateDue, link: '/factory/monthly-updates', accent: kpis.updateDue > 0 ? 'border-l-orange-500' : 'border-l-gray-200', valueClass: kpis.updateDue > 0 ? 'text-orange-700' : 'text-gray-900' },
+    { label: 'Update Overdue', value: kpis.updateOverdue, link: '/factory/monthly-updates', accent: kpis.updateOverdue > 0 ? 'border-l-red-600' : 'border-l-gray-200', valueClass: kpis.updateOverdue > 0 ? 'text-red-700' : 'text-gray-900' },
+    { label: 'Ready for QC', value: kpis.readyForQc, link: '/factory/send-to-qc', accent: 'border-l-sky-500', valueClass: 'text-sky-700' },
+    { label: 'Blocked', value: kpis.blocked, link: '/factory/projects', accent: kpis.blocked > 0 ? 'border-l-gray-600' : 'border-l-gray-200', valueClass: 'text-gray-700' },
+  ];
+
+  type QueueVariant = 'critical' | 'warning' | 'clear';
+
+  const workQueues: { label: string; count: number; description: string; link: string; action: string; variant: QueueVariant }[] = [
+    { label: 'Projects Missing WO', count: kpis.missingWo, description: 'Saudi projects cannot start without a confirmed Work Order', link: '/wo-pn-gate', action: 'Enter WO', variant: kpis.missingWo > 0 ? 'critical' : 'clear' },
+    { label: 'Ready to Start', count: kpis.readyToStart, description: 'WO confirmed — production can begin', link: '/factory/projects', action: 'View Projects', variant: kpis.readyToStart > 0 ? 'warning' : 'clear' },
+    { label: 'Requirements Missing', count: 0, description: 'BOQ, BOM, GA Drawing, or Detail Drawings not submitted', link: '/factory/requirements', action: 'Review Requirements', variant: 'clear' },
+    { label: 'Waiting Raw Materials', count: kpis.waitingMaterials, description: 'Production on hold pending material delivery', link: '/factory/raw-material-requests', action: 'Check Status', variant: kpis.waitingMaterials > 0 ? 'warning' : 'clear' },
+    { label: 'Monthly Updates Due', count: kpis.updateDue, description: 'Production records requiring a progress update', link: '/factory/monthly-updates', action: 'Submit Update', variant: kpis.updateDue > 0 ? 'warning' : 'clear' },
+    { label: 'Updates Overdue', count: kpis.updateOverdue, description: 'No update submitted in over 30 days', link: '/factory/monthly-updates', action: 'Submit Now', variant: kpis.updateOverdue > 0 ? 'critical' : 'clear' },
+    { label: 'Ready for QC Handoff', count: kpis.readyForQc, description: 'Production completed — send to QC for inspection', link: '/factory/send-to-qc', action: 'Send to QC', variant: kpis.readyForQc > 0 ? 'warning' : 'clear' },
+    { label: 'Blocked / On Hold', count: kpis.blocked, description: 'Projects halted — review and resolve blockers', link: '/factory/projects', action: 'View Blocked', variant: kpis.blocked > 0 ? 'critical' : 'clear' },
+  ];
+
+  const queueVariantStyles: Record<QueueVariant, string> = {
+    critical: 'border-red-200 bg-red-50',
+    warning: 'border-amber-200 bg-amber-50',
+    clear: 'border-gray-100 bg-white',
+  };
+
+  const queueBadgeVariant: Record<QueueVariant, 'critical' | 'warning' | 'neutral'> = {
+    critical: 'critical', warning: 'warning', clear: 'neutral',
+  };
+
+  const modules = [
+    { label: 'WO Gate', icon: <GitBranch size={20} className="text-orange-600" />, path: '/wo-pn-gate', description: 'Confirm work orders' },
+    { label: 'Factory Projects', icon: <Wrench size={20} className="text-orange-600" />, path: '/factory/projects', description: 'Production tracking' },
+    { label: 'Requirements', icon: <FileText size={20} className="text-orange-600" />, path: '/factory/requirements', description: 'BOQ / BOM / Drawings' },
+    { label: 'Raw Materials', icon: <Package size={20} className="text-orange-600" />, path: '/factory/raw-material-requests', description: 'Material requests' },
+    { label: 'Monthly Updates', icon: <CalendarClock size={20} className="text-orange-600" />, path: '/factory/monthly-updates', description: 'Progress updates' },
+    { label: 'Send to QC', icon: <CheckCircle2 size={20} className="text-orange-600" />, path: '/factory/send-to-qc', description: 'QC handoff queue' },
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-5">
       <PageHeader
-        title="Factory / Production"
-        subtitle="Saudi factory workspace — manage WO, BOQ, BOM, GA Drawings, and production progress"
+        title="Factory Dashboard"
+        subtitle="Manage WO readiness, production requirements, raw material requests, progress updates, and QC handoff."
+        breadcrumb={[{ label: 'Factory', href: '/factory' }]}
+        actions={
+          <div className="flex items-center gap-2">
+            <DataSourceBadge variant="auto" />
+            {role && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
+                <FactoryIcon size={11} className="mr-1" /> Factory User
+              </span>
+            )}
+          </div>
+        }
       />
 
-      {!isSupabaseConfigured && (
-        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 text-xs text-amber-800">
-          <AlertTriangle size={13} className="text-amber-600 shrink-0" />
-          Dev mode — using mock factory data. Changes will not be persisted.
+      {/* WO gate alert */}
+      {kpis.missingWo > 0 && !loading && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-3 flex items-center gap-3 text-sm text-red-700">
+          <AlertCircle size={16} className="shrink-0" />
+          <span>
+            <strong>{kpis.missingWo}</strong> Saudi project{kpis.missingWo !== 1 ? 's' : ''} missing a Work Order — factory execution is blocked until WO is entered.
+          </span>
+          <Link to="/wo-pn-gate" className="ml-auto shrink-0">
+            <Button size="sm" variant="primary" className="bg-red-600 hover:bg-red-700 text-white border-0">
+              <GitBranch size={12} className="mr-1" /> Enter WO
+            </Button>
+          </Link>
         </div>
       )}
 
-      {/* KPI Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {kpis.map((kpi) => (
-          <Card key={kpi.label} className={`p-4 border-l-4 ${kpi.borderColor}`}>
-            <p className={`text-2xl font-bold ${kpi.textColor}`}>{kpi.value}</p>
-            <p className="text-xs font-semibold text-gray-800 mt-0.5">{kpi.label}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{kpi.subtitle}</p>
-          </Card>
-        ))}
-      </div>
-
-      {/* WO Gate Notice */}
-      <div className="flex items-start gap-3 bg-amber-50 border border-amber-300 rounded-xl p-4">
-        <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm text-amber-900">
-            Factory operations require a confirmed WO. Projects without WO are blocked.
+      {kpis.updateOverdue > 0 && !loading && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 flex items-center gap-3 text-sm text-amber-700">
+          <AlertTriangle size={16} className="shrink-0" />
+          <span>
+            <strong>{kpis.updateOverdue}</strong> production record{kpis.updateOverdue !== 1 ? 's' : ''} overdue for monthly update — submit progress now.
           </span>
-          <Link to="/wo-pn-gate" className="text-xs font-semibold text-amber-800 underline">
-            → WO/PN Gate
+          <Link to="/factory/monthly-updates" className="ml-auto shrink-0">
+            <Button size="sm" variant="secondary">Submit Update</Button>
           </Link>
+        </div>
+      )}
+
+      {/* Top Actions */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Quick Actions</p>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/wo-pn-gate"><Button size="sm" variant="primary" className="bg-orange-600 hover:bg-orange-700 border-0 text-white"><GitBranch size={13} className="mr-1.5" />Enter WO</Button></Link>
+          <Link to="/factory/projects"><Button size="sm" variant="secondary"><Wrench size={13} className="mr-1.5" />Start Production</Button></Link>
+          <Link to="/factory/requirements"><Button size="sm" variant="secondary"><FileText size={13} className="mr-1.5" />Upload Requirement</Button></Link>
+          <Link to="/factory/raw-material-requests/new"><Button size="sm" variant="secondary"><Package size={13} className="mr-1.5" />Request Raw Materials</Button></Link>
+          <Link to="/factory/monthly-updates"><Button size="sm" variant="secondary"><CalendarClock size={13} className="mr-1.5" />Submit Monthly Update</Button></Link>
+          <Link to="/factory/send-to-qc"><Button size="sm" variant="secondary"><CheckCircle2 size={13} className="mr-1.5" />Send to QC</Button></Link>
         </div>
       </div>
 
-      {/* Navigation Sections */}
-      <div className="space-y-2">
-        {navSections.map((section) => (
-          <Link key={section.path} to={section.path}>
-            <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-brand-50 rounded-lg flex items-center justify-center shrink-0">
-                    {section.icon}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{section.title}</p>
-                    <p className="text-xs text-gray-500">{section.description}</p>
-                  </div>
-                </div>
-                <ChevronRight size={16} className="text-gray-400 shrink-0" />
-              </div>
-            </Card>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {kpiCards.map((k) => (
+          <Link key={k.label} to={k.link}>
+            <div className={`bg-white rounded-xl border border-gray-200 border-l-4 shadow-sm p-4 hover:shadow-md transition-shadow ${k.accent}`}>
+              <div className={`text-2xl font-bold ${k.valueClass}`}>{loading ? '…' : k.value}</div>
+              <div className="text-sm text-gray-600 mt-0.5">{k.label}</div>
+            </div>
           </Link>
         ))}
       </div>
 
-      {/* Role badge */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-500">Your role:</span>
-        <Badge variant="default">{role}</Badge>
+      {/* Work Queues */}
+      <div>
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">Work Queues</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {workQueues.map((q) => (
+            <div key={q.label} className={`rounded-xl border p-4 ${queueVariantStyles[q.variant]}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-semibold text-gray-900">{q.label}</span>
+                    <Badge variant={queueBadgeVariant[q.variant]} size="sm">
+                      {loading ? '…' : q.count}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-gray-500 leading-relaxed">{q.description}</p>
+                </div>
+                <Link to={q.link} className="shrink-0">
+                  <button className="text-xs text-orange-600 font-medium hover:text-orange-700 flex items-center gap-0.5 whitespace-nowrap">
+                    {q.action} <ChevronRight size={12} />
+                  </button>
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
+
+      {/* Module Tiles */}
+      <div>
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">Factory Modules</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {modules.map((m) => (
+            <Link key={m.path} to={m.path}>
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:shadow-md transition-shadow flex items-center gap-3">
+                <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center shrink-0">
+                  {m.icon}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">{m.label}</p>
+                  <p className="text-xs text-gray-500">{m.description}</p>
+                </div>
+                <ArrowUpRight size={14} className="text-gray-300 ml-auto shrink-0" />
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Factory Rules */}
+      {factoryRules.length > 0 && (
+        <div className="bg-orange-50 border border-orange-200 rounded-xl px-5 py-4">
+          <div className="flex items-center gap-2 mb-3">
+            <ShieldCheck size={15} className="text-orange-600" />
+            <span className="text-sm font-semibold text-orange-900">Factory Governance Rules</span>
+          </div>
+          <ul className="space-y-1.5">
+            {factoryRules.map((rule, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs text-orange-800">
+                <span className="text-orange-400 shrink-0 mt-0.5">▸</span>
+                {rule}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

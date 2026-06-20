@@ -93,10 +93,12 @@ export const ROLE_MATRIX: Record<UserRole, RoleMatrixEntry> = {
     moduleAccentColor: 'bg-orange-600',
     badgeClass: 'bg-orange-100 text-orange-800',
     rules: [
-      'WO (Work Order) is mandatory before any Saudi project execution',
-      'No BOQ, BOM, drawings, or Raw Material Requests before WO is issued',
-      'Report production blockers immediately via your module',
-      'Factory records must be updated before requesting QC inspection',
+      'WO (Work Order) is mandatory before Saudi Factory execution begins',
+      'No BOQ, BOM, drawings, manhours, or project Raw Material Requests before WO is issued',
+      'Project-based Raw Material Requests must be linked to a Project and WO',
+      'Monthly production updates must be submitted on time — overdue records are escalated',
+      'Completed factory work must be sent to QC for inspection before handoff',
+      'Materials issued from Store must be accepted, tracked, and resolved (used, returned, or reported)',
     ],
   },
   store_user: {
