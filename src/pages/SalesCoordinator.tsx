@@ -138,26 +138,39 @@ export function SalesCoordinator() {
   const coordRules = ROLE_MATRIX.sales_coordinator.rules;
 
   useEffect(() => {
-    if (!canView) { setLoading(false); return; }
+    let cancelled = false;
 
-    if (!isSupabaseConfigured || !supabase) {
-      const active = MOCK_QUOTATIONS.filter(q =>
-        ACTIVE_STATUSES.includes(q.quotation_status as QuotationStatus),
-      );
-      setQuotations(active as unknown as QuotationRequest[]);
-      setLoading(false);
-      return;
-    }
+    async function load() {
+      if (!canView) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
 
-    supabase
-      .from('quotation_requests')
-      .select('*, requested_by_profile:profiles!quotation_requests_requested_by_fkey(full_name, email), assigned_coordinator:profiles!quotation_requests_assigned_coordinator_id_fkey(full_name, email)')
-      .in('quotation_status', ACTIVE_STATUSES)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
+      if (!isSupabaseConfigured || !supabase) {
+        const active = MOCK_QUOTATIONS.filter(q =>
+          ACTIVE_STATUSES.includes(q.quotation_status as QuotationStatus),
+        );
+        if (!cancelled) {
+          setQuotations(active as unknown as QuotationRequest[]);
+          setLoading(false);
+        }
+        return;
+      }
+
+      const { data } = await supabase
+        .from('quotation_requests')
+        .select('*, requested_by_profile:profiles!quotation_requests_requested_by_fkey(full_name, email), assigned_coordinator:profiles!quotation_requests_assigned_coordinator_id_fkey(full_name, email)')
+        .in('quotation_status', ACTIVE_STATUSES)
+        .order('created_at', { ascending: false });
+
+      if (!cancelled) {
         setQuotations((data as unknown as QuotationRequest[]) ?? []);
         setLoading(false);
-      });
+      }
+    }
+
+    void load();
+    return () => { cancelled = true; };
   }, [canView]);
 
   if (!canView) {

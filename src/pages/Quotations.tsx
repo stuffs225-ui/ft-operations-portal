@@ -145,29 +145,39 @@ export function Quotations() {
   const accentRing = isCoordinator ? 'focus:ring-teal-600/30' : 'focus:ring-emerald-600/30';
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) {
-      const data =
-        role === 'sales_user'
-          ? MOCK_QUOTATIONS.filter((q) => q.requested_by === profile?.id || q.requested_by === 'dev-usr-002')
-          : MOCK_QUOTATIONS;
-      setQuotations(data);
-      setLoading(false);
-      return;
+    let cancelled = false;
+
+    async function load() {
+      if (!isSupabaseConfigured || !supabase) {
+        const data =
+          role === 'sales_user'
+            ? MOCK_QUOTATIONS.filter((q) => q.requested_by === profile?.id || q.requested_by === 'dev-usr-002')
+            : MOCK_QUOTATIONS;
+        if (!cancelled) {
+          setQuotations(data);
+          setLoading(false);
+        }
+        return;
+      }
+
+      let query = supabase
+        .from('quotation_requests')
+        .select('*, requested_by_profile:profiles!quotation_requests_requested_by_fkey(full_name, email), assigned_coordinator:profiles!quotation_requests_assigned_coordinator_id_fkey(full_name, email)')
+        .order('created_at', { ascending: false });
+
+      if (role === 'sales_user' && profile?.id) {
+        query = query.eq('requested_by', profile.id);
+      }
+
+      const { data } = await query;
+      if (!cancelled) {
+        setQuotations((data as unknown as QuotationRequest[]) ?? []);
+        setLoading(false);
+      }
     }
 
-    let query = supabase
-      .from('quotation_requests')
-      .select('*, requested_by_profile:profiles!quotation_requests_requested_by_fkey(full_name, email), assigned_coordinator:profiles!quotation_requests_assigned_coordinator_id_fkey(full_name, email)')
-      .order('created_at', { ascending: false });
-
-    if (role === 'sales_user' && profile?.id) {
-      query = query.eq('requested_by', profile.id);
-    }
-
-    query.then(({ data }) => {
-      setQuotations((data as unknown as QuotationRequest[]) ?? []);
-      setLoading(false);
-    });
+    void load();
+    return () => { cancelled = true; };
   }, [role, profile]);
 
   const tabCounts = useMemo(() => {
