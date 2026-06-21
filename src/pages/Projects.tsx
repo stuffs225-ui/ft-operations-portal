@@ -70,7 +70,7 @@ export function Projects() {
 
   const canCreate = role ? CAN_CREATE.includes(role) : false;
   const canSeeMoney = canViewCosts;
-  const isBroadView = role === 'admin' || role === 'operations_manager';
+  const isBroadView = role === 'admin' || role === 'operations_manager' || role === 'viewer';
   const isSalesUser = role === 'sales_user';
   const reportDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
 

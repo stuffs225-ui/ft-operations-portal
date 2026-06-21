@@ -30,11 +30,12 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-// An item is visible if it has no roles restriction, or the user's role is listed
+// An item is visible if it has no roles restriction, or the user's role is listed.
+// strict: true disables the admin bypass — item is only visible to its listed roles.
 function isItemVisible(item: NavItem, role: UserRole | null): boolean {
   if (!item.roles || item.roles.length === 0) return true;
   if (!role) return false;
-  if (role === 'admin') return true;
+  if (role === 'admin' && !item.strict) return true;
   return item.roles.includes(role);
 }
 

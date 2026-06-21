@@ -26,13 +26,22 @@ export const NAV_ITEMS: NavItem[] = [
     icon: 'ShieldCheck',
     roles: ['admin'],
   },
+  // viewer lands on /management-dashboard (Management Dashboard)
+  {
+    id: 'management-dashboard',
+    label: 'Management Dashboard',
+    path: '/management-dashboard',
+    icon: 'LayoutDashboard',
+    roles: ['viewer'],
+    strict: true,
+  },
   {
     id: 'dashboard',
     label: 'Dashboard',
     path: '/',
     icon: 'LayoutDashboard',
-    // ops_mgr lands on /control-tower; sales_user/coordinator have dedicated landing items; admin has admin-dashboard above
-    roles: ['procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user', 'viewer'],
+    // ops_mgr lands on /control-tower; sales_user/coordinator have dedicated landing items; admin has admin-dashboard; viewer has management-dashboard
+    roles: ['procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user'],
   },
   {
     id: 'inbox',
@@ -84,31 +93,32 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Sales Workspace',
     path: '/sales',
     icon: 'TrendingUp',
-    // ops_mgr monitors Sales via WORKSTREAM MONITORING (ops-sales-monitor)
-    roles: ['admin', 'viewer'],
+    // ops_mgr monitors Sales via WORKSTREAM MONITORING (ops-sales-monitor); viewer uses MANAGEMENT VISIBILITY
+    roles: ['admin'],
   },
   {
     id: 'hot-projects',
     label: 'Hot Projects',
     path: '/hot-projects',
     icon: 'Flame',
-    // ops_mgr monitors Hot Projects via WORKSTREAM MONITORING (ops-hot-projects)
-    roles: ['admin', 'sales_user', 'viewer'],
+    // ops_mgr monitors Hot Projects via WORKSTREAM MONITORING; viewer uses MANAGEMENT VISIBILITY
+    roles: ['admin', 'sales_user'],
   },
   {
     id: 'quotations',
     label: 'Quotation Requests',
     path: '/quotations',
     icon: 'FileText',
-    // ops_mgr monitors Quotations via WORKSTREAM MONITORING (ops-sales-monitor)
-    roles: ['admin', 'sales_user', 'viewer'],
+    // ops_mgr monitors Quotations via WORKSTREAM MONITORING; viewer uses MANAGEMENT VISIBILITY
+    roles: ['admin', 'sales_user'],
   },
   {
     id: 'receivables',
     label: 'Receivables & Aging',
     path: '/receivables',
     icon: 'BarChart3',
-    roles: ['admin', 'viewer'],
+    // viewer uses MANAGEMENT VISIBILITY section
+    roles: ['admin'],
   },
   // sales_user-specific SALES & COMMERCIAL entries
   {
@@ -197,7 +207,8 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Projects / SO',
     path: '/projects',
     icon: 'FolderKanban',
-    roles: ['admin', 'viewer'],
+    // viewer uses Portfolio Overview in MANAGEMENT VISIBILITY section
+    roles: ['admin'],
   },
   // admin-approvals and wo-pn-gate moved to SYSTEM GOVERNANCE section for admin
 
@@ -816,14 +827,16 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Operations Overview',
     path: '/control-tower',
     icon: 'Activity',
-    roles: ['admin', 'viewer'],
+    // viewer uses Operations Overview in MANAGEMENT VISIBILITY section
+    roles: ['admin'],
   },
   {
     id: 'reports',
     label: 'Reports Hub',
     path: '/reports',
     icon: 'BarChart2',
-    roles: ['admin', 'viewer'],
+    // viewer uses Reports Hub in EXECUTIVE REPORTS section
+    roles: ['admin'],
   },
   // Per-role direct report links for operational roles
   {
@@ -896,6 +909,103 @@ export const NAV_ITEMS: NavItem[] = [
     path: '/reports',
     icon: 'BarChart3',
     roles: ['operations_manager'],
+  },
+
+  // ── 7C. MANAGEMENT VISIBILITY (viewer read-only overview links) ──────────────
+  // strict: true prevents admin bypass — these are viewer-only nav items.
+  {
+    id: 'sep-viewer-visibility',
+    label: 'MANAGEMENT VISIBILITY',
+    path: '#',
+    icon: '',
+  },
+  {
+    id: 'viewer-portfolio',
+    label: 'Portfolio Overview',
+    path: '/projects',
+    icon: 'FolderKanban',
+    roles: ['viewer'],
+    strict: true,
+  },
+  {
+    id: 'viewer-ops-overview',
+    label: 'Operations Overview',
+    path: '/control-tower',
+    icon: 'Activity',
+    roles: ['viewer'],
+    strict: true,
+  },
+  {
+    id: 'viewer-hot-projects',
+    label: 'Hot Projects',
+    path: '/hot-projects',
+    icon: 'Flame',
+    roles: ['viewer'],
+    strict: true,
+  },
+  {
+    id: 'viewer-quotations',
+    label: 'Quotation Pipeline',
+    path: '/quotations',
+    icon: 'FileText',
+    roles: ['viewer'],
+    strict: true,
+  },
+  {
+    id: 'viewer-receivables',
+    label: 'Receivables',
+    path: '/receivables',
+    icon: 'BarChart3',
+    roles: ['viewer'],
+    strict: true,
+  },
+
+  // ── 7D. EXECUTIVE REPORTS (viewer read-only report links) ─────────────────
+  {
+    id: 'sep-viewer-reports',
+    label: 'EXECUTIVE REPORTS',
+    path: '#',
+    icon: '',
+  },
+  {
+    id: 'viewer-reports-hub',
+    label: 'Reports Hub',
+    path: '/reports',
+    icon: 'BarChart2',
+    roles: ['viewer'],
+    strict: true,
+  },
+  {
+    id: 'viewer-report-executive',
+    label: 'Executive Report',
+    path: '/reports/executive',
+    icon: 'TrendingUp',
+    roles: ['viewer'],
+    strict: true,
+  },
+  {
+    id: 'viewer-report-sla',
+    label: 'SLA & Delays',
+    path: '/reports/sla',
+    icon: 'Clock',
+    roles: ['viewer'],
+    strict: true,
+  },
+  {
+    id: 'viewer-report-health',
+    label: 'Health Scores',
+    path: '/reports/health-scores',
+    icon: 'Activity',
+    roles: ['viewer'],
+    strict: true,
+  },
+  {
+    id: 'viewer-report-data-quality',
+    label: 'Data Quality',
+    path: '/reports/data-quality',
+    icon: 'ClipboardCheck',
+    roles: ['viewer'],
+    strict: true,
   },
 
   // ── 8. SYSTEM ADMINISTRATION (admin only) ────────────────────────────────
