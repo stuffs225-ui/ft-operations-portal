@@ -551,6 +551,8 @@ export interface NavItem {
   roles?: UserRole[];
   badge?: number;
   children?: NavItem[];
+  /** If true, the admin bypass in isItemVisible does not apply — item is only visible to listed roles. */
+  strict?: boolean;
 }
 
 // ─── Dashboard KPI Card ───────────────────────────────────────────────────────

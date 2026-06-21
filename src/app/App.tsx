@@ -106,6 +106,7 @@ const ReportsIssues = lazy(() => import('../pages/ReportsIssues').then((m) => ({
 const ReportsCapa = lazy(() => import('../pages/ReportsCapa').then((m) => ({ default: m.ReportsCapa })));
 const Settings = lazy(() => import('../pages/Settings').then((m) => ({ default: m.Settings })));
 const AdminDashboard = lazy(() => import('../pages/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
+const ManagementDashboard = lazy(() => import('../pages/ManagementDashboard').then((m) => ({ default: m.ManagementDashboard })));
 const AdminUsers = lazy(() => import('../pages/AdminUsers').then((m) => ({ default: m.AdminUsers })));
 const AuditLog = lazy(() => import('../pages/AuditLog').then((m) => ({ default: m.AuditLog })));
 import { RequestAccess } from '../pages/RequestAccess';
@@ -296,6 +297,7 @@ export function App() {
 
             {/* ── Admin only ── */}
             <Route path="admin-dashboard" element={<RequireRole roles={['admin']}><AdminDashboard /></RequireRole>} />
+            <Route path="management-dashboard" element={<RequireRole roles={['viewer']}><ManagementDashboard /></RequireRole>} />
             <Route path="settings" element={<RequireRole roles={['admin']}><Settings /></RequireRole>} />
             <Route path="admin/users" element={<RequireRole roles={['admin']}><AdminUsers /></RequireRole>} />
             <Route path="audit-log" element={<RequireRole roles={['admin']}><AuditLog /></RequireRole>} />
