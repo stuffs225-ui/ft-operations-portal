@@ -21,7 +21,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
     .toUpperCase();
 
   return (
-    <header className="h-14 bg-white border-b border-gray-200 flex items-center px-4 gap-3 shrink-0 z-30">
+    <header className="h-16 bg-white border-b border-gray-200 flex items-center px-4 gap-3 shrink-0 z-30 sticky top-0">
       {/* Hamburger */}
       <button
         onClick={onMenuToggle}
@@ -54,11 +54,11 @@ export function Header({ onMenuToggle }: HeaderProps) {
 
       {/* User chip */}
       <div className="flex items-center gap-2 pl-3 border-l border-gray-200">
-        <div className="w-7 h-7 bg-brand-600 rounded-full flex items-center justify-center">
+        <div className="w-8 h-8 bg-brand-600 rounded-full flex items-center justify-center">
           <span className="text-white text-xs font-semibold">{avatarInitials}</span>
         </div>
         <div className="hidden sm:block">
-          <div className="text-xs font-semibold text-gray-800 leading-none truncate max-w-[120px]">
+          <div className="text-sm font-semibold text-gray-900 leading-none truncate max-w-[120px]">
             {displayName}
           </div>
           {roleConfig && (

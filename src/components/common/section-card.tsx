@@ -24,11 +24,11 @@ export function SectionCard({
   const hasHeader = title || description || actions
 
   return (
-    <Card className={cn('shadow-sm', className)}>
+    <Card className={cn('shadow-sm border-gray-200/80', className)}>
       {hasHeader && (
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-5">
           <div className="space-y-1">
-            {title && <CardTitle className="text-base font-semibold">{title}</CardTitle>}
+            {title && <CardTitle className="text-base font-semibold tracking-tight">{title}</CardTitle>}
             {description && <CardDescription>{description}</CardDescription>}
           </div>
           {actions && (

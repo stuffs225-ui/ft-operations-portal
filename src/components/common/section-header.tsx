@@ -15,9 +15,9 @@ interface SectionHeaderProps {
  */
 export function SectionHeader({ title, accent = 'bg-brand-500', action, className }: SectionHeaderProps) {
   return (
-    <div className={cn('flex items-center justify-between mb-3', className)}>
-      <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-        <span className={cn('w-1 h-4 rounded-full inline-block shrink-0', accent)} />
+    <div className={cn('flex items-center justify-between mb-4', className)}>
+      <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+        <span className={cn('w-0.5 h-4 rounded-full inline-block shrink-0', accent)} />
         {title}
       </h2>
       {action && <div className="shrink-0">{action}</div>}
