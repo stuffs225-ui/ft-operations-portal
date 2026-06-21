@@ -183,6 +183,12 @@ but HotProjects.tsx had no canCreate guard (pre-existing gap exposed by the new 
 **Roles affected:** viewer and sales_coordinator no longer see "New Opportunity". Admin, ops_mgr,
 and sales_user continue to see it as before.
 
+**Finalization lint fix:** The same file had a pre-existing `react-hooks/set-state-in-effect`
+violation at the `useEffect` body (`setLoading(true)` called synchronously). Fixed by initializing
+`loading` state as `isSupabaseConfigured` (true when Supabase is active, false otherwise) and
+removing the synchronous `setLoading(true)` call from the effect body. A `cancelled` ref was also
+added to prevent stale state updates. Data loading behavior is unchanged.
+
 ---
 
 ## Pre-existing Issues (Deferred — Out of Scope)
@@ -198,10 +204,18 @@ and sales_user continue to see it as before.
 
 ## Validation Results
 
+Initial commit:
 - `npm run build`: ✅ PASS — 0 errors, 5.81s
 - `npx tsc --noEmit`: ✅ PASS — 0 errors
-- `npx eslint src/pages/HotProjects.tsx`: 1 pre-existing error (`react-hooks/set-state-in-effect` at line 92 — identical pattern to Projects.tsx baseline, unchanged by this fix)
-- `npm run lint` (global): 82 problems — **unchanged from main baseline**
+- `npx eslint src/pages/HotProjects.tsx`: 1 pre-existing `react-hooks/set-state-in-effect` error (noted for finalization)
+- `npm run lint` (global): 82 problems
+
+Finalization commit (lint cleanup):
+- `npm run build`: ✅ PASS — 0 errors, 9.00s
+- `npx tsc --noEmit`: ✅ PASS — 0 errors
+- `npx eslint src/pages/HotProjects.tsx`: ✅ 0 errors — **cleaned**
+- `npx eslint` (changed files — HotProjects, navigation, roleMatrix, Sidebar, App, ManagementDashboard): ✅ 0 errors; Projects.tsx 1 pre-existing error (unchanged baseline)
+- `npm run lint` (global): 81 problems — **improved by 1** (HotProjects fix)
 
 ---
 

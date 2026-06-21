@@ -77,7 +77,7 @@ const TABS: { key: TabKey; label: string }[] = [
 export function HotProjects() {
   const { role, profile } = useAuth();
   const [records, setRecords] = useState<HotProject[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState<TabKey>('all');
@@ -89,15 +89,17 @@ export function HotProjects() {
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
-    setLoading(true);
+    let cancelled = false;
     const uid = profile?.id;
     const query = supabase!.from('hot_projects').select('*').order('created_at', { ascending: false });
     const scoped = (!isBroadView && uid) ? query.eq('sales_owner_id', uid) : query;
     scoped.then(({ data, error: err }) => {
+      if (cancelled) return;
       if (err) setError(err.message);
       else setRecords((data ?? []) as HotProject[]);
       setLoading(false);
     });
+    return () => { cancelled = true; };
   }, [isBroadView, profile?.id]);
 
   function handleExportCsv() {
