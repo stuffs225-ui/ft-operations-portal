@@ -1,0 +1,111 @@
+# Implementation Documentation Index
+
+This directory contains step-by-step implementation and audit records for the FT Operations Portal.
+
+---
+
+## Phase 10 — Foundation, Governance, and Procurement
+
+- step-4a-critical-governance-guardrails.md
+- step-4b-foundation-governance-guardrails.md
+- step-7-sales-quotation-final-signoff.md
+- step-7a-quotation-status-transition-guard.md
+- step-7b-quotation-document-gates.md
+- step-7c-quotation-new-two-step-submission.md
+- step-9-final-signoff.md
+- step-9a-so-approval-routing-audit.md
+- step-9b-wo-pn-db-guardrails.md
+- step-9c-department-routing-persistence.md
+- step-9d-routing-cleanup-approval-visibility.md
+- step-10-final-signoff.md
+- step-10-5-stabilization-deployment-projectdetail.md
+- step-10-5a-ux-ia-role-audit.md
+- step-10-5b-target-ia-blueprint.md
+- step-10-5c-role-based-navigation-restructure.md
+- step-10-5d-role-based-dashboard-my-work.md
+- step-10-5e-projectdetail-role-tabs.md
+- step-10-5f-visual-identity-system-v2.md
+- step-10-5g-shared-ui-patterns-shell-polish.md
+- step-10-5h-ui-consistency-cleanup.md
+- step-10-5h5-ui-consistency-closure.md
+- step-10-5i-final-ux-ia-visual-signoff.md
+- step-10a-wo-pn-gate-audit.md
+- step-10b-wo-pn-guardrails-corrective-actions.md
+
+---
+
+## Phase 11 — Procurement Governance
+
+- step-11a-procurement-suppliers-governance-audit.md
+- step-11b-procurement-governance-hardening.md
+- step-11c-supplier-approval-audit-trail.md
+- step-11d-procurement-detail-pageheader-migration.md
+- step-11e-post-merge-safety-check.md
+- step-11e-supplier-register-procurement-ux-quick-wins.md
+- step-11f-procurement-suppliers-final-signoff.md
+
+---
+
+## Phase 12 — Store / Warehouse Governance
+
+- step-12-store-full-closure.md
+- step-12a-store-receiving-custody-serials-audit.md
+- step-12b-store-governance-hardening.md
+- step-12c-2-vehicle-photo-upload.md
+- step-12c-vehicle-receiving-live-write.md
+- step-12h-temporary-custody-user-picker.md
+
+---
+
+## Phase 16 — Sales and After Sales
+
+- step-16-5-sales-user-reports.md
+- step-16-after-sales-maintenance-full-closure.md
+
+---
+
+## Phase 17 — Operations Reporting
+
+- step-17-control-tower-sla-reports.md
+
+---
+
+## Phase 18 — Role UX/IA Rebuild
+
+### Foundation
+
+- step-18-6a-role-ia-visual-foundation.md
+- step-18-6b-cross-role-ux-safety-fixes.md
+- step-18-go-live-stabilization.md
+
+### Work Centers (18.7A–18.7K)
+
+- step-18-7a-procurement-workflow-rebuild.md — Procurement Work Center
+- step-18-7b-store-warehouse-work-center.md — Store / Warehouse Work Center
+- step-18-7c-factory-production-work-center.md — Factory / Production Work Center
+- *(step-18-7d QC Work Center — no dedicated doc created)*
+- *(step-18-7e AFS / Dubai Work Center — no dedicated doc created)*
+- step-18-7f-sales-user-work-center.md — Sales User Work Center
+- step-18-7g-sales-coordinator-work-center.md — Sales Coordinator Work Center
+- step-18-7g-1-sales-coordinator-lint-stabilization.md — Coordinator lint fix
+- step-18-7h-operations-manager-control-tower.md — Operations Manager Control Tower
+- step-18-7h-1-operations-manager-route-stabilization.md — Ops Manager route fix
+- step-18-7i-admin-work-center.md — Admin Work Center Foundation
+- step-18-7j-viewer-management-read-only-work-center.md — Viewer Work Center
+- step-18-7k-final-role-ux-closure-audit.md — Final Role UX Closure Audit
+
+### System Stabilization
+
+- **step-18-8-final-system-stabilization-go-live-readiness.md — Go-Live Readiness Audit** ← current
+
+---
+
+## Deferred Items
+
+See `step-18-8-final-system-stabilization-go-live-readiness.md` § Deferred Items Consolidated Backlog for the full list of 33 deferred items (DFR-01 through DFR-33). None are go-live blockers.
+
+---
+
+## Schema / Migration Reference
+
+All SQL migrations are in `migrations/` (95 files, `001_profiles.sql` through `095_vehicle_photo_storage_path_hardening.sql`). No schema changes were made in Steps 18.7A–18.7K or 18.8.
