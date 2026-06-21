@@ -16,7 +16,7 @@ export function DataTableShell({ children, toolbar, footer, className }: DataTab
           {toolbar}
         </div>
       )}
-      <div className="rounded-md border overflow-hidden">
+      <div className="rounded-lg border border-gray-200/80 overflow-hidden">
         {children}
       </div>
       {footer && (

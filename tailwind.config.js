@@ -41,6 +41,12 @@ export default {
         slate: {
           925: '#0f172a',
         },
+        // Surface hierarchy tokens for the page/card/elevated layer system.
+        surface: {
+          1: 'hsl(var(--surface-1))',
+          2: 'hsl(var(--surface-2))',
+          3: 'hsl(var(--surface-3))',
+        },
         // shadcn/ui CSS variable tokens
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -83,6 +89,14 @@ export default {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+      },
+      // Refined shadow scale — subtle elevation without heavy drop shadows.
+      boxShadow: {
+        xs:  'var(--shadow-xs)',
+        sm:  'var(--shadow-sm)',
+        md:  'var(--shadow-md)',
+        lg:  'var(--shadow-lg)',
+        xl:  'var(--shadow-xl)',
       },
       keyframes: {
         'accordion-down': {
