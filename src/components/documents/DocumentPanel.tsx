@@ -3,24 +3,25 @@ import { Upload, Loader2, AlertCircle } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { openSignedUrl, formatFileSize } from '../../lib/documents';
 import { DocumentList } from '../features/DocumentList';
-import type { ProjectDocument, QuotationDocument } from '../../types';
+import type { ProjectDocument } from '../../types';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 interface UploadSpec {
   bucket: string;
-  table: 'project_documents' | 'quotation_documents';
-  foreignKey: { field: 'project_id' | 'quotation_request_id'; value: string };
+  table: string;
+  foreignKey: { field: string; value: string };
   uploadedBy: string | null;
   documentTypeOptions: { value: string; label: string }[];
+  extraFields?: Record<string, unknown>;
 }
 
 interface DocumentPanelProps {
-  documents: (ProjectDocument | QuotationDocument)[];
+  documents: ProjectDocument[];
   bucket: string;
   canUpload: boolean;
   upload?: UploadSpec;
-  onUploaded?: (doc: ProjectDocument | QuotationDocument) => void;
+  onUploaded?: (doc: unknown) => void;
   emptyMessage?: string;
 }
 
@@ -70,12 +71,13 @@ export function DocumentPanel({
       mime_type: file.type || null,
       uploaded_by: upload.uploadedBy,
       remarks: remarks.trim() || null,
+      ...(upload.extraFields ?? {}),
     };
 
-    const { data: inserted, error: insertErr } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: inserted, error: insertErr } = await (supabase as any)
       .from(upload.table)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .insert(insertPayload as any)
+      .insert(insertPayload)
       .select()
       .single();
 
@@ -89,10 +91,10 @@ export function DocumentPanel({
     setFile(null);
     setRemarks('');
     if (inputRef.current) inputRef.current.value = '';
-    onUploaded?.(inserted as ProjectDocument | QuotationDocument);
+    onUploaded?.(inserted);
   }
 
-  const projectDocs = documents as ProjectDocument[];
+  const projectDocs = documents;
 
   return (
     <div className="space-y-4">
