@@ -1310,6 +1310,7 @@ export type Database = {
           inspection_id: string | null; project_id: string | null;
           document_type: Database['public']['Enums']['qc_document_type_enum'];
           file_name: string; storage_path: string | null;
+          file_size: number | null; mime_type: string | null;
           uploaded_by: string; uploaded_at: string;
           status: string; version: string; remarks: string | null;
         };
@@ -1318,6 +1319,7 @@ export type Database = {
           inspection_id?: string | null; project_id?: string | null;
           document_type: Database['public']['Enums']['qc_document_type_enum'];
           file_name: string; storage_path?: string | null;
+          file_size?: number | null; mime_type?: string | null;
           uploaded_by: string; uploaded_at?: string;
           status?: string; version?: string; remarks?: string | null;
         };
@@ -1621,6 +1623,57 @@ export type Database = {
         Row: { id: string; project_id: string; department: string; is_required: boolean; routed_at: string; routed_by: string | null; source: string; metadata: Record<string, unknown>; created_at: string; updated_at: string };
         Insert: { project_id: string; department: string; is_required?: boolean; routed_at?: string; routed_by?: string | null; source?: string; metadata?: Record<string, unknown>; created_at?: string; updated_at?: string };
         Update: { project_id?: string; department?: string; is_required?: boolean; routed_at?: string; routed_by?: string | null; source?: string; metadata?: Record<string, unknown>; updated_at?: string };
+        Relationships: [];
+      };
+      // Phase 1A: Storage-backed document tables (migrations 096–098)
+      purchase_order_documents: {
+        Row: {
+          id: string; purchase_order_id: string; document_type: string;
+          file_name: string; storage_path: string | null;
+          file_size: number | null; mime_type: string | null;
+          uploaded_by: string | null; uploaded_at: string;
+          status: string; version: string; remarks: string | null;
+        };
+        Insert: {
+          purchase_order_id: string; document_type?: string; file_name: string;
+          storage_path?: string | null; file_size?: number | null; mime_type?: string | null;
+          uploaded_by?: string | null; status?: string; version?: string; remarks?: string | null;
+        };
+        Update: { document_type?: string; storage_path?: string | null; status?: string; remarks?: string | null };
+        Relationships: [];
+      };
+      afs_arrival_documents: {
+        Row: {
+          id: string; arrival_report_id: string; project_id: string | null;
+          document_type: string; file_name: string; storage_path: string | null;
+          file_size: number | null; mime_type: string | null;
+          uploaded_by: string | null; uploaded_at: string;
+          status: string; version: string; remarks: string | null;
+        };
+        Insert: {
+          arrival_report_id: string; project_id?: string | null; document_type?: string;
+          file_name: string; storage_path?: string | null;
+          file_size?: number | null; mime_type?: string | null;
+          uploaded_by?: string | null; status?: string; version?: string; remarks?: string | null;
+        };
+        Update: { document_type?: string; storage_path?: string | null; status?: string; remarks?: string | null };
+        Relationships: [];
+      };
+      afs_missing_item_attachments: {
+        Row: {
+          id: string; missing_item_id: string; arrival_report_id: string | null;
+          project_id: string | null; document_type: string; file_name: string;
+          storage_path: string | null; file_size: number | null; mime_type: string | null;
+          uploaded_by: string | null; uploaded_at: string;
+          status: string; version: string; remarks: string | null;
+        };
+        Insert: {
+          missing_item_id: string; arrival_report_id?: string | null; project_id?: string | null;
+          document_type?: string; file_name: string; storage_path?: string | null;
+          file_size?: number | null; mime_type?: string | null;
+          uploaded_by?: string | null; status?: string; version?: string; remarks?: string | null;
+        };
+        Update: { document_type?: string; storage_path?: string | null; status?: string; remarks?: string | null };
         Relationships: [];
       };
     };

@@ -16,6 +16,8 @@ import {
 } from '../data/mockQc';
 import type { ReleaseNote, UserRole } from '../types';
 import { recordQcEvent, recordQcAudit } from '../lib/qcAudit';
+import { DocumentPanel } from '../components/documents/DocumentPanel';
+import type { ProjectDocument } from '../types';
 
 const CAN_ISSUE: UserRole[] = ['admin', 'operations_manager', 'qc_user'];
 
@@ -86,6 +88,7 @@ export function ProjectQcReleaseNoteDetail() {
   const [saving, setSaving] = useState(false);
   const [remarks, setRemarks] = useState('');
   const [devMessage, setDevMessage] = useState('');
+  const [releaseDocs, setReleaseDocs] = useState<ProjectDocument[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -111,8 +114,17 @@ export function ProjectQcReleaseNoteDetail() {
         const rn = data as unknown as ReleaseNote;
         setReleaseNote(rn);
         setRemarks(rn.remarks ?? '');
-        const liveBlockers = await fetchLiveBlockers(rn.project_id);
+        const [liveBlockers, { data: docData }] = await Promise.all([
+          fetchLiveBlockers(rn.project_id),
+          supabase
+            .from('qc_inspection_documents')
+            .select('*')
+            .eq('inspection_id', id!)
+            .eq('inspection_type', 'release_note')
+            .order('uploaded_at', { ascending: false }),
+        ]);
         setBlockers(liveBlockers);
+        setReleaseDocs((docData as unknown as ProjectDocument[]) ?? []);
       }
       setLoading(false);
     })();
@@ -250,15 +262,38 @@ export function ProjectQcReleaseNoteDetail() {
               <textarea value={remarks} onChange={e => setRemarks(e.target.value)} rows={2}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
             </div>
-            <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500">
-              Upload Release Note document — requires Supabase storage configuration.
-            </div>
             <Button variant="primary" size="sm" disabled={saving} onClick={handleIssue}>
               <FileCheck size={14} className="mr-1" /> Issue Release Note
             </Button>
           </div>
         </Card>
       )}
+
+      {/* Documents — always visible so files remain accessible after issuing */}
+      <Card className="p-5">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">Release Documents</h3>
+        <DocumentPanel
+          documents={releaseDocs}
+          bucket="qc-documents"
+          canUpload={canIssue && isSupabaseConfigured}
+          upload={canIssue && releaseNote ? {
+            bucket: 'qc-documents',
+            table: 'qc_inspection_documents',
+            foreignKey: { field: 'inspection_id', value: releaseNote.id },
+            uploadedBy: profile?.id ?? null,
+            documentTypeOptions: [
+              { value: 'release_note', label: 'Release Note' },
+              { value: 'other',        label: 'Other' },
+            ],
+            extraFields: {
+              inspection_type: 'release_note',
+              project_id: releaseNote.project_id,
+            },
+          } : undefined}
+          onUploaded={(doc) => setReleaseDocs((prev) => [doc as ProjectDocument, ...prev])}
+          emptyMessage="No release documents attached."
+        />
+      </Card>
 
       {releaseNote.remarks && (
         <Card className="p-5">

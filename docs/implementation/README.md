@@ -96,7 +96,12 @@ This directory contains step-by-step implementation and audit records for the FT
 
 ### System Stabilization
 
-- **step-18-8-final-system-stabilization-go-live-readiness.md — Go-Live Readiness Audit** ← current
+- step-18-8-final-system-stabilization-go-live-readiness.md — Go-Live Readiness Audit
+
+### Post Go-Live: Storage Uploads
+
+- **phase-1a-storage-uploads-document-evidence.md — Storage-Backed Document Uploads**
+- **phase-1a-1-storage-post-merge-verification.md — Phase 1A Post-Merge Verification and Stabilization** ← current
 
 ---
 
@@ -104,8 +109,15 @@ This directory contains step-by-step implementation and audit records for the FT
 
 See `step-18-8-final-system-stabilization-go-live-readiness.md` § Deferred Items Consolidated Backlog for the full list of 33 deferred items (DFR-01 through DFR-33). None are go-live blockers.
 
+Phase 1A adds: AFS missing item evidence UI (table created, detail page not yet available).
+
 ---
 
 ## Schema / Migration Reference
 
-All SQL migrations are in `migrations/` (95 files, `001_profiles.sql` through `095_vehicle_photo_storage_path_hardening.sql`). No schema changes were made in Steps 18.7A–18.7K or 18.8.
+All SQL migrations are in `migrations/` (98 files, `001_profiles.sql` through `098_qc_documents_file_columns.sql`).
+
+Phase 1A migrations (096–098):
+- `096_procurement_documents.sql` — `procurement-documents` bucket + `purchase_order_documents` table
+- `097_afs_document_tables.sql` — `afs_arrival_documents` + `afs_missing_item_attachments` tables
+- `098_qc_documents_file_columns.sql` — `file_size`/`mime_type` columns for `qc_inspection_documents`

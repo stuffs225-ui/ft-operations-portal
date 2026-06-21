@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ShoppingCart, Package, Clock, Shield, ArrowLeft,
-  Loader2, Edit2, Check, X, AlertTriangle,
+  Loader2, Edit2, Check, X, AlertTriangle, FileText,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
@@ -11,6 +11,8 @@ import { Card } from '../components/ui/Card';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { recordProcurementEvent, recordEtaChange } from '../lib/procurementAudit';
+import { DocumentPanel } from '../components/documents/DocumentPanel';
+import type { ProjectDocument } from '../types';
 import {
   MOCK_PURCHASE_ORDERS, MOCK_PO_ITEMS, MOCK_ETA_HISTORY,
   getMockPOItems, getMockEtaHistory,
@@ -21,13 +23,14 @@ import type { PurchaseOrder, PurchaseOrderItem, EtaChangeHistory, UserRole } fro
 void MOCK_PO_ITEMS;
 void MOCK_ETA_HISTORY;
 
-type TabKey = 'overview' | 'items' | 'eta' | 'approval' | 'timeline';
+type TabKey = 'overview' | 'items' | 'eta' | 'approval' | 'documents' | 'timeline';
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'overview',  label: 'Overview',        icon: <ShoppingCart size={15} /> },
   { key: 'items',     label: 'Items',           icon: <Package size={15} /> },
   { key: 'eta',       label: 'ETA Management',  icon: <Clock size={15} /> },
   { key: 'approval',  label: 'Approval',        icon: <Shield size={15} /> },
+  { key: 'documents', label: 'Documents',       icon: <FileText size={15} /> },
   { key: 'timeline',  label: 'Timeline',        icon: <Clock size={15} /> },
 ];
 
@@ -120,6 +123,9 @@ export function ProcurementPODetail() {
   const [approvalSaving, setApprovalSaving] = useState(false);
   const [approvalMsg, setApprovalMsg] = useState<string | null>(null);
 
+  // Documents
+  const [poDocuments, setPoDocuments] = useState<ProjectDocument[]>([]);
+
   const canSeeCost = ['admin', 'operations_manager', 'procurement_user'].includes(role ?? '');
   const canUpdateStatus = role ? CAN_UPDATE_STATUS.includes(role as UserRole) : false;
   const canApprove = role ? CAN_APPROVE.includes(role as UserRole) : false;
@@ -152,7 +158,7 @@ export function ProcurementPODetail() {
       setNewStatus(poData.po_status);
       setNewEta(poData.eta_date ?? '');
 
-      const [{ data: itemData }, { data: etaData }] = await Promise.all([
+      const [{ data: itemData }, { data: etaData }, { data: docData }] = await Promise.all([
         sb.from('purchase_order_items').select('*').eq('purchase_order_id', id),
         sb
           .from('eta_change_history')
@@ -160,9 +166,15 @@ export function ProcurementPODetail() {
           .eq('entity_id', id)
           .eq('entity_type', 'po_to_supplier')
           .order('changed_at', { ascending: false }),
+        sb
+          .from('purchase_order_documents')
+          .select('*')
+          .eq('purchase_order_id', id)
+          .order('uploaded_at', { ascending: false }),
       ]);
       setItems((itemData as unknown as PurchaseOrderItem[]) ?? []);
       setEtaHistory((etaData as unknown as EtaChangeHistory[]) ?? []);
+      setPoDocuments((docData as unknown as ProjectDocument[]) ?? []);
       setLoading(false);
     })();
   }, [id]);
@@ -798,6 +810,38 @@ export function ProcurementPODetail() {
               Approval actions are restricted to Admin and Operations Manager roles.
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Documents ── */}
+      {activeTab === 'documents' && (
+        <div className="space-y-3">
+          {!isSupabaseConfigured && (
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-800">File upload and download require Supabase Storage to be configured.</p>
+            </div>
+          )}
+          <DocumentPanel
+            documents={poDocuments}
+            bucket="procurement-documents"
+            canUpload={canUpdateStatus}
+            upload={po && canUpdateStatus ? {
+              bucket: 'procurement-documents',
+              table: 'purchase_order_documents',
+              foreignKey: { field: 'purchase_order_id', value: po.id },
+              uploadedBy: profile?.id ?? null,
+              documentTypeOptions: [
+                { value: 'po_pdf',        label: 'PO PDF' },
+                { value: 'supplier_quote', label: 'Supplier Quote' },
+                { value: 'delivery_note',  label: 'Delivery Note' },
+                { value: 'invoice',        label: 'Invoice' },
+                { value: 'other',          label: 'Other' },
+              ],
+            } : undefined}
+            onUploaded={(doc) => setPoDocuments((prev) => [doc as ProjectDocument, ...prev])}
+            emptyMessage="No documents attached to this PO."
+          />
         </div>
       )}
 

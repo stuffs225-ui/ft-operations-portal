@@ -10,7 +10,8 @@ import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_AFS_ARRIVAL_REPORTS, MOCK_AFS_MISSING_ITEMS } from '../data/mockAfs';
 import { recordAfsAudit } from '../lib/afsAudit';
-import type { AfsArrivalReport, AfsMissingItem, UserRole } from '../types';
+import { DocumentPanel } from '../components/documents/DocumentPanel';
+import type { AfsArrivalReport, AfsMissingItem, UserRole, ProjectDocument } from '../types';
 
 const CAN_MANAGE: UserRole[] = ['admin', 'operations_manager', 'afs_user'];
 
@@ -30,7 +31,7 @@ function severityVariant(s: string): 'neutral' | 'warning' | 'critical' | 'info'
 
 export function DubaiAfsArrivalReportDetail() {
   const { id } = useParams<{ id: string }>();
-  const { role } = useAuth();
+  const { role, profile } = useAuth();
   const canManage = role ? CAN_MANAGE.includes(role) : false;
 
   const [report, setReport] = useState<AfsArrivalReport | undefined>(undefined);
@@ -38,6 +39,7 @@ export function DubaiAfsArrivalReportDetail() {
   const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [devMessage, setDevMessage] = useState('');
+  const [arrivalDocs, setArrivalDocs] = useState<ProjectDocument[]>([]);
 
   const [showForm, setShowForm] = useState(false);
   const [newItemName, setNewItemName] = useState('');
@@ -53,7 +55,7 @@ export function DubaiAfsArrivalReportDetail() {
         setLoading(false);
         return;
       }
-      const [repRes, miRes] = await Promise.all([
+      const [repRes, miRes, docRes] = await Promise.all([
         supabase
           .from('afs_arrival_reports')
           .select('*, project:projects(project_code, customer_name), vehicle_line:project_vehicle_lines(vehicle_type, description)')
@@ -64,9 +66,15 @@ export function DubaiAfsArrivalReportDetail() {
           .select('*')
           .eq('arrival_report_id', id!)
           .order('created_at', { ascending: false }),
+        supabase
+          .from('afs_arrival_documents')
+          .select('*')
+          .eq('arrival_report_id', id!)
+          .order('uploaded_at', { ascending: false }),
       ]);
       setReport((repRes.data as unknown as AfsArrivalReport) ?? undefined);
       setMissingItems((miRes.data as unknown as AfsMissingItem[]) ?? []);
+      setArrivalDocs((docRes.data as unknown as ProjectDocument[]) ?? []);
       setLoading(false);
     })();
   }, [id]);
@@ -183,6 +191,30 @@ export function DubaiAfsArrivalReportDetail() {
           {report.remarks && <p className="text-xs text-gray-500 mt-3">{report.remarks}</p>}
         </Card>
       </div>
+
+      {/* Arrival photos and documents */}
+      <Card className="p-5">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">Arrival Photos / Documents</h3>
+        <DocumentPanel
+          documents={arrivalDocs}
+          bucket="afs-attachments"
+          canUpload={canManage && isSupabaseConfigured}
+          upload={canManage && report ? {
+            bucket: 'afs-attachments',
+            table: 'afs_arrival_documents',
+            foreignKey: { field: 'arrival_report_id', value: id! },
+            uploadedBy: profile?.id ?? null,
+            documentTypeOptions: [
+              { value: 'arrival_photo',   label: 'Arrival Photo' },
+              { value: 'condition_report', label: 'Condition Report' },
+              { value: 'other',           label: 'Other' },
+            ],
+            extraFields: { project_id: report.project_id },
+          } : undefined}
+          onUploaded={(doc) => setArrivalDocs((prev) => [doc as ProjectDocument, ...prev])}
+          emptyMessage="No arrival photos or documents attached."
+        />
+      </Card>
 
       <Card>
         <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
