@@ -12,7 +12,7 @@ import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { exportRowsToCsv } from '../lib/reportExport';
 import type { ReportColumn } from '../lib/reportExport';
-import type { HotProject, HotProjectStage } from '../types';
+import type { HotProject, HotProjectStage, UserRole } from '../types';
 
 function formatSAR(v: number | null) {
   if (v == null) return '—';
@@ -62,6 +62,8 @@ function hasNoNextAction(r: HotProject): boolean {
   return OPEN_STAGES.includes(r.stage) && !r.linked_quotation_id && !r.notes;
 }
 
+const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'sales_user'];
+
 type TabKey = 'all' | 'mine' | 'closing' | 'no_action' | 'closed';
 
 const TABS: { key: TabKey; label: string }[] = [
@@ -75,26 +77,29 @@ const TABS: { key: TabKey; label: string }[] = [
 export function HotProjects() {
   const { role, profile } = useAuth();
   const [records, setRecords] = useState<HotProject[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState<TabKey>('all');
   const [stageFilter, setStageFilter] = useState<HotProjectStage | 'all'>('all');
 
   const isBroadView = role === 'admin' || role === 'operations_manager';
+  const canCreate = role ? CAN_CREATE.includes(role) : false;
   const reportDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
-    setLoading(true);
+    let cancelled = false;
     const uid = profile?.id;
     const query = supabase!.from('hot_projects').select('*').order('created_at', { ascending: false });
     const scoped = (!isBroadView && uid) ? query.eq('sales_owner_id', uid) : query;
     scoped.then(({ data, error: err }) => {
+      if (cancelled) return;
       if (err) setError(err.message);
       else setRecords((data ?? []) as HotProject[]);
       setLoading(false);
     });
+    return () => { cancelled = true; };
   }, [isBroadView, profile?.id]);
 
   function handleExportCsv() {
@@ -153,9 +158,11 @@ export function HotProjects() {
         title="Hot Projects"
         subtitle="Opportunity pipeline — active leads, negotiations, and commercial wins"
         actions={
-          <Link to="/hot-projects/new">
-            <Button icon={<Plus size={15} />} size="sm">New Opportunity</Button>
-          </Link>
+          canCreate ? (
+            <Link to="/hot-projects/new">
+              <Button icon={<Plus size={15} />} size="sm">New Opportunity</Button>
+            </Link>
+          ) : undefined
         }
       />
 
@@ -267,9 +274,11 @@ export function HotProjects() {
             title="No opportunities found"
             description={search || stageFilter !== 'all' ? 'Try adjusting your filters.' : 'Create your first hot project to track the pipeline.'}
             action={
-              <Link to="/hot-projects/new">
-                <Button icon={<Plus size={14} />} size="sm">New Opportunity</Button>
-              </Link>
+              canCreate ? (
+                <Link to="/hot-projects/new">
+                  <Button icon={<Plus size={14} />} size="sm">New Opportunity</Button>
+                </Link>
+              ) : undefined
             }
           />
         ) : (
