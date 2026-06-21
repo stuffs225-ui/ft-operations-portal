@@ -21,6 +21,7 @@ VALUES (
   ]
 ) ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "procurement_docs_objects_select" ON storage.objects;
 CREATE POLICY "procurement_docs_objects_select"
   ON storage.objects FOR SELECT TO authenticated
   USING (
@@ -28,6 +29,7 @@ CREATE POLICY "procurement_docs_objects_select"
     AND public.current_user_role() IN ('admin', 'operations_manager', 'procurement_user')
   );
 
+DROP POLICY IF EXISTS "procurement_docs_objects_insert" ON storage.objects;
 CREATE POLICY "procurement_docs_objects_insert"
   ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (

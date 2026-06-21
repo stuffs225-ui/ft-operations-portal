@@ -100,7 +100,8 @@ This directory contains step-by-step implementation and audit records for the FT
 
 ### Post Go-Live: Storage Uploads
 
-- **phase-1a-storage-uploads-document-evidence.md — Storage-Backed Document Uploads** ← current
+- **phase-1a-storage-uploads-document-evidence.md — Storage-Backed Document Uploads**
+- **phase-1a-1-storage-post-merge-verification.md — Phase 1A Post-Merge Verification and Stabilization** ← current
 
 ---
 
