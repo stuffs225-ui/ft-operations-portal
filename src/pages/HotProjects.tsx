@@ -12,7 +12,7 @@ import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { exportRowsToCsv } from '../lib/reportExport';
 import type { ReportColumn } from '../lib/reportExport';
-import type { HotProject, HotProjectStage } from '../types';
+import type { HotProject, HotProjectStage, UserRole } from '../types';
 
 function formatSAR(v: number | null) {
   if (v == null) return '—';
@@ -62,6 +62,8 @@ function hasNoNextAction(r: HotProject): boolean {
   return OPEN_STAGES.includes(r.stage) && !r.linked_quotation_id && !r.notes;
 }
 
+const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'sales_user'];
+
 type TabKey = 'all' | 'mine' | 'closing' | 'no_action' | 'closed';
 
 const TABS: { key: TabKey; label: string }[] = [
@@ -82,6 +84,7 @@ export function HotProjects() {
   const [stageFilter, setStageFilter] = useState<HotProjectStage | 'all'>('all');
 
   const isBroadView = role === 'admin' || role === 'operations_manager';
+  const canCreate = role ? CAN_CREATE.includes(role) : false;
   const reportDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
 
   useEffect(() => {
@@ -153,9 +156,11 @@ export function HotProjects() {
         title="Hot Projects"
         subtitle="Opportunity pipeline — active leads, negotiations, and commercial wins"
         actions={
-          <Link to="/hot-projects/new">
-            <Button icon={<Plus size={15} />} size="sm">New Opportunity</Button>
-          </Link>
+          canCreate ? (
+            <Link to="/hot-projects/new">
+              <Button icon={<Plus size={15} />} size="sm">New Opportunity</Button>
+            </Link>
+          ) : undefined
         }
       />
 
@@ -267,9 +272,11 @@ export function HotProjects() {
             title="No opportunities found"
             description={search || stageFilter !== 'all' ? 'Try adjusting your filters.' : 'Create your first hot project to track the pipeline.'}
             action={
-              <Link to="/hot-projects/new">
-                <Button icon={<Plus size={14} />} size="sm">New Opportunity</Button>
-              </Link>
+              canCreate ? (
+                <Link to="/hot-projects/new">
+                  <Button icon={<Plus size={14} />} size="sm">New Opportunity</Button>
+                </Link>
+              ) : undefined
             }
           />
         ) : (
