@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Search, AlertTriangle, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
-import { PageLoader } from '../components/ui/PageLoader';
+import { Skeleton } from '../components/ui/skeleton';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -133,7 +133,7 @@ export function ProcurementPurchaseOrders() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search PO number, supplier, project code…"
-          className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+          className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
       </div>
 
@@ -161,7 +161,33 @@ export function ProcurementPurchaseOrders() {
       )}
 
       {loading ? (
-        <PageLoader />
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  {['PO Number', 'Project', 'Supplier', 'Value', 'Status', 'Approval', 'ETA', 'Actions'].map((h) => (
+                    <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i}>
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-28" /></td>
+                    <td className="px-4 py-3 space-y-1"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-20" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-28" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-20" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-5 w-28 rounded-md" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-5 w-24 rounded-md" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-20" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-10" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<ShoppingCart size={28} />}
@@ -174,15 +200,15 @@ export function ProcurementPurchaseOrders() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">PO Number</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Project</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Supplier</th>
-                  {canSeeCost && <th className="text-right px-4 py-3 font-semibold text-gray-700">Value</th>}
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Currency</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Status</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Approval</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">ETA</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Actions</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">PO Number</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Project</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Supplier</th>
+                  {canSeeCost && <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Value</th>}
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Currency</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Status</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Approval</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">ETA</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -204,7 +230,7 @@ export function ProcurementPurchaseOrders() {
                     </td>
                     <td className="px-4 py-3 text-gray-700">{po.supplier_name}</td>
                     {canSeeCost && (
-                      <td className="px-4 py-3 text-right font-medium">
+                      <td className="px-4 py-3 text-right font-medium tabular-nums">
                         {po.purchase_value.toLocaleString()}
                       </td>
                     )}

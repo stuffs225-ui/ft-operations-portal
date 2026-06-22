@@ -181,7 +181,7 @@ export function ProcurementPurchaseOrderNew() {
                 value={poNumber}
                 onChange={(e) => setPoNumber(e.target.value)}
                 required
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
 
@@ -194,7 +194,7 @@ export function ProcurementPurchaseOrderNew() {
                 value={poDate}
                 onChange={(e) => setPoDate(e.target.value)}
                 required
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
           </div>
@@ -208,7 +208,7 @@ export function ProcurementPurchaseOrderNew() {
                 value={supplierName}
                 onChange={(e) => setSupplierName(e.target.value)}
                 required
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               >
                 <option value="">Select approved supplier…</option>
                 {suppliers.map((s) => (
@@ -224,7 +224,7 @@ export function ProcurementPurchaseOrderNew() {
                 onChange={(e) => setSupplierName(e.target.value)}
                 required
                 placeholder="Supplier name…"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             )}
             {isSupabaseConfigured && suppliers.length > 0 && (
@@ -245,8 +245,8 @@ export function ProcurementPurchaseOrderNew() {
                 onChange={(e) => setPurchaseValue(e.target.value)}
                 required
                 placeholder="0.00"
-                className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 ${
-                  requiresApproval ? 'border-orange-400 bg-orange-50' : 'border-gray-300'
+                className={`w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                  requiresApproval ? 'border-orange-400 bg-orange-50' : 'border-gray-200'
                 }`}
               />
               {requiresApproval && (
@@ -259,7 +259,7 @@ export function ProcurementPurchaseOrderNew() {
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               >
                 {CURRENCY_OPTIONS.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -276,7 +276,7 @@ export function ProcurementPurchaseOrderNew() {
               type="date"
               value={etaDate}
               onChange={(e) => setEtaDate(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
             <p className="text-xs text-gray-400 mt-1">Expected date of delivery. Can be updated later with a reason.</p>
           </div>
@@ -289,7 +289,7 @@ export function ProcurementPurchaseOrderNew() {
               <select
                 value={procurementRequestId}
                 onChange={(e) => setProcurementRequestId(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               >
                 <option value="">Not linked to a PR (or link later)…</option>
                 {prs.map((pr) => (
@@ -313,7 +313,7 @@ export function ProcurementPurchaseOrderNew() {
               <select
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               >
                 <option value="">Select project (optional)…</option>
                 {projects.map((p) => (
@@ -339,7 +339,7 @@ export function ProcurementPurchaseOrderNew() {
               onChange={(e) => setRemarks(e.target.value)}
               rows={3}
               placeholder="Scope, special terms, delivery instructions…"
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
             />
           </div>
 

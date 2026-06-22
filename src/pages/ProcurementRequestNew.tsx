@@ -138,7 +138,7 @@ export function ProcurementRequestNew() {
                 onChange={(e) => setPrNumber(e.target.value)}
                 required
                 placeholder="PR-YYMM-NNN"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
               <p className="text-xs text-gray-400 mt-1">Auto-generated — edit if needed</p>
             </div>
@@ -151,7 +151,7 @@ export function ProcurementRequestNew() {
                 type="date"
                 value={receivedDate}
                 onChange={(e) => setReceivedDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
           </div>
@@ -163,7 +163,7 @@ export function ProcurementRequestNew() {
             <select
               value={sourceDepartment}
               onChange={(e) => setSourceDepartment(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
             >
               <option value="">Select source…</option>
               {SOURCE_DEPT_OPTIONS.map((d) => (
@@ -181,7 +181,7 @@ export function ProcurementRequestNew() {
               <select
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               >
                 <option value="">Select project (optional)…</option>
                 {projects.map((p) => (
@@ -215,7 +215,7 @@ export function ProcurementRequestNew() {
               onChange={(e) => setRemarks(e.target.value)}
               rows={3}
               placeholder="Scope of PR, urgency, special notes…"
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
             />
           </div>
 
