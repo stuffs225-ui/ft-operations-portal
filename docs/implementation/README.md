@@ -117,10 +117,11 @@ This directory contains step-by-step implementation and audit records for the FT
 
 ### Projects / Sales Orders (19.4A)
 
-- **step-19-4a-projects-so-ux-improvement.md — Projects / Sales Orders UX Improvement** ← current
+- **step-19-4a-projects-so-ux-improvement.md — Projects / Sales Orders UX Improvement**
+- **step-19-4b-project-creation-wizard-ux.md — SO / Project Creation Wizard UX Upgrade** ← current
 
 Planned future steps (not yet started):
-- step-19-4b — Procurement and Store UX Improvement
+- step-19-4c — Procurement and Store UX Improvement
 - step-19-5 — Procurement and Store UX Improvement
 - step-19-6 — Factory and QC UX Improvement
 - step-19-7 — AFS and After Sales UX Improvement
