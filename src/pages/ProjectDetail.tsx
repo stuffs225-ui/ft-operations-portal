@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
-  FolderOpen, Loader2, ArrowLeft, Calendar, User, MapPin,
+  FolderOpen, ArrowLeft, Calendar, User, MapPin,
   AlertCircle, Info, FileText, List, Clock,
   Check, RotateCcw, X, GitBranch,
   CheckCircle2, Plus, ShoppingCart, Wrench, Truck, FileCheck, ReceiptText,
 } from 'lucide-react';
+import { Skeleton } from '../components/ui/skeleton';
 import { PageHeader } from '@/components/common/page-header';
 import { SectionHeader } from '@/components/common/section-header';
 import { Badge } from '../components/ui/Badge';
@@ -121,25 +122,25 @@ const DEPT_LABELS: Record<string, string> = {
 
 function RoutingSummaryCard({ projectId, refreshKey }: { projectId: string; refreshKey?: number }) {
   const [routing, setRouting] = useState<string[]>([]);
-  const [loadingRouting, setLoadingRouting] = useState(true);
+  const [loadingRouting, setLoadingRouting] = useState(isSupabaseConfigured);
   const [routingLoadError, setRoutingLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
-      setRouting([]);
-      setLoadingRouting(false);
+      void Promise.resolve().then(() => {
+        setRouting([]);
+        setLoadingRouting(false);
+      });
       return;
     }
-    setLoadingRouting(true);
-    setRoutingLoadError(null);
     supabase
       .from('project_department_routing')
       .select('department')
       .eq('project_id', projectId)
       .order('department')
       .then(({ data, error }) => {
-        if (error) setRoutingLoadError(error.message);
-        else setRouting((data as unknown as Array<{ department: string }>)?.map((r) => r.department) ?? []);
+        setRoutingLoadError(error ? error.message : null);
+        if (!error) setRouting((data as unknown as Array<{ department: string }>)?.map((r) => r.department) ?? []);
         setLoadingRouting(false);
       });
   }, [projectId, refreshKey]);
@@ -148,9 +149,10 @@ function RoutingSummaryCard({ projectId, refreshKey }: { projectId: string; refr
     <Card className="p-5">
       <h3 className="text-sm font-semibold text-gray-900 mb-3">Department Routing</h3>
       {loadingRouting ? (
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Loader2 size={14} className="animate-spin" />
-          Loading routing…
+        <div className="flex flex-wrap gap-2">
+          <Skeleton className="h-7 w-28 rounded-lg" />
+          <Skeleton className="h-7 w-36 rounded-lg" />
+          <Skeleton className="h-7 w-32 rounded-lg" />
         </div>
       ) : routingLoadError ? (
         <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
@@ -745,42 +747,50 @@ export function ProjectDetail() {
   // Safe active tab fallback: if the current tab becomes hidden (e.g. role resolved
   // after initial render), reset to overview which is always visible.
   useEffect(() => {
-    if (!isTabVisible(activeTab)) setActiveTab('overview');
+    if (!isTabVisible(activeTab)) void Promise.resolve().then(() => setActiveTab('overview'));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role]);
 
   useEffect(() => {
-    if (!id) { setNotFound(true); setLoading(false); return; }
-
-    if (!isSupabaseConfigured || !supabase) {
-      const found = MOCK_PROJECTS.find((p) => p.id === id);
-      if (!found) { setNotFound(true); setLoading(false); return; }
-      setProject(found);
-      setLines(MOCK_VEHICLE_LINES[id] ?? []);
-      setDocuments(MOCK_PROJECT_DOCUMENTS[id] ?? []);
-      setTimeline(MOCK_TIMELINE_EVENTS[id] ?? []);
-      fetchProjectReferences(id).then(setReferences);
-      setProcurementPRs(getMockPRsForProject(id));
-      setProcurementPOs(getMockPOsForProject(id));
-      setFactoryRecords(getMockFactoryRecordsForProject(id));
-      setFactoryRmrs(getMockRMRsForProject(id));
-      setStoreReceipts(getMockReceiptsForProject(id));
-      setStoreVehicleReceipts(getMockVehicleReceiptsForProject(id));
-      setStoreCustody(getMockCustodyForProject(id));
-      setQcInspections(getMockMaterialQcForProject(id));
-      setQcNcrs(getMockNcrsForProject(id));
-      setProjectQcInspections(getMockProjectQcForProject(id));
-      setQcFindings(getMockFindingsForProject(id));
-      setReleaseNotes(getMockReleaseNotesForProject(id));
-      setDubaiFollowups(getMockDubaiFollowupsForProject(id));
-      setAfsArrivalReports(getMockArrivalReportsForProject(id));
-      setAfsPredeliveryReports(getMockPredeliveryReportsForProject(id));
-      setAfsMaintenanceRequests(getMockMaintenanceRequestsForProject(id));
-      setLoading(false);
+    if (!id) {
+      void Promise.resolve().then(() => { setNotFound(true); setLoading(false); });
       return;
     }
 
-    setLoading(true);
+    if (!isSupabaseConfigured || !supabase) {
+      const found = MOCK_PROJECTS.find((p) => p.id === id);
+      if (!found) {
+        void Promise.resolve().then(() => { setNotFound(true); setLoading(false); });
+        return;
+      }
+      void Promise.resolve().then(() => {
+        setProject(found);
+        setLines(MOCK_VEHICLE_LINES[id] ?? []);
+        setDocuments(MOCK_PROJECT_DOCUMENTS[id] ?? []);
+        setTimeline(MOCK_TIMELINE_EVENTS[id] ?? []);
+        fetchProjectReferences(id).then(setReferences);
+        setProcurementPRs(getMockPRsForProject(id));
+        setProcurementPOs(getMockPOsForProject(id));
+        setFactoryRecords(getMockFactoryRecordsForProject(id));
+        setFactoryRmrs(getMockRMRsForProject(id));
+        setStoreReceipts(getMockReceiptsForProject(id));
+        setStoreVehicleReceipts(getMockVehicleReceiptsForProject(id));
+        setStoreCustody(getMockCustodyForProject(id));
+        setQcInspections(getMockMaterialQcForProject(id));
+        setQcNcrs(getMockNcrsForProject(id));
+        setProjectQcInspections(getMockProjectQcForProject(id));
+        setQcFindings(getMockFindingsForProject(id));
+        setReleaseNotes(getMockReleaseNotesForProject(id));
+        setDubaiFollowups(getMockDubaiFollowupsForProject(id));
+        setAfsArrivalReports(getMockArrivalReportsForProject(id));
+        setAfsPredeliveryReports(getMockPredeliveryReportsForProject(id));
+        setAfsMaintenanceRequests(getMockMaintenanceRequestsForProject(id));
+        setLoading(false);
+      });
+      return;
+    }
+
+    // loading is already true from useState(true)
     Promise.all([
       supabase.from('projects')
         .select('*, sales_owner:profiles!projects_sales_owner_id_fkey(full_name, email), approved_by_profile:profiles!projects_approved_by_fkey(full_name)')
@@ -830,8 +840,32 @@ export function ProjectDetail() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 size={28} className="text-brand-500 animate-spin" />
+      <div className="space-y-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-52" />
+            <Skeleton className="h-4 w-80" />
+          </div>
+          <Skeleton className="h-7 w-24 rounded-md" />
+        </div>
+        <div className="flex gap-1 border-b border-gray-200 pb-0">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-9 w-24 rounded-t-sm" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-lg border border-gray-200 p-5 space-y-3">
+              <Skeleton className="h-4 w-28" />
+              {Array.from({ length: 4 }).map((_, j) => (
+                <div key={j} className="flex justify-between">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-28" />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -971,7 +1005,7 @@ export function ProjectDetail() {
           {canSeeMoney && (
             <Card className="p-5 md:col-span-2">
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Financial</h3>
-              <div className="text-2xl font-bold text-gray-900">{formatSAR(project.total_sales_value)}</div>
+              <div className="text-2xl font-bold tabular-nums text-gray-900">{formatSAR(project.total_sales_value)}</div>
               <p className="text-sm text-gray-500 mt-1">Total Sales Value</p>
             </Card>
           )}
@@ -1021,19 +1055,19 @@ export function ProjectDetail() {
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="text-center">
-                    <div className={`text-2xl font-bold ${health.score_band === 'healthy' ? 'text-green-700' : health.score_band === 'watch' ? 'text-amber-700' : health.score_band === 'at_risk' ? 'text-orange-700' : 'text-red-700'}`}>{health.score}</div>
+                    <div className={`text-2xl font-bold tabular-nums ${health.score_band === 'healthy' ? 'text-green-700' : health.score_band === 'watch' ? 'text-amber-700' : health.score_band === 'at_risk' ? 'text-orange-700' : 'text-red-700'}`}>{health.score}</div>
                     <div className="text-xs text-gray-500 capitalize">{health.score_band.replace('_', ' ')} health</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-red-600">{health.blockers_count}</div>
+                    <div className="text-2xl font-bold tabular-nums text-red-600">{health.blockers_count}</div>
                     <div className="text-xs text-gray-500">Blockers</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-amber-600">{slaBreaches.length}</div>
+                    <div className="text-2xl font-bold tabular-nums text-amber-600">{slaBreaches.length}</div>
                     <div className="text-xs text-gray-500">SLA Breaches</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">{issues.length}</div>
+                    <div className="text-2xl font-bold tabular-nums text-orange-600">{issues.length}</div>
                     <div className="text-xs text-gray-500">Open Issues</div>
                   </div>
                 </div>
@@ -1157,21 +1191,21 @@ export function ProjectDetail() {
             {lines.length === 0 ? (
               <Card className="p-8 text-center text-gray-500 text-sm">No vehicle lines registered.</Card>
             ) : (
-              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+              <div className="bg-white border border-gray-200/80 rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="text-left px-4 py-3 font-semibold text-gray-700">#</th>
-                      <th className="text-left px-4 py-3 font-semibold text-gray-700">Type</th>
-                      <th className="text-left px-4 py-3 font-semibold text-gray-700">Description</th>
-                      <th className="text-right px-4 py-3 font-semibold text-gray-700">Qty</th>
+                      <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">#</th>
+                      <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Type</th>
+                      <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Description</th>
+                      <th className="text-right px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Qty</th>
                       {canSeeMoney && (
                         <>
-                          <th className="text-right px-4 py-3 font-semibold text-gray-700">Unit (SAR)</th>
-                          <th className="text-right px-4 py-3 font-semibold text-gray-700">Total (SAR)</th>
+                          <th className="text-right px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Unit (SAR)</th>
+                          <th className="text-right px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Total (SAR)</th>
                         </>
                       )}
-                      <th className="text-left px-4 py-3 font-semibold text-gray-700">Status</th>
+                      <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -1180,11 +1214,11 @@ export function ProjectDetail() {
                         <td className="px-4 py-3 text-gray-500">{line.line_number}</td>
                         <td className="px-4 py-3 font-medium">{line.vehicle_type}</td>
                         <td className="px-4 py-3 text-gray-700">{line.description}</td>
-                        <td className="px-4 py-3 text-right">{line.quantity}</td>
+                        <td className="px-4 py-3 text-right tabular-nums">{line.quantity}</td>
                         {canSeeMoney && (
                           <>
-                            <td className="px-4 py-3 text-right">{line.unit_sales_value.toLocaleString()}</td>
-                            <td className="px-4 py-3 text-right font-semibold">{line.line_total_value.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-right tabular-nums">{line.unit_sales_value.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-right font-semibold tabular-nums">{line.line_total_value.toLocaleString()}</td>
                           </>
                         )}
                         <td className="px-4 py-3">
@@ -1267,11 +1301,11 @@ export function ProjectDetail() {
                       <table className="w-full text-sm">
                         <thead className="bg-gray-50 border-b border-gray-200">
                           <tr>
-                            <th className="text-left px-4 py-3 font-semibold text-gray-700">PR Number</th>
-                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Status</th>
-                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Received Date</th>
-                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Source Dept</th>
-                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Actions</th>
+                            <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">PR Number</th>
+                            <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Status</th>
+                            <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Received Date</th>
+                            <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Source Dept</th>
+                            <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -1322,13 +1356,13 @@ export function ProjectDetail() {
                       <table className="w-full text-sm">
                         <thead className="bg-gray-50 border-b border-gray-200">
                           <tr>
-                            <th className="text-left px-4 py-3 font-semibold text-gray-700">PO Number</th>
-                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Supplier</th>
-                            <th className="text-left px-4 py-3 font-semibold text-gray-700">PO Date</th>
-                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Status</th>
-                            {canSeeCost && <th className="text-right px-4 py-3 font-semibold text-gray-700">Value</th>}
-                            <th className="text-left px-4 py-3 font-semibold text-gray-700">ETA</th>
-                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Actions</th>
+                            <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">PO Number</th>
+                            <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Supplier</th>
+                            <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">PO Date</th>
+                            <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Status</th>
+                            {canSeeCost && <th className="text-right px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Value</th>}
+                            <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">ETA</th>
+                            <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -1481,8 +1515,8 @@ export function ProjectDetail() {
                   { label: 'Vehicle Receipts', value: storeVehicleReceipts.length, color: 'border-l-indigo-400' },
                   { label: 'Custody Records', value: storeCustody.length, color: 'border-l-amber-400' },
                 ].map(k => (
-                  <div key={k.label} className={`bg-white rounded-xl border border-gray-200 border-l-4 shadow-sm p-4 ${k.color}`}>
-                    <div className="text-2xl font-bold text-gray-900">{k.value}</div>
+                  <div key={k.label} className={`bg-white rounded-lg border border-gray-200/80 border-l-4 shadow-sm p-4 ${k.color}`}>
+                    <div className="text-2xl font-bold tabular-nums text-gray-900">{k.value}</div>
                     <div className="text-sm text-gray-600 mt-0.5">{k.label}</div>
                   </div>
                 ))}
@@ -1639,7 +1673,7 @@ export function ProjectDetail() {
             <SectionHeader title="Dubai / AFS" accent="bg-amber-500" />
             <div className="space-y-5">
               {project.manufacturing_location !== 'dubai' && (
-                <div className="bg-sky-50 border border-sky-200 rounded-xl px-5 py-4 text-sm text-sky-800">
+                <div className="bg-sky-50 border border-sky-200 rounded-lg px-5 py-4 text-sm text-sky-800">
                   <strong>Dubai follow-up does not apply to this project</strong> — it is routed through the Saudi factory workflow.
                   After-sales maintenance requests are shown below if any exist.
                 </div>
@@ -1654,7 +1688,7 @@ export function ProjectDetail() {
                   { label: 'Maintenance Requests', value: afsMaintenanceRequests.length, color: 'border-l-purple-400' },
                 ].map(k => (
                   <Card key={k.label} className={`p-4 border-l-4 ${k.color}`}>
-                    <div className="text-xl font-bold text-gray-900">{k.value}</div>
+                    <div className="text-xl font-bold tabular-nums text-gray-900">{k.value}</div>
                     <div className="text-xs text-gray-500 mt-0.5">{k.label}</div>
                   </Card>
                 ))}
@@ -1784,8 +1818,8 @@ export function ProjectDetail() {
               { label: 'Open Findings', value: qcFindings.filter(f => f.finding_status !== 'closed' && f.finding_status !== 'cancelled').length, color: 'border-l-orange-400' },
               { label: 'Release Notes', value: releaseNotes.length, color: 'border-l-green-400' },
             ].map(k => (
-              <div key={k.label} className={`bg-white rounded-xl border border-gray-200 border-l-4 shadow-sm p-4 ${k.color}`}>
-                <div className="text-2xl font-bold text-gray-900">{k.value}</div>
+              <div key={k.label} className={`bg-white rounded-lg border border-gray-200/80 border-l-4 shadow-sm p-4 ${k.color}`}>
+                <div className="text-2xl font-bold tabular-nums text-gray-900">{k.value}</div>
                 <div className="text-xs text-gray-600 mt-0.5">{k.label}</div>
               </div>
             ))}
