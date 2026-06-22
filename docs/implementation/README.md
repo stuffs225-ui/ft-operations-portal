@@ -109,10 +109,13 @@ This directory contains step-by-step implementation and audit records for the FT
 
 ### Foundation
 
-- **step-19-2-functional-pages-ux-roadmap.md — Functional Pages UX Audit and Improvement Roadmap** ← current
+- **step-19-2-functional-pages-ux-roadmap.md — Functional Pages UX Audit and Improvement Roadmap**
+
+### Commercial and Sales Coordinator (19.3)
+
+- **step-19-3-commercial-sales-coordinator-ux.md — Commercial and Sales Coordinator Pages UX Improvement** ← current
 
 Planned future steps (not yet started):
-- step-19-3 — Commercial and Sales Coordinator Pages UX Improvement
 - step-19-4 — Projects / Sales Orders Experience Improvement
 - step-19-4a — ProjectDetail Visual Polish (isolated)
 - step-19-5 — Procurement and Store UX Improvement
