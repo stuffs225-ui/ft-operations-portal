@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   FolderOpen, Plus, Search, MapPin,
-  ChevronRight, Loader2, Calendar, User,
+  ChevronRight, Calendar, User,
 } from 'lucide-react';
+import { Skeleton } from '../components/ui/skeleton';
 import { PageHeader } from '@/components/common/page-header';
 import { StatusBadge } from '@/components/status/status-badge';
 import { Badge } from '../components/ui/Badge';
@@ -60,7 +61,7 @@ export function Projects() {
   const { role, profile } = useAuth();
   const { canViewCosts } = usePermission();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Filters
   const [statusTab, setStatusTab] = useState<StatusTab>('all');
@@ -77,10 +78,12 @@ export function Projects() {
   // Load data
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
-      setProjects(MOCK_PROJECTS);
+      void Promise.resolve().then(() => {
+        setProjects(MOCK_PROJECTS);
+        setLoading(false);
+      });
       return;
     }
-    setLoading(true);
     const uid = profile?.id;
     const query = supabase
       .from('projects')
@@ -189,7 +192,7 @@ export function Projects() {
               placeholder="Search SO, customer, code…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-transparent"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-transparent"
             />
           </div>
 
@@ -197,7 +200,7 @@ export function Projects() {
           <select
             value={locFilter}
             onChange={(e) => setLocFilter(e.target.value as typeof locFilter)}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="all">All Locations</option>
             <option value="saudi">Saudi</option>
@@ -209,7 +212,7 @@ export function Projects() {
           <select
             value={medFilter}
             onChange={(e) => setMedFilter(e.target.value as typeof medFilter)}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="all">All Medical</option>
             <option value="yes">Medical</option>
@@ -228,8 +231,31 @@ export function Projects() {
           <p className="text-sm text-gray-700 mt-1">{filtered.length} project{filtered.length !== 1 ? 's' : ''} · Total SAR {filtered.reduce((s, p) => s + p.total_sales_value, 0).toLocaleString('en-SA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
         </div>
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 size={24} className="text-brand-500 animate-spin" />
+        <div className="bg-white rounded-lg border border-gray-200/80 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <th key={i} className="px-4 py-3"><Skeleton className="h-3 w-16" /></th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i}>
+                  <td className="px-4 py-3 space-y-1.5">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-20" />
+                  </td>
+                  <td className="px-4 py-3"><Skeleton className="h-4 w-36" /></td>
+                  <td className="px-4 py-3"><Skeleton className="h-5 w-20 rounded-md" /></td>
+                  <td className="px-4 py-3"><Skeleton className="h-5 w-16 rounded-md" /></td>
+                  <td className="px-4 py-3 hidden md:table-cell"><Skeleton className="h-4 w-24" /></td>
+                  <td className="px-4 py-3 hidden lg:table-cell"><Skeleton className="h-4 w-28" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : filtered.length === 0 ? (
         <EmptyState
@@ -251,19 +277,19 @@ export function Projects() {
           }
         />
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-lg border border-gray-200/80 overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Project / SO</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Customer</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Status</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Route</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700 hidden md:table-cell">Delivery</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Project / SO</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Customer</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Status</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Route</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em] hidden md:table-cell">Delivery</th>
                 {canSeeMoney && (
-                  <th className="text-right px-4 py-3 font-semibold text-gray-700 hidden lg:table-cell">Value</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em] hidden lg:table-cell">Value</th>
                 )}
-                <th className="text-left px-4 py-3 font-semibold text-gray-700 hidden xl:table-cell">Sales Owner</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em] hidden xl:table-cell">Sales Owner</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -295,7 +321,7 @@ export function Projects() {
                   </td>
                   {canSeeMoney && (
                     <td className="px-4 py-3 text-right hidden lg:table-cell">
-                      <span className="font-semibold text-gray-900">
+                      <span className="font-semibold tabular-nums text-gray-900">
                         {formatSAR(project.total_sales_value)}
                       </span>
                     </td>
