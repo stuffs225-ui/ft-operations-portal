@@ -4,7 +4,7 @@ import {
   FileText, Search, Plus, AlertTriangle, Clock, ChevronRight,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
-import { PageLoader } from '../components/ui/PageLoader';
+import { Skeleton } from '../components/ui/skeleton';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -296,13 +296,13 @@ export function Quotations() {
             placeholder="Search by code, customer, scope…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className={`w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 ${accentRing}`}
+            className={`w-full pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 ${accentRing}`}
           />
         </div>
         <select
           value={priority}
           onChange={(e) => setPriority(e.target.value as QuotationPriority | 'all')}
-          className={`text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${accentRing}`}
+          className={`text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${accentRing}`}
         >
           <option value="all">All Priorities</option>
           <option value="urgent">Urgent</option>
@@ -314,7 +314,18 @@ export function Quotations() {
 
       {/* Table */}
       {loading ? (
-        <PageLoader />
+        <div className="rounded-lg border border-gray-200/80 overflow-hidden bg-white">
+          <div className="h-10 bg-gray-50/80 border-b border-gray-100" />
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 px-4 py-3 border-b border-gray-50 last:border-0">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-5 w-20 rounded-md" />
+              <Skeleton className="h-5 w-14 rounded-md" />
+              <Skeleton className="ml-auto h-7 w-12 rounded-md" />
+            </div>
+          ))}
+        </div>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<FileText size={40} />}

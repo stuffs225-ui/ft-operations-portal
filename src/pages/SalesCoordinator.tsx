@@ -5,6 +5,7 @@ import {
   FileText, RotateCcw, Info, Users, ChevronRight,
   UserCheck, ShieldCheck, TrendingUp,
 } from 'lucide-react';
+import { Skeleton } from '../components/ui/skeleton';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -242,7 +243,7 @@ export function SalesCoordinator() {
 
       {/* Critical alert: overdue */}
       {!loading && overdueCount > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center justify-between gap-4 text-sm text-red-800">
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 flex items-center justify-between gap-4 text-sm text-red-800">
           <div className="flex items-center gap-2">
             <AlertTriangle size={14} className="text-red-500 shrink-0" />
             <span><strong>{overdueCount}</strong> quotation{overdueCount !== 1 ? 's' : ''} are overdue — SLA breached. Process immediately.</span>
@@ -273,22 +274,32 @@ export function SalesCoordinator() {
       </div>
 
       {/* KPI tiles */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {kpis.map(k => (
-          <div key={k.label} className={`rounded-xl border p-4 ${k.urgent ? `${k.color} ring-1 ring-inset ring-current/20` : `${k.color}`}`}>
-            <div className="flex items-center gap-2 mb-1">
-              <div className={k.color.split(' ')[0]}>{k.icon}</div>
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 space-y-2">
+              <Skeleton className="h-4 w-4 rounded" />
+              <Skeleton className="h-7 w-10" />
+              <Skeleton className="h-3.5 w-24" />
             </div>
-            <div className={`text-2xl font-bold ${loading ? 'text-gray-300' : ''}`}>{loading ? '—' : k.value}</div>
-            <div className="text-xs font-medium mt-0.5 opacity-80">{k.label}</div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {kpis.map(k => (
+            <div key={k.label} className={`rounded-lg border p-4 ${k.urgent ? `${k.color} ring-1 ring-inset ring-current/20` : `${k.color}`}`}>
+              <div className="flex items-center gap-2 mb-1">
+                <div className={k.color.split(' ')[0]}>{k.icon}</div>
+              </div>
+              <div className="text-2xl font-bold tabular-nums">{k.value}</div>
+              <div className="text-xs font-medium mt-0.5 opacity-80">{k.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Work queues */}
-      {loading ? (
-        <div className="py-10 text-center text-sm text-gray-400">Loading…</div>
-      ) : (
+      {loading ? null : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
           {/* Left column */}

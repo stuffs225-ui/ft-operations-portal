@@ -101,7 +101,33 @@ This directory contains step-by-step implementation and audit records for the FT
 ### Post Go-Live: Storage Uploads
 
 - **phase-1a-storage-uploads-document-evidence.md — Storage-Backed Document Uploads**
-- **phase-1a-1-storage-post-merge-verification.md — Phase 1A Post-Merge Verification and Stabilization** ← current
+- **phase-1a-1-storage-post-merge-verification.md — Phase 1A Post-Merge Verification and Stabilization**
+
+---
+
+## Phase 19 — Design System and UX Modernization
+
+### Foundation
+
+- **step-19-2-functional-pages-ux-roadmap.md — Functional Pages UX Audit and Improvement Roadmap**
+
+### Commercial and Sales Coordinator (19.3)
+
+- **step-19-3-commercial-sales-coordinator-ux.md — Commercial and Sales Coordinator Pages UX Improvement** ← current
+
+Planned future steps (not yet started):
+- step-19-4 — Projects / Sales Orders Experience Improvement
+- step-19-4a — ProjectDetail Visual Polish (isolated)
+- step-19-5 — Procurement and Store UX Improvement
+- step-19-6 — Factory and QC UX Improvement
+- step-19-7 — AFS and After Sales UX Improvement
+- step-19-8 — Reports, Control Tower, Admin, and Viewer UX Improvement
+- step-19-9 — Performance and Data Loading Foundation
+- step-19-10 — Functional UX Closure and Regression Audit
+
+Note: Step 19.1 (Design System Foundation and App Shell) was merged as PR #126 (SHA `b4a38a5`)
+on branch `claude/naffco-portal-modernization-a8gtg1`. No dedicated doc was created for 19.1;
+changes are self-documented in the commit message and PR diff.
 
 ---
 

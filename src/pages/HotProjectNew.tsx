@@ -117,7 +117,7 @@ export function HotProjectNew() {
 
       <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
         <Card className="p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-gray-700">Opportunity Details</h3>
+          <h3 className="text-sm font-semibold tracking-tight text-gray-700">Opportunity Details</h3>
 
           <Field label="Title" required>
             <input value={form.title} onChange={(e) => set('title', e.target.value)} required className={inputCls} placeholder="e.g. SRCA Fire Truck Fleet 2026" />
@@ -145,7 +145,7 @@ export function HotProjectNew() {
         </Card>
 
         <Card className="p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-gray-700">Customer Information</h3>
+          <h3 className="text-sm font-semibold tracking-tight text-gray-700">Customer Information</h3>
 
           <Field label="Customer Name" required>
             <input value={form.customer_name} onChange={(e) => set('customer_name', e.target.value)} required className={inputCls} placeholder="Organisation name" />
@@ -171,7 +171,7 @@ export function HotProjectNew() {
         </Card>
 
         <Card className="p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-gray-700">Notes</h3>
+          <h3 className="text-sm font-semibold tracking-tight text-gray-700">Notes</h3>
           <textarea
             value={form.notes}
             onChange={(e) => set('notes', e.target.value)}

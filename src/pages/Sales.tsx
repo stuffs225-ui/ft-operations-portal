@@ -2,9 +2,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   FileText, FolderOpen, Plus, ChevronRight,
-  Loader2, Clock, AlertCircle, CheckCircle2,
+  Clock, AlertCircle, CheckCircle2,
   Flame, ReceiptText, BarChart3, ShieldCheck,
 } from 'lucide-react';
+import { Skeleton } from '../components/ui/skeleton';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -75,7 +76,7 @@ export function Sales() {
   const { role, profile } = useAuth();
   const [quotations, setQuotations] = useState<QuotationRequest[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [activeKpi, setActiveKpi] = useState<string | null>(null);
 
   const isBroadView = role ? BROAD_VIEW.includes(role) : false;
@@ -86,7 +87,6 @@ export function Sales() {
   // ── Load data ───────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    setLoading(true);
     if (isSupabaseConfigured && supabase) {
       const uid = profile?.id;
       const qBase = supabase
@@ -108,9 +108,11 @@ export function Sales() {
       const uid = profile?.id ?? 'dev-usr-001';
       const qs = isBroadView ? MOCK_QUOTATIONS : MOCK_QUOTATIONS.filter(q => q.requested_by === uid || q.created_by === uid);
       const ps = isBroadView ? MOCK_PROJECTS : MOCK_PROJECTS.filter(p => p.sales_owner_id === uid || p.created_by === uid);
-      setQuotations(qs);
-      setProjects(ps);
-      setLoading(false);
+      void Promise.resolve().then(() => {
+        setQuotations(qs);
+        setProjects(ps);
+        setLoading(false);
+      });
     }
   }, [isBroadView, profile?.id]);
 
@@ -210,7 +212,7 @@ export function Sales() {
 
       {/* Critical alerts */}
       {!loading && actionRequired.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 flex items-center justify-between gap-4">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg px-5 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-sm text-amber-800">
             <AlertCircle size={15} className="shrink-0 text-amber-500" />
             <span>
@@ -231,17 +233,24 @@ export function Sales() {
 
       {/* KPI Cards */}
       {loading ? (
-        <div className="flex items-center gap-2 text-gray-500 text-sm py-4">
-          <Loader2 size={16} className="animate-spin" /> Loading dashboard data…
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 space-y-2">
+              <Skeleton className="h-4 w-4 rounded" />
+              <Skeleton className="h-7 w-10" />
+              <Skeleton className="h-3.5 w-24" />
+              <Skeleton className="h-3 w-16" />
+            </div>
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {kpis.map(k => (
             k.id === 'hot-projects-kpi' ? (
               <Link key={k.id} to="/hot-projects">
-                <div className={`bg-white rounded-xl border border-gray-200 border-l-4 shadow-sm p-4 hover:shadow-md transition-shadow ${k.borderColor}`}>
+                <div className={`bg-white rounded-lg border border-gray-200 border-l-4 shadow-sm p-4 hover:shadow-md transition-shadow ${k.borderColor}`}>
                   <div className="text-gray-400 mb-2">{k.icon}</div>
-                  <div className="text-2xl font-bold text-gray-900">—</div>
+                  <div className="text-2xl font-bold tabular-nums text-gray-900">—</div>
                   <div className="text-sm font-semibold text-gray-700 mt-0.5">{k.label}</div>
                   <div className="text-xs text-gray-500 mt-0.5">{k.sub}</div>
                 </div>
@@ -251,10 +260,10 @@ export function Sales() {
                 key={k.id}
                 type="button"
                 onClick={() => setActiveKpi(k.id)}
-                className={`text-left bg-white rounded-xl border border-gray-200 border-l-4 shadow-sm p-4 hover:shadow-md transition-all ${k.borderColor} ${k.urgent ? 'ring-1 ring-orange-200' : ''}`}
+                className={`text-left bg-white rounded-lg border border-gray-200 border-l-4 shadow-sm p-4 hover:shadow-md transition-all ${k.borderColor} ${k.urgent ? 'ring-1 ring-orange-200' : ''}`}
               >
                 <div className={`mb-2 ${k.urgent ? 'text-orange-500' : 'text-gray-400'}`}>{k.icon}</div>
-                <div className={`text-2xl font-bold ${k.urgent && k.value > 0 ? 'text-orange-600' : 'text-gray-900'}`}>{k.value}</div>
+                <div className={`text-2xl font-bold tabular-nums ${k.urgent && k.value > 0 ? 'text-orange-600' : 'text-gray-900'}`}>{k.value}</div>
                 <div className="text-sm font-semibold text-gray-700 mt-0.5">{k.label}</div>
                 <div className="text-xs text-gray-500 mt-0.5">{k.sub}</div>
               </button>
@@ -418,7 +427,7 @@ export function Sales() {
           { label: 'Receivables & Aging', icon: <BarChart3 size={14} className="mr-1.5 text-rose-500" />, to: '/receivables', description: 'Outstanding invoice milestones by aging bucket' },
         ].map(t => (
           <Link key={t.label} to={t.to}>
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:border-emerald-300 hover:shadow-md transition-all">
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 hover:border-emerald-300 hover:shadow-md transition-all">
               <div className="flex items-center text-sm font-semibold text-gray-700 mb-1">{t.icon}{t.label}</div>
               <p className="text-xs text-gray-500">{t.description}</p>
             </div>

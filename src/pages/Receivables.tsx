@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
-import { PageLoader } from '../components/ui/PageLoader';
+import { Skeleton } from '../components/ui/skeleton';
 import { Drawer } from '../components/ui/Drawer';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { ReceivablesAgingRow, AgingBucket, MilestoneStatus } from '../types';
@@ -40,7 +40,7 @@ const BUCKET_ORDER: AgingBucket[] = ['not_due', 'due_0_30', 'due_31_60', 'due_61
 
 export function Receivables() {
   const [rows, setRows] = useState<ReceivablesAgingRow[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [bucketFilter, setBucketFilter] = useState<AgingBucket | 'all'>('all');
@@ -48,7 +48,6 @@ export function Receivables() {
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
-    setLoading(true);
     supabase!
       .from('receivables_aging_view')
       .select('*')
@@ -95,22 +94,22 @@ export function Receivables() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="p-4">
-          <div className="text-xs text-gray-500 mb-1">Total Outstanding</div>
-          <div className="text-xl font-bold text-gray-900 truncate">{formatSAR(kpis.totalOutstanding)}</div>
+          <div className="text-xs text-gray-500 uppercase tracking-[0.04em] mb-1">Total Outstanding</div>
+          <div className="text-xl font-bold tabular-nums text-gray-900 truncate">{formatSAR(kpis.totalOutstanding)}</div>
           <div className="text-xs text-gray-400 mt-1">{rows.length} open milestones</div>
         </Card>
         <Card className="p-4 border-red-200 bg-red-50">
-          <div className="text-xs text-red-600 mb-1">Overdue</div>
-          <div className="text-xl font-bold text-red-700 truncate">{formatSAR(kpis.totalOverdue)}</div>
+          <div className="text-xs text-red-600 uppercase tracking-[0.04em] mb-1">Overdue</div>
+          <div className="text-xl font-bold tabular-nums text-red-700 truncate">{formatSAR(kpis.totalOverdue)}</div>
           <div className="text-xs text-red-400 mt-1">{rows.filter((r) => r.aging_bucket !== 'not_due').length} milestones</div>
         </Card>
         <div className="col-span-2 lg:col-span-1 grid grid-cols-2 gap-3">
           {(['due_31_60', 'due_90_plus'] as AgingBucket[]).map((b) => {
             const cfg = BUCKET_CONFIG[b];
             return (
-              <div key={b} className={`rounded-xl border p-3 ${cfg.bgColor} ${cfg.borderColor}`}>
-                <div className={`text-xs mb-1 ${cfg.color}`}>{cfg.label}</div>
-                <div className={`text-base font-bold truncate ${cfg.color}`}>{formatSAR(kpis.bucketTotals[b])}</div>
+              <div key={b} className={`rounded-lg border p-3 ${cfg.bgColor} ${cfg.borderColor}`}>
+                <div className={`text-xs uppercase tracking-[0.04em] mb-1 ${cfg.color}`}>{cfg.label}</div>
+                <div className={`text-base font-bold tabular-nums truncate ${cfg.color}`}>{formatSAR(kpis.bucketTotals[b])}</div>
               </div>
             );
           })}
@@ -127,10 +126,10 @@ export function Receivables() {
             <button
               key={b}
               onClick={() => setBucketFilter(active ? 'all' : b)}
-              className={`rounded-xl border p-3 text-left transition-all ${active ? `${cfg.bgColor} ${cfg.borderColor} ring-2 ring-offset-1 ring-brand-600/30` : `${cfg.bgColor} ${cfg.borderColor} hover:opacity-80`}`}
+              className={`rounded-lg border p-3 text-left transition-all ${active ? `${cfg.bgColor} ${cfg.borderColor} ring-2 ring-offset-1 ring-brand-600/30` : `${cfg.bgColor} ${cfg.borderColor} hover:opacity-80`}`}
             >
-              <div className={`text-[10px] font-medium mb-1 ${cfg.color}`}>{cfg.label}</div>
-              <div className={`text-lg font-bold ${cfg.color}`}>{formatSAR(kpis.bucketTotals[b])}</div>
+              <div className={`text-[10px] font-medium uppercase tracking-[0.04em] mb-1 ${cfg.color}`}>{cfg.label}</div>
+              <div className={`text-lg font-bold tabular-nums ${cfg.color}`}>{formatSAR(kpis.bucketTotals[b])}</div>
               <div className={`text-xs opacity-60 ${cfg.color}`}>{count} items</div>
             </button>
           );
@@ -144,7 +143,7 @@ export function Receivables() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search customer, project, invoice…"
-          className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-600/30"
+          className="w-full pl-8 pr-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-600/30"
         />
       </div>
 
@@ -156,7 +155,18 @@ export function Receivables() {
           description="Connect Supabase to view receivables."
         />
       ) : loading ? (
-        <PageLoader />
+        <div className="rounded-lg border border-gray-200/80 overflow-hidden bg-white">
+          <div className="h-10 bg-gray-50/80 border-b border-gray-100" />
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 px-4 py-3 border-b border-gray-50 last:border-0">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-5 w-20 rounded-md" />
+              <Skeleton className="ml-auto h-4 w-20" />
+            </div>
+          ))}
+        </div>
       ) : error ? (
         <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
@@ -180,17 +190,17 @@ export function Receivables() {
           description="Try adjusting your search or aging bucket selection."
         />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-gray-200/80 bg-white">
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-gray-50/80 border-b border-gray-100">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Project</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Customer</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Milestone</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Due Date</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500">Outstanding</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Aging</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-[0.04em] text-gray-500">Project</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-[0.04em] text-gray-500">Customer</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-[0.04em] text-gray-500">Milestone</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-[0.04em] text-gray-500">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-[0.04em] text-gray-500">Due Date</th>
+                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-[0.04em] text-gray-500">Outstanding</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-[0.04em] text-gray-500">Aging</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -209,7 +219,7 @@ export function Receivables() {
                       {sCfg ? <Badge variant={sCfg.variant} size="sm">{sCfg.label}</Badge> : <span className="text-xs text-gray-400">{row.milestone_status}</span>}
                     </td>
                     <td className="px-4 py-3 text-gray-500">{formatDate(row.due_date)}</td>
-                    <td className="px-4 py-3 text-right font-medium text-gray-800">{formatSAR(row.outstanding_amount)}</td>
+                    <td className="px-4 py-3 text-right font-medium tabular-nums text-gray-800">{formatSAR(row.outstanding_amount)}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full border ${bCfg.bgColor} ${bCfg.color} ${bCfg.borderColor}`}>
                         {row.days_overdue > 0 ? `${row.days_overdue}d overdue` : bCfg.label}
