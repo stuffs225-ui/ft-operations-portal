@@ -111,6 +111,10 @@ This directory contains step-by-step implementation and audit records for the FT
 
 - **step-19-2-functional-pages-ux-roadmap.md — Functional Pages UX Audit and Improvement Roadmap**
 
+### Transformation Study
+
+- **../reports/ft-operations-frontend-design-ux-transformation-study.md (.html / .pdf) — Complete Frontend Design System, UI Architecture, UX & Transformation Study** (audited main SHA `1ed145a`; analysis & planning only — defines the A‑to‑Z roadmap, UI-library strategy, and PR-by-PR plan for Phases 0–9)
+
 ### Commercial and Sales Coordinator (19.3)
 
 - **step-19-3-commercial-sales-coordinator-ux.md — Commercial and Sales Coordinator Pages UX Improvement**
