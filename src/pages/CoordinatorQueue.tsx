@@ -9,7 +9,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
-import { PageLoader } from '../components/ui/PageLoader';
+import { Skeleton } from '../components/ui/skeleton';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { isQuotationOverdue, getOverdueDays, getQuotationSlaStatus } from '../lib/quotationSla';
@@ -248,7 +248,7 @@ export function CoordinatorQueue() {
 
       {/* Overdue alert */}
       {!loading && overdueCount > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-red-800">
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 flex items-center gap-2 text-sm text-red-800">
           <AlertTriangle size={14} className="text-red-500 shrink-0" />
           <span>
             <strong>{overdueCount}</strong> quotation{overdueCount !== 1 ? 's' : ''} have breached SLA — process immediately.
@@ -294,13 +294,24 @@ export function CoordinatorQueue() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search code, customer, sales owner…"
-          className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600/30"
+          className="w-full pl-8 pr-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600/30"
         />
       </div>
 
       {/* Table */}
       {loading ? (
-        <PageLoader />
+        <div className="rounded-lg border border-gray-200/80 overflow-hidden bg-white">
+          <div className="h-10 bg-gray-50/80 border-b border-gray-100" />
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 px-4 py-3 border-b border-gray-50 last:border-0">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-5 w-20 rounded-md" />
+              <Skeleton className="ml-auto h-7 w-12 rounded-md" />
+            </div>
+          ))}
+        </div>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<ClipboardList size={32} className="text-gray-300" />}

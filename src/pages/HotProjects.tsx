@@ -6,7 +6,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
-import { PageLoader } from '../components/ui/PageLoader';
+import { Skeleton } from '../components/ui/skeleton';
 import { ReportExportBar } from '../components/features/ReportExportBar';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
@@ -177,28 +177,28 @@ export function HotProjects() {
       {/* KPI strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 no-print">
         <Card className="p-4">
-          <div className="text-xs text-gray-500 mb-1">Open Opportunities</div>
-          <div className="text-2xl font-bold text-gray-900">{openRecords.length}</div>
+          <div className="text-xs text-gray-500 uppercase tracking-[0.04em] mb-1">Open Opportunities</div>
+          <div className="text-2xl font-bold tabular-nums text-gray-900">{openRecords.length}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-xs text-gray-500 mb-1">Estimated Pipeline</div>
-          <div className="text-xl font-bold text-gray-900 truncate">{formatSAR(totalEstimated)}</div>
+          <div className="text-xs text-gray-500 uppercase tracking-[0.04em] mb-1">Estimated Pipeline</div>
+          <div className="text-xl font-bold tabular-nums text-gray-900 truncate">{formatSAR(totalEstimated)}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-xs text-gray-500 mb-1">Weighted Pipeline</div>
-          <div className="text-xl font-bold text-emerald-700 truncate">{formatSAR(weightedPipeline)}</div>
+          <div className="text-xs text-gray-500 uppercase tracking-[0.04em] mb-1">Weighted Pipeline</div>
+          <div className="text-xl font-bold tabular-nums text-emerald-700 truncate">{formatSAR(weightedPipeline)}</div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-1.5 mb-1">
             <TrendingUp size={12} className="text-emerald-500" />
-            <div className="text-xs text-gray-500">Won This Period</div>
+            <div className="text-xs text-gray-500 uppercase tracking-[0.04em]">Won This Period</div>
           </div>
-          <div className="text-2xl font-bold text-emerald-600">{wonCount}</div>
+          <div className="text-2xl font-bold tabular-nums text-emerald-600">{wonCount}</div>
         </Card>
       </div>
 
       {noActionCount > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-amber-800">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center gap-2 text-sm text-amber-800">
           <AlertCircle size={14} className="text-amber-500 shrink-0" />
           <span>
             <strong>{noActionCount}</strong> open opportunit{noActionCount !== 1 ? 'ies' : 'y'} with no documented next action — update notes or request a quotation.
@@ -229,13 +229,13 @@ export function HotProjects() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search title, customer, code…"
-            className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
+            className="w-full pl-8 pr-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
           />
         </div>
         <select
           value={stageFilter}
           onChange={(e) => setStageFilter(e.target.value as HotProjectStage | 'all')}
-          className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
+          className="text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
         >
           <option value="all">All Stages</option>
           {(Object.keys(STAGE_CONFIG) as HotProjectStage[]).map((s) => (
@@ -262,7 +262,18 @@ export function HotProjects() {
             description="Connect Supabase to view hot projects."
           />
         ) : loading ? (
-          <PageLoader />
+          <div className="rounded-lg border border-gray-200/80 overflow-hidden bg-white">
+            <div className="h-10 bg-gray-50/80 border-b border-gray-100" />
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 px-4 py-3 border-b border-gray-50 last:border-0">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-5 w-20 rounded-md" />
+                <Skeleton className="h-4 w-10" />
+                <Skeleton className="ml-auto h-7 w-12 rounded-md" />
+              </div>
+            ))}
+          </div>
         ) : error ? (
           <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
@@ -282,7 +293,7 @@ export function HotProjects() {
             }
           />
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+          <div className="overflow-x-auto rounded-lg border border-gray-200/80 bg-white">
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>

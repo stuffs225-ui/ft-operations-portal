@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Flame, ArrowLeft, Save, Loader2, ExternalLink } from 'lucide-react';
+import { Skeleton } from '../components/ui/skeleton';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -33,7 +34,7 @@ const STAGE_CONFIG: Record<HotProjectStage, { label: string; variant: 'neutral' 
 const EDITABLE_STAGES: HotProjectStage[] = ['lead', 'qualified', 'proposal_required', 'quotation_requested', 'negotiation'];
 const ALL_STAGES: { value: HotProjectStage; label: string }[] = Object.entries(STAGE_CONFIG).map(([v, c]) => ({ value: v as HotProjectStage, label: c.label }));
 
-const inputCls = 'w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/30';
+const inputCls = 'w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/30';
 
 function InfoField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -117,7 +118,31 @@ export function HotProjectDetail() {
   }
 
   if (loading) {
-    return <div className="flex justify-center py-24 text-gray-400"><Loader2 size={24} className="animate-spin" /></div>;
+    return (
+      <div className="space-y-6 max-w-3xl">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-64" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+          <Skeleton className="h-8 w-20 rounded-lg" />
+        </div>
+        <div className="grid lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 space-y-2 bg-white rounded-lg border border-gray-200 p-5">
+            <Skeleton className="h-4 w-24 mb-4" />
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-8 w-full" />
+            ))}
+          </div>
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg border border-gray-200 p-5 space-y-3">
+              <Skeleton className="h-4 w-20 mb-2" />
+              {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-6 w-full" />)}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!record) {
@@ -164,7 +189,7 @@ export function HotProjectDetail() {
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">
           <Card className="p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-gray-700">Opportunity</h3>
+            <h3 className="text-sm font-semibold tracking-tight text-gray-700">Opportunity</h3>
             <div className="grid grid-cols-2 gap-4">
               <InfoField label="Stage">
                 {editing ? (
@@ -202,7 +227,7 @@ export function HotProjectDetail() {
               <div>
                 <div className="text-xs font-medium text-gray-500 mb-1">Lost Reason</div>
                 {editing ? (
-                  <textarea value={form.lost_reason ?? ''} onChange={(e) => setForm((f) => ({ ...f, lost_reason: e.target.value || null }))} rows={2} className="w-full border border-gray-200 rounded px-2 py-1 text-sm resize-none" />
+                  <textarea value={form.lost_reason ?? ''} onChange={(e) => setForm((f) => ({ ...f, lost_reason: e.target.value || null }))} rows={2} className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-600/30" />
                 ) : <p className="text-sm text-gray-600">{record.lost_reason ?? '—'}</p>}
               </div>
             )}
@@ -210,7 +235,7 @@ export function HotProjectDetail() {
             <div>
               <div className="text-xs font-medium text-gray-500 mb-1">Notes</div>
               {editing ? (
-                <textarea value={form.notes ?? ''} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value || null }))} rows={3} className="w-full border border-gray-200 rounded px-2 py-1 text-sm resize-none" />
+                <textarea value={form.notes ?? ''} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value || null }))} rows={3} className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-600/30" />
               ) : <p className="text-sm text-gray-600">{record.notes ?? '—'}</p>}
             </div>
           </Card>
@@ -218,7 +243,7 @@ export function HotProjectDetail() {
 
         <div className="space-y-4">
           <Card className="p-5 space-y-3">
-            <h3 className="text-sm font-semibold text-gray-700">Customer</h3>
+            <h3 className="text-sm font-semibold tracking-tight text-gray-700">Customer</h3>
             <InfoField label="Name">
               {editing ? <input value={form.customer_name ?? ''} onChange={(e) => setForm((f) => ({ ...f, customer_name: e.target.value }))} className={inputCls} /> : record.customer_name}
             </InfoField>
@@ -234,7 +259,7 @@ export function HotProjectDetail() {
           </Card>
 
           <Card className="p-5 space-y-3">
-            <h3 className="text-sm font-semibold text-gray-700">Links</h3>
+            <h3 className="text-sm font-semibold tracking-tight text-gray-700">Links</h3>
             {record.linked_quotation_id ? (
               <Link to={`/quotations/${record.linked_quotation_id}`} className="flex items-center gap-1.5 text-sm text-brand-600 hover:underline">
                 <ExternalLink size={13} /> Linked Quotation
