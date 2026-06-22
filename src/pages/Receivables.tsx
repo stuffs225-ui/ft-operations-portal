@@ -40,7 +40,7 @@ const BUCKET_ORDER: AgingBucket[] = ['not_due', 'due_0_30', 'due_31_60', 'due_61
 
 export function Receivables() {
   const [rows, setRows] = useState<ReceivablesAgingRow[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [bucketFilter, setBucketFilter] = useState<AgingBucket | 'all'>('all');
@@ -48,7 +48,6 @@ export function Receivables() {
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
-    setLoading(true);
     supabase!
       .from('receivables_aging_view')
       .select('*')

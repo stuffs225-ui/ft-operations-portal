@@ -49,7 +49,7 @@ export function HotProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const { role } = useAuth();
   const [record, setRecord] = useState<HotProject | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(isSupabaseConfigured);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -58,7 +58,6 @@ export function HotProjectDetail() {
 
   useEffect(() => {
     if (!id || !isSupabaseConfigured) return;
-    setLoading(true);
     supabase!
       .from('hot_projects')
       .select('*')

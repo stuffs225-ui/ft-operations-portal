@@ -76,7 +76,7 @@ export function Sales() {
   const { role, profile } = useAuth();
   const [quotations, setQuotations] = useState<QuotationRequest[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [activeKpi, setActiveKpi] = useState<string | null>(null);
 
   const isBroadView = role ? BROAD_VIEW.includes(role) : false;
@@ -87,7 +87,6 @@ export function Sales() {
   // ── Load data ───────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    setLoading(true);
     if (isSupabaseConfigured && supabase) {
       const uid = profile?.id;
       const qBase = supabase
@@ -109,9 +108,11 @@ export function Sales() {
       const uid = profile?.id ?? 'dev-usr-001';
       const qs = isBroadView ? MOCK_QUOTATIONS : MOCK_QUOTATIONS.filter(q => q.requested_by === uid || q.created_by === uid);
       const ps = isBroadView ? MOCK_PROJECTS : MOCK_PROJECTS.filter(p => p.sales_owner_id === uid || p.created_by === uid);
-      setQuotations(qs);
-      setProjects(ps);
-      setLoading(false);
+      void Promise.resolve().then(() => {
+        setQuotations(qs);
+        setProjects(ps);
+        setLoading(false);
+      });
     }
   }, [isBroadView, profile?.id]);
 
