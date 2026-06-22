@@ -115,13 +115,17 @@ This directory contains step-by-step implementation and audit records for the FT
 
 - **step-19-3-commercial-sales-coordinator-ux.md — Commercial and Sales Coordinator Pages UX Improvement**
 
-### Projects / Sales Orders (19.4A)
+### Projects / Sales Orders (19.4A–19.4B)
 
-- **step-19-4a-projects-so-ux-improvement.md — Projects / Sales Orders UX Improvement** ← current
+- **step-19-4a-projects-so-ux-improvement.md — Projects / Sales Orders UX Improvement**
+- **step-19-4b-project-creation-wizard-ux.md — SO / Project Creation Wizard UX Upgrade** (PR #131 — pending merge)
+
+### Procurement Core (19.5A)
+
+- **step-19-5a-procurement-core-ux-upgrade.md — Procurement Core UX Premium Upgrade** ← current
 
 Planned future steps (not yet started):
-- step-19-4b — Procurement and Store UX Improvement
-- step-19-5 — Procurement and Store UX Improvement
+- step-19-5b — Store / Warehouse UX Upgrade
 - step-19-6 — Factory and QC UX Improvement
 - step-19-7 — AFS and After Sales UX Improvement
 - step-19-8 — Reports, Control Tower, Admin, and Viewer UX Improvement

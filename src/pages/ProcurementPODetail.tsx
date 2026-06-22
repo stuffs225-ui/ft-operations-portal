@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ShoppingCart, Package, Clock, Shield, ArrowLeft,
-  Loader2, Edit2, Check, X, AlertTriangle, FileText,
+  Edit2, Check, X, AlertTriangle, FileText,
 } from 'lucide-react';
+import { Skeleton } from '../components/ui/skeleton';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -349,8 +350,35 @@ export function ProcurementPODetail() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 size={28} className="text-brand-500 animate-spin" />
+      <div>
+        <div className="mb-8">
+          <Skeleton className="h-8 w-48 mb-1.5" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="flex gap-1 border-b border-gray-200 mb-6">
+          {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-9 w-24 rounded-none" />)}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="p-5">
+            <Skeleton className="h-4 w-20 mb-3" />
+            <div className="space-y-2.5">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div key={i} className="flex justify-between">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-28" />
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card className="p-5">
+            <Skeleton className="h-4 w-24 mb-3" />
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-4 w-full" />
+              ))}
+            </div>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -434,7 +462,7 @@ export function ProcurementPODetail() {
               {canSeeCost && (
                 <div className="flex justify-between">
                   <dt className="text-gray-500">Purchase Value</dt>
-                  <dd className="font-semibold">{po.currency} {po.purchase_value.toLocaleString()}</dd>
+                  <dd className="font-semibold tabular-nums">{po.currency} {po.purchase_value.toLocaleString()}</dd>
                 </div>
               )}
               <div className="flex justify-between">
@@ -502,7 +530,7 @@ export function ProcurementPODetail() {
                   <select
                     value={newStatus}
                     onChange={(e) => setNewStatus(e.target.value)}
-                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     {PO_STATUS_OPTIONS.map((s) => (
                       <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
@@ -536,18 +564,18 @@ export function ProcurementPODetail() {
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="text-left px-4 py-3 font-semibold text-gray-700">Item Code</th>
-                      <th className="text-left px-4 py-3 font-semibold text-gray-700">Item Name</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Item Code</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Item Name</th>
                       <th className="text-right px-4 py-3 font-semibold text-gray-700">Qty</th>
-                      <th className="text-left px-4 py-3 font-semibold text-gray-700">Unit</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Unit</th>
                       {canSeeCost && (
                         <>
-                          <th className="text-right px-4 py-3 font-semibold text-gray-700">Unit Price</th>
-                          <th className="text-right px-4 py-3 font-semibold text-gray-700">Line Total</th>
+                          <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Unit Price</th>
+                          <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Line Total</th>
                         </>
                       )}
-                      <th className="text-left px-4 py-3 font-semibold text-gray-700">Status</th>
-                      <th className="text-left px-4 py-3 font-semibold text-gray-700">ETA</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Status</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">ETA</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -562,8 +590,8 @@ export function ProcurementPODetail() {
                         <td className="px-4 py-3 text-gray-700">{item.unit}</td>
                         {canSeeCost && (
                           <>
-                            <td className="px-4 py-3 text-right">{item.unit_price.toLocaleString()}</td>
-                            <td className="px-4 py-3 text-right font-semibold">{item.line_total.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-right tabular-nums">{item.unit_price.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-right font-semibold tabular-nums">{item.line_total.toLocaleString()}</td>
                           </>
                         )}
                         <td className="px-4 py-3">
@@ -576,12 +604,12 @@ export function ProcurementPODetail() {
                     ))}
                   </tbody>
                   {canSeeCost && items.length > 0 && (
-                    <tfoot className="border-t-2 border-gray-300 bg-gray-50">
+                    <tfoot className="border-t-2 border-gray-200 bg-gray-50">
                       <tr>
                         <td colSpan={5} className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
                           Total
                         </td>
-                        <td className="px-4 py-3 text-right font-bold text-gray-900">
+                        <td className="px-4 py-3 text-right font-bold text-gray-900 tabular-nums">
                           {items.reduce((s, i) => s + i.line_total, 0).toLocaleString()}
                         </td>
                         <td colSpan={2} />
@@ -631,7 +659,7 @@ export function ProcurementPODetail() {
                     value={newEta}
                     onChange={(e) => setNewEta(e.target.value)}
                     required
-                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
                 <div>
@@ -642,7 +670,7 @@ export function ProcurementPODetail() {
                     value={etaReason}
                     onChange={(e) => setEtaReason(e.target.value)}
                     required
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     <option value="">Select reason…</option>
                     {ETA_REASON_OPTIONS.map((r) => (
@@ -657,7 +685,7 @@ export function ProcurementPODetail() {
                     onChange={(e) => setEtaRemarks(e.target.value)}
                     rows={3}
                     placeholder="Additional context…"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
                   />
                 </div>
                 <Button
@@ -681,12 +709,12 @@ export function ProcurementPODetail() {
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="text-left px-4 py-3 font-semibold text-gray-700">Old ETA</th>
-                      <th className="text-left px-4 py-3 font-semibold text-gray-700">New ETA</th>
-                      <th className="text-left px-4 py-3 font-semibold text-gray-700">Reason</th>
-                      <th className="text-left px-4 py-3 font-semibold text-gray-700">Remarks</th>
-                      <th className="text-left px-4 py-3 font-semibold text-gray-700">Changed By</th>
-                      <th className="text-left px-4 py-3 font-semibold text-gray-700">Changed At</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Old ETA</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">New ETA</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Reason</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Remarks</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Changed By</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Changed At</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -790,7 +818,7 @@ export function ProcurementPODetail() {
                   onChange={(e) => setRejectionReason(e.target.value)}
                   rows={3}
                   placeholder="State the reason for rejection…"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
                 />
                 <Button
                   variant="danger"
@@ -847,8 +875,8 @@ export function ProcurementPODetail() {
 
       {/* ── Timeline ── */}
       {activeTab === 'timeline' && (
-        <Card className="p-8 text-center text-gray-500 text-sm">
-          Timeline events will appear here.
+        <Card className="p-8 text-center text-gray-400 text-sm">
+          No timeline events recorded for this PO yet.
         </Card>
       )}
     </div>
