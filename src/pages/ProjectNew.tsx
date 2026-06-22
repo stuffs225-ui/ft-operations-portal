@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   FolderPlus, ChevronRight, ChevronLeft, Check,
-  Plus, Trash2, FileText, Info, AlertCircle, Loader2, ExternalLink, ArrowRight, Upload,
+  Plus, Trash2, FileText, Info, AlertCircle, ExternalLink, ArrowRight, Upload,
 } from 'lucide-react';
+import { Skeleton } from '../components/ui/skeleton';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -61,7 +62,12 @@ function uid() {
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
-const STEPS = ['Basic Info', 'Documents', 'Vehicle Lines', 'Review & Submit'];
+const STEPS: { label: string; subtitle: string }[] = [
+  { label: 'Sales Order Details',  subtitle: 'SO number, customer, dates'   },
+  { label: 'Supporting Documents', subtitle: 'Customer PO & contracts'       },
+  { label: 'Vehicle Lines',        subtitle: 'Products and commercial value' },
+  { label: 'Review & Submit',      subtitle: 'Final check before approval'   },
+];
 
 // ── Error humanization for RPC linkage ────────────────────────────────────────
 
@@ -84,39 +90,51 @@ function humanizeLinkError(err: { message?: string; code?: string }): string {
 // ── Step indicators ────────────────────────────────────────────────────────────
 
 function StepBar({ step }: { step: number }) {
+  const current = STEPS[step];
   return (
-    <div className="flex items-center gap-2 mb-8">
-      {STEPS.map((label, i) => {
-        const done = i < step;
-        const active = i === step;
-        return (
-          <div key={label} className="flex items-center gap-2">
-            <div className={`flex items-center gap-2 ${i > 0 ? '' : ''}`}>
-              <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                  done
-                    ? 'bg-brand-600 text-white'
-                    : active
-                    ? 'bg-white border-2 border-brand-600 text-brand-600'
-                    : 'bg-gray-100 text-gray-400'
-                }`}
-              >
-                {done ? <Check size={14} /> : i + 1}
+    <div className="mb-8">
+      <div className="flex items-center gap-2">
+        {STEPS.map(({ label, subtitle }, i) => {
+          const done = i < step;
+          const active = i === step;
+          return (
+            <div key={label} className="flex items-center gap-2">
+              <div className="flex items-start gap-2.5">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                    done
+                      ? 'bg-brand-600 text-white'
+                      : active
+                      ? 'bg-white border-2 border-brand-600 text-brand-600'
+                      : 'bg-gray-100 text-gray-400'
+                  }`}
+                >
+                  {done ? <Check size={14} /> : i + 1}
+                </div>
+                <div className="hidden sm:block">
+                  <p
+                    className={`text-sm font-medium leading-tight ${
+                      active ? 'text-brand-700' : done ? 'text-gray-700' : 'text-gray-400'
+                    }`}
+                  >
+                    {label}
+                  </p>
+                  <p className={`text-xs leading-tight mt-0.5 ${active ? 'text-brand-500' : 'text-gray-400'}`}>
+                    {subtitle}
+                  </p>
+                </div>
               </div>
-              <span
-                className={`text-sm font-medium hidden sm:block ${
-                  active ? 'text-brand-700' : done ? 'text-gray-700' : 'text-gray-400'
-                }`}
-              >
-                {label}
-              </span>
+              {i < STEPS.length - 1 && (
+                <div className={`flex-1 h-0.5 w-6 sm:w-10 ${done ? 'bg-brand-600' : 'bg-gray-200'}`} />
+              )}
             </div>
-            {i < STEPS.length - 1 && (
-              <div className={`flex-1 h-0.5 w-6 sm:w-12 ${done ? 'bg-brand-600' : 'bg-gray-200'}`} />
-            )}
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+      <div className="sm:hidden mt-3">
+        <p className="text-sm font-medium text-brand-700">{current.label}</p>
+        <p className="text-xs text-gray-500">{current.subtitle}</p>
+      </div>
     </div>
   );
 }
@@ -125,7 +143,7 @@ function StepBar({ step }: { step: number }) {
 
 function QuotationSourceBanner({ quotation, quotationId }: { quotation: QuotationRequest | null; quotationId: string }) {
   return (
-    <div className="flex items-center gap-3 p-3 bg-sky-50 border border-sky-200 rounded-xl mb-6">
+    <div className="flex items-center gap-3 p-3 bg-sky-50 border border-sky-200 rounded-lg mb-6">
       <FileText size={16} className="text-sky-500 shrink-0" />
       <p className="text-sm text-sky-900 flex-1">
         {quotation
@@ -159,7 +177,7 @@ export function ProjectNew() {
 
   // From-quotation state
   const [fromQuotation, setFromQuotation] = useState<QuotationRequest | null>(null);
-  const [fromQuotationLoading, setFromQuotationLoading] = useState(false);
+  const [fromQuotationLoading, setFromQuotationLoading] = useState(!!fromQuotationId && isSupabaseConfigured);
 
   // Step 1 — Basic Info
   const [soNumber, setSoNumber] = useState('');
@@ -188,8 +206,6 @@ export function ProjectNew() {
       // Dev mode: no data to prefill, just show the banner
       return;
     }
-
-    setFromQuotationLoading(true);
 
     Promise.all([
       supabase
@@ -473,9 +489,34 @@ export function ProjectNew() {
 
   if (fromQuotationId && fromQuotationLoading) {
     return (
-      <div className="flex items-center justify-center py-20 gap-3 text-gray-500">
-        <Loader2 className="animate-spin" size={20} />
-        <span>Loading quotation data…</span>
+      <div className="max-w-3xl mx-auto">
+        <div className="mb-8">
+          <Skeleton className="h-8 w-56 mb-1.5" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+        <div className="mb-8 flex items-center gap-2">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center gap-2">
+              <Skeleton className="w-8 h-8 rounded-full" />
+              {i < 3 && <Skeleton className="h-0.5 w-10" />}
+            </div>
+          ))}
+        </div>
+        <Card className="p-6">
+          <Skeleton className="h-5 w-44 mb-5" />
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div><Skeleton className="h-4 w-24 mb-1.5" /><Skeleton className="h-10 w-full" /></div>
+              <div><Skeleton className="h-4 w-40 mb-1.5" /><Skeleton className="h-10 w-full" /></div>
+            </div>
+            <div><Skeleton className="h-4 w-28 mb-1.5" /><Skeleton className="h-10 w-full" /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Skeleton className="h-4 w-36 mb-1.5" /><Skeleton className="h-10 w-full" /></div>
+              <div><Skeleton className="h-4 w-28 mb-1.5" /><Skeleton className="h-10 w-full" /></div>
+            </div>
+            <Skeleton className="h-20 w-full" />
+          </div>
+        </Card>
       </div>
     );
   }
@@ -485,12 +526,12 @@ export function ProjectNew() {
   return (
     <div className="max-w-3xl mx-auto">
       <PageHeader
-        title="New SO / Project"
-        subtitle={fromQuotation ? `From Quotation ${fromQuotation.quotation_code}` : 'Register a new Sales Order'}
+        title="New Sales Order / Project"
+        subtitle={fromQuotation ? `Converting from Quotation ${fromQuotation.quotation_code}` : 'Register a new Sales Order and create the project record'}
         icon={<FolderPlus size={18} />}
         breadcrumb={[
           { label: 'Projects', path: '/projects' },
-          { label: 'New SO / Project' },
+          { label: 'New Sales Order' },
         ]}
       />
 
@@ -514,7 +555,8 @@ export function ProjectNew() {
       {/* ── Step 1: Basic Info ─────────────────────────────────────────────────── */}
       {step === 0 && (
         <Card className="p-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-5">Basic Information</h2>
+          <h2 className="text-base font-semibold text-gray-900 mb-1">Sales Order Details</h2>
+          <p className="text-sm text-gray-500 mb-5">Enter the core SO information. You can save as draft and complete remaining details later.</p>
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -526,7 +568,7 @@ export function ProjectNew() {
                   value={soNumber}
                   onChange={(e) => setSoNumber(e.target.value)}
                   placeholder="e.g. SO-CRCD-2025-0143"
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
                 {fromQuotation && soNumber && (
                   <p className="text-xs text-sky-600 mt-1">Prefilled from quotation. Edit if your SO numbering differs.</p>
@@ -540,7 +582,7 @@ export function ProjectNew() {
                   type="date"
                   value={deliveryDate}
                   onChange={(e) => setDeliveryDate(e.target.value)}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
                 {fromQuotation && !fromQuotation.required_delivery_expectation && (
                   <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
@@ -559,7 +601,7 @@ export function ProjectNew() {
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder="e.g. Civil Defence — Riyadh Region"
-                className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
 
@@ -569,7 +611,7 @@ export function ProjectNew() {
                 <select
                   value={manufacturingLocation}
                   onChange={(e) => setManufacturingLocation(e.target.value as ManufacturingLocation)}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
                   <option value="not_set">Not Set (decide at approval)</option>
                   <option value="saudi">Saudi Arabia</option>
@@ -581,7 +623,7 @@ export function ProjectNew() {
                 <select
                   value={medicalItems}
                   onChange={(e) => setMedicalItems(e.target.value as MedicalItems)}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
                   <option value="not_set">Not Set (decide at approval)</option>
                   <option value="yes">Yes — Medical Items</option>
@@ -624,7 +666,7 @@ export function ProjectNew() {
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
                 placeholder="Any additional context or instructions…"
-                className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
               />
             </div>
 
@@ -655,7 +697,7 @@ export function ProjectNew() {
       {/* ── Step 2: Documents ──────────────────────────────────────────────────── */}
       {step === 1 && (
         <Card className="p-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-2">Documents</h2>
+          <h2 className="text-base font-semibold text-gray-900 mb-2">Supporting Documents</h2>
           <p className="text-sm text-gray-500 mb-5">
             Optional for draft creation. Attach files directly (PDF, Office, images — max 10 MB) or enter a file name for reference only.
             Customer PO / Contract is required before SO approval — it will be enforced at the approval stage.
@@ -691,7 +733,7 @@ export function ProjectNew() {
                     <select
                       value={doc.document_type}
                       onChange={(e) => updateDocument(doc.id, 'document_type', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                     >
                       {DOCUMENT_TYPE_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
@@ -705,7 +747,7 @@ export function ProjectNew() {
                       value={doc.file_name}
                       onChange={(e) => updateDocument(doc.id, 'file_name', e.target.value)}
                       placeholder="e.g. PO-CRCD-2025-0143.pdf"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
                 </div>
@@ -717,7 +759,7 @@ export function ProjectNew() {
                       Attach File (optional — PDF, Word, Excel, JPG, PNG — max 10 MB)
                     </label>
                     <div className="flex items-center gap-2">
-                      <label className="flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-colors flex-1 min-w-0">
+                      <label className="flex items-center gap-2 px-3 py-2 border border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-colors flex-1 min-w-0">
                         <Upload size={14} className={doc.file ? 'text-brand-500 shrink-0' : 'text-gray-400 shrink-0'} />
                         <span className={`text-xs truncate ${doc.file ? 'text-brand-700 font-medium' : 'text-gray-400'}`}>
                           {doc.file
@@ -760,7 +802,7 @@ export function ProjectNew() {
                     value={doc.remarks}
                     onChange={(e) => updateDocument(doc.id, 'remarks', e.target.value)}
                     placeholder="Any notes about this document…"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
               </div>
@@ -789,7 +831,7 @@ export function ProjectNew() {
       {/* ── Step 3: Vehicle Lines ──────────────────────────────────────────────── */}
       {step === 2 && (
         <Card className="p-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-2">Vehicle / Item Lines</h2>
+          <h2 className="text-base font-semibold text-gray-900 mb-2">Vehicle & Item Lines</h2>
           {fromQuotation && lines.some((l) => l.vehicle_type || l.description) && (
             <p className="text-sm text-sky-600 mb-4 flex items-center gap-1">
               <Info size={13} className="shrink-0" />
@@ -819,8 +861,8 @@ export function ProjectNew() {
                     <select
                       value={line.vehicle_type}
                       onChange={(e) => updateLine(line.id, 'vehicle_type', e.target.value)}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 ${
-                        !line.vehicle_type ? 'border-amber-400' : 'border-gray-300'
+                      className={`w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 ${
+                        !line.vehicle_type ? 'border-amber-400' : 'border-gray-200'
                       }`}
                     >
                       <option value="">Select type…</option>
@@ -843,8 +885,8 @@ export function ProjectNew() {
                       value={line.description}
                       onChange={(e) => updateLine(line.id, 'description', e.target.value)}
                       placeholder="e.g. Heavy Pumper Truck — 6000L"
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 ${
-                        !line.description.trim() ? 'border-amber-400' : 'border-gray-300'
+                      className={`w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 ${
+                        !line.description.trim() ? 'border-amber-400' : 'border-gray-200'
                       }`}
                     />
                     {!line.description.trim() && (
@@ -860,7 +902,7 @@ export function ProjectNew() {
                       min={1}
                       value={line.quantity}
                       onChange={(e) => updateLine(line.id, 'quantity', parseInt(e.target.value) || 1)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
                   <div>
@@ -871,7 +913,7 @@ export function ProjectNew() {
                       step={1000}
                       value={line.unit_sales_value}
                       onChange={(e) => updateLine(line.id, 'unit_sales_value', parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                     {line.unit_sales_value === 0 && (
                       <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
@@ -881,7 +923,7 @@ export function ProjectNew() {
                   </div>
                 </div>
                 <div className="mt-2 text-right text-xs text-gray-500">
-                  Line Total: <span className="font-semibold text-gray-800">
+                  Line Total: <span className="font-semibold text-gray-800 tabular-nums">
                     SAR {formatSAR(line.quantity * line.unit_sales_value)}
                   </span>
                 </div>
@@ -896,9 +938,9 @@ export function ProjectNew() {
               Add Vehicle / Item Line
             </button>
 
-            <div className="bg-gray-50 rounded-lg px-4 py-3 flex items-center justify-between">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700">Total Sales Value</span>
-              <span className="text-base font-bold text-gray-900">SAR {formatSAR(totalValue)}</span>
+              <span className="text-base font-bold text-gray-900 tabular-nums">SAR {formatSAR(totalValue)}</span>
             </div>
           </div>
 
@@ -928,7 +970,7 @@ export function ProjectNew() {
         <div className="space-y-4">
           {/* Source quotation reminder */}
           {fromQuotation && (
-            <div className="flex items-center gap-3 p-3 bg-sky-50 border border-sky-200 rounded-xl">
+            <div className="flex items-center gap-3 p-3 bg-sky-50 border border-sky-200 rounded-lg">
               <FileText size={15} className="text-sky-500 shrink-0" />
               <p className="text-sm text-sky-900 flex-1">
                 After creation, the quotation{' '}
@@ -1025,11 +1067,11 @@ export function ProjectNew() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 text-xs font-semibold text-gray-600">#</th>
-                    <th className="text-left py-2 text-xs font-semibold text-gray-600">Type</th>
-                    <th className="text-left py-2 text-xs font-semibold text-gray-600">Description</th>
-                    <th className="text-right py-2 text-xs font-semibold text-gray-600">Qty</th>
-                    <th className="text-right py-2 text-xs font-semibold text-gray-600">Total (SAR)</th>
+                    <th className="text-left py-2 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">#</th>
+                    <th className="text-left py-2 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Type</th>
+                    <th className="text-left py-2 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Description</th>
+                    <th className="text-right py-2 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Qty</th>
+                    <th className="text-right py-2 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Total (SAR)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -1046,12 +1088,17 @@ export function ProjectNew() {
                 <tfoot>
                   <tr className="border-t-2 border-gray-300">
                     <td colSpan={4} className="pt-2 text-right text-sm font-semibold text-gray-700">Total</td>
-                    <td className="pt-2 text-right text-base font-bold text-gray-900">SAR {formatSAR(totalValue)}</td>
+                    <td className="pt-2 text-right text-base font-bold text-gray-900 tabular-nums">SAR {formatSAR(totalValue)}</td>
                   </tr>
                 </tfoot>
               </table>
             )}
           </Card>
+
+          <p className="text-xs text-gray-500 text-right pt-1">
+            <span className="font-medium text-gray-700">Save as Draft</span> keeps the SO editable.{' '}
+            <span className="font-medium text-gray-700">Submit for Approval</span> sends it to Operations for routing.
+          </p>
 
           <div className="flex items-center justify-between pt-2">
             <Button variant="ghost" onClick={() => setStep(2)} icon={<ChevronLeft size={16} />} disabled={submitting}>
