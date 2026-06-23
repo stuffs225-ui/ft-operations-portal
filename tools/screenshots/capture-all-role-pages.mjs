@@ -54,6 +54,7 @@ if (!fs.existsSync(SCREENSHOTS_ENV)) {
 dotenvConfig({ path: SCREENSHOTS_ENV, override: false });
 
 const BASE_URL = process.env.APP_BASE_URL || 'http://localhost:5173';
+const IS_CI = !!process.env.CI;
 
 // ---------------------------------------------------------------------------
 // CLI args
@@ -111,12 +112,14 @@ function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
-async function waitForApp(maxWaitMs = 45000) {
+async function waitForApp(maxWaitMs = IS_CI ? 90000 : 45000) {
   const { default: http } = await import('http');
   const url = new URL(BASE_URL);
   const start = Date.now();
+  let attempt = 0;
   while (Date.now() - start < maxWaitMs) {
     await new Promise((r) => setTimeout(r, 1000));
+    attempt++;
     const ok = await new Promise((resolve) => {
       const req = http.get(
         { hostname: url.hostname, port: url.port || 5173, path: '/' },
@@ -126,7 +129,11 @@ async function waitForApp(maxWaitMs = 45000) {
       req.setTimeout(2000, () => { req.destroy(); resolve(false); });
     });
     if (ok) return true;
-    process.stdout.write('.');
+    if (IS_CI) {
+      console.log(`  Waiting for app… attempt ${attempt}`);
+    } else {
+      process.stdout.write('.');
+    }
   }
   return false;
 }
@@ -500,9 +507,15 @@ async function main() {
   console.log(`Login: ${loginSuccesses} succeeded, ${loginFailures} failed`);
 
   if (!dryRun) {
+    let currentSha = 'unknown';
+    try {
+      const { execSync } = await import('child_process');
+      currentSha = execSync('git rev-parse --short HEAD', { cwd: ROOT, encoding: 'utf8' }).trim();
+    } catch { /* not a git repo or git unavailable */ }
+
     const results = {
       runAt: new Date().toISOString(),
-      mainSha: 'f9e2f5d',
+      sha: currentSha,
       authMode,
       elapsed,
       totalCaptured,
@@ -513,6 +526,11 @@ async function main() {
     };
     fs.writeFileSync(RESULTS_FILE, JSON.stringify(results, null, 2));
     console.log(`Results: ${path.relative(ROOT, RESULTS_FILE)}`);
+
+    // Write a CI-friendly summary line for log scanning
+    if (IS_CI) {
+      console.log(`\n::notice::Screenshot baseline: ${totalCaptured} captured, ${loginFailures} login failures, ${totalErrors} errors (auth_mode=${authMode})`);
+    }
   }
 
   return { totalCaptured, totalErrors, loginFailures };

@@ -151,6 +151,7 @@ changes are self-documented in the commit message and PR diff.
 ## Tooling — Screenshot Baseline
 
 - **tooling-full-real-auth-role-page-screenshot-baseline.md — Full Real-Auth Role/Page Screenshot Baseline** (branch `tooling/full-real-auth-role-page-screenshot-baseline`; base `f9e2f5d`; 12 accounts × all pages; real Supabase auth enforced)
+- **tooling-github-actions-real-auth-screenshot-baseline.md — GitHub Actions Real-Auth Screenshot Baseline** (branch `tooling/github-actions-real-auth-screenshot-baseline`; base `c668d3f`; manual workflow; uses GitHub Secrets; uploads artifact)
 
 ---
 

@@ -106,7 +106,8 @@ export const ACCOUNTS = [
 
 export function resolveCredentials(account, env) {
   const email = env[account.emailEnvKey];
-  const password = env[account.passwordEnvKey];
+  // Individual per-account password takes precedence; SCREENSHOT_SHARED_PASSWORD is the fallback.
+  const password = env[account.passwordEnvKey] || env['SCREENSHOT_SHARED_PASSWORD'];
   if (!email || !password) return null;
   return { email, password };
 }
