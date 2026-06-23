@@ -148,6 +148,12 @@ changes are self-documented in the commit message and PR diff.
 
 ---
 
+## Tooling — Screenshot Baseline
+
+- **tooling-full-real-auth-role-page-screenshot-baseline.md — Full Real-Auth Role/Page Screenshot Baseline** (branch `tooling/full-real-auth-role-page-screenshot-baseline`; base `f9e2f5d`; 12 accounts × all pages; real Supabase auth enforced)
+
+---
+
 ## Deferred Items
 
 See `step-18-8-final-system-stabilization-go-live-readiness.md` § Deferred Items Consolidated Backlog for the full list of 33 deferred items (DFR-01 through DFR-33). None are go-live blockers.
