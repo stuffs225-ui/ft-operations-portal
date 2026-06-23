@@ -39,13 +39,15 @@ export function TemplateGenerate() {
       setLoading(false);
     };
     if (!isSupabaseConfigured || !supabase) {
-      const tpl = getMockTemplate(id);
-      if (!tpl) {
-        setNotFound(true);
-        setLoading(false);
-        return;
-      }
-      seed(tpl, getMockTemplateFields(id));
+      Promise.resolve().then(() => {
+        const tpl = getMockTemplate(id);
+        if (!tpl) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        seed(tpl, getMockTemplateFields(id));
+      });
       return;
     }
     Promise.all([

@@ -159,7 +159,7 @@ export function ProjectNew() {
 
   // From-quotation state
   const [fromQuotation, setFromQuotation] = useState<QuotationRequest | null>(null);
-  const [fromQuotationLoading, setFromQuotationLoading] = useState(false);
+  const [fromQuotationLoading, setFromQuotationLoading] = useState(!!fromQuotationId && isSupabaseConfigured);
 
   // Step 1 — Basic Info
   const [soNumber, setSoNumber] = useState('');
@@ -188,8 +188,6 @@ export function ProjectNew() {
       // Dev mode: no data to prefill, just show the banner
       return;
     }
-
-    setFromQuotationLoading(true);
 
     Promise.all([
       supabase

@@ -53,14 +53,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // a mock admin session with fake data.
   useEffect(() => {
     if (!isSupabaseConfigured) {
-      if (import.meta.env.PROD) {
-        // Production build without Supabase env vars — surface a config error, not mock data.
+      Promise.resolve().then(() => {
+        if (import.meta.env.PROD) {
+          // Production build without Supabase env vars — surface a config error, not mock data.
+          setLoading(false);
+          return;
+        }
+        setProfile(DEV_PROFILE);
+        setRole('admin');
         setLoading(false);
-        return;
-      }
-      setProfile(DEV_PROFILE);
-      setRole('admin');
-      setLoading(false);
+      });
       return;
     }
 

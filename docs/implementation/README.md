@@ -105,6 +105,12 @@ This directory contains step-by-step implementation and audit records for the FT
 
 ---
 
+## Phase 0 — Stabilization
+
+- **phase-0a-set-state-in-effect-stabilization.md — Phase 0A: set-state-in-effect Lint Stabilization** (main SHA `724a588`; fixed 17 errors across 17 files; 0 set-state-in-effect errors remaining)
+
+---
+
 ## Phase 19 — Design System and UX Modernization
 
 ### Foundation

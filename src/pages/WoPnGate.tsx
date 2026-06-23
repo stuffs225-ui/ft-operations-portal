@@ -641,7 +641,7 @@ export function WoPnGate() {
     setLoading(false);
   }
 
-  useEffect(() => { loadData(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { Promise.resolve().then(() => { loadData(); }); }, []);
 
   const filteredRefs = useMemo(() => {
     let list = references;
