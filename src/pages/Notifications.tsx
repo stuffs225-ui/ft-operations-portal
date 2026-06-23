@@ -41,8 +41,10 @@ export function Notifications() {
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
-      setItems(MOCK_NOTIFICATIONS.filter((n) => n.channel === 'in_app'));
-      setLoading(false);
+      Promise.resolve().then(() => {
+        setItems(MOCK_NOTIFICATIONS.filter((n) => n.channel === 'in_app'));
+        setLoading(false);
+      });
       return;
     }
     let query = supabase

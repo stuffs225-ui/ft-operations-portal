@@ -31,8 +31,10 @@ export function AdminAccessRequests() {
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
-      setRequests(MOCK_ACCESS_REQUESTS);
-      setLoading(false);
+      Promise.resolve().then(() => {
+        setRequests(MOCK_ACCESS_REQUESTS);
+        setLoading(false);
+      });
       return;
     }
     supabase

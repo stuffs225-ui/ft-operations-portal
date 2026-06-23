@@ -117,7 +117,7 @@ export function QuotationNew() {
 
   // Hot project prefill state
   const [hotProject, setHotProject] = useState<HotProject | null>(null);
-  const [hotProjectLoading, setHotProjectLoading] = useState(false);
+  const [hotProjectLoading, setHotProjectLoading] = useState(!!hotProjectId && isSupabaseConfigured);
 
   // Fetch hot project and prefill form when hotProjectId is in URL
   useEffect(() => {
@@ -125,32 +125,33 @@ export function QuotationNew() {
 
     if (!isSupabaseConfigured || !supabase) {
       // Dev mode: simulate a hot project so the form shows a source card
-      setHotProject({
-        id: hotProjectId,
-        hot_project_code: 'HP-2026-0001',
-        title: 'Demo Opportunity',
-        customer_name: '',
-        customer_contact_name: null,
-        customer_email: null,
-        customer_phone: null,
-        opportunity_source: null,
-        stage: 'lead',
-        probability: 50,
-        estimated_value: null,
-        expected_close_date: null,
-        linked_quotation_id: null,
-        linked_project_id: null,
-        sales_owner_id: null,
-        notes: null,
-        lost_reason: null,
-        created_by: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+      Promise.resolve().then(() => {
+        setHotProject({
+          id: hotProjectId,
+          hot_project_code: 'HP-2026-0001',
+          title: 'Demo Opportunity',
+          customer_name: '',
+          customer_contact_name: null,
+          customer_email: null,
+          customer_phone: null,
+          opportunity_source: null,
+          stage: 'lead',
+          probability: 50,
+          estimated_value: null,
+          expected_close_date: null,
+          linked_quotation_id: null,
+          linked_project_id: null,
+          sales_owner_id: null,
+          notes: null,
+          lost_reason: null,
+          created_by: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
       });
       return;
     }
 
-    setHotProjectLoading(true);
     supabase
       .from('hot_projects')
       .select('*')

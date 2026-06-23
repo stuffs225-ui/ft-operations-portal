@@ -55,16 +55,18 @@ export function AdminAccessRequestDetail() {
   useEffect(() => {
     if (!id) return;
     if (!isSupabaseConfigured || !supabase) {
-      const req = getMockAccessRequest(id);
-      if (!req) {
-        setNotFound(true);
-      } else {
-        setRequest(req);
-        setRole(req.requested_role ?? '');
-        setDepartment(req.department ?? '');
-        setReviewNotes(req.admin_review_notes ?? '');
-      }
-      setLoading(false);
+      Promise.resolve().then(() => {
+        const req = getMockAccessRequest(id);
+        if (!req) {
+          setNotFound(true);
+        } else {
+          setRequest(req);
+          setRole(req.requested_role ?? '');
+          setDepartment(req.department ?? '');
+          setReviewNotes(req.admin_review_notes ?? '');
+        }
+        setLoading(false);
+      });
       return;
     }
     supabase

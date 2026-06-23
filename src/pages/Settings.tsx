@@ -575,15 +575,13 @@ function SystemStatusTab() {
 export function Settings() {
   const [activeTab, setActiveTab] = useState<Tab>('Vehicle Types');
   const [liveData, setLiveData] = useState<LiveData | null>(null);
-  const [dbLoading, setDbLoading] = useState(false);
+  const [dbLoading, setDbLoading] = useState(isSupabaseConfigured);
   // True once the fetch resolved (even with empty results). Used to
   // distinguish "DB returned 0 rows" from "never fetched (dev mode)".
   const [fetchComplete, setFetchComplete] = useState(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
-
-    setDbLoading(true);
 
     Promise.all([
       supabase.from('vehicle_types').select('id,name,code,description').eq('is_active', true).order('name'),

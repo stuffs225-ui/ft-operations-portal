@@ -38,15 +38,17 @@ export function TemplateDetail() {
   useEffect(() => {
     if (!id) return;
     if (!isSupabaseConfigured || !supabase) {
-      const tpl = getMockTemplate(id);
-      if (!tpl) {
-        setNotFound(true);
+      Promise.resolve().then(() => {
+        const tpl = getMockTemplate(id);
+        if (!tpl) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        setTemplate(tpl);
+        setFields(getMockTemplateFields(id));
         setLoading(false);
-        return;
-      }
-      setTemplate(tpl);
-      setFields(getMockTemplateFields(id));
-      setLoading(false);
+      });
       return;
     }
     Promise.all([

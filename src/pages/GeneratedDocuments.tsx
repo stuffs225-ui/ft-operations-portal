@@ -17,8 +17,10 @@ export function GeneratedDocuments() {
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
-      setDocs(MOCK_GENERATED_DOCUMENTS);
-      setLoading(false);
+      Promise.resolve().then(() => {
+        setDocs(MOCK_GENERATED_DOCUMENTS);
+        setLoading(false);
+      });
       return;
     }
     supabase.from('generated_documents').select('*, template:document_templates(template_name, template_code, template_type)')

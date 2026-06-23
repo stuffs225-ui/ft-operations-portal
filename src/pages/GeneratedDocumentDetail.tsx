@@ -27,14 +27,16 @@ export function GeneratedDocumentDetail() {
   useEffect(() => {
     if (!id) return;
     if (!isSupabaseConfigured || !supabase) {
-      const d = getMockGeneratedDocument(id);
-      if (!d) {
-        setNotFound(true);
+      Promise.resolve().then(() => {
+        const d = getMockGeneratedDocument(id);
+        if (!d) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        setDoc(d);
         setLoading(false);
-        return;
-      }
-      setDoc(d);
-      setLoading(false);
+      });
       return;
     }
     supabase.from('generated_documents')

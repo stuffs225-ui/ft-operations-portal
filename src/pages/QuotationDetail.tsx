@@ -272,23 +272,25 @@ export function QuotationDetail() {
     if (!id) return;
 
     if (!isSupabaseConfigured || !supabase) {
-      const q = MOCK_QUOTATIONS.find((q) => q.id === id);
-      if (q) {
-        setQuotation(q);
-        setLines(getMockQuotationLines(id));
-        setDocuments(getMockQuotationDocuments(id));
-        setTimeline(getMockQuotationTimeline(id));
-        setCoordRemarks(q.coordinator_remarks ?? '');
-        setEstimationContact(q.estimation_contact ?? '');
-        setQuotationNumber(q.quotation_number ?? '');
-        setLineValues(
-          getMockQuotationLines(id).reduce<Record<string, number>>((acc, l) => {
-            if (l.final_quotation_unit_value != null) acc[l.id] = l.final_quotation_unit_value;
-            return acc;
-          }, {}),
-        );
-      }
-      setLoading(false);
+      Promise.resolve().then(() => {
+        const q = MOCK_QUOTATIONS.find((q) => q.id === id);
+        if (q) {
+          setQuotation(q);
+          setLines(getMockQuotationLines(id));
+          setDocuments(getMockQuotationDocuments(id));
+          setTimeline(getMockQuotationTimeline(id));
+          setCoordRemarks(q.coordinator_remarks ?? '');
+          setEstimationContact(q.estimation_contact ?? '');
+          setQuotationNumber(q.quotation_number ?? '');
+          setLineValues(
+            getMockQuotationLines(id).reduce<Record<string, number>>((acc, l) => {
+              if (l.final_quotation_unit_value != null) acc[l.id] = l.final_quotation_unit_value;
+              return acc;
+            }, {}),
+          );
+        }
+        setLoading(false);
+      });
       return;
     }
 
