@@ -27,3 +27,7 @@ Thumbs.db
 *.log
 npm-debug.log*
 supabase/.temp/
+
+# Generated screenshot images (committed to GitHub Actions artifact, not to repo)
+docs/artifact-context/screenshots/
+tools/screenshots/*.png
