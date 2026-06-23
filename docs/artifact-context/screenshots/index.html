@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>FT Operations Portal — Screenshot Review</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; color: #1a1a2e; background: #f8f9fa; }
+  a { color: #0078d4; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .layout { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar { width: 240px; flex-shrink: 0; background: #1a1a2e; color: #e0e0ef; position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 20px 0; }
+  .sidebar h1 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #8888aa; padding: 0 20px 12px; border-bottom: 1px solid #2a2a4a; margin-bottom: 12px; }
+  .sidebar ul { list-style: none; }
+  .sidebar li a { display: flex; justify-content: space-between; align-items: center; padding: 7px 20px; color: #c0c0d8; font-size: 13px; transition: background 0.15s; }
+  .sidebar li a:hover { background: #2a2a4a; text-decoration: none; color: #fff; }
+  .sidebar .count { font-size: 11px; background: #2a2a4a; border-radius: 8px; padding: 1px 6px; color: #8888aa; }
+
+  /* Main */
+  .main { flex: 1; padding: 32px; overflow-y: auto; }
+  .run-meta { background: #e8f4fd; border: 1px solid #b3d7f5; border-radius: 6px; padding: 10px 16px; font-size: 13px; color: #0056a0; margin-bottom: 24px; }
+  .stats { display: flex; gap: 16px; margin-bottom: 32px; flex-wrap: wrap; }
+  .stat { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px 20px; min-width: 140px; }
+  .stat-value { font-size: 28px; font-weight: 700; color: #1a1a2e; }
+  .stat-label { font-size: 12px; color: #666; margin-top: 2px; }
+
+  /* Account sections */
+  .account { margin-bottom: 56px; }
+  .account h2 { font-size: 20px; font-weight: 700; color: #1a1a2e; border-bottom: 2px solid #0078d4; padding-bottom: 8px; margin-bottom: 20px; }
+  .role-tag { font-size: 12px; font-weight: 400; color: #666; background: #f0f0f0; border-radius: 4px; padding: 2px 8px; margin-left: 8px; }
+  .module { margin-bottom: 28px; }
+  .module h3 { font-size: 14px; font-weight: 600; color: #444; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+  .empty { color: #999; font-style: italic; padding: 16px 0; }
+
+  /* Grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .card { background: #fff; border: 1px solid #e4e4e4; border-radius: 6px; overflow: hidden; transition: box-shadow 0.15s; }
+  .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+  .card img { width: 100%; display: block; border-bottom: 1px solid #f0f0f0; aspect-ratio: 1440/1000; object-fit: cover; object-position: top; }
+  .no-img { height: 120px; display: flex; align-items: center; justify-content: center; background: #f5f5f5; color: #999; font-size: 12px; border-bottom: 1px solid #eee; }
+  .card-meta { padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .route { font-size: 12px; font-family: monospace; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Badges */
+  .badge { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 6px; border-radius: 3px; flex-shrink: 0; }
+  .badge.ok { background: #e6f4ea; color: #1e7e34; }
+  .badge.warn { background: #fff3cd; color: #856404; }
+  .badge.err { background: #fce8e8; color: #c0392b; }
+  .badge.info { background: #e8f0fe; color: #1a73e8; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { padding: 16px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <h1>FT Operations Portal</h1>
+    <ul>
+<li><a href="#acct-admin">Admin <span class="count">96</span></a></li>
+<li><a href="#acct-stuffs">Owner (Stuffs) <span class="count">0</span></a></li>
+<li><a href="#acct-coo">Operations Manager (COO) <span class="count">0</span></a></li>
+<li><a href="#acct-ops">Operations Manager (OPS) <span class="count">0</span></a></li>
+<li><a href="#acct-testsales">Sales User <span class="count">0</span></a></li>
+<li><a href="#acct-sales_test">Sales Test User <span class="count">0</span></a></li>
+<li><a href="#acct-procurement">Procurement User <span class="count">0</span></a></li>
+<li><a href="#acct-factory">Factory User <span class="count">0</span></a></li>
+<li><a href="#acct-store">Store/Warehouse User <span class="count">0</span></a></li>
+<li><a href="#acct-qc">QC User <span class="count">0</span></a></li>
+<li><a href="#acct-afs">AFS (Dubai After-Sales) User <span class="count">0</span></a></li>
+<li><a href="#acct-viewer">Viewer (Management Dashboard) <span class="count">0</span></a></li>
+    </ul>
+  </nav>
+  <main class="main">
+    <div class="run-meta">Run at: 2026-06-23T09:20:37.001Z &nbsp;|&nbsp; 136.2s &nbsp;|&nbsp; 96 captured</div>
+    <div class="stats">
+      <div class="stat"><div class="stat-value">12</div><div class="stat-label">Accounts</div></div>
+      <div class="stat"><div class="stat-value">96</div><div class="stat-label">Total Routes</div></div>
+      <div class="stat"><div class="stat-value">96</div><div class="stat-label">Captured OK</div></div>
+      <div class="stat"><div class="stat-value">0</div><div class="stat-label">Failed / Missing</div></div>
+    </div>
+<section id="acct-admin" class="account">
+    <h2>Admin <small class="role-tag">admin</small></h2>
+    <section class="module">
+        <h3>Sales</h3>
+        <div class="grid"><div class="card">
+          <a href="admin/01-sales/sales.png" target="_blank"><img src="admin/01-sales/sales.png" alt="Sales Dashboard" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/sales</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/01-sales/hot-projects.png" target="_blank"><img src="admin/01-sales/hot-projects.png" alt="Hot Projects" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/hot-projects</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/01-sales/hot-projects--new.png" target="_blank"><img src="admin/01-sales/hot-projects--new.png" alt="New Hot Project" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/hot-projects/new</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/01-sales/receivables.png" target="_blank"><img src="admin/01-sales/receivables.png" alt="Receivables" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/receivables</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div></div>
+      </section>
+<section class="module">
+        <h3>Sales Coordinator</h3>
+        <div class="grid"><div class="card">
+          <a href="admin/02-sales-coordinator/sales-coordinator.png" target="_blank"><img src="admin/02-sales-coordinator/sales-coordinator.png" alt="Sales Coordinator Hub" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/sales-coordinator</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/02-sales-coordinator/coordinator-queue.png" target="_blank"><img src="admin/02-sales-coordinator/coordinator-queue.png" alt="Coordinator Queue" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/coordinator-queue</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/02-sales-coordinator/quotations.png" target="_blank"><img src="admin/02-sales-coordinator/quotations.png" alt="Quotations" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/quotations</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/02-sales-coordinator/quotations--new.png" target="_blank"><img src="admin/02-sales-coordinator/quotations--new.png" alt="New Quotation" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/quotations/new</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div></div>
+      </section>
+<section class="module">
+        <h3>Projects / Sales Orders</h3>
+        <div class="grid"><div class="card">
+          <a href="admin/03-projects-so/projects.png" target="_blank"><img src="admin/03-projects-so/projects.png" alt="Projects / Sales Orders" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/projects</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/03-projects-so/projects--new.png" target="_blank"><img src="admin/03-projects-so/projects--new.png" alt="New Sales Order" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/projects/new</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/03-projects-so/admin-approvals.png" target="_blank"><img src="admin/03-projects-so/admin-approvals.png" alt="SO Approvals" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/admin-approvals</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/03-projects-so/wo-pn-gate.png" target="_blank"><img src="admin/03-projects-so/wo-pn-gate.png" alt="WO / PN Gate" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/wo-pn-gate</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div></div>
+      </section>
+<section class="module">
+        <h3>Procurement</h3>
+        <div class="grid"><div class="card">
+          <a href="admin/04-procurement/procurement.png" target="_blank"><img src="admin/04-procurement/procurement.png" alt="Procurement Hub" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/procurement</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/04-procurement/procurement--requests.png" target="_blank"><img src="admin/04-procurement/procurement--requests.png" alt="Purchase Requests" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/procurement/requests</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/04-procurement/procurement--requests--new.png" target="_blank"><img src="admin/04-procurement/procurement--requests--new.png" alt="New Purchase Request" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/procurement/requests/new</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/04-procurement/procurement--purchase-orders.png" target="_blank"><img src="admin/04-procurement/procurement--purchase-orders.png" alt="Purchase Orders" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/procurement/purchase-orders</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/04-procurement/procurement--purchase-orders--new.png" target="_blank"><img src="admin/04-procurement/procurement--purchase-orders--new.png" alt="New Purchase Order" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/procurement/purchase-orders/new</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/04-procurement/procurement--pr-items-without-po.png" target="_blank"><img src="admin/04-procurement/procurement--pr-items-without-po.png" alt="PR Items Without PO" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/procurement/pr-items-without-po</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/04-procurement/procurement--suppliers.png" target="_blank"><img src="admin/04-procurement/procurement--suppliers.png" alt="Supplier Register" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/procurement/suppliers</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/04-procurement/procurement--eta-history.png" target="_blank"><img src="admin/04-procurement/procurement--eta-history.png" alt="ETA History" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/procurement/eta-history</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div></div>
+      </section>
+<section class="module">
+        <h3>Store / Warehouse</h3>
+        <div class="grid"><div class="card">
+          <a href="admin/05-store-warehouse/store.png" target="_blank"><img src="admin/05-store-warehouse/store.png" alt="Store Hub" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/store</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/05-store-warehouse/store--receipts.png" target="_blank"><img src="admin/05-store-warehouse/store--receipts.png" alt="Material Receipts" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/store/receipts</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/05-store-warehouse/store--receipts--new.png" target="_blank"><img src="admin/05-store-warehouse/store--receipts--new.png" alt="New Receipt" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/store/receipts/new</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/05-store-warehouse/store--vehicle-receiving.png" target="_blank"><img src="admin/05-store-warehouse/store--vehicle-receiving.png" alt="Vehicle Receiving" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/store/vehicle-receiving</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/05-store-warehouse/store--vehicle-receiving--new.png" target="_blank"><img src="admin/05-store-warehouse/store--vehicle-receiving--new.png" alt="New Vehicle Receiving" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/store/vehicle-receiving/new</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/05-store-warehouse/store--inventory.png" target="_blank"><img src="admin/05-store-warehouse/store--inventory.png" alt="Store Inventory" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/store/inventory</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/05-store-warehouse/store--issuance.png" target="_blank"><img src="admin/05-store-warehouse/store--issuance.png" alt="Material Issuance" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/store/issuance</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/05-store-warehouse/store--serials.png" target="_blank"><img src="admin/05-store-warehouse/store--serials.png" alt="Serial Numbers" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/store/serials</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/05-store-warehouse/store--qc-handoff.png" target="_blank"><img src="admin/05-store-warehouse/store--qc-handoff.png" alt="QC Handoff" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/store/qc-handoff</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/05-store-warehouse/store--unallocated.png" target="_blank"><img src="admin/05-store-warehouse/store--unallocated.png" alt="Unallocated Materials" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/store/unallocated</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/05-store-warehouse/custody.png" target="_blank"><img src="admin/05-store-warehouse/custody.png" alt="Material Custody" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/custody</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/05-store-warehouse/custody--new.png" target="_blank"><img src="admin/05-store-warehouse/custody--new.png" alt="New Custody Request" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/custody/new</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/05-store-warehouse/vehicle-receiving.png" target="_blank"><img src="admin/05-store-warehouse/vehicle-receiving.png" alt="Vehicle Receiving (legacy)" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/vehicle-receiving</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div></div>
+      </section>
+<section class="module">
+        <h3>Factory</h3>
+        <div class="grid"><div class="card">
+          <a href="admin/06-factory/factory.png" target="_blank"><img src="admin/06-factory/factory.png" alt="Factory Hub" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/factory</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/06-factory/factory--projects.png" target="_blank"><img src="admin/06-factory/factory--projects.png" alt="Factory Projects" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/factory/projects</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/06-factory/factory--requirements.png" target="_blank"><img src="admin/06-factory/factory--requirements.png" alt="Factory Requirements" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/factory/requirements</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/06-factory/factory--raw-material-requests.png" target="_blank"><img src="admin/06-factory/factory--raw-material-requests.png" alt="Raw Material Requests" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/factory/raw-material-requests</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/06-factory/factory--raw-material-requests--new.png" target="_blank"><img src="admin/06-factory/factory--raw-material-requests--new.png" alt="New RMR" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/factory/raw-material-requests/new</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/06-factory/factory--monthly-updates.png" target="_blank"><img src="admin/06-factory/factory--monthly-updates.png" alt="Monthly Updates" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/factory/monthly-updates</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/06-factory/factory--send-to-qc.png" target="_blank"><img src="admin/06-factory/factory--send-to-qc.png" alt="Send to QC" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/factory/send-to-qc</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/06-factory/factory--pending-raw-materials.png" target="_blank"><img src="admin/06-factory/factory--pending-raw-materials.png" alt="Pending Raw Materials" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/factory/pending-raw-materials</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div></div>
+      </section>
+<section class="module">
+        <h3>Quality Control</h3>
+        <div class="grid"><div class="card">
+          <a href="admin/07-qc/qc.png" target="_blank"><img src="admin/07-qc/qc.png" alt="QC Hub" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/qc</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/07-qc/qc--work-queue.png" target="_blank"><img src="admin/07-qc/qc--work-queue.png" alt="QC Work Queue" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/qc/work-queue</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/07-qc/qc--rework.png" target="_blank"><img src="admin/07-qc/qc--rework.png" alt="QC Rework" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/qc/rework</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/07-qc/material-qc.png" target="_blank"><img src="admin/07-qc/material-qc.png" alt="Material QC Hub" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/material-qc</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/07-qc/material-qc--inspections.png" target="_blank"><img src="admin/07-qc/material-qc--inspections.png" alt="Material Inspections" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/material-qc/inspections</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/07-qc/material-qc--ncrs.png" target="_blank"><img src="admin/07-qc/material-qc--ncrs.png" alt="Material NCRs" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/material-qc/ncrs</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/07-qc/project-qc.png" target="_blank"><img src="admin/07-qc/project-qc.png" alt="Project QC Hub" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/project-qc</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/07-qc/project-qc--inspections.png" target="_blank"><img src="admin/07-qc/project-qc--inspections.png" alt="Project Inspections" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/project-qc/inspections</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/07-qc/project-qc--findings.png" target="_blank"><img src="admin/07-qc/project-qc--findings.png" alt="QC Findings" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/project-qc/findings</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/07-qc/project-qc--release-notes.png" target="_blank"><img src="admin/07-qc/project-qc--release-notes.png" alt="Release Notes" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/project-qc/release-notes</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div></div>
+      </section>
+<section class="module">
+        <h3>Dubai AFS</h3>
+        <div class="grid"><div class="card">
+          <a href="admin/08-dubai-afs/dubai-afs.png" target="_blank"><img src="admin/08-dubai-afs/dubai-afs.png" alt="Dubai AFS Hub" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/dubai-afs</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/08-dubai-afs/dubai-afs--projects.png" target="_blank"><img src="admin/08-dubai-afs/dubai-afs--projects.png" alt="AFS Projects" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/dubai-afs/projects</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/08-dubai-afs/dubai-afs--eta.png" target="_blank"><img src="admin/08-dubai-afs/dubai-afs--eta.png" alt="AFS ETA Tracking" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/dubai-afs/eta</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/08-dubai-afs/dubai-afs--arrival-reports.png" target="_blank"><img src="admin/08-dubai-afs/dubai-afs--arrival-reports.png" alt="Arrival Reports" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/dubai-afs/arrival-reports</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/08-dubai-afs/dubai-afs--missing-items.png" target="_blank"><img src="admin/08-dubai-afs/dubai-afs--missing-items.png" alt="Missing Items" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/dubai-afs/missing-items</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/08-dubai-afs/dubai-afs--predelivery-reports.png" target="_blank"><img src="admin/08-dubai-afs/dubai-afs--predelivery-reports.png" alt="Pre-Delivery Reports" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/dubai-afs/predelivery-reports</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/08-dubai-afs/dubai-afs--condition-reports.png" target="_blank"><img src="admin/08-dubai-afs/dubai-afs--condition-reports.png" alt="Condition Reports" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/dubai-afs/condition-reports</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/08-dubai-afs/afs--pn-gate.png" target="_blank"><img src="admin/08-dubai-afs/afs--pn-gate.png" alt="AFS PN Gate" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/afs/pn-gate</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/08-dubai-afs/afs--ready-for-delivery.png" target="_blank"><img src="admin/08-dubai-afs/afs--ready-for-delivery.png" alt="Ready for Delivery" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/afs/ready-for-delivery</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/08-dubai-afs/afs--materials.png" target="_blank"><img src="admin/08-dubai-afs/afs--materials.png" alt="AFS Materials" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/afs/materials</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div></div>
+      </section>
+<section class="module">
+        <h3>After Sales</h3>
+        <div class="grid"><div class="card">
+          <a href="admin/09-after-sales/after-sales.png" target="_blank"><img src="admin/09-after-sales/after-sales.png" alt="After Sales Hub" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/after-sales</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/09-after-sales/after-sales--maintenance.png" target="_blank"><img src="admin/09-after-sales/after-sales--maintenance.png" alt="Maintenance Requests" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/after-sales/maintenance</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/09-after-sales/after-sales--maintenance--new.png" target="_blank"><img src="admin/09-after-sales/after-sales--maintenance--new.png" alt="New Maintenance Request" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/after-sales/maintenance/new</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div></div>
+      </section>
+<section class="module">
+        <h3>Reports</h3>
+        <div class="grid"><div class="card">
+          <a href="admin/10-reports/reports.png" target="_blank"><img src="admin/10-reports/reports.png" alt="Reports Hub" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/reports</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/10-reports/reports--executive.png" target="_blank"><img src="admin/10-reports/reports--executive.png" alt="Executive Report" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/reports/executive</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/10-reports/reports--projects.png" target="_blank"><img src="admin/10-reports/reports--projects.png" alt="Projects Report" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/reports/projects</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/10-reports/reports--sales.png" target="_blank"><img src="admin/10-reports/reports--sales.png" alt="Sales Report" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/reports/sales</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/10-reports/reports--procurement.png" target="_blank"><img src="admin/10-reports/reports--procurement.png" alt="Procurement Report" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/reports/procurement</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/10-reports/reports--factory.png" target="_blank"><img src="admin/10-reports/reports--factory.png" alt="Factory Report" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/reports/factory</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/10-reports/reports--store.png" target="_blank"><img src="admin/10-reports/reports--store.png" alt="Store Report" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/reports/store</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/10-reports/reports--qc.png" target="_blank"><img src="admin/10-reports/reports--qc.png" alt="QC Report" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/reports/qc</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/10-reports/reports--afs.png" target="_blank"><img src="admin/10-reports/reports--afs.png" alt="AFS Report" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/reports/afs</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/10-reports/reports--suppliers.png" target="_blank"><img src="admin/10-reports/reports--suppliers.png" alt="Suppliers Report" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/reports/suppliers</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/10-reports/reports--sla.png" target="_blank"><img src="admin/10-reports/reports--sla.png" alt="SLA Report" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/reports/sla</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/10-reports/reports--data-quality.png" target="_blank"><img src="admin/10-reports/reports--data-quality.png" alt="Data Quality" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/reports/data-quality</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/10-reports/reports--health-scores.png" target="_blank"><img src="admin/10-reports/reports--health-scores.png" alt="Health Scores" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/reports/health-scores</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/10-reports/reports--issues.png" target="_blank"><img src="admin/10-reports/reports--issues.png" alt="Issues Report" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/reports/issues</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/10-reports/reports--capa.png" target="_blank"><img src="admin/10-reports/reports--capa.png" alt="CAPA Report" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/reports/capa</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div></div>
+      </section>
+<section class="module">
+        <h3>Control Tower</h3>
+        <div class="grid"><div class="card">
+          <a href="admin/11-control-tower/control-tower.png" target="_blank"><img src="admin/11-control-tower/control-tower.png" alt="Control Tower" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/control-tower</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div></div>
+      </section>
+<section class="module">
+        <h3>Admin</h3>
+        <div class="grid"><div class="card">
+          <a href="admin/12-admin/admin-dashboard.png" target="_blank"><img src="admin/12-admin/admin-dashboard.png" alt="Admin Dashboard" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/admin-dashboard</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/12-admin/settings.png" target="_blank"><img src="admin/12-admin/settings.png" alt="System Settings" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/settings</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/12-admin/admin--users.png" target="_blank"><img src="admin/12-admin/admin--users.png" alt="User Management" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/admin/users</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/12-admin/audit-log.png" target="_blank"><img src="admin/12-admin/audit-log.png" alt="Audit Log" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/audit-log</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/12-admin/admin--access-requests.png" target="_blank"><img src="admin/12-admin/admin--access-requests.png" alt="Access Requests" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/admin/access-requests</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/12-admin/admin--notification-rules.png" target="_blank"><img src="admin/12-admin/admin--notification-rules.png" alt="Notification Rules" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/admin/notification-rules</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/12-admin/admin--report-subscriptions.png" target="_blank"><img src="admin/12-admin/admin--report-subscriptions.png" alt="Report Subscriptions" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/admin/report-subscriptions</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/12-admin/templates--approvals.png" target="_blank"><img src="admin/12-admin/templates--approvals.png" alt="Template Approvals" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/templates/approvals</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div></div>
+      </section>
+<section class="module">
+        <h3>Viewer / Management Dashboard</h3>
+        <div class="grid"><div class="card">
+          <a href="admin/13-viewer-management/management-dashboard.png" target="_blank"><img src="admin/13-viewer-management/management-dashboard.png" alt="Management Dashboard" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/management-dashboard</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div></div>
+      </section>
+<section class="module">
+        <h3>Shared</h3>
+        <div class="grid"><div class="card">
+          <a href="admin/14-shared/root.png" target="_blank"><img src="admin/14-shared/root.png" alt="Dashboard / Landing" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/14-shared/inbox.png" target="_blank"><img src="admin/14-shared/inbox.png" alt="Action Inbox" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/inbox</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/14-shared/notifications.png" target="_blank"><img src="admin/14-shared/notifications.png" alt="Notifications" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/notifications</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/14-shared/notifications--settings.png" target="_blank"><img src="admin/14-shared/notifications--settings.png" alt="Notification Settings" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/notifications/settings</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/14-shared/templates.png" target="_blank"><img src="admin/14-shared/templates.png" alt="Document Templates" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/templates</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/14-shared/templates--generated.png" target="_blank"><img src="admin/14-shared/templates--generated.png" alt="Generated Documents" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/templates/generated</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div>
+<div class="card">
+          <a href="admin/14-shared/templates--new.png" target="_blank"><img src="admin/14-shared/templates--new.png" alt="New Template" loading="lazy" /></a>
+          <div class="card-meta">
+            <span class="route">/templates/new</span>
+            <span class="badge ok">OK</span>
+          </div>
+        </div></div>
+      </section>
+  </section>
+<section id="acct-stuffs" class="account">
+    <h2>Owner (Stuffs) <small class="role-tag">admin</small></h2>
+    <p class="empty">No screenshots captured.</p>
+  </section>
+<section id="acct-coo" class="account">
+    <h2>Operations Manager (COO) <small class="role-tag">operations_manager</small></h2>
+    <p class="empty">No screenshots captured.</p>
+  </section>
+<section id="acct-ops" class="account">
+    <h2>Operations Manager (OPS) <small class="role-tag">operations_manager</small></h2>
+    <p class="empty">No screenshots captured.</p>
+  </section>
+<section id="acct-testsales" class="account">
+    <h2>Sales User <small class="role-tag">sales_user</small></h2>
+    <p class="empty">No screenshots captured.</p>
+  </section>
+<section id="acct-sales_test" class="account">
+    <h2>Sales Test User <small class="role-tag">sales_user</small></h2>
+    <p class="empty">No screenshots captured.</p>
+  </section>
+<section id="acct-procurement" class="account">
+    <h2>Procurement User <small class="role-tag">procurement_user</small></h2>
+    <p class="empty">No screenshots captured.</p>
+  </section>
+<section id="acct-factory" class="account">
+    <h2>Factory User <small class="role-tag">factory_user</small></h2>
+    <p class="empty">No screenshots captured.</p>
+  </section>
+<section id="acct-store" class="account">
+    <h2>Store/Warehouse User <small class="role-tag">store_user</small></h2>
+    <p class="empty">No screenshots captured.</p>
+  </section>
+<section id="acct-qc" class="account">
+    <h2>QC User <small class="role-tag">qc_user</small></h2>
+    <p class="empty">No screenshots captured.</p>
+  </section>
+<section id="acct-afs" class="account">
+    <h2>AFS (Dubai After-Sales) User <small class="role-tag">afs_user</small></h2>
+    <p class="empty">No screenshots captured.</p>
+  </section>
+<section id="acct-viewer" class="account">
+    <h2>Viewer (Management Dashboard) <small class="role-tag">viewer</small></h2>
+    <p class="empty">No screenshots captured.</p>
+  </section>
+  </main>
+</div>
+</body>
+</html>

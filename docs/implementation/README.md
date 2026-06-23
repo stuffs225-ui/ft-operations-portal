@@ -111,6 +111,12 @@ This directory contains step-by-step implementation and audit records for the FT
 
 ---
 
+## Tooling
+
+- **tooling-full-role-page-screenshot-baseline.md — Full Role-Page Screenshot Baseline Tool** — Playwright screenshot capture tool for all 12 test accounts and all accessible static routes. Generates `docs/artifact-context/screenshots/index.html` visual review gallery. See also `tools/screenshots/README.md`.
+
+---
+
 ## Phase 19 — Design System and UX Modernization
 
 ### Foundation
