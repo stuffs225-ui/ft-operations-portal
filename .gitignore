@@ -27,3 +27,13 @@ Thumbs.db
 *.log
 npm-debug.log*
 supabase/.temp/
+
+# Screenshot tool — credentials, auth states, generated output
+.env.screenshots.local
+docs/artifact-context/screenshots/.auth/
+docs/artifact-context/screenshots/**/*.png
+docs/artifact-context/screenshots/**/*.webp
+docs/artifact-context/screenshots/**/*.jpg
+docs/artifact-context/screenshots/**/*.jpeg
+docs/artifact-context/screenshots/**/*.zip
+tools/screenshots/screenshot-run-results.json
