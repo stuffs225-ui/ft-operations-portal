@@ -673,6 +673,104 @@ export type Database = {
         };
         Relationships: [];
       };
+      project_invoicing_schedule: {
+        Row: {
+          id: string;
+          project_id: string;
+          sales_user_id: string | null;
+          sequence_no: number;
+          schedule_label: string | null;
+          schedule_description: string | null;
+          invoice_amount: number;
+          invoice_percentage: number | null;
+          original_delivery_date: string | null;
+          original_invoice_date: string | null;
+          current_invoice_date: string;
+          invoice_year: number;   // generated column
+          invoice_month: number;  // generated column
+          status: 'scheduled' | 'overdue' | 'rescheduled' | 'invoiced' | 'cancelled';
+          source: 'delivery_date' | 'admin_split' | 'admin_manual' | 'migration_backfill';
+          delay_count: number;
+          last_change_reason: string | null;
+          last_change_details: string | null;
+          last_rescheduled_by: string | null;
+          last_rescheduled_at: string | null;
+          invoiced_at: string | null;
+          invoice_reference: string | null;
+          created_by: string | null;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          project_id: string;
+          sales_user_id?: string | null;
+          sequence_no?: number;
+          schedule_label?: string | null;
+          schedule_description?: string | null;
+          invoice_amount: number;
+          invoice_percentage?: number | null;
+          original_delivery_date?: string | null;
+          original_invoice_date?: string | null;
+          current_invoice_date: string;
+          status?: 'scheduled' | 'overdue' | 'rescheduled' | 'invoiced' | 'cancelled';
+          source?: 'delivery_date' | 'admin_split' | 'admin_manual' | 'migration_backfill';
+          invoiced_at?: string | null;
+          invoice_reference?: string | null;
+          created_by?: string | null;
+          updated_by?: string | null;
+        };
+        Update: {
+          sequence_no?: number;
+          schedule_label?: string | null;
+          schedule_description?: string | null;
+          invoice_amount?: number;
+          invoice_percentage?: number | null;
+          current_invoice_date?: string;
+          status?: 'scheduled' | 'overdue' | 'rescheduled' | 'invoiced' | 'cancelled';
+          delay_count?: number;
+          last_change_reason?: string | null;
+          last_change_details?: string | null;
+          last_rescheduled_by?: string | null;
+          last_rescheduled_at?: string | null;
+          invoiced_at?: string | null;
+          invoice_reference?: string | null;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      project_invoicing_schedule_history: {
+        Row: {
+          id: string;
+          schedule_id: string;
+          project_id: string;
+          old_invoice_date: string | null;
+          new_invoice_date: string | null;
+          old_invoice_amount: number | null;
+          new_invoice_amount: number | null;
+          old_status: string | null;
+          new_status: string | null;
+          change_reason: string;
+          change_details: string | null;
+          changed_by: string | null;
+          changed_at: string;
+        };
+        Insert: {
+          schedule_id: string;
+          project_id: string;
+          old_invoice_date?: string | null;
+          new_invoice_date?: string | null;
+          old_invoice_amount?: number | null;
+          new_invoice_amount?: number | null;
+          old_status?: string | null;
+          new_status?: string | null;
+          change_reason: string;
+          change_details?: string | null;
+          changed_by?: string | null;
+        };
+        Update: { [key: string]: unknown };
+        Relationships: [];
+      };
       quotation_request_lines: {
         Row: {
           id: string;
@@ -1902,6 +2000,8 @@ export type Database = {
       // Phase financial modules enums
       hot_project_stage: 'lead' | 'qualified' | 'proposal_required' | 'quotation_requested' | 'negotiation' | 'won' | 'lost' | 'cancelled';
       milestone_status: 'planned' | 'ready_to_invoice' | 'submitted' | 'approved' | 'paid' | 'overdue' | 'cancelled';
+      pis_status_enum: 'scheduled' | 'overdue' | 'rescheduled' | 'invoiced' | 'cancelled';
+      pis_source_enum: 'delivery_date' | 'admin_split' | 'admin_manual' | 'migration_backfill';
       // Phase 9 enums
       dubai_status_enum: 'not_started' | 'pending_dubai_po' | 'dubai_po_sent' | 'under_dubai_production' | 'eta_confirmed' | 'in_transit' | 'arrived_ksa' | 'handed_to_afs' | 'ready_for_pre_delivery' | 'completed' | 'on_hold' | 'cancelled';
       eta_status_enum: 'not_set' | 'on_track' | 'delayed' | 'changed' | 'arrived';

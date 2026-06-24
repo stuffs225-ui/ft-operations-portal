@@ -150,6 +150,10 @@ This directory contains step-by-step implementation and audit records for the FT
 
 - **sales-dashboard-v2-ui.md — Sales Dashboard v2 Commercial/Invoicing Control UI** (Sales.tsx rewritten to use `useSalesDashboardV2Data`; 6 commercial KPI cards; monthly invoicing plan table with sticky first column and soft-green month highlights; three target sections — Invoicing, Sales Orders, Collection; collection target NULL handled as "—" with inline note; old task panels removed from view; no route/nav/roleMatrix/DB changes)
 
+### Project Invoicing Schedule — Delivery-Date Default Foundation
+
+- **project-invoicing-schedule-foundation.md — Project Invoicing Schedule Foundation** (migration 100; `project_invoicing_schedule` + `project_invoicing_schedule_history` tables; `pis_status_enum` / `pis_source_enum` enums; AFTER INSERT trigger auto-creates one default schedule line per project using `customer_delivery_date` and `total_sales_value`; idempotent backfill for existing projects; `reschedule_project_invoicing_schedule()` + `update_project_invoicing_schedule_amount()` SECURITY DEFINER RPCs; `project_invoicing_schedule_alerts_view` for overdue detection; RLS — admin CRUD, ops_manager read, sales_user own-project read; `database.ts` types added; no Admin UI, no Sales Dashboard hook change, no `project_invoice_milestones` changes)
+
 Planned future steps (not yet started):
 - step-19-5b — Store / Warehouse UX Upgrade
 - step-19-6 — Factory and QC UX Improvement
@@ -181,9 +185,13 @@ Phase 1A adds: AFS missing item evidence UI (table created, detail page not yet 
 
 ## Schema / Migration Reference
 
-All SQL migrations are in `migrations/` (98 files, `001_profiles.sql` through `098_qc_documents_file_columns.sql`).
+All SQL migrations are in `migrations/` (100 files, `001_profiles.sql` through `100_project_invoicing_schedule.sql`).
 
 Phase 1A migrations (096–098):
 - `096_procurement_documents.sql` — `procurement-documents` bucket + `purchase_order_documents` table
 - `097_afs_document_tables.sql` — `afs_arrival_documents` + `afs_missing_item_attachments` tables
 - `098_qc_documents_file_columns.sql` — `file_size`/`mime_type` columns for `qc_inspection_documents`
+
+Sales Dashboard v2 / Invoicing Schedule migrations (099–100):
+- `099_sales_user_targets.sql` — `sales_user_targets` table; annual invoicing/SO/collection targets per user
+- `100_project_invoicing_schedule.sql` — `project_invoicing_schedule` + `project_invoicing_schedule_history` tables; AFTER INSERT trigger; RPCs; overdue alert view
