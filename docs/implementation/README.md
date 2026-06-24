@@ -158,6 +158,10 @@ This directory contains step-by-step implementation and audit records for the FT
 
 - **sales-dashboard-v2-schedule-source.md — Sales Dashboard v2 Schedule Source Integration** (switches `getSalesDashboardV2Data()` invoicing plan source from `project_invoice_milestones` to `project_invoicing_schedule`; `current_invoice_date` → month column; `invoice_amount` → cell value; same-project same-month values summed; pending = `status IN (scheduled, overdue, rescheduled)`; invoiced = `status = invoiced`; Outstanding Receivables and Collection to Date remain on milestones; adds `overdueInvoicingScheduleExists` warning; no UI changes, no route/nav/DB changes)
 
+### Commercial Admin Controls Sprint
+
+- **commercial-admin-controls-sprint.md — Commercial Admin Controls (Invoicing Schedule + Sales Targets)** (Admin-only pages `AdminInvoicingSchedule` at `/admin/invoicing-schedule` and `AdminSalesTargets` at `/admin/sales-targets`; reschedule + amount-update modals call migration-100 RPCs; change-history drawer; overdue alerts view; split modal disabled pending a dedicated RPC; sales targets add/edit upsert + missing-target list; `deferredMigrationSafety` helper classifies missing-relation/missing-function errors so pages show a calm "migration pending" state instead of crashing; migration-safe `projectInvoicingScheduleQueries` + extended `salesTargetsQueries`; two Admin dashboard cards; type-only `database.ts` additions for the alerts view + 2 RPCs; **no migrations applied, no DB/RLS changes, no Sales Dashboard changes, no `project_invoice_milestones` changes**)
+
 Planned future steps (not yet started):
 - step-19-5b — Store / Warehouse UX Upgrade
 - step-19-6 — Factory and QC UX Improvement
