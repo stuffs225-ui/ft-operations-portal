@@ -146,6 +146,10 @@ This directory contains step-by-step implementation and audit records for the FT
 
 - **sales-dashboard-v2-data-hook.md — Sales Dashboard v2 Data Aggregation Hook** (read-only; `getSalesDashboardV2Data()` query helper + `useSalesDashboardV2Data()` React hook; aggregates projects, hot_projects, milestones, targets into `SalesDashboardV2Data` contract; no UI; no migrations; Sales.tsx unchanged)
 
+### Sales Dashboard v2 — Commercial/Invoicing Control UI
+
+- **sales-dashboard-v2-ui.md — Sales Dashboard v2 Commercial/Invoicing Control UI** (Sales.tsx rewritten to use `useSalesDashboardV2Data`; 6 commercial KPI cards; monthly invoicing plan table with sticky first column and soft-green month highlights; three target sections — Invoicing, Sales Orders, Collection; collection target NULL handled as "—" with inline note; old task panels removed from view; no route/nav/roleMatrix/DB changes)
+
 Planned future steps (not yet started):
 - step-19-5b — Store / Warehouse UX Upgrade
 - step-19-6 — Factory and QC UX Improvement
