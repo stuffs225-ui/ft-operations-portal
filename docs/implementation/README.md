@@ -128,11 +128,15 @@ This directory contains step-by-step implementation and audit records for the FT
 ### Projects / Sales Orders (19.4A–19.4B)
 
 - **step-19-4a-projects-so-ux-improvement.md — Projects / Sales Orders UX Improvement**
-- **step-19-4b-project-creation-wizard-ux.md — SO / Project Creation Wizard UX Upgrade** (PR #131 — pending merge)
+- **step-19-4b-project-creation-wizard-ux.md — SO / Project Creation Wizard UX Upgrade** (PR #131 — merged)
 
 ### Procurement Core (19.5A)
 
 - **step-19-5a-procurement-core-ux-upgrade.md — Procurement Core UX Premium Upgrade** ← current
+
+### Sales Dashboard v2 — Data Availability Study
+
+- **sales-dashboard-v2-data-availability-study.md — Sales Dashboard v2 Data Availability & Implementation Study** (analysis only — maps 19 KPIs against existing schema; identifies missing targets table; proposes 4-PR plan; no code or migrations changed)
 
 Planned future steps (not yet started):
 - step-19-5b — Store / Warehouse UX Upgrade
