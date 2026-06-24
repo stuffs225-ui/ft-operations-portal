@@ -127,9 +127,11 @@ export function CoordinatorQueue() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
-  // Default tab from URL param (from dashboard quick links)
+  // Default tab/filter from URL params (from dashboard KPI tile links)
+  const urlTab    = searchParams.get('tab') as QueueTab | null;
   const urlFilter = searchParams.get('filter') as QuickFilter | null;
   const initialTab: QueueTab = (() => {
+    if (urlTab && QUEUE_TABS.some(t => t.key === urlTab)) return urlTab;
     if (urlFilter === 'unassigned') return 'unassigned';
     if (urlFilter === 'clarification') return 'clarification';
     if (urlFilter === 'ready') return 'ready';
