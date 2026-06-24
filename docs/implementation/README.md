@@ -138,6 +138,10 @@ This directory contains step-by-step implementation and audit records for the FT
 
 - **sales-dashboard-v2-data-availability-study.md — Sales Dashboard v2 Data Availability & Implementation Study** (analysis only — maps 19 KPIs against existing schema; identifies missing targets table; proposes 4-PR plan; no code or migrations changed)
 
+### Sales Dashboard v2 — Annual Targets Foundation
+
+- **sales-annual-targets-foundation.md — Sales Annual Targets Foundation** (migration 099; `sales_user_targets` table; RLS — admin CRUD, ops_manager read, sales_user own-read; query helper; no UI; collection target NULL until approved)
+
 Planned future steps (not yet started):
 - step-19-5b — Store / Warehouse UX Upgrade
 - step-19-6 — Factory and QC UX Improvement
