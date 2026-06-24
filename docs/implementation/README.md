@@ -142,6 +142,10 @@ This directory contains step-by-step implementation and audit records for the FT
 
 - **sales-annual-targets-foundation.md — Sales Annual Targets Foundation** (migration 099; `sales_user_targets` table; RLS — admin CRUD, ops_manager read, sales_user own-read; query helper; no UI; collection target NULL until approved)
 
+### Sales Dashboard v2 — Data Aggregation Hook
+
+- **sales-dashboard-v2-data-hook.md — Sales Dashboard v2 Data Aggregation Hook** (read-only; `getSalesDashboardV2Data()` query helper + `useSalesDashboardV2Data()` React hook; aggregates projects, hot_projects, milestones, targets into `SalesDashboardV2Data` contract; no UI; no migrations; Sales.tsx unchanged)
+
 Planned future steps (not yet started):
 - step-19-5b — Store / Warehouse UX Upgrade
 - step-19-6 — Factory and QC UX Improvement
