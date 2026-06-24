@@ -166,6 +166,12 @@ This directory contains step-by-step implementation and audit records for the FT
 
 - **commercial-admin-controls-sprint.md — Commercial Admin Controls (Invoicing Schedule + Sales Targets)** (Admin-only pages `AdminInvoicingSchedule` at `/admin/invoicing-schedule` and `AdminSalesTargets` at `/admin/sales-targets`; reschedule + amount-update modals call migration-100 RPCs; change-history drawer; overdue alerts view; split modal disabled pending a dedicated RPC; sales targets add/edit upsert + missing-target list; `deferredMigrationSafety` helper classifies missing-relation/missing-function errors so pages show a calm "migration pending" state instead of crashing; migration-safe `projectInvoicingScheduleQueries` + extended `salesTargetsQueries`; two Admin dashboard cards; type-only `database.ts` additions for the alerts view + 2 RPCs; **no migrations applied, no DB/RLS changes, no Sales Dashboard changes, no `project_invoice_milestones` changes**)
 
+### Master Module Sprint — Phases 7 to 15
+
+- **master-module-sprint-phases-7-to-15.md — Master Module Sprint (Projects→Operations UX Stabilization + Migration Audit Prep)** (Phase 7: read-only KPI strip on the Projects list, computed from loaded data, value card gated by `canViewCosts`, cards click to set status tab; Phase 8: wired the Procurement dashboard's existing `?status=` KPI deep-links to actually filter the PO / PR / Supplier list pages — validated param, falls back to `all`; Phase 15: full migration audit documentation. ProjectDetail/ProjectNew inspected and intentionally unchanged; phases 9–14 deferred as already-mature. **No migrations applied, no DB/RLS/guard/roleMatrix/navigation/workflow changes**)
+- **deferred-database-migrations-register.md — Deferred Database Migrations Register** (audit register of all 100 migrations `001`–`100`: purpose, module, runtime dependency, applied-state=Unknown, risk, dependencies; flags migration 100 as a **fatal** runtime dependency for Sales Dashboard v2; documentation only — no migrations applied, no SQL executed)
+- **future-safe-migration-application-plan.md — Future Safe Migration Application Plan** (how to compare GitHub↔Supabase, query migration history, verify each object, apply in order, test per batch, rollback/stop criteria, and the features depending on migrations 099/100; plan only — nothing applied)
+
 Planned future steps (not yet started):
 - step-19-5b — Store / Warehouse UX Upgrade
 - step-19-6 — Factory and QC UX Improvement
