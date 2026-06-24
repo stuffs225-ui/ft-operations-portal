@@ -105,28 +105,41 @@ This directory contains step-by-step implementation and audit records for the FT
 
 ---
 
+## Phase 0 — Stabilization
+
+- **phase-0a-set-state-in-effect-stabilization.md — Phase 0A: set-state-in-effect Lint Stabilization** (main SHA `724a588`; fixed 17 errors across 17 files; 0 set-state-in-effect errors remaining)
+
+---
+
 ## Phase 19 — Design System and UX Modernization
 
 ### Foundation
 
 - **step-19-2-functional-pages-ux-roadmap.md — Functional Pages UX Audit and Improvement Roadmap**
 
+### Transformation Study
+
+- **../reports/ft-operations-frontend-design-ux-transformation-study.md (.html / .pdf) — Complete Frontend Design System, UI Architecture, UX & Transformation Study** (audited main SHA `1ed145a`; analysis & planning only — defines the A‑to‑Z roadmap, UI-library strategy, and PR-by-PR plan for Phases 0–9)
+
 ### Commercial and Sales Coordinator (19.3)
 
 - **step-19-3-commercial-sales-coordinator-ux.md — Commercial and Sales Coordinator Pages UX Improvement**
 
-### Projects / Sales Orders (19.4A)
+### Projects / Sales Orders (19.4A–19.4B)
 
 - **step-19-4a-projects-so-ux-improvement.md — Projects / Sales Orders UX Improvement**
-- **step-19-4b-project-creation-wizard-ux.md — SO / Project Creation Wizard UX Upgrade** ← current
+- **step-19-4b-project-creation-wizard-ux.md — SO / Project Creation Wizard UX Upgrade** (PR #131 — merged)
+
+### Procurement Core (19.5A)
+
+- **step-19-5a-procurement-core-ux-upgrade.md — Procurement Core UX Premium Upgrade** ← current
 
 ### Sales Dashboard v2 — Data Availability Study
 
 - **sales-dashboard-v2-data-availability-study.md — Sales Dashboard v2 Data Availability & Implementation Study** (analysis only — maps 19 KPIs against existing schema; identifies missing targets table; proposes 4-PR plan; no code or migrations changed)
 
 Planned future steps (not yet started):
-- step-19-4c — Procurement and Store UX Improvement
-- step-19-5 — Procurement and Store UX Improvement
+- step-19-5b — Store / Warehouse UX Upgrade
 - step-19-6 — Factory and QC UX Improvement
 - step-19-7 — AFS and After Sales UX Improvement
 - step-19-8 — Reports, Control Tower, Admin, and Viewer UX Improvement
@@ -136,6 +149,13 @@ Planned future steps (not yet started):
 Note: Step 19.1 (Design System Foundation and App Shell) was merged as PR #126 (SHA `b4a38a5`)
 on branch `claude/naffco-portal-modernization-a8gtg1`. No dedicated doc was created for 19.1;
 changes are self-documented in the commit message and PR diff.
+
+---
+
+## Tooling — Screenshot Baseline
+
+- **tooling-full-real-auth-role-page-screenshot-baseline.md — Full Real-Auth Role/Page Screenshot Baseline** (branch `tooling/full-real-auth-role-page-screenshot-baseline`; base `f9e2f5d`; 12 accounts × all pages; real Supabase auth enforced)
+- **tooling-github-actions-real-auth-screenshot-baseline.md — GitHub Actions Real-Auth Screenshot Baseline** (branch `tooling/github-actions-real-auth-screenshot-baseline`; base `c668d3f`; manual workflow; uses GitHub Secrets; uploads artifact)
 
 ---
 

@@ -133,22 +133,24 @@ export function FactoryProjectWorkspace() {
   const [lineDevSuccess, setLineDevSuccess] = useState('');
 
   useEffect(() => {
-    if (!projectId) { setNotFound(true); setLoading(false); return; }
+    if (!projectId) { Promise.resolve().then(() => { setNotFound(true); setLoading(false); }); return; }
 
     if (!isSupabaseConfigured) {
-      const found = MOCK_PROJECTS.find((p) => p.id === projectId);
-      if (!found || found.manufacturing_location !== 'saudi') {
-        setNotFound(true);
+      Promise.resolve().then(() => {
+        const found = MOCK_PROJECTS.find((p) => p.id === projectId);
+        if (!found || found.manufacturing_location !== 'saudi') {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        setProject(found);
+        setVehicleLines(MOCK_VEHICLE_LINES[projectId] ?? []);
+        setFactoryRecords(getMockFactoryRecordsForProject(projectId));
+        setRequirements(getMockRequirementsForProject(projectId));
+        setRmrs(getMockRMRsForProject(projectId));
+        fetchProjectReferences(projectId).then((refs) => { setReferences(refs ?? []); });
         setLoading(false);
-        return;
-      }
-      setProject(found);
-      setVehicleLines(MOCK_VEHICLE_LINES[projectId] ?? []);
-      setFactoryRecords(getMockFactoryRecordsForProject(projectId));
-      setRequirements(getMockRequirementsForProject(projectId));
-      setRmrs(getMockRMRsForProject(projectId));
-      fetchProjectReferences(projectId).then((refs) => { setReferences(refs ?? []); });
-      setLoading(false);
+      });
       return;
     }
 

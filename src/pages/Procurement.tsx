@@ -128,8 +128,8 @@ export function Procurement() {
   const topActions = [
     { label: 'Register PR', icon: <Plus size={14} />, href: '/procurement/requests/new', color: 'bg-amber-600 hover:bg-amber-700 text-white', show: canCreate },
     { label: 'Create PO', icon: <ShoppingCart size={14} />, href: '/procurement/purchase-orders/new', color: 'bg-amber-700 hover:bg-amber-800 text-white', show: canCreate },
-    { label: 'ETA Tracking', icon: <Clock size={14} />, href: '/procurement/eta-history', color: 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50', show: true },
-    { label: 'Suppliers', icon: <Users size={14} />, href: '/procurement/suppliers', color: 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50', show: true },
+    { label: 'ETA Tracking', icon: <Clock size={14} />, href: '/procurement/eta-history', color: 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50', show: true },
+    { label: 'Suppliers', icon: <Users size={14} />, href: '/procurement/suppliers', color: 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50', show: true },
   ];
 
   return (
@@ -155,7 +155,7 @@ export function Procurement() {
       />
 
       {/* Governance banner */}
-      <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-800">
+      <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-xs text-amber-800">
         <AlertTriangle size={14} className="shrink-0 mt-0.5 text-amber-600" />
         <div className="space-y-0.5">
           <span className="font-semibold">Procurement Governance: </span>
@@ -181,9 +181,9 @@ export function Procurement() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {kpis.map((kpi) => (
           <Link key={kpi.label} to={kpi.href} className="group block">
-            <div className={`rounded-xl border p-4 bg-white hover:shadow-md transition-all ${kpi.critical ? 'border-l-4 border-l-red-500' : ''}`}>
+            <div className={`rounded-lg border border-gray-200/80 p-4 bg-white hover:shadow-md transition-all ${kpi.critical ? 'border-l-4 border-l-red-500' : ''}`}>
               <div className={`inline-flex p-2 rounded-lg mb-2 border ${kpi.colorClass}`}>{kpi.icon}</div>
-              <div className={`text-2xl font-bold ${kpi.critical && kpi.value > 0 ? 'text-red-700' : 'text-gray-900'}`}>
+              <div className={`text-2xl font-bold tabular-nums ${kpi.critical && kpi.value > 0 ? 'text-red-700' : 'text-gray-900'}`}>
                 {kpi.value}
               </div>
               <div className="text-xs text-gray-500 mt-0.5 leading-tight group-hover:text-gray-700 transition-colors">
@@ -200,9 +200,9 @@ export function Procurement() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {workQueues.map((queue) => (
             <Link key={queue.label} to={queue.href} className="group block">
-              <div className={`rounded-xl border p-4 bg-white h-full hover:shadow-md hover:border-amber-300 transition-all ${queue.urgent && queue.count > 0 ? 'border-amber-300 bg-amber-50/50' : ''}`}>
+              <div className={`rounded-lg border border-gray-200/80 p-4 bg-white h-full hover:shadow-md hover:border-amber-300 transition-all ${queue.urgent && queue.count > 0 ? 'border-amber-300 bg-amber-50/50' : ''}`}>
                 <div className="flex items-start justify-between mb-2">
-                  <span className={`text-xl font-bold ${queue.urgent && queue.count > 0 ? 'text-amber-700' : 'text-gray-900'}`}>
+                  <span className={`text-xl font-bold tabular-nums ${queue.urgent && queue.count > 0 ? 'text-amber-700' : 'text-gray-900'}`}>
                     {queue.count}
                   </span>
                   {queue.urgent && queue.count > 0 ? (
@@ -238,7 +238,7 @@ export function Procurement() {
             { label: 'Procurement Reports', desc: 'PR aging, PO status, ETA delay, supplier reports', href: '/reports/procurement', icon: <FileText size={18} /> },
           ].map((item) => (
             <Link key={item.href} to={item.href} className="group block">
-              <div className="rounded-xl border bg-white p-4 h-full hover:shadow-md hover:border-amber-300 transition-all">
+              <div className="rounded-lg border border-gray-200/80 bg-white p-4 h-full hover:shadow-md hover:border-amber-300 transition-all">
                 <div className="flex items-start justify-between mb-2">
                   <div className="w-9 h-9 bg-amber-50 rounded-lg flex items-center justify-center shrink-0 text-amber-700">
                     {item.icon}
@@ -250,7 +250,7 @@ export function Procurement() {
                 </div>
                 <p className="text-xs text-gray-500 leading-relaxed mb-2">{item.desc}</p>
                 {item.badge && (
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${item.badgeCritical ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${item.badgeCritical ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
                     {item.badge}
                   </span>
                 )}

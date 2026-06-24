@@ -1,0 +1,181 @@
+name: Role/Page Screenshot Baseline
+
+# Manual trigger only — generates a full per-role, per-page screenshot baseline
+# using real Supabase credentials from GitHub Secrets.
+#
+# Required secrets:
+#   VITE_SUPABASE_URL           — Supabase project URL
+#   VITE_SUPABASE_ANON_KEY      — Supabase anon key
+#   SCREENSHOT_SHARED_PASSWORD  — Shared password for all 12 test accounts
+#                                  (individual SCREENSHOT_<KEY>_PASSWORD secrets
+#                                   override the shared password if configured)
+#
+# Artifact output: full-role-page-screenshot-baseline
+#   index.html                          — visual gallery
+#   screenshot-run-summary.md           — text summary
+#   full-role-page-screenshot-baseline.zip — all screenshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_base_url:
+        description: 'App base URL'
+        required: false
+        default: 'http://localhost:5173'
+      capture_mode:
+        description: 'Capture mode (full = all 12 accounts)'
+        required: false
+        default: 'full'
+      upload_screenshots:
+        description: 'Upload screenshots as workflow artifact'
+        required: false
+        default: 'true'
+
+jobs:
+  screenshot-baseline:
+    name: Capture role-based screenshot baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      # ── 1. Source ───────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Node.js ──────────────────────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # ── 3. Install dependencies ─────────────────────────────────────────────
+      - name: Install dependencies
+        run: npm ci
+
+      # ── 4. Playwright browsers ──────────────────────────────────────────────
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      # ── 5. Credential files (never echoed, never committed) ─────────────────
+      - name: Create .env.local from secrets
+        # Written via shell variable substitution; values are masked by GitHub.
+        # The file is gitignored and is NOT uploaded as an artifact.
+        run: |
+          {
+            echo "VITE_SUPABASE_URL=${VITE_SUPABASE_URL}"
+            echo "VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}"
+          } > .env.local
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Create .env.screenshots.local from secrets
+        # Individual SCREENSHOT_<KEY>_PASSWORD secrets take precedence over SCREENSHOT_SHARED_PASSWORD.
+        # The file is gitignored and is NOT uploaded as an artifact.
+        run: |
+          {
+            echo "APP_BASE_URL=${{ inputs.app_base_url }}"
+            echo "SCREENSHOT_ADMIN_EMAIL=admin@ft.com"
+            echo "SCREENSHOT_ADMIN_PASSWORD=${SCREENSHOT_ADMIN_PASSWORD:-${SCREENSHOT_SHARED_PASSWORD}}"
+            echo "SCREENSHOT_STUFFS_EMAIL=stuffs225@gmail.com"
+            echo "SCREENSHOT_STUFFS_PASSWORD=${SCREENSHOT_STUFFS_PASSWORD:-${SCREENSHOT_SHARED_PASSWORD}}"
+            echo "SCREENSHOT_COO_EMAIL=coo@ft.com"
+            echo "SCREENSHOT_COO_PASSWORD=${SCREENSHOT_COO_PASSWORD:-${SCREENSHOT_SHARED_PASSWORD}}"
+            echo "SCREENSHOT_OPS_EMAIL=ops@ft.com"
+            echo "SCREENSHOT_OPS_PASSWORD=${SCREENSHOT_OPS_PASSWORD:-${SCREENSHOT_SHARED_PASSWORD}}"
+            echo "SCREENSHOT_SALES_TEST_EMAIL=sales.test@naffco.local"
+            echo "SCREENSHOT_SALES_TEST_PASSWORD=${SCREENSHOT_SALES_TEST_PASSWORD:-${SCREENSHOT_SHARED_PASSWORD}}"
+            echo "SCREENSHOT_TESTSALES_EMAIL=testsales@ft.com"
+            echo "SCREENSHOT_TESTSALES_PASSWORD=${SCREENSHOT_TESTSALES_PASSWORD:-${SCREENSHOT_SHARED_PASSWORD}}"
+            echo "SCREENSHOT_PROCUREMENT_EMAIL=procurement@ft.com"
+            echo "SCREENSHOT_PROCUREMENT_PASSWORD=${SCREENSHOT_PROCUREMENT_PASSWORD:-${SCREENSHOT_SHARED_PASSWORD}}"
+            echo "SCREENSHOT_FACTORY_EMAIL=factory@ft.com"
+            echo "SCREENSHOT_FACTORY_PASSWORD=${SCREENSHOT_FACTORY_PASSWORD:-${SCREENSHOT_SHARED_PASSWORD}}"
+            echo "SCREENSHOT_STORE_EMAIL=store@ft.com"
+            echo "SCREENSHOT_STORE_PASSWORD=${SCREENSHOT_STORE_PASSWORD:-${SCREENSHOT_SHARED_PASSWORD}}"
+            echo "SCREENSHOT_QC_EMAIL=qc@ft.com"
+            echo "SCREENSHOT_QC_PASSWORD=${SCREENSHOT_QC_PASSWORD:-${SCREENSHOT_SHARED_PASSWORD}}"
+            echo "SCREENSHOT_AFS_EMAIL=afs@ft.com"
+            echo "SCREENSHOT_AFS_PASSWORD=${SCREENSHOT_AFS_PASSWORD:-${SCREENSHOT_SHARED_PASSWORD}}"
+            echo "SCREENSHOT_VIEWER_EMAIL=viewer@ft.com"
+            echo "SCREENSHOT_VIEWER_PASSWORD=${SCREENSHOT_VIEWER_PASSWORD:-${SCREENSHOT_SHARED_PASSWORD}}"
+          } > .env.screenshots.local
+        env:
+          SCREENSHOT_SHARED_PASSWORD: ${{ secrets.SCREENSHOT_SHARED_PASSWORD }}
+          SCREENSHOT_ADMIN_PASSWORD: ${{ secrets.SCREENSHOT_ADMIN_PASSWORD }}
+          SCREENSHOT_STUFFS_PASSWORD: ${{ secrets.SCREENSHOT_STUFFS_PASSWORD }}
+          SCREENSHOT_COO_PASSWORD: ${{ secrets.SCREENSHOT_COO_PASSWORD }}
+          SCREENSHOT_OPS_PASSWORD: ${{ secrets.SCREENSHOT_OPS_PASSWORD }}
+          SCREENSHOT_SALES_TEST_PASSWORD: ${{ secrets.SCREENSHOT_SALES_TEST_PASSWORD }}
+          SCREENSHOT_TESTSALES_PASSWORD: ${{ secrets.SCREENSHOT_TESTSALES_PASSWORD }}
+          SCREENSHOT_PROCUREMENT_PASSWORD: ${{ secrets.SCREENSHOT_PROCUREMENT_PASSWORD }}
+          SCREENSHOT_FACTORY_PASSWORD: ${{ secrets.SCREENSHOT_FACTORY_PASSWORD }}
+          SCREENSHOT_STORE_PASSWORD: ${{ secrets.SCREENSHOT_STORE_PASSWORD }}
+          SCREENSHOT_QC_PASSWORD: ${{ secrets.SCREENSHOT_QC_PASSWORD }}
+          SCREENSHOT_AFS_PASSWORD: ${{ secrets.SCREENSHOT_AFS_PASSWORD }}
+          SCREENSHOT_VIEWER_PASSWORD: ${{ secrets.SCREENSHOT_VIEWER_PASSWORD }}
+
+      # ── 6. App server ───────────────────────────────────────────────────────
+      - name: Start dev server
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 5173 &
+          echo "Dev server started in background"
+
+      - name: Wait for app server
+        run: |
+          echo "Waiting for app server at ${{ inputs.app_base_url }}..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:5173/ -o /dev/null 2>&1; then
+              echo "App server ready after $((i * 2))s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "ERROR: App server did not respond within 60s" >&2
+          exit 1
+
+      # ── 7. Dry-run (env + route validation, no screenshots) ─────────────────
+      - name: Dry-run — validate env and print route catalogue
+        run: node tools/screenshots/capture-all-role-pages.mjs --dry-run
+
+      # ── 8. Capture ──────────────────────────────────────────────────────────
+      - name: Run screenshot capture
+        # REAL_AUTH is verified at startup inside the tool.
+        # Exits with code 2 if app is in DEV_MODE_ADMIN_ONLY (Supabase not configured).
+        # Exits with code 1 if any login fails.
+        run: node tools/screenshots/capture-all-role-pages.mjs
+
+      # ── 9. Generate outputs ─────────────────────────────────────────────────
+      - name: Generate screenshot gallery and summary
+        run: node tools/screenshots/generate-screenshot-index.mjs
+
+      - name: Create zip archive
+        run: |
+          cd docs/artifact-context/screenshots
+          zip -r full-role-page-screenshot-baseline.zip . -x ".auth/*" -x "*.zip"
+
+      # ── 10. Job summary ─────────────────────────────────────────────────────
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## Role/Page Screenshot Baseline" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f docs/artifact-context/screenshots/screenshot-run-summary.md ]; then
+            cat docs/artifact-context/screenshots/screenshot-run-summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "_No summary generated — capture may have failed._" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # ── 11. Upload artifact ─────────────────────────────────────────────────
+      - name: Upload screenshots artifact
+        if: inputs.upload_screenshots != 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-role-page-screenshot-baseline
+          # Uploads entire screenshots directory; .auth/ and .env files are excluded.
+          path: |
+            docs/artifact-context/screenshots/
+            !docs/artifact-context/screenshots/.auth/
+          retention-days: 30
+          if-no-files-found: warn

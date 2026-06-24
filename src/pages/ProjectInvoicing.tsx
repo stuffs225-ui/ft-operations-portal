@@ -90,7 +90,7 @@ export function ProjectInvoicing() {
     setLoading(false);
   }
 
-  useEffect(() => { void loadData(); }, [projectId]);
+  useEffect(() => { Promise.resolve().then(() => { void loadData(); }); }, [projectId]);
 
   function flash(msg: string) {
     setSuccessMsg(msg);

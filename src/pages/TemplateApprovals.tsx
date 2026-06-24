@@ -32,8 +32,10 @@ export function TemplateApprovals() {
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
-      setTemplates(MOCK_TEMPLATES);
-      setLoading(false);
+      Promise.resolve().then(() => {
+        setTemplates(MOCK_TEMPLATES);
+        setLoading(false);
+      });
       return;
     }
     supabase.from('document_templates').select('*').order('created_at', { ascending: false })
