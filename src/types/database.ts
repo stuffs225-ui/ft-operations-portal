@@ -635,6 +635,44 @@ export type Database = {
         };
         Relationships: [];
       };
+      sales_user_targets: {
+        Row: {
+          id: string;
+          sales_user_id: string;
+          target_year: number;
+          sales_order_target: number | null;
+          invoicing_target: number | null;
+          collection_target: number | null;
+          currency: string;
+          notes: string | null;
+          assigned_by: string | null;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          sales_user_id: string;
+          target_year: number;
+          sales_order_target?: number | null;
+          invoicing_target?: number | null;
+          collection_target?: number | null;
+          currency?: string;
+          notes?: string | null;
+          assigned_by?: string | null;
+          updated_by?: string | null;
+        };
+        Update: {
+          sales_order_target?: number | null;
+          invoicing_target?: number | null;
+          collection_target?: number | null;
+          currency?: string;
+          notes?: string | null;
+          assigned_by?: string | null;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       quotation_request_lines: {
         Row: {
           id: string;
