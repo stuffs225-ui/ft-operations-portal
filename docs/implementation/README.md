@@ -154,6 +154,10 @@ This directory contains step-by-step implementation and audit records for the FT
 
 - **project-invoicing-schedule-foundation.md — Project Invoicing Schedule Foundation** (migration 100; `project_invoicing_schedule` + `project_invoicing_schedule_history` tables; `pis_status_enum` / `pis_source_enum` enums; AFTER INSERT trigger auto-creates one default schedule line per project using `customer_delivery_date` and `total_sales_value`; idempotent backfill for existing projects; `reschedule_project_invoicing_schedule()` + `update_project_invoicing_schedule_amount()` SECURITY DEFINER RPCs; `project_invoicing_schedule_alerts_view` for overdue detection; RLS — admin CRUD, ops_manager read, sales_user own-project read; `database.ts` types added; no Admin UI, no Sales Dashboard hook change, no `project_invoice_milestones` changes)
 
+### Sales Dashboard v2 — Project Invoicing Schedule Source
+
+- **sales-dashboard-v2-schedule-source.md — Sales Dashboard v2 Schedule Source Integration** (switches `getSalesDashboardV2Data()` invoicing plan source from `project_invoice_milestones` to `project_invoicing_schedule`; `current_invoice_date` → month column; `invoice_amount` → cell value; same-project same-month values summed; pending = `status IN (scheduled, overdue, rescheduled)`; invoiced = `status = invoiced`; Outstanding Receivables and Collection to Date remain on milestones; adds `overdueInvoicingScheduleExists` warning; no UI changes, no route/nav/DB changes)
+
 Planned future steps (not yet started):
 - step-19-5b — Store / Warehouse UX Upgrade
 - step-19-6 — Factory and QC UX Improvement

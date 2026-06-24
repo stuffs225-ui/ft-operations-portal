@@ -23,9 +23,10 @@ export interface SalesDashboardV2Summary {
    */
   projectsAtRiskCount: number;
   /**
-   * SUM(amount) for milestones WHERE milestone_status IN ('planned','ready_to_invoice').
-   * These are scheduled but not yet invoiced. Label as "Pending Invoicing" — NOT
-   * "Total Outstanding" which implies billed-but-unpaid.
+   * SUM(invoice_amount) for project_invoicing_schedule WHERE status IN
+   * ('scheduled','overdue','rescheduled'). These are planned but not yet invoiced.
+   * Label as "Pending Invoicing" — NOT "Total Outstanding" which implies billed-but-unpaid.
+   * Source: project_invoicing_schedule (migration 100).
    */
   pendingInvoicingValue: number;
   /**
@@ -67,16 +68,22 @@ export interface SalesInvoicingPlanRow {
   /**
    * Number of vehicle/item lines for this project.
    * Requires join to project_vehicle_lines — returned as null in this PR.
-   * See docs/implementation/sales-dashboard-v2-data-hook.md for deferred items.
    */
   quantity: number | null;
   /** projects.total_sales_value */
   totalValue: number;
-  /** SUM(amount) for milestones WHERE status IN ('planned','ready_to_invoice') for this project */
+  /**
+   * SUM(invoice_amount) for schedule lines WHERE status IN ('scheduled','overdue','rescheduled')
+   * for this project. Source: project_invoicing_schedule.
+   */
   pendingInvoicing: number;
-  /** Per-month SUM(amount) for milestones due in selectedYear, keyed by month name */
+  /**
+   * Per-month SUM(invoice_amount) for schedule lines in selectedYear, keyed by month name.
+   * Multiple lines in the same project+month are summed.
+   * Source: project_invoicing_schedule.current_invoice_date → invoice_month.
+   */
   months: SalesInvoicingPlanMonths;
-  /** SUM of all months (milestones due in selectedYear, non-cancelled) */
+  /** SUM of all month cells (schedule lines in selectedYear) */
   ttl: number;
   /** Same as ttl — included for UI flexibility */
   selectedYearValue: number;
@@ -112,13 +119,15 @@ export interface SalesDashboardV2Targets {
   /** From sales_user_targets.invoicing_target — null if not yet set */
   invoicingTarget: number | null;
   /**
-   * SUM(paid_amount) for milestones WHERE status='paid' AND paid_at IN targetYear.
-   * Represents value actually invoiced and paid this year.
+   * SUM(invoice_amount) for schedule lines WHERE status='invoiced' AND invoice_year=targetYear.
+   * Represents value formally invoiced this year.
+   * Source: project_invoicing_schedule.
    */
   invoicingUpToDate: number;
   /**
-   * SUM(amount) for milestones WHERE due_date IN targetYear AND status NOT IN ('cancelled','paid').
+   * SUM(invoice_amount) for schedule lines WHERE invoice_year=targetYear AND status != 'invoiced'.
    * Still-planned invoicing for this year.
+   * Source: project_invoicing_schedule.
    */
   invoicingYearPlan: number;
   /** invoicingUpToDate + invoicingYearPlan */
@@ -151,7 +160,10 @@ export interface SalesDashboardV2Warnings {
   invoicingTargetNotSet: boolean;
   salesOrderTargetNotSet: boolean;
   noTargetsRecord: boolean;
+  /** No longer applicable — invoicing plan reads project_invoicing_schedule directly. Always false. */
   receivablesViewMixedScope: boolean;
+  /** True when any non-cancelled schedule line has current_invoice_date in the past. */
+  overdueInvoicingScheduleExists: boolean;
 }
 
 export interface SalesDashboardV2Metadata {
