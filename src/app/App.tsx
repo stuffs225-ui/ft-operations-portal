@@ -124,6 +124,8 @@ const NotificationSettings = lazy(() => import('../pages/NotificationSettings').
 const AdminNotificationRules = lazy(() => import('../pages/AdminNotificationRules').then((m) => ({ default: m.AdminNotificationRules })));
 const AdminReportSubscriptions = lazy(() => import('../pages/AdminReportSubscriptions').then((m) => ({ default: m.AdminReportSubscriptions })));
 const AdminReportSubscriptionDetail = lazy(() => import('../pages/AdminReportSubscriptionDetail').then((m) => ({ default: m.AdminReportSubscriptionDetail })));
+const AdminInvoicingSchedule = lazy(() => import('../pages/AdminInvoicingSchedule').then((m) => ({ default: m.AdminInvoicingSchedule })));
+const AdminSalesTargets = lazy(() => import('../pages/AdminSalesTargets').then((m) => ({ default: m.AdminSalesTargets })));
 const NotFound = lazy(() => import('../pages/NotFound').then((m) => ({ default: m.NotFound })));
 const HotProjects = lazy(() => import('../pages/HotProjects').then((m) => ({ default: m.HotProjects })));
 const HotProjectNew = lazy(() => import('../pages/HotProjectNew').then((m) => ({ default: m.HotProjectNew })));
@@ -309,6 +311,10 @@ export function App() {
             <Route path="admin/notification-rules" element={<RequireRole roles={['admin']}><AdminNotificationRules /></RequireRole>} />
             <Route path="admin/report-subscriptions" element={<RequireRole roles={['admin']}><AdminReportSubscriptions /></RequireRole>} />
             <Route path="admin/report-subscriptions/:id" element={<RequireRole roles={['admin']}><AdminReportSubscriptionDetail /></RequireRole>} />
+
+            {/* ── Commercial admin controls ── */}
+            <Route path="admin/invoicing-schedule" element={<RequireRole roles={['admin']}><AdminInvoicingSchedule /></RequireRole>} />
+            <Route path="admin/sales-targets" element={<RequireRole roles={['admin']}><AdminSalesTargets /></RequireRole>} />
 
             <Route path="*" element={<NotFound />} />
           </Route>

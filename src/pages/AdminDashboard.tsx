@@ -4,7 +4,7 @@ import {
   Users, UserPlus, ShieldCheck, ScrollText, Settings,
   GitBranch, BarChart2, Activity, AlertTriangle,
   ClipboardCheck, FolderKanban, FileStack, BellRing,
-  CalendarClock, type LucideIcon,
+  CalendarClock, CalendarRange, Target, type LucideIcon,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { SectionHeader } from '@/components/common/section-header';
@@ -115,6 +115,26 @@ const QUICK_ACTIONS: QuickAction[] = [
     iconBg: 'bg-gray-50',
     iconColor: 'text-gray-600',
     borderColor: 'border-l-gray-400',
+  },
+  {
+    id: 'invoicing-schedule',
+    label: 'Invoicing Schedule',
+    description: 'Manage project invoice dates, installments, and overdue lines',
+    path: '/admin/invoicing-schedule',
+    icon: CalendarRange,
+    iconBg: 'bg-rose-50',
+    iconColor: 'text-rose-700',
+    borderColor: 'border-l-rose-400',
+  },
+  {
+    id: 'sales-targets',
+    label: 'Sales Annual Targets',
+    description: 'Set annual sales order, invoicing, and collection targets',
+    path: '/admin/sales-targets',
+    icon: Target,
+    iconBg: 'bg-emerald-50',
+    iconColor: 'text-emerald-700',
+    borderColor: 'border-l-emerald-400',
   },
 ];
 

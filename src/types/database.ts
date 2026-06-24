@@ -1884,6 +1884,26 @@ export type Database = {
         };
         Relationships: [];
       };
+      // Migration 100. SECURITY INVOKER view — inherits project_invoicing_schedule RLS.
+      project_invoicing_schedule_alerts_view: {
+        Row: {
+          schedule_id: string;
+          project_id: string;
+          project_code: string;
+          customer_name: string;
+          sequence_no: number;
+          schedule_label: string | null;
+          current_invoice_date: string;
+          invoice_amount: number;
+          days_overdue: number;
+          sales_user_id: string | null;
+          status: 'scheduled' | 'overdue' | 'rescheduled' | 'invoiced' | 'cancelled';
+          delay_count: number;
+          last_change_reason: string | null;
+          last_change_details: string | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       project_has_wo: { Args: { p_project_id: string }; Returns: boolean };
@@ -1897,6 +1917,25 @@ export type Database = {
       link_quotation_to_project: {
         Args: { p_quotation_id: string; p_project_id: string };
         Returns: { project_id: string; project_code: string; quotation_code: string }[];
+      };
+      // Migration 100. Admin-only RPCs (SECURITY DEFINER). Mandatory change reason.
+      reschedule_project_invoicing_schedule: {
+        Args: {
+          p_schedule_id: string;
+          p_new_invoice_date: string;
+          p_change_reason: string;
+          p_change_details?: string | null;
+        };
+        Returns: undefined;
+      };
+      update_project_invoicing_schedule_amount: {
+        Args: {
+          p_schedule_id: string;
+          p_new_invoice_amount: number;
+          p_change_reason: string;
+          p_change_details?: string | null;
+        };
+        Returns: undefined;
       };
     };
     Enums: {
