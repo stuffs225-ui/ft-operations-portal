@@ -121,6 +121,10 @@ This directory contains step-by-step implementation and audit records for the FT
 
 - **../reports/ft-operations-frontend-design-ux-transformation-study.md (.html / .pdf) — Complete Frontend Design System, UI Architecture, UX & Transformation Study** (audited main SHA `1ed145a`; analysis & planning only — defines the A‑to‑Z roadmap, UI-library strategy, and PR-by-PR plan for Phases 0–9)
 
+### Sales Coordinator Module Sprint
+
+- **sales-coordinator-module-sprint.md — Sales Coordinator Module Workspace UX and Workflow Stabilization** (redesigned `SalesCoordinator.tsx`: clickable KPI tiles with deep links, priority-ordered sections ordered by urgency, reload button, removed redundant nav elements; `CoordinatorQueue.tsx`: added `?tab=` URL param support; zero new lint/type errors)
+
 ### Commercial and Sales Coordinator (19.3)
 
 - **step-19-3-commercial-sales-coordinator-ux.md — Commercial and Sales Coordinator Pages UX Improvement**
