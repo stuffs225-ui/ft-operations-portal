@@ -180,6 +180,17 @@ This directory contains step-by-step implementation and audit records for the FT
 
 - **management-support-sprint-after-sales-reports-control-tower-viewer.md — Management and Support Sprint (After Sales / Reports / Control Tower / Admin / Viewer)** (all five management/support surfaces inspected and found mature; fixed the one genuine functional gap — After Sales dashboard KPI cards now deep-link to the matching maintenance tab via a validated `?tab=` param the list now reads, mirroring the Procurement/Coordinator pattern; Reports verified to have no broken links across all 14 `/reports/*` routes; Control Tower, Admin overview, and Viewer/Management dashboard already fully real-data/read-only and left unchanged. **No migrations, no DB/RLS, no guard/roleMatrix/navigation/permission/workflow changes; full lint baseline unchanged at 56**)
 
+### Full System QA and Go-Live Readiness
+
+- **full-route-access-inventory.md — Full Route Access Inventory** (all 98 static + 23 dynamic routes by module: component, intended roles/guard, read-vs-mutating, Supabase + migration dependencies, states, recent-change flag, validation priority; confirms no broken routes; notes the screenshot-manifest fix for the 2 admin commercial-control routes)
+- **role-access-audit.md — Role-Based Access Audit** (per-role landing/accessible/forbidden routes, navigation visibility, mutation vs read-only, admin-only exposure check; no mismatches found; no roleMatrix/guard change)
+- **full-system-screenshot-baseline-plan.md — Full-System Screenshot Baseline Plan** (workflow `role-screenshot-baseline.yml`, required GitHub secrets, manual trigger, `full-role-page-screenshot-baseline` artifact, 12 real-auth role accounts, 121-route coverage, failure interpretation; live run deferred to GitHub Actions)
+- **supabase-migration-gap-audit.md — Supabase Migration Gap Audit (read-only)** (GitHub migration inventory + runtime dependency map; special focus on 099/100, milestones, receivables, hot_projects, storage; **Sales Dashboard v2 migration-100 fatal-dependency documented — severity High, /sales shows a controlled error panel if 100 missing**; no code changed)
+- **docs/sql/read-only-migration-verification.sql — Read-Only Migration Verification Script** (SELECT-only existence checks for critical tables/views/functions/trigger/RLS/policies/storage buckets; safe to run in Supabase SQL editor; applies nothing)
+- **full-system-smoke-test-checklist.md — Full-System Smoke Test Checklist** (role-by-role, module-by-module pass/fail checklist with expected results)
+- **go-live-readiness-checklist.md — Go-Live Readiness Checklist** (code/database/auth/functional/data/security/deployment/sign-off sections; top blocker = verify migration 100)
+- **safe-migration-application-runbook.md — Safe Migration Application Runbook** (later-execution runbook: backup, read-only-verify-first, ascending order, batching, 099/100 verification steps, rollback/stop criteria, go/no-go; nothing applied in this sprint)
+
 Planned future steps (not yet started):
 - step-19-5b — Store / Warehouse UX Upgrade
 - step-19-6 — Factory and QC UX Improvement
