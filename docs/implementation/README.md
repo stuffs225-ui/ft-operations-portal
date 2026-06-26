@@ -218,6 +218,16 @@ This directory contains step-by-step implementation and audit records for the FT
 
 - **✅ Migrations 099 + 100 APPLIED & VERIFIED** (by the user, in the Supabase SQL Editor; post-check passed). 099 `sales_user_targets` (table + RLS + 3 policies); 100 `project_invoicing_schedule` + history + alerts view + 3 functions + default-schedule trigger (RLS + 3/3 policies). The DB-level go-live blocker is **removed**. Go-live decision moved **🔴 CONDITIONAL HOLD → 🟡 CONDITIONAL GO CANDIDATE** (pending UI smoke test + screenshot baseline). The three commercial pages auto-activate from live data (state derived via `deferredMigrationSafety`; **no code change required** — verified). Updated: `live-supabase-verification-final-results.md`, `final-readiness-summary.md`, `go-no-go-decision-matrix.md`, `safe-migration-application-runbook.md` (§17 applied result), `post-migration-099-100-ui-smoke-test.md` (now the active checklist); created `post-migration-screenshot-baseline-status.md`. **No migrations applied by Claude; no DB/RLS/business-logic/permission changes.**
 
+### Final Production Readiness — Smoke / Screenshot / Go-No-Go
+
+- **final-production-readiness-execution-report.md — Final Production Readiness Execution Report** (baseline, DB readiness, part-by-part outcomes)
+- **final-ui-smoke-test-results.md — Final UI Smoke Test Results** (all 15 critical routes static + code-path verified; no broken links/crash risk/stale wording; live render pending)
+- **final-screenshot-baseline-results.md — Final Screenshot Baseline Results** (post-migration **run #2** triggered on `main` via GitHub Actions — `28264136467`; auth/setup healthy; capture in progress; critical routes to review)
+- **final-role-access-check.md — Final Role Access Check** (landing routes, admin-only commercial controls, viewer read-only, no service role in frontend; no mismatch)
+- **production-handover-pack.md — Production Handover Pack** (status, DB/module readiness, rollback plan, sign-off, first-day monitoring checklist)
+
+**Decision: 🟡 CONDITIONAL GO** — DB blockers removed (099 + 100 applied & verified), code green, no route/role blockers, screenshot baseline run #2 triggered & healthy. Unconditional GO pending the run #2 artifact review + 15-minute smoke. **No migrations applied by Claude; no DB/RLS/business-logic/permission/workflow changes; no code changes this sprint.**
+
 Planned future steps (not yet started):
 - step-19-5b — Store / Warehouse UX Upgrade
 - step-19-6 — Factory and QC UX Improvement
