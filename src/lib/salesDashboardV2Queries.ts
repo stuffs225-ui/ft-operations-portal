@@ -30,6 +30,7 @@ import type {
   SalesInvoicingPlanRow,
   SalesInvoicingPlanMonths,
 } from '../types/salesDashboardV2';
+import { isMissingRelationError } from './deferredMigrationSafety';
 
 // ── Internal types ────────────────────────────────────────────────────────────
 
@@ -314,9 +315,22 @@ export async function getSalesDashboardV2Data(
     targetsQuery,
   ]);
 
-  // Projects and schedule are fatal; milestones failure degrades gracefully
-  const fatalError = projectsRes.error?.message ?? scheduleRes.error?.message ?? null;
-  if (fatalError) return { data: null, error: fatalError };
+  // Projects are fatal (core data). The invoicing schedule is fatal ONLY for genuine
+  // errors — a missing project_invoicing_schedule (migration 100 not applied) degrades
+  // gracefully: the dashboard still renders projects/pipeline/targets, and the
+  // invoicing-schedule-derived sections are flagged unavailable (not silently zero).
+  if (projectsRes.error) return { data: null, error: projectsRes.error.message };
+
+  const invoicingScheduleUnavailable =
+    scheduleRes.error != null && isMissingRelationError(scheduleRes.error);
+  if (scheduleRes.error && !invoicingScheduleUnavailable) {
+    // A real (non-migration) schedule error is still surfaced — never masked.
+    return { data: null, error: scheduleRes.error.message };
+  }
+
+  // sales_user_targets (migration 099) missing → treat as "no targets", flagged, not fatal.
+  const salesTargetsUnavailable =
+    targetsRes.error != null && isMissingRelationError(targetsRes.error);
 
   const projects    = (projectsRes.data   ?? []) as ProjectRow[];
   const hotProjects = (hotProjectsRes.data ?? []) as HotProjectRow[];
@@ -395,6 +409,8 @@ export async function getSalesDashboardV2Data(
     noTargetsRecord:               target == null,
     receivablesViewMixedScope:     false, // no longer applicable — invoicing plan uses project_invoicing_schedule directly
     overdueInvoicingScheduleExists: hasOverdueSchedules,
+    invoicingScheduleUnavailable,
+    salesTargetsUnavailable,
   };
 
   // ── Metadata ─────────────────────────────────────────────────────────────────

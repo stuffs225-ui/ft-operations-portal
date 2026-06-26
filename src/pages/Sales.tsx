@@ -174,6 +174,10 @@ export function Sales() {
   const warnings = data?.warnings;
   const salesRules = ROLE_MATRIX.sales_user.rules;
 
+  // When project_invoicing_schedule (migration 100) is unavailable, schedule-derived
+  // values are shown as unavailable (—) rather than a silent zero, with a banner.
+  const scheduleUnavailable = warnings?.invoicingScheduleUnavailable ?? false;
+
   // Invoicing Plan table footer totals
   const footerTotalValue = planRows.reduce((s, r) => s + r.totalValue, 0);
   const footerPending    = planRows.reduce((s, r) => s + r.pendingInvoicing, 0);
@@ -254,6 +258,23 @@ export function Sales() {
       {!loading && !authLoading && !error && (
         <>
 
+          {/* ── Migration-pending notice: invoicing schedule unavailable ───────── */}
+          {scheduleUnavailable && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-5 py-3.5 flex items-start gap-3">
+              <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">
+                  Project Invoicing Schedule migration is not active yet
+                </p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Invoicing schedule data is temporarily unavailable. Projects, pipeline, sales-order
+                  and collection figures below are still live; invoicing-plan and invoicing-target
+                  values are shown as “—” until the migration is applied.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* ── Six KPI cards ─────────────────────────────────────────────────── */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <KpiCard
@@ -294,8 +315,8 @@ export function Sales() {
             />
             <KpiCard
               label="Pending Invoicing"
-              value={sar(summary?.pendingInvoicingValue)}
-              subtitle="Scheduled, not yet invoiced"
+              value={scheduleUnavailable ? '—' : sar(summary?.pendingInvoicingValue)}
+              subtitle={scheduleUnavailable ? 'Unavailable — migration pending' : 'Scheduled, not yet invoiced'}
               icon={<ReceiptText size={16} />}
               accent="border-l-indigo-400"
             />
@@ -334,7 +355,16 @@ export function Sales() {
               </Link>
             </div>
 
-            {planRows.length === 0 ? (
+            {scheduleUnavailable ? (
+              <div className="px-5 py-10 text-center">
+                <AlertCircle size={28} className="mx-auto text-amber-300 mb-2" />
+                <p className="text-sm text-gray-600">Invoicing plan is temporarily unavailable.</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  The Project Invoicing Schedule migration is not active yet. This section will populate
+                  once it is applied — no data is fabricated in the meantime.
+                </p>
+              </div>
+            ) : planRows.length === 0 ? (
               <div className="px-5 py-10 text-center">
                 <ReceiptText size={28} className="mx-auto text-gray-300 mb-2" />
                 <p className="text-sm text-gray-500">No invoicing plan data for {selectedYear}.</p>
@@ -474,13 +504,19 @@ export function Sales() {
                     value={targets?.invoicingTarget != null ? sar(targets.invoicingTarget) : '—'}
                     muted={targets?.invoicingTarget == null}
                   />
-                  <MetricRow label="Invoiced up to date"     value={sar(targets?.invoicingUpToDate)}              />
-                  <MetricRow label="Year plan (remaining)"   value={sar(targets?.invoicingYearPlan)}              />
-                  <MetricRow label="Expected total"          value={sar(targets?.invoicingExpectedTotal)}         />
-                  <MetricRow label="Actual % up to now"      value={fmtPct(targets?.invoicingActualPercentUpToNow)} />
+                  <MetricRow label="Invoiced up to date"     value={scheduleUnavailable ? '—' : sar(targets?.invoicingUpToDate)}              muted={scheduleUnavailable} />
+                  <MetricRow label="Year plan (remaining)"   value={scheduleUnavailable ? '—' : sar(targets?.invoicingYearPlan)}              muted={scheduleUnavailable} />
+                  <MetricRow label="Expected total"          value={scheduleUnavailable ? '—' : sar(targets?.invoicingExpectedTotal)}         muted={scheduleUnavailable} />
+                  <MetricRow label="Actual % up to now"      value={scheduleUnavailable ? '—' : fmtPct(targets?.invoicingActualPercentUpToNow)} muted={scheduleUnavailable} />
                 </div>
                 <div className="px-4 pb-3 mt-2">
-                  <TargetBar pct={targets?.invoicingPercent ?? null} label="Expected vs target" />
+                  <TargetBar pct={scheduleUnavailable ? null : (targets?.invoicingPercent ?? null)} label="Expected vs target" />
+                  {scheduleUnavailable && (
+                    <p className="text-[11px] text-amber-600 flex items-center gap-1 mt-2">
+                      <AlertCircle size={10} className="shrink-0" />
+                      Invoicing schedule migration not active — values unavailable.
+                    </p>
+                  )}
                   {warnings?.invoicingTargetNotSet && (
                     <p className="text-[11px] text-gray-400 flex items-center gap-1 mt-2">
                       <Info size={10} className="shrink-0" />
