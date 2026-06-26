@@ -176,6 +176,8 @@ export const ROUTE_CATALOGUE = [
   { path: '/admin/access-requests',     name: 'Access Requests',         module: 'Admin', moduleSlug: '12-admin', moduleOrder: 12, roles: ['admin'], dynamic: false },
   { path: '/admin/notification-rules',  name: 'Notification Rules',      module: 'Admin', moduleSlug: '12-admin', moduleOrder: 12, roles: ['admin'], dynamic: false },
   { path: '/admin/report-subscriptions', name: 'Report Subscriptions',   module: 'Admin', moduleSlug: '12-admin', moduleOrder: 12, roles: ['admin'], dynamic: false },
+  { path: '/admin/invoicing-schedule',  name: 'Admin Invoicing Schedule',module: 'Admin', moduleSlug: '12-admin', moduleOrder: 12, roles: ['admin'], dynamic: false },
+  { path: '/admin/sales-targets',       name: 'Admin Sales Targets',     module: 'Admin', moduleSlug: '12-admin', moduleOrder: 12, roles: ['admin'], dynamic: false },
   { path: '/templates/approvals',       name: 'Template Approvals',      module: 'Admin', moduleSlug: '12-admin', moduleOrder: 12, roles: ['admin','operations_manager'], dynamic: false },
 
   // Dynamic
