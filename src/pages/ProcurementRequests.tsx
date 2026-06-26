@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Package, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Skeleton } from '../components/ui/skeleton';
@@ -44,11 +44,19 @@ function prStatusBadge(status: string) {
 export function ProcurementRequests() {
   const navigate = useNavigate();
   const { role } = useAuth();
+  const [searchParams] = useSearchParams();
   const canCreate = role ? CAN_CREATE.includes(role as UserRole) : false;
+
+  // Deep-link support: dashboard KPI cards link here with ?status=<key>
+  const urlStatus = searchParams.get('status');
+  const initialStatus: PRStatus =
+    urlStatus && STATUS_TABS.some((t) => t.key === urlStatus)
+      ? (urlStatus as PRStatus)
+      : 'all';
 
   const [requests, setRequests] = useState<ProcurementRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeStatus, setActiveStatus] = useState<PRStatus>('all');
+  const [activeStatus, setActiveStatus] = useState<PRStatus>(initialStatus);
   const [search, setSearch] = useState('');
 
   useEffect(() => {

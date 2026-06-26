@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   FolderOpen, Plus, Search, MapPin,
   ChevronRight, Calendar, User,
+  Layers, Activity, FileClock, AlertTriangle, CheckCircle2, Wallet,
 } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
 import { PageHeader } from '@/components/common/page-header';
@@ -114,6 +115,41 @@ export function Projects() {
     return list;
   }, [projects, statusTab, locFilter, medFilter, search]);
 
+  // KPI rollup — computed entirely from already-loaded projects (read-only, no extra query)
+  const kpis = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const active = projects.filter((p) => p.project_status === 'active');
+    const delayed = active.filter((p) => {
+      if (!p.customer_delivery_date) return false;
+      const d = new Date(p.customer_delivery_date);
+      return !Number.isNaN(d.getTime()) && d < today;
+    });
+    return {
+      total: projects.length,
+      active: active.length,
+      pendingApproval: projects.filter((p) => p.project_status === 'submitted_for_approval').length,
+      delayed: delayed.length,
+      completed: projects.filter((p) => p.project_status === 'completed').length,
+      totalValue: projects.reduce((s, p) => s + (p.total_sales_value || 0), 0),
+    };
+  }, [projects]);
+
+  const kpiCards: {
+    key: string; label: string; value: string; icon: typeof Layers;
+    colorClass: string; tab?: StatusTab; urgent?: boolean;
+  }[] = [
+    { key: 'total',    label: 'Total Projects / SOs', value: String(kpis.total),    icon: Layers,       colorClass: 'text-gray-700 bg-gray-50 border-gray-200',          tab: 'all' },
+    { key: 'active',   label: 'Active Projects',      value: String(kpis.active),   icon: Activity,     colorClass: 'text-emerald-700 bg-emerald-50 border-emerald-200', tab: 'active' },
+    { key: 'pending',  label: 'Pending Approval',     value: String(kpis.pendingApproval), icon: FileClock, colorClass: 'text-amber-700 bg-amber-50 border-amber-200',  tab: 'submitted_for_approval', urgent: kpis.pendingApproval > 0 },
+    { key: 'delayed',  label: 'At Risk / Delayed',    value: String(kpis.delayed),  icon: AlertTriangle, colorClass: kpis.delayed > 0 ? 'text-red-700 bg-red-50 border-red-200' : 'text-gray-500 bg-gray-50 border-gray-200', urgent: kpis.delayed > 0 },
+    { key: 'completed',label: 'Completed',            value: String(kpis.completed),icon: CheckCircle2, colorClass: 'text-sky-700 bg-sky-50 border-sky-200',             tab: 'completed' },
+    ...(canSeeMoney ? [{
+      key: 'value', label: 'Total Sales Value', value: formatSAR(kpis.totalValue),
+      icon: Wallet, colorClass: 'text-violet-700 bg-violet-50 border-violet-200',
+    } as const] : []),
+  ];
+
   function handleExportCsv() {
     const columns: ReportColumn<Project>[] = [
       { key: 'project_code', header: 'Project Code', value: p => p.project_code },
@@ -152,6 +188,45 @@ export function Projects() {
         onExportCsv={handleExportCsv}
         summary={`${filtered.length} project${filtered.length !== 1 ? 's' : ''} · total SAR ${filtered.reduce((s, p) => s + p.total_sales_value, 0).toLocaleString('en-SA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
       />
+
+      {/* KPI strip — read-only, computed from loaded projects */}
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5 no-print">
+          {Array.from({ length: canSeeMoney ? 6 : 5 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 space-y-2">
+              <Skeleton className="h-4 w-4 rounded" />
+              <Skeleton className="h-6 w-12" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5 no-print">
+          {kpiCards.map((card) => {
+            const Icon = card.icon;
+            const inner = (
+              <>
+                <Icon size={15} className="mb-1" />
+                <div className="text-xl font-bold tabular-nums leading-tight">{card.value}</div>
+                <div className="text-[11px] font-medium mt-0.5 opacity-80 leading-tight">{card.label}</div>
+              </>
+            );
+            const cls = `rounded-lg border p-4 ${card.colorClass}`;
+            return card.tab ? (
+              <button
+                key={card.key}
+                type="button"
+                onClick={() => setStatusTab(card.tab as StatusTab)}
+                className={`${cls} text-left hover:shadow-md transition-all`}
+              >
+                {inner}
+              </button>
+            ) : (
+              <div key={card.key} className={cls}>{inner}</div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Filters row */}
       <div className="flex flex-col gap-3 mb-5">

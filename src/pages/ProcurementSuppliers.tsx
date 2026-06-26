@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Users, Search, Star } from 'lucide-react';
 import { PageLoader } from '../components/ui/PageLoader';
 import { PageHeader } from '@/components/common/page-header';
@@ -43,9 +43,18 @@ function StarRating({ rating }: { rating: number | null }) {
 
 export function ProcurementSuppliers() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Deep-link support: dashboard KPI cards link here with ?status=<key>
+  const urlStatus = searchParams.get('status');
+  const initialStatus: ProcurementStatusFilter =
+    urlStatus && STATUS_TABS.some((t) => t.key === urlStatus)
+      ? (urlStatus as ProcurementStatusFilter)
+      : 'all';
+
   const [suppliers, setSuppliers] = useState<ApprovedSupplier[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeStatus, setActiveStatus] = useState<ProcurementStatusFilter>('all');
+  const [activeStatus, setActiveStatus] = useState<ProcurementStatusFilter>(initialStatus);
   const [search, setSearch] = useState('');
 
   useEffect(() => {

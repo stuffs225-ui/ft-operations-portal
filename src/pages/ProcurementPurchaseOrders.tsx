@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ShoppingCart, Search, AlertTriangle, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Skeleton } from '../components/ui/skeleton';
@@ -57,10 +57,18 @@ function formatDate(iso: string) {
 export function ProcurementPurchaseOrders() {
   const navigate = useNavigate();
   const { role } = useAuth();
+  const [searchParams] = useSearchParams();
+
+  // Deep-link support: dashboard KPI cards link here with ?status=<key>
+  const urlStatus = searchParams.get('status');
+  const initialStatus: POFilterStatus =
+    urlStatus && STATUS_TABS.some((t) => t.key === urlStatus)
+      ? (urlStatus as POFilterStatus)
+      : 'all';
 
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeStatus, setActiveStatus] = useState<POFilterStatus>('all');
+  const [activeStatus, setActiveStatus] = useState<POFilterStatus>(initialStatus);
   const [search, setSearch] = useState('');
 
   const canSeeCost = role ? COST_VISIBLE_ROLES.includes(role as UserRole) : false;
