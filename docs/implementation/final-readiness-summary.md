@@ -2,8 +2,30 @@
 
 **Branch:** `feature/post-qa-verification-critical-readiness-fixes`
 **Base main SHA:** `b579fdc3199478b9c6eb049fa3c6827cc5d5135c`
+**Updated:** activation-pack sprint — live verification complete.
 
-> Executive view. **Not declared go-live-ready** — two live-dependent verifications remain.
+> Executive view. **Go-live status: 🔴 CONDITIONAL HOLD** until migrations 099 + 100 are applied
+> and verified.
+
+---
+
+## Update — live verification complete (activation-pack sprint)
+
+The user ran the read-only verification SQL against live Supabase. Results:
+
+- **System is functionally stabilized.** The full foundational schema (001–098) is applied.
+- **Storage buckets present:** afs-attachments, project-documents, qc-documents,
+  quotation-documents, raw-material-files, vehicle-photos.
+- **Core commercial tables present:** 068 `hot_projects`, 069 `project_invoice_milestones`,
+  070 `receivables_aging_view`.
+- **Confirmed MISSING:** 099 `sales_user_targets` and all of 100
+  (`project_invoicing_schedule`, `_history`, `_alerts_view`, the trigger fn, and both RPCs).
+- **PR #149** mitigates the `/sales` failure risk (graceful banner, no hard fail), **but full
+  commercial go-live still requires applying 099 and 100.**
+- A complete supervised **activation pack** is now prepared (source review, precheck SQL, apply
+  pack, postcheck SQL, UI smoke test). **Claude did not apply anything.**
+
+Details: `live-supabase-verification-final-results.md`, `migration-099-100-source-review.md`.
 
 ---
 
@@ -71,7 +93,8 @@
 
 ## Go / No-Go recommendation
 
-**🟡 Conditional GO** — proceed only after the manual migration verification confirms migration 100
-is present (strongly implied by the working `/sales`) **and** the 15-minute smoke test passes with
-no blocker-severity failures. The new safety guard reduces the risk of a hard `/sales` failure but
-does not substitute for verification.
+**🔴 CONDITIONAL HOLD** — live verification confirms migrations **099 and 100 are missing**. The
+system is functionally stabilized and `/sales` no longer hard-fails (PR #149), but the commercial
+invoicing-schedule and sales-target features are inactive. Apply the supervised activation pack
+(`apply-migrations-099-100-supervised.sql`), pass the post-check SQL and UI smoke test, then move to
+🟡 Conditional GO. See `go-no-go-decision-matrix.md` for the exact path.
