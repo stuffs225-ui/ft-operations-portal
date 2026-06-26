@@ -214,6 +214,10 @@ This directory contains step-by-step implementation and audit records for the FT
 
 **Live verification result:** 068/069/070 + all storage buckets **present**; **099 and 100 missing**. Go-live decision updated to **🔴 CONDITIONAL HOLD** (`go-no-go-decision-matrix.md`, `final-readiness-summary.md`); the runbook gained a concrete **§16 099/100 activation procedure**. **No migrations were applied by Claude.**
 
+### Post-Migration 099/100 Readiness Update
+
+- **✅ Migrations 099 + 100 APPLIED & VERIFIED** (by the user, in the Supabase SQL Editor; post-check passed). 099 `sales_user_targets` (table + RLS + 3 policies); 100 `project_invoicing_schedule` + history + alerts view + 3 functions + default-schedule trigger (RLS + 3/3 policies). The DB-level go-live blocker is **removed**. Go-live decision moved **🔴 CONDITIONAL HOLD → 🟡 CONDITIONAL GO CANDIDATE** (pending UI smoke test + screenshot baseline). The three commercial pages auto-activate from live data (state derived via `deferredMigrationSafety`; **no code change required** — verified). Updated: `live-supabase-verification-final-results.md`, `final-readiness-summary.md`, `go-no-go-decision-matrix.md`, `safe-migration-application-runbook.md` (§17 applied result), `post-migration-099-100-ui-smoke-test.md` (now the active checklist); created `post-migration-screenshot-baseline-status.md`. **No migrations applied by Claude; no DB/RLS/business-logic/permission changes.**
+
 Planned future steps (not yet started):
 - step-19-5b — Store / Warehouse UX Upgrade
 - step-19-6 — Factory and QC UX Improvement

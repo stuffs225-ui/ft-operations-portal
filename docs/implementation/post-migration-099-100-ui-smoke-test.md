@@ -1,13 +1,30 @@
 # Post-Migration UI Smoke Test — 099 + 100
 
-**Branch:** `feature/missing-migrations-099-100-activation-pack`
-**Run AFTER** applying `docs/sql/apply-migrations-099-100-supervised.sql` and passing
-`docs/sql/postcheck-after-applying-099-100.sql`.
+**Branch:** `feature/missing-migrations-099-100-activation-pack` → active on
+`feature/post-migration-099-100-final-readiness`.
+
+> ✅ **Migrations 099 + 100 are applied and post-check verified.** This is now the **ACTIVE NEXT
+> CHECKLIST** — run it before the final go/no-go.
 
 > **Read-only test.** Open modals to confirm they render, but **do NOT submit/save** any reschedule,
 > amount change, or target unless the user explicitly approves writing to production.
 
 Severity: **B** = blocker · **M** = major · **m** = minor.
+
+---
+
+## Priority order (run in this order)
+
+1. **Sales User — `/sales`** — expect: no migration-100 warning; dashboard loads; KPI cards render;
+   invoicing-schedule / invoicing-plan area renders; no full-page error.
+2. **Admin — `/admin/invoicing-schedule`** — expect: no migration-100 pending warning; schedule
+   table loads; alerts section loads; reschedule modal opens if a row exists; update-amount modal
+   opens if a row exists; **do not submit a mutation unless the user approves.**
+3. **Admin — `/admin/sales-targets`** — expect: no migration-099 pending warning; table loads;
+   Add/Edit target modal opens; **do not save unless the user approves.**
+4. **Operations Manager / Viewer** — expect: no admin write actions exposed; dashboards still load.
+
+The detailed step tables below expand each of these.
 
 ---
 
