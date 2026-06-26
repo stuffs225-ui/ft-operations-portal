@@ -129,12 +129,12 @@ export function AfterSales() {
       <DataSourceBadge variant="auto" />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard icon={<AlertTriangle size={18} className="text-red-600" />} label="Open Requests" value={open} to="/after-sales/maintenance" variant={open > 0 ? 'critical' : 'default'} />
-        <KpiCard icon={<Wrench size={18} className="text-amber-600" />} label="In Progress" value={inProgress} to="/after-sales/maintenance" variant={inProgress > 0 ? 'warning' : 'default'} />
-        <KpiCard icon={<Package size={18} className="text-orange-600" />} label="Parts Waiting" value={partsWaiting} to="/after-sales/maintenance" variant={partsWaiting > 0 ? 'warning' : 'default'} />
-        <KpiCard icon={<Clock size={18} className="text-red-600" />} label="Critical Priority" value={critical} to="/after-sales/maintenance" variant={critical > 0 ? 'critical' : 'default'} />
-        <KpiCard icon={<CheckCircle size={18} className="text-green-600" />} label="Completed" value={completed} to="/after-sales/maintenance" variant="success" />
-        <KpiCard icon={<Wrench size={18} className="text-sky-600" />} label="Total Requests" value={total} to="/after-sales/maintenance" />
+        <KpiCard icon={<AlertTriangle size={18} className="text-red-600" />} label="Open Requests" value={open} to="/after-sales/maintenance?tab=open" variant={open > 0 ? 'critical' : 'default'} />
+        <KpiCard icon={<Wrench size={18} className="text-amber-600" />} label="In Progress" value={inProgress} to="/after-sales/maintenance?tab=in_progress" variant={inProgress > 0 ? 'warning' : 'default'} />
+        <KpiCard icon={<Package size={18} className="text-orange-600" />} label="Parts Waiting" value={partsWaiting} to="/after-sales/maintenance?tab=in_progress" variant={partsWaiting > 0 ? 'warning' : 'default'} />
+        <KpiCard icon={<Clock size={18} className="text-red-600" />} label="Critical Priority" value={critical} to="/after-sales/maintenance?tab=critical" variant={critical > 0 ? 'critical' : 'default'} />
+        <KpiCard icon={<CheckCircle size={18} className="text-green-600" />} label="Completed" value={completed} to="/after-sales/maintenance?tab=completed" variant="success" />
+        <KpiCard icon={<Wrench size={18} className="text-sky-600" />} label="Total Requests" value={total} to="/after-sales/maintenance?tab=all" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
