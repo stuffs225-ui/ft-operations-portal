@@ -162,3 +162,21 @@ all storage buckets present). Execute this exact sequence, supervised:
 - Any pre-check anomaly, post-check failure, or **B** smoke failure → restore the backup and
   reschedule. The pack is non-destructive and the backfill is idempotent, so a clean
   backup-restore fully reverts.
+
+---
+
+## 17. 099/100 Applied Result — ✅ COMPLETED
+
+**Status: the §16 activation procedure is COMPLETE.**
+
+- **Applied by:** the user, in the Supabase SQL Editor (pre-check → apply pack → post-check).
+- **Post-check result:** **PASSED.**
+  - 099 `sales_user_targets`: table Present · RLS Enabled · 3 policies.
+  - 100 `project_invoicing_schedule`: schedule + history tables Present · alerts view Present ·
+    `create_default_invoicing_schedule` + `reschedule_*` + `update_*_amount` functions Present ·
+    default-schedule trigger on `projects` Present · RLS Enabled on both tables · 3 + 3 policies.
+- **Claude applied nothing** — migrations were applied by the user.
+- **Do NOT re-run the apply SQL** unless a DBA explicitly approves. (The pack is idempotent, but
+  re-running is unnecessary now that the post-check has passed.)
+- **Next action:** UI smoke test (`post-migration-099-100-ui-smoke-test.md`) and the screenshot
+  baseline (`post-migration-screenshot-baseline-status.md`), then the final go/no-go decision.

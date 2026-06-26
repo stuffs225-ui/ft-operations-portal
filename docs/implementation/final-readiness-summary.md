@@ -1,31 +1,38 @@
 # Final Readiness Summary
 
-**Branch:** `feature/post-qa-verification-critical-readiness-fixes`
-**Base main SHA:** `b579fdc3199478b9c6eb049fa3c6827cc5d5135c`
-**Updated:** activation-pack sprint — live verification complete.
+**Branch:** `feature/post-qa-verification-critical-readiness-fixes` → updated on
+`feature/post-migration-099-100-final-readiness`
+**Base main SHA (this update):** `7d11a6d47a2b54da1bae3e12ca2ec1062fd2b421`
+**Updated:** post-migration sprint — **099 + 100 applied & verified**.
 
-> Executive view. **Go-live status: 🔴 CONDITIONAL HOLD** until migrations 099 + 100 are applied
-> and verified.
+> Executive view. **Go-live status: 🟡 CONDITIONAL GO CANDIDATE** — DB blockers removed; final GO
+> pending UI smoke test + screenshot baseline.
 
 ---
 
-## Update — live verification complete (activation-pack sprint)
+## Update — migrations 099 + 100 APPLIED & VERIFIED (post-migration sprint)
 
-The user ran the read-only verification SQL against live Supabase. Results:
+The user applied the supervised activation pack and ran the post-check SQL. Results:
 
-- **System is functionally stabilized.** The full foundational schema (001–098) is applied.
-- **Storage buckets present:** afs-attachments, project-documents, qc-documents,
-  quotation-documents, raw-material-files, vehicle-photos.
-- **Core commercial tables present:** 068 `hot_projects`, 069 `project_invoice_milestones`,
-  070 `receivables_aging_view`.
-- **Confirmed MISSING:** 099 `sales_user_targets` and all of 100
-  (`project_invoicing_schedule`, `_history`, `_alerts_view`, the trigger fn, and both RPCs).
-- **PR #149** mitigates the `/sales` failure risk (graceful banner, no hard fail), **but full
-  commercial go-live still requires applying 099 and 100.**
-- A complete supervised **activation pack** is now prepared (source review, precheck SQL, apply
-  pack, postcheck SQL, UI smoke test). **Claude did not apply anything.**
+- **System modules are stabilized.** Full foundational schema (001–098) applied.
+- **099 `sales_user_targets`: applied & verified** — table Present, RLS Enabled, 3 policies.
+- **100 `project_invoicing_schedule`: applied & verified** — schedule + history tables, alerts
+  view, `create_default_invoicing_schedule` + `reschedule_*` + `update_*_amount` functions, and the
+  default-schedule trigger all Present; RLS Enabled on both tables; 3 policies each.
+- **068/069/070 + all storage buckets remain Present.**
+- **DB-level blockers removed:**
+  - Sales Dashboard migration-100 blocker **resolved** (subject to UI smoke test) — `/sales` will
+    render real invoicing data with no "migration pending" banner.
+  - Admin Sales Targets DB readiness **resolved** — `/admin/sales-targets` activates.
+  - Admin Invoicing Schedule DB readiness **resolved** — `/admin/invoicing-schedule` activates.
+- All three pages **auto-activate from live data** (state derived dynamically via
+  `deferredMigrationSafety`; no code change required — verified this sprint).
+- **Claude applied no migrations**; the user applied them in the Supabase SQL Editor.
 
-Details: `live-supabase-verification-final-results.md`, `migration-099-100-source-review.md`.
+**Remaining readiness work:** (1) manual UI smoke test, (2) screenshot baseline, (3) final go/no-go.
+
+Details: `live-supabase-verification-final-results.md`, `post-migration-099-100-ui-smoke-test.md`,
+`post-migration-screenshot-baseline-status.md`.
 
 ---
 
@@ -46,55 +53,52 @@ Details: `live-supabase-verification-final-results.md`, `migration-099-100-sourc
   build/typecheck/lint.
 - The Part C/D code paths typecheck and lint clean.
 
-## What remains unverified (needs live access)
+## What remains unverified (needs live UI access)
 
-- **Live applied-state of migrations 099/100** (and 068/069/070) — the Supabase host is blocked by
-  this environment's network egress, so the read-only probe could not reach it. **Run
-  `docs/sql/read-only-migration-verification.sql` manually.**
+- **Live UI behavior** of `/sales`, `/admin/invoicing-schedule`, `/admin/sales-targets` after
+  activation — covered by `post-migration-099-100-ui-smoke-test.md`.
 - **Live role/screenshot baseline** and **manual smoke test** — need real auth + seeded data.
 
-## Migration status
+## Migration status (post-application)
 
-| Migration | Live status | Frontend behavior if missing |
-|-----------|-------------|------------------------------|
-| 099 `sales_user_targets` | **Unknown** | Safe — Admin shows "migration pending"; Sales shows "no targets" |
-| 100 `project_invoicing_schedule` | **Unknown** (working `/sales` implies present) | **Now safe** — `/sales` shows banner + "—", does not break (this PR); Admin page already safe |
+| Migration | Live status | Notes |
+|-----------|-------------|-------|
+| 099 `sales_user_targets` | ✅ **Applied & verified** | table Present, RLS Enabled, 3 policies |
+| 100 `project_invoicing_schedule` (+ history, view, 3 fns, trigger) | ✅ **Applied & verified** | tables + view + fns + trigger Present; RLS Enabled; 3 + 3 policies |
 
 ## Status snapshot
 
 | Area | Status |
 |------|--------|
-| Migration verification | ⚠ Unknown — manual SQL required (egress-blocked here) |
-| Screenshot baseline | ☐ Scheduled (GitHub Actions) |
+| Migration verification | ✅ 099 + 100 applied & post-check passed |
+| Screenshot baseline | ☐ Pending user run (GitHub Actions) |
 | Smoke test | ☐ Packet ready, not executed live |
-| `/sales` resilience | ✅ Guarded |
+| `/sales` resilience | ✅ Guarded (PR #149) + now backed by real data |
 | Role access / viewer read-only | ✅ Audited safe |
 
 ## Critical risks
 
-1. **Migration 100 live status unconfirmed.** Mitigated (not eliminated) by the new safety guard.
-   Verify before go-live.
+- **None at the DB layer** — 099 + 100 applied and verified.
+- Remaining gate is operational verification (UI smoke + screenshot baseline) before final GO.
 
 ## Non-blocking risks
 
-- 068/069/070 (`hot_projects`, `project_invoice_milestones`, `receivables_aging_view`) lack
-  explicit deferred-migration fallbacks; almost certainly applied (pages render in prod), but
-  include them in the manual SQL check.
-- Live smoke/screenshot pass still pending.
+- Live smoke/screenshot pass still pending (operational, not a code/DB blocker).
 
 ## Recommended next step
 
-1. Run `docs/sql/read-only-migration-verification.sql` in Supabase; paste results into
-   `live-supabase-readonly-verification-results.md`.
-2. Run the GitHub Actions screenshot baseline; review `/sales` + admin commercial pages.
+1. Run `post-migration-099-100-ui-smoke-test.md` — priority: `/sales`, `/admin/invoicing-schedule`,
+   `/admin/sales-targets` (do not submit writes unless approved).
+2. Run the GitHub Actions screenshot baseline; review the critical routes for blank/error pages.
 3. Execute the **15-minute minimum smoke test**.
-4. Apply the **go/no-go matrix** → most likely **Conditional GO** once 100 is confirmed present and
-   the smoke test passes.
+4. Apply the **go/no-go matrix** → **Conditional GO Candidate → Conditional GO** once smoke +
+   screenshot pass.
 
 ## Go / No-Go recommendation
 
-**🔴 CONDITIONAL HOLD** — live verification confirms migrations **099 and 100 are missing**. The
-system is functionally stabilized and `/sales` no longer hard-fails (PR #149), but the commercial
-invoicing-schedule and sales-target features are inactive. Apply the supervised activation pack
-(`apply-migrations-099-100-supervised.sql`), pass the post-check SQL and UI smoke test, then move to
-🟡 Conditional GO. See `go-no-go-decision-matrix.md` for the exact path.
+**🟡 CONDITIONAL GO CANDIDATE** — migrations **099 and 100 are applied and post-check verified**, so
+the DB-level go-live blocker is removed and the commercial invoicing-schedule and sales-target
+features are active at the DB layer. Final GO is pending: (1) `/sales`, `/admin/invoicing-schedule`,
+and `/admin/sales-targets` UI smoke passes, (2) a clean screenshot baseline (no critical blank/error
+pages), and (3) the 15-minute minimum smoke test. See `go-no-go-decision-matrix.md` for the exact
+path. **Do not declare final GO until smoke + screenshot validation is complete.**
