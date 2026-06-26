@@ -18,6 +18,7 @@ import {
   MOCK_RECEIPT_ITEMS,
   MOCK_MEDICAL_SERIALS,
 } from '../data/mockStore';
+import { MOCK_MATERIAL_QC_INSPECTIONS } from '../data/mockQc';
 import { ROLE_MATRIX } from '../lib/roleMatrix';
 import type { UserRole } from '../types';
 import { mockOrEmpty } from '../lib/dataMode';
@@ -29,6 +30,14 @@ const MOCK_CUSTODY_RECORDS = mockOrEmpty(MOCK_CUSTODY_RECORDS_RAW);
 const REQUIRED_PHOTOS = ['front', 'rear', 'left_side', 'right_side', 'chassis_plate'];
 const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'store_user'];
 
+// Material-QC inspection_result classification. Handles both the live-DB enum
+// (pass / pass_with_observations / conditional_pass / fail) and the mock-data
+// vocabulary (passed / accepted / rejected) so counts are correct in both modes.
+// This mirrors how StoreQCHandoff derives accepted vs rejected — read-only, no
+// QC business logic is changed here.
+const QC_ACCEPTED_RESULTS = ['pass', 'passed', 'pass_with_observations', 'conditional_pass', 'accepted'];
+const QC_REJECTED_RESULTS = ['fail', 'failed', 'rejected'];
+
 interface KpiData {
   materialsReceived: number;
   pendingQC: number;
@@ -38,6 +47,9 @@ interface KpiData {
   vehiclesMissingPhotos: number;
   unallocated: number;
   custodyPendingAcceptance: number;
+  qcAccepted: number;
+  qcRejected: number;
+  custodyPendingApproval: number;
 }
 
 interface WorkQueue {
@@ -54,6 +66,7 @@ export function Store() {
   const canCreate = role ? CAN_CREATE.includes(role as UserRole) : false;
   const storeRules = ROLE_MATRIX.store_user?.rules ?? [];
 
+  const [loading, setLoading] = useState(true);
   const [kpi, setKpi] = useState<KpiData>({
     materialsReceived: 0,
     pendingQC: 0,
@@ -63,10 +76,14 @@ export function Store() {
     vehiclesMissingPhotos: 0,
     unallocated: 0,
     custodyPendingAcceptance: 0,
+    qcAccepted: 0,
+    qcRejected: 0,
+    custodyPendingApproval: 0,
   });
 
   useEffect(() => {
     (async () => {
+      setLoading(true);
       if (!isSupabaseConfigured || !supabase) {
         // Derive KPIs from mock data
         const allItems = Object.values(MOCK_RECEIPT_ITEMS).flat();
@@ -78,6 +95,7 @@ export function Store() {
           return photos.filter((p) => REQUIRED_PHOTOS.includes(p.photo_type) && p.storage_path).length < REQUIRED_PHOTOS.length;
         }).length;
 
+        const mockInspections = mockOrEmpty(MOCK_MATERIAL_QC_INSPECTIONS);
         setKpi({
           materialsReceived: MOCK_STORE_RECEIPTS.length,
           pendingQC: allItems.filter((i) => i.status === 'pending_qc').length,
@@ -89,29 +107,36 @@ export function Store() {
           custodyPendingAcceptance: MOCK_CUSTODY_RECORDS.filter(
             (c) => c.receiver_decision === 'pending' && c.status === 'issued',
           ).length,
+          qcAccepted: mockInspections.filter((i) => QC_ACCEPTED_RESULTS.includes(i.inspection_result)).length,
+          qcRejected: mockInspections.filter((i) => QC_REJECTED_RESULTS.includes(i.inspection_result)).length,
+          custodyPendingApproval: MOCK_CUSTODY_RECORDS.filter((c) => c.approval_status === 'pending_approval').length,
         });
+        setLoading(false);
         return;
       }
 
       const sb = supabase;
-      const [receiptRes, itemsRes, custodyRes] = await Promise.all([
+      const [receiptRes, itemsRes, custodyRes, inspectionsRes] = await Promise.all([
         sb.from('store_receipts').select('id, project_id, status', { count: 'exact' }),
         sb.from('store_receipt_items').select('status, serial_required', { count: 'exact' }),
-        sb.from('material_custody_records').select('receiver_decision, status', { count: 'exact' }),
+        sb.from('material_custody_records').select('receiver_decision, status, approval_status', { count: 'exact' }),
+        // Cross-module read-only visibility: QC inspection outcomes for store materials.
+        sb.from('material_qc_inspections').select('inspection_result'),
       ]);
 
       const receipts = receiptRes.data ?? [];
       const items = itemsRes.data ?? [];
       const custody = custodyRes.data ?? [];
+      const inspections = (inspectionsRes.data ?? []) as { inspection_result: string }[];
 
       // For vehicles missing photos we need a separate query
       const { data: photoDataRaw } = await sb
         .from('vehicle_receipts')
         .select('id')
         .not('status', 'in', '(closed,cancelled)');
-      const photoData = (photoDataRaw ?? []) as any[];
+      const photoData = (photoDataRaw ?? []) as { id: string; vehicle_receipt_photos?: { photo_type: string; storage_path: string | null }[] }[];
 
-      const vehiclesMissingPhotos = photoData.filter((v: { id: string; vehicle_receipt_photos?: { photo_type: string; storage_path: string | null }[] }) => {
+      const vehiclesMissingPhotos = photoData.filter((v) => {
         const uploaded = (v.vehicle_receipt_photos ?? [])
           .filter((p) => REQUIRED_PHOTOS.includes(p.photo_type) && p.storage_path)
           .map((p) => p.photo_type);
@@ -129,8 +154,13 @@ export function Store() {
         custodyPendingAcceptance: custody.filter((c: { receiver_decision: string; status: string }) =>
           c.receiver_decision === 'pending' && c.status === 'issued',
         ).length,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
+        qcAccepted: inspections.filter((i) => QC_ACCEPTED_RESULTS.includes(i.inspection_result)).length,
+        qcRejected: inspections.filter((i) => QC_REJECTED_RESULTS.includes(i.inspection_result)).length,
+        custodyPendingApproval: custody.filter((c: { approval_status?: string }) =>
+          c.approval_status === 'pending_approval',
+        ).length,
+      });
+      setLoading(false);
     })();
   }, []);
 
@@ -172,16 +202,17 @@ export function Store() {
     },
     {
       label: 'QC Accepted — Ready to Issue',
-      count: 0,
+      count: kpi.qcAccepted,
       description: 'Items cleared by QC and ready for issuance to Factory or AFS.',
       href: '/store/qc-handoff?status=accepted',
       icon: <CheckCircle2 size={15} />,
     },
     {
       label: 'Custody Pending Approval',
-      count: 0,
+      count: kpi.custodyPendingApproval,
       description: 'Temporary custody records awaiting Admin or Ops approval.',
       href: '/custody',
+      critical: kpi.custodyPendingApproval > 0,
       icon: <ShieldCheck size={15} />,
     },
     {
@@ -202,9 +233,10 @@ export function Store() {
     },
     {
       label: 'QC Rejected / NCR Items',
-      count: 0,
+      count: kpi.qcRejected,
       description: 'Items rejected by QC — blocked from issuance until NCR is closed.',
       href: '/store/qc-handoff?status=rejected',
+      critical: kpi.qcRejected > 0,
       icon: <XCircle size={15} />,
     },
   ];
@@ -279,7 +311,7 @@ export function Store() {
           <Link to={k.href} key={k.label}>
             <div className={`bg-white rounded-xl border border-gray-200 border-l-4 shadow-sm p-4 hover:shadow-md transition-shadow ${k.color}`}>
               <div className={`mb-2 ${k.critical ? 'text-red-500' : 'text-gray-400'}`}>{k.icon}</div>
-              <div className={`text-2xl font-bold ${k.critical ? 'text-red-600' : 'text-gray-900'}`}>{k.value}</div>
+              <div className={`text-2xl font-bold ${k.critical ? 'text-red-600' : 'text-gray-900'}`}>{loading ? '…' : k.value}</div>
               <div className="text-xs font-semibold text-gray-700 mt-0.5">{k.label}</div>
             </div>
           </Link>
@@ -297,7 +329,9 @@ export function Store() {
               }`}>
                 <div className="flex items-start justify-between mb-2">
                   <div className={q.critical && q.count > 0 ? 'text-red-500' : 'text-gray-400'}>{q.icon}</div>
-                  {q.count > 0 ? (
+                  {loading ? (
+                    <Badge variant="neutral">…</Badge>
+                  ) : q.count > 0 ? (
                     <Badge variant={q.critical ? 'critical' : 'warning'}>{q.count}</Badge>
                   ) : (
                     <Badge variant="success">Clear</Badge>

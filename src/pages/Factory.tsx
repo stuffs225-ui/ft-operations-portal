@@ -121,7 +121,6 @@ export function Factory() {
   const workQueues: { label: string; count: number; description: string; link: string; action: string; variant: QueueVariant }[] = [
     { label: 'Projects Missing WO', count: kpis.missingWo, description: 'Saudi projects cannot start without a confirmed Work Order', link: '/wo-pn-gate', action: 'Enter WO', variant: kpis.missingWo > 0 ? 'critical' : 'clear' },
     { label: 'Ready to Start', count: kpis.readyToStart, description: 'WO confirmed — production can begin', link: '/factory/projects', action: 'View Projects', variant: kpis.readyToStart > 0 ? 'warning' : 'clear' },
-    { label: 'Requirements Missing', count: 0, description: 'BOQ, BOM, GA Drawing, or Detail Drawings not submitted', link: '/factory/requirements', action: 'Review Requirements', variant: 'clear' },
     { label: 'Waiting Raw Materials', count: kpis.waitingMaterials, description: 'Production on hold pending material delivery', link: '/factory/raw-material-requests', action: 'Check Status', variant: kpis.waitingMaterials > 0 ? 'warning' : 'clear' },
     { label: 'Monthly Updates Due', count: kpis.updateDue, description: 'Production records requiring a progress update', link: '/factory/monthly-updates', action: 'Submit Update', variant: kpis.updateDue > 0 ? 'warning' : 'clear' },
     { label: 'Updates Overdue', count: kpis.updateOverdue, description: 'No update submitted in over 30 days', link: '/factory/monthly-updates', action: 'Submit Now', variant: kpis.updateOverdue > 0 ? 'critical' : 'clear' },
