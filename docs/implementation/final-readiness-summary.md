@@ -96,13 +96,15 @@ Details: `live-supabase-verification-final-results.md`, `post-migration-099-100-
 
 ## Go / No-Go recommendation
 
-**🟡 CONDITIONAL GO** — migrations **099 and 100 are applied and post-check verified** (DB blockers
-removed); the codebase is green; all 15 critical routes are static + code-path verified with no
-broken links, crash risk, or stale migration-pending wording; role access is clean (admin-only
-commercial controls, viewer read-only, no service role in frontend); and the post-migration
-screenshot baseline (**run #2**) was triggered and is healthy (auth + setup validated, capture in
-progress). Launch is **supportable now** with manual monitoring + the rollback plan. Move to
-**unconditional GO** once: (1) the screenshot run #2 artifact is reviewed clean (3 commercial pages
-show real data; no blank/error landing pages), and (2) the 15-minute minimum smoke test passes. See
-`go-no-go-decision-matrix.md` and `production-handover-pack.md`. **Unconditional GO not yet
-declared** — pending the two operational confirmations above.
+**🟡 CONDITIONAL GO** (unchanged) — migrations **099 and 100 are applied and post-check verified**
+(DB blockers removed); the codebase is green; all 15 critical routes are static + code-path verified
+with no broken links, crash risk, or stale migration-pending wording; role access is clean
+(admin-only commercial controls, viewer read-only, no service role in frontend). The post-migration
+screenshot baseline (**run #2**, `28264136467`) was triggered and its setup/auth steps succeeded,
+but **the capture has not completed and no artifact has been produced yet**, so the artifact
+**could not be reviewed** this sprint, and no live 15-minute smoke results were provided. Per the
+artifact-unavailable rule the decision is **kept at CONDITIONAL GO — not upgraded to full GO.**
+Launch is **supportable now** with manual monitoring + the rollback plan. Move to **unconditional
+GO** once: (1) the screenshot artifact is reviewed clean (re-dispatch the workflow if run #2 did not
+produce one), and (2) the 15-minute smoke test passes. See `final-screenshot-artifact-review.md`,
+`final-15-minute-smoke-test-results.md`, `go-no-go-decision-matrix.md`, `production-handover-pack.md`.

@@ -228,6 +228,13 @@ This directory contains step-by-step implementation and audit records for the FT
 
 **Decision: 🟡 CONDITIONAL GO** — DB blockers removed (099 + 100 applied & verified), code green, no route/role blockers, screenshot baseline run #2 triggered & healthy. Unconditional GO pending the run #2 artifact review + 15-minute smoke. **No migrations applied by Claude; no DB/RLS/business-logic/permission/workflow changes; no code changes this sprint.**
 
+### Final Screenshot / Smoke Review — Go Decision
+
+- **final-screenshot-artifact-review.md — Final Screenshot Artifact Review** (run #2 `28264136467` setup/auth healthy but **capture not complete / no artifact produced yet** → review PENDING; manual artifact-review checklist; decision kept at CONDITIONAL GO per the artifact-unavailable rule)
+- **final-15-minute-smoke-test-results.md — Final 15-Minute Smoke Test Results** (no live results provided → PENDING; all 15 steps static + code-path pre-confirmed; how-to-run checklist)
+
+**Decision: 🟡 CONDITIONAL GO (unchanged).** DB blockers removed (099 + 100 applied & verified), code green, no route/role blockers, no safe bug found. The screenshot artifact could **not** be reviewed (run #2 produced no artifact yet) and the 15-minute live smoke was not run — both are operational confirmations still open, so **not upgraded to full GO**. No code changes, no migrations, no DB/RLS/permission changes this sprint.
+
 Planned future steps (not yet started):
 - step-19-5b — Store / Warehouse UX Upgrade
 - step-19-6 — Factory and QC UX Improvement

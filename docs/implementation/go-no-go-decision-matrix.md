@@ -1,25 +1,29 @@
 # Go / No-Go Decision Matrix
 
-**Branch:** updated on `feature/final-production-readiness-screenshot-smoke-go-no-go`.
-**Base main SHA (this update):** `1a385a6f2bfbb9c2a3d27ef51cba7b932b2f20f7`.
+**Branch:** updated on `feature/final-screenshot-smoke-review-go-decision`.
+**Base main SHA (this update):** `a154f74b990cd1cd5be423896167bcb1fa29a16b`.
 
 ---
 
-## CURRENT DECISION: 🟡 CONDITIONAL GO
+## CURRENT DECISION: 🟡 CONDITIONAL GO (unchanged — two operational confirmations still open)
 
 **Reason:** migrations **099 + 100 are applied and post-check verified**; the **DB-level blockers
-are removed**. The codebase is green (build / typecheck / lint baseline), all 15 critical routes are
-static + code-path verified (no broken links, no null-data crash risk, no stale migration-pending
-wording), role access is clean (admin-only commercial controls; viewer read-only; no service role in
-frontend), and the post-migration screenshot baseline (**run #2**) was **triggered and is healthy**
-(auth + dev server + route catalogue validated; capture in progress). Launch can proceed with manual
-monitoring + the rollback plan; move to **unconditional GO** once the screenshot artifact and the
-15-minute smoke test are reviewed clean.
+are removed**; the codebase is green; all 15 critical routes are static + code-path verified (no
+broken links, no null-data crash risk, no stale migration-pending wording); role access is clean
+(admin-only commercial controls; viewer read-only; no service role in frontend). The post-migration
+screenshot baseline (**run #2**, `28264136467`) was triggered and its setup/auth steps succeeded,
+but the **capture step has not completed and no artifact has been produced yet** — so the artifact
+**could not be reviewed** this sprint. No live 15-minute smoke results were provided. Per the
+artifact-unavailable rule, the decision is **kept at CONDITIONAL GO — not upgraded to full GO.**
+
+Launch is supportable now with manual monitoring + the rollback plan. **Unconditional GO requires
+the two operational confirmations below; do not declare GO without them.**
 
 **Conditions remaining for unconditional GO:**
-1. Review screenshot run #2 artifact (`full-role-page-screenshot-baseline`) — the 3 commercial pages
-   show real data; no blank/error pages on any role landing route.
-2. 15-minute minimum smoke test passes (manual packet).
+1. Review the screenshot run #2 artifact (`full-role-page-screenshot-baseline`) — the 3 commercial
+   pages show real data; no blank/error pages on any role landing route. *(If run #2 timed out / did
+   not produce an artifact, re-dispatch the workflow and review the new artifact.)*
+2. 15-minute minimum smoke test passes (`final-15-minute-smoke-test-results.md`).
 3. Sign-off per the handover pack.
 
 **Completed:**
@@ -27,8 +31,9 @@ monitoring + the rollback plan; move to **unconditional GO** once the screenshot
 - ✅ Build / typecheck / full-lint baseline green.
 - ✅ Critical UI smoke — static + code-path verified (`final-ui-smoke-test-results.md`).
 - ✅ Role access final check — no blocker (`final-role-access-check.md`).
-- ✅ Screenshot baseline **run #2 triggered** on `main` (`final-screenshot-baseline-results.md`).
-- ⏳ Screenshot artifact review + 15-minute smoke + sign-off — **next**.
+- ✅ Screenshot baseline run #2 triggered; setup/auth healthy.
+- ⏳ **Screenshot artifact not yet produced → review PENDING** (`final-screenshot-artifact-review.md`).
+- ⏳ **15-minute smoke not yet run → PENDING** (`final-15-minute-smoke-test-results.md`).
 
 ---
 
