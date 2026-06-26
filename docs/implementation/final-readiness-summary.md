@@ -96,9 +96,13 @@ Details: `live-supabase-verification-final-results.md`, `post-migration-099-100-
 
 ## Go / No-Go recommendation
 
-**🟡 CONDITIONAL GO CANDIDATE** — migrations **099 and 100 are applied and post-check verified**, so
-the DB-level go-live blocker is removed and the commercial invoicing-schedule and sales-target
-features are active at the DB layer. Final GO is pending: (1) `/sales`, `/admin/invoicing-schedule`,
-and `/admin/sales-targets` UI smoke passes, (2) a clean screenshot baseline (no critical blank/error
-pages), and (3) the 15-minute minimum smoke test. See `go-no-go-decision-matrix.md` for the exact
-path. **Do not declare final GO until smoke + screenshot validation is complete.**
+**🟡 CONDITIONAL GO** — migrations **099 and 100 are applied and post-check verified** (DB blockers
+removed); the codebase is green; all 15 critical routes are static + code-path verified with no
+broken links, crash risk, or stale migration-pending wording; role access is clean (admin-only
+commercial controls, viewer read-only, no service role in frontend); and the post-migration
+screenshot baseline (**run #2**) was triggered and is healthy (auth + setup validated, capture in
+progress). Launch is **supportable now** with manual monitoring + the rollback plan. Move to
+**unconditional GO** once: (1) the screenshot run #2 artifact is reviewed clean (3 commercial pages
+show real data; no blank/error landing pages), and (2) the 15-minute minimum smoke test passes. See
+`go-no-go-decision-matrix.md` and `production-handover-pack.md`. **Unconditional GO not yet
+declared** — pending the two operational confirmations above.

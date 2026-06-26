@@ -1,32 +1,34 @@
 # Go / No-Go Decision Matrix
 
-**Branch:** `feature/post-qa-verification-critical-readiness-fixes` → updated on
-`feature/post-migration-099-100-final-readiness`.
-**Base main SHA (this update):** `7d11a6d47a2b54da1bae3e12ca2ec1062fd2b421`.
+**Branch:** updated on `feature/final-production-readiness-screenshot-smoke-go-no-go`.
+**Base main SHA (this update):** `1a385a6f2bfbb9c2a3d27ef51cba7b932b2f20f7`.
 
 ---
 
-## CURRENT DECISION: 🟡 CONDITIONAL GO CANDIDATE
+## CURRENT DECISION: 🟡 CONDITIONAL GO
 
-**Reason:** migrations **099 and 100 are now applied and post-check verified** (table/view/function/
-trigger/RLS/policies all Present). The **DB-level blockers are removed** — the invoicing schedule,
-sales targets, and the Sales Dashboard invoicing plan are active at the DB layer, and the three
-pages auto-activate from live data. The system still requires UI smoke test and screenshot baseline
-before **final GO**.
+**Reason:** migrations **099 + 100 are applied and post-check verified**; the **DB-level blockers
+are removed**. The codebase is green (build / typecheck / lint baseline), all 15 critical routes are
+static + code-path verified (no broken links, no null-data crash risk, no stale migration-pending
+wording), role access is clean (admin-only commercial controls; viewer read-only; no service role in
+frontend), and the post-migration screenshot baseline (**run #2**) was **triggered and is healthy**
+(auth + dev server + route catalogue validated; capture in progress). Launch can proceed with manual
+monitoring + the rollback plan; move to **unconditional GO** once the screenshot artifact and the
+15-minute smoke test are reviewed clean.
 
-**Final decision: CONDITIONAL GO CANDIDATE, pending —**
-1. `/sales` UI smoke passes (no migration-100 banner; dashboard + invoicing plan render).
-2. `/admin/invoicing-schedule` UI smoke passes (no migration-100 pending; schedule + alerts load).
-3. `/admin/sales-targets` UI smoke passes (no migration-099 pending; table + Add/Edit modal).
-4. Screenshot baseline completes without critical blank/error pages.
-5. 15-minute minimum smoke test passes.
+**Conditions remaining for unconditional GO:**
+1. Review screenshot run #2 artifact (`full-role-page-screenshot-baseline`) — the 3 commercial pages
+   show real data; no blank/error pages on any role landing route.
+2. 15-minute minimum smoke test passes (manual packet).
+3. Sign-off per the handover pack.
 
-**Completed on the path to here:**
-- ✅ Supabase backup taken (user).
-- ✅ Pre-check SQL run (user) — 099/100 confirmed missing, dependencies present.
-- ✅ Apply pack applied (user) in the Supabase SQL Editor.
-- ✅ Post-check SQL run (user) — all checks passed.
-- ⏳ UI smoke test, screenshot baseline, final approval — **next**.
+**Completed:**
+- ✅ Supabase backup (user) · pre-check · apply · post-check — all passed (PR #150/#151).
+- ✅ Build / typecheck / full-lint baseline green.
+- ✅ Critical UI smoke — static + code-path verified (`final-ui-smoke-test-results.md`).
+- ✅ Role access final check — no blocker (`final-role-access-check.md`).
+- ✅ Screenshot baseline **run #2 triggered** on `main` (`final-screenshot-baseline-results.md`).
+- ⏳ Screenshot artifact review + 15-minute smoke + sign-off — **next**.
 
 ---
 
@@ -65,10 +67,12 @@ before **final GO**.
 All GO criteria ✅ **and** all NO-GO criteria FALSE. Remaining requirement from here: a clean
 screenshot baseline and a passing 15-minute smoke test.
 
-### 🟡 Conditional GO Candidate (current decision)
-DB blockers are **removed** — 099 + 100 applied and post-check verified. Ship is **possible** once
-the UI smoke test (`/sales`, `/admin/invoicing-schedule`, `/admin/sales-targets`) passes with no
-**B** failures **and** the screenshot baseline is clean. No DB-level blocker remains.
+### 🟡 Conditional GO (current decision)
+DB blockers are **removed** (099 + 100 applied & verified), code is green, all 15 critical routes are
+static + code-path verified, role access is clean, and the post-migration screenshot baseline is
+triggered & healthy. Ship is **supportable now** with manual monitoring + rollback plan; move to
+**unconditional GO** once the screenshot artifact (run #2) and the 15-minute smoke test are reviewed
+with no **B** failures. No DB-level blocker remains.
 
 ### 🔴 Production Hold
 Hold only if a new **B**-severity smoke failure appears, or the screenshot baseline shows a blank/
