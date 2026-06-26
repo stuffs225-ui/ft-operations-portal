@@ -172,6 +172,10 @@ This directory contains step-by-step implementation and audit records for the FT
 - **deferred-database-migrations-register.md — Deferred Database Migrations Register** (audit register of all 100 migrations `001`–`100`: purpose, module, runtime dependency, applied-state=Unknown, risk, dependencies; flags migration 100 as a **fatal** runtime dependency for Sales Dashboard v2; documentation only — no migrations applied, no SQL executed)
 - **future-safe-migration-application-plan.md — Future Safe Migration Application Plan** (how to compare GitHub↔Supabase, query migration history, verify each object, apply in order, test per batch, rollback/stop criteria, and the features depending on migrations 099/100; plan only — nothing applied)
 
+### Operations Execution Sprint — Store, Factory, QC, Dubai/AFS
+
+- **operations-execution-sprint-store-factory-qc-afs.md — Operations Execution Sprint (Store / Factory / QC / Dubai-AFS UX Stabilization)** (all four execution dashboards inspected and found mature; fixed the cross-cutting integrity gap of fabricated `count: 0` work queues that always showed "Clear": Store now computes "QC Accepted", "QC Rejected", and "Custody Pending Approval" from real data — read-only `material_qc_inspections` cross-module read + custody `approval_status` — and gained a loading state; Factory's uncomputable "Requirements Missing" placeholder removed per the omit-if-unsafe rule; QC and Dubai/AFS already fully real-data, left unchanged. **No migrations, no DB/RLS, no gate/workflow/permission changes; full lint baseline reduced 57→56 by removing one pre-existing `as any` warning**)
+
 Planned future steps (not yet started):
 - step-19-5b — Store / Warehouse UX Upgrade
 - step-19-6 — Factory and QC UX Improvement
