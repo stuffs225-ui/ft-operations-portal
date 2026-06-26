@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Wrench, Plus, AlertTriangle, ChevronRight } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
@@ -63,7 +63,14 @@ function formatDate(iso: string | null | undefined) {
 export function AfterSalesMaintenance() {
   const { role } = useAuth();
   const canCreate = role ? CAN_CREATE.includes(role) : false;
-  const [tab, setTab] = useState<Tab>('open');
+  const [searchParams] = useSearchParams();
+
+  // Deep-link support: After Sales dashboard KPI cards link here with ?tab=<key>
+  const urlTab = searchParams.get('tab');
+  const initialTab: Tab =
+    urlTab && TABS.some((t) => t.key === urlTab) ? (urlTab as Tab) : 'open';
+
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [allRequests, setAllRequests] = useState<AfsMaintenanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
 

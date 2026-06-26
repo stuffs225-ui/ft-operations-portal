@@ -176,6 +176,10 @@ This directory contains step-by-step implementation and audit records for the FT
 
 - **operations-execution-sprint-store-factory-qc-afs.md — Operations Execution Sprint (Store / Factory / QC / Dubai-AFS UX Stabilization)** (all four execution dashboards inspected and found mature; fixed the cross-cutting integrity gap of fabricated `count: 0` work queues that always showed "Clear": Store now computes "QC Accepted", "QC Rejected", and "Custody Pending Approval" from real data — read-only `material_qc_inspections` cross-module read + custody `approval_status` — and gained a loading state; Factory's uncomputable "Requirements Missing" placeholder removed per the omit-if-unsafe rule; QC and Dubai/AFS already fully real-data, left unchanged. **No migrations, no DB/RLS, no gate/workflow/permission changes; full lint baseline reduced 57→56 by removing one pre-existing `as any` warning**)
 
+### Management and Support Sprint — After Sales, Reports, Control Tower, Admin, Viewer
+
+- **management-support-sprint-after-sales-reports-control-tower-viewer.md — Management and Support Sprint (After Sales / Reports / Control Tower / Admin / Viewer)** (all five management/support surfaces inspected and found mature; fixed the one genuine functional gap — After Sales dashboard KPI cards now deep-link to the matching maintenance tab via a validated `?tab=` param the list now reads, mirroring the Procurement/Coordinator pattern; Reports verified to have no broken links across all 14 `/reports/*` routes; Control Tower, Admin overview, and Viewer/Management dashboard already fully real-data/read-only and left unchanged. **No migrations, no DB/RLS, no guard/roleMatrix/navigation/permission/workflow changes; full lint baseline unchanged at 56**)
+
 Planned future steps (not yet started):
 - step-19-5b — Store / Warehouse UX Upgrade
 - step-19-6 — Factory and QC UX Improvement
