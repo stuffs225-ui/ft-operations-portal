@@ -191,6 +191,18 @@ This directory contains step-by-step implementation and audit records for the FT
 - **go-live-readiness-checklist.md — Go-Live Readiness Checklist** (code/database/auth/functional/data/security/deployment/sign-off sections; top blocker = verify migration 100)
 - **safe-migration-application-runbook.md — Safe Migration Application Runbook** (later-execution runbook: backup, read-only-verify-first, ascending order, batching, 099/100 verification steps, rollback/stop criteria, go/no-go; nothing applied in this sprint)
 
+### Post-QA Verification and Critical Readiness Fixes
+
+- **post-qa-verification-critical-readiness-fixes.md — Post-QA Verification & Critical Readiness Fixes** (verification + safe-fix sprint; baseline, change log, safety confirmation)
+- **live-supabase-readonly-verification-results.md — Live Supabase Read-Only Verification Results** (anon-key REST existence probe **attempted but blocked by network egress allowlist**; negative control proved the block is at the proxy, so statuses remain **Unknown**; manual SQL + paste-back format provided)
+- **critical-route-link-validation.md — Critical Route & Link Validation** (all critical routes + After Sales `?tab=` / Procurement `?status=` / Coordinator `?tab=`/`?filter=` deep-links validated source→destination; **no broken links**; no fixes needed)
+- **screenshot-baseline-execution-status.md — Screenshot Baseline Execution Status** (workflow/secrets/artifact/route-count; local run not possible — egress-blocked; manifest/workflow unchanged)
+- **manual-smoke-test-execution-packet.md — Manual Smoke-Test Execution Packet** (15-minute minimum gate + full role packet with severity + pass/fail fields)
+- **go-no-go-decision-matrix.md — Go/No-Go Decision Matrix** (GO/NO-GO criteria, Conditional-GO state, required approvals)
+- **final-readiness-summary.md — Final Readiness Summary** (executive; **Conditional GO** pending migration-100 verification + smoke test)
+
+**Critical safe fix shipped:** Sales Dashboard v2 (`Sales.tsx` + `salesDashboardV2Queries.ts` + `salesDashboardV2.ts` types) now **degrades gracefully** when migration 100 (`project_invoicing_schedule`) is missing — renders projects/pipeline/SO/collection, shows invoicing-schedule sections as unavailable with a banner (not silent zero, no crash). A genuine non-migration error is still surfaced. No business calculation changed when data is present. (`isMissingRelationError` from `deferredMigrationSafety`.)
+
 Planned future steps (not yet started):
 - step-19-5b — Store / Warehouse UX Upgrade
 - step-19-6 — Factory and QC UX Improvement

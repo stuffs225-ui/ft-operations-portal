@@ -164,6 +164,14 @@ export interface SalesDashboardV2Warnings {
   receivablesViewMixedScope: boolean;
   /** True when any non-cancelled schedule line has current_invoice_date in the past. */
   overdueInvoicingScheduleExists: boolean;
+  /**
+   * True when project_invoicing_schedule (migration 100) is not available in the database.
+   * The dashboard still renders projects/pipeline/targets; invoicing-schedule-derived values
+   * are shown as unavailable (NOT silently zero).
+   */
+  invoicingScheduleUnavailable: boolean;
+  /** True when sales_user_targets (migration 099) is not available in the database. */
+  salesTargetsUnavailable: boolean;
 }
 
 export interface SalesDashboardV2Metadata {
