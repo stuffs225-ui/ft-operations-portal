@@ -119,3 +119,46 @@ Apply in small, verifiable batches (stop and verify after each):
 
 > **Reminder:** This sprint did not execute any step here. Migration application is a separate,
 > approved, supervised operation.
+
+---
+
+## 16. Concrete 099/100 Activation Procedure (live-verified)
+
+Live read-only verification confirmed **only migrations 099 and 100 are missing** (068/069/070 and
+all storage buckets present). Execute this exact sequence, supervised:
+
+1. **Backup.** Take a Supabase backup; confirm it is restorable. Record backup ID + timestamp.
+2. **Pre-check.** Run `docs/sql/precheck-before-applying-099-100.sql` in the SQL Editor.
+   - §1 must show 099/100 **MISSING**. If any is PRESENT → **STOP** (possible partial state).
+   - §2–§6 dependencies must all be **PRESENT**. If any missing → **STOP**.
+   - Note §8 (backfill-eligible projects = number of default schedule lines to be created).
+3. **Apply.** Paste `docs/sql/apply-migrations-099-100-supervised.sql` into the SQL Editor and run
+   **once**. (It is a faithful copy of migrations 099 + 100 with only the two `updated_at` triggers
+   wrapped for re-runnability; the migration-100 backfill is `WHERE NOT EXISTS`-guarded.)
+4. **Post-check.** Run `docs/sql/postcheck-after-applying-099-100.sql`.
+   - 099.1–099.5 and 100.1–100.7 must be PRESENT/true.
+   - 100.8 should show `migration_backfill` rows when §100.9 > 0; 100.11 must be **0**.
+   - 099.6 must return no rows (no duplicate targets).
+5. **UI smoke test.** Run `post-migration-099-100-ui-smoke-test.md` (no **B** failures). Do **not**
+   submit reschedule/amount/target writes unless approved.
+6. **Screenshot baseline.** Re-run the GitHub Actions baseline; confirm `/sales`,
+   `/admin/invoicing-schedule`, `/admin/sales-targets` render data (no migration-pending states).
+7. **Go/No-Go.** Apply `go-no-go-decision-matrix.md`. On all-pass → 🟡 Conditional GO.
+
+### Verify migration 099
+- `sales_user_targets` table present (postcheck 099.1); columns present (099.2).
+- RLS enabled (099.3); 3 policies present (099.4): admin full, ops read, sales own read.
+- `/admin/sales-targets` no longer shows "migration 99 pending"; sales_user sees only own target.
+
+### Verify migration 100
+- `project_invoicing_schedule` + `_history` + `_alerts_view` present (100.1).
+- 3 functions present (100.2); `projects_create_default_invoicing_schedule` trigger present (100.3).
+- RLS enabled on both tables (100.4); 6 policies (100.5); generated `invoice_year/month` (100.6).
+- Backfill created one default line per eligible project (100.8/100.11=0).
+- `/admin/invoicing-schedule` activates; overdue alerts load; reschedule + amount RPCs callable
+  from the modals (do not submit unless approved); `/sales` shows real invoicing data with no banner.
+
+### Rollback / stop
+- Any pre-check anomaly, post-check failure, or **B** smoke failure → restore the backup and
+  reschedule. The pack is non-destructive and the backfill is idempotent, so a clean
+  backup-restore fully reverts.

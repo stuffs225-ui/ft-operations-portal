@@ -203,6 +203,17 @@ This directory contains step-by-step implementation and audit records for the FT
 
 **Critical safe fix shipped:** Sales Dashboard v2 (`Sales.tsx` + `salesDashboardV2Queries.ts` + `salesDashboardV2.ts` types) now **degrades gracefully** when migration 100 (`project_invoicing_schedule`) is missing — renders projects/pipeline/SO/collection, shows invoicing-schedule sections as unavailable with a banner (not silent zero, no crash). A genuine non-migration error is still surfaced. No business calculation changed when data is present. (`isMissingRelationError` from `deferredMigrationSafety`.)
 
+### Migration 099 + 100 Activation Pack (supervised)
+
+- **migration-099-100-source-review.md — Migration 099 + 100 Source Review** (objects/deps/idempotency/risk for both files; dependencies verified present; documents the only mechanical adjustment — wrapping the two bare `updated_at` triggers in the existing `duplicate_object` guard for re-runnability)
+- **docs/sql/precheck-before-applying-099-100.sql — Pre-check (READ-ONLY)** (confirms 099/100 still missing + all dependency tables/columns/functions/enum present; SELECT-only)
+- **docs/sql/apply-migrations-099-100-supervised.sql — Supervised Apply Pack** (faithful concatenation of migrations 099 + 100 for the Supabase SQL Editor; verified 0 source body lines missing; non-destructive; backfill `WHERE NOT EXISTS`-guarded)
+- **docs/sql/postcheck-after-applying-099-100.sql — Post-check (READ-ONLY)** (verifies all 099/100 tables/view/functions/trigger/RLS/policies/generated columns/backfill reconciliation; SELECT-only, no RPC calls)
+- **post-migration-099-100-ui-smoke-test.md — Post-Migration UI Smoke Test** (Admin sales-targets + invoicing-schedule, Sales dashboard, viewer/ops regression; pass/fail + severity + rollback)
+- **live-supabase-verification-final-results.md — Live Supabase Verification Final Results** (068/069/070 + storage Present; 099/100 Missing before activation)
+
+**Live verification result:** 068/069/070 + all storage buckets **present**; **099 and 100 missing**. Go-live decision updated to **🔴 CONDITIONAL HOLD** (`go-no-go-decision-matrix.md`, `final-readiness-summary.md`); the runbook gained a concrete **§16 099/100 activation procedure**. **No migrations were applied by Claude.**
+
 Planned future steps (not yet started):
 - step-19-5b — Store / Warehouse UX Upgrade
 - step-19-6 — Factory and QC UX Improvement

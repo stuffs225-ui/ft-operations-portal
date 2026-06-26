@@ -2,8 +2,25 @@
 
 **Branch:** `feature/post-qa-verification-critical-readiness-fixes`
 **Base main SHA:** `b579fdc3199478b9c6eb049fa3c6827cc5d5135c`
+**Updated:** activation-pack sprint (`feature/missing-migrations-099-100-activation-pack`).
 
-> Decision aid. Current state reflects this sprint; live-dependent items remain ☐ until verified.
+---
+
+## CURRENT DECISION: 🔴 CONDITIONAL HOLD
+
+**Reason:** live verification confirms migrations **099 and 100 are missing**. Core commercial
+features (invoicing schedule, sales targets, the Sales Dashboard invoicing plan) are not active.
+`/sales` is mitigated by the PR #149 safety guard (no hard fail), but full commercial go-live is
+held until 099/100 are applied and verified.
+
+**Path to Conditional Go:**
+1. Take a Supabase backup.
+2. Run `docs/sql/precheck-before-applying-099-100.sql` and review (099/100 still missing; deps present).
+3. Apply `docs/sql/apply-migrations-099-100-supervised.sql` (supervised, in the SQL Editor).
+4. Run `docs/sql/postcheck-after-applying-099-100.sql` — all checks pass.
+5. Run `post-migration-099-100-ui-smoke-test.md` (no **B** failures).
+6. Run the screenshot baseline or the 15-minute role smoke test.
+7. Approve go-live.
 
 ---
 
