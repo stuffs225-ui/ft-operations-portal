@@ -32,10 +32,12 @@ guards, deep-links, and empty/loading/error states static-verified. Commercial p
 
 ## 4. Smoke / screenshot status
 
-- **UI smoke:** all 15 critical routes static + code-path verified; **live render pending** (manual
-  packet `post-migration-099-100-ui-smoke-test.md`).
-- **Screenshot baseline:** run #2 triggered on `main` (post-migration), setup/auth healthy, capture
-  in progress; review the `full-role-page-screenshot-baseline` artifact when complete.
+- **UI smoke:** all 15 critical routes static + code-path verified; **live render still PENDING**
+  (`final-15-minute-smoke-test-results.md`). No live results provided yet.
+- **Screenshot baseline:** run #2 (`28264136467`) triggered on `main`; setup/auth succeeded, but the
+  **capture has not completed and no artifact exists yet** — review PENDING
+  (`final-screenshot-artifact-review.md`). If run #2 timed out, re-dispatch the **Role/Page
+  Screenshot Baseline** workflow and review the new `full-role-page-screenshot-baseline` artifact.
 
 ## 5. Remaining manual checks (before unconditional GO)
 
