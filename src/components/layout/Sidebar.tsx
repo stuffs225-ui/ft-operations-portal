@@ -10,7 +10,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { NAV_ITEMS } from '../../data/navigation';
+import { NAV_ITEMS, dedupeNavItems } from '../../data/navigation';
 import { useAuth } from '../../hooks/useAuth';
 import { BrandLogo } from '../ui/BrandLogo';
 import type { NavItem, UserRole } from '../../types';
@@ -39,23 +39,25 @@ function isItemVisible(item: NavItem, role: UserRole | null): boolean {
   return item.roles.includes(role);
 }
 
-// Build the filtered nav list, removing separators that have no visible children
+// Build the filtered nav list: role-filter, dedupe true duplicates, then drop
+// separators that have no visible children.
 function buildVisibleNav(role: UserRole | null): NavItem[] {
+  const visible = NAV_ITEMS.filter((item) => item.path === '#' || isItemVisible(item, role));
+  const deduped = dedupeNavItems(visible);
+
   const result: NavItem[] = [];
   let pendingSeparator: NavItem | null = null;
 
-  for (const item of NAV_ITEMS) {
+  for (const item of deduped) {
     if (item.path === '#') {
       // Hold the separator — emit it only if a visible child follows
       pendingSeparator = item;
     } else {
-      if (isItemVisible(item, role)) {
-        if (pendingSeparator) {
-          result.push(pendingSeparator);
-          pendingSeparator = null;
-        }
-        result.push(item);
+      if (pendingSeparator) {
+        result.push(pendingSeparator);
+        pendingSeparator = null;
       }
+      result.push(item);
     }
   }
 

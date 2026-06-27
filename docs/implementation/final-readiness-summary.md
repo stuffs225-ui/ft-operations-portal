@@ -108,3 +108,22 @@ Launch is **supportable now** with manual monitoring + the rollback plan. Move t
 GO** once: (1) the screenshot artifact is reviewed clean (re-dispatch the workflow if run #2 did not
 produce one), and (2) the 15-minute smoke test passes. See `final-screenshot-artifact-review.md`,
 `final-15-minute-smoke-test-results.md`, `go-no-go-decision-matrix.md`, `production-handover-pack.md`.
+
+---
+
+## ⚠️ Screenshot baseline caveat — captured on a near-empty database
+
+The screenshot baseline referenced above was captured against a **near-empty
+database**. It is **valid for empty-state, layout, and navigation review only**,
+and is **not** a substitute for dense-table / data-volume validation.
+
+A concrete example: the Admin Invoicing Schedule "730317 days overdue" data-quality
+defect (now hardened — see `targeted-ui-data-quality-fixes.md`, Issue 1) is
+invisible on an empty-DB baseline because it requires populated schedule rows with
+edge-case dates. A clean empty-DB gallery must **not** be read as confirmation that
+data-heavy pages render correctly.
+
+**Recommendation (future):** add an **E2E scenario seeder** (a small representative
+dataset — projects with invoicing schedules across valid/edge/invalid dates,
+quotations, receivables, NCRs) and re-run the baseline against it so populated
+tables and their overdue/aging math are genuinely reviewed before go-live.

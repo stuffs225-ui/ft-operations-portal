@@ -10,6 +10,24 @@ import type { NavItem } from '../types';
 //        hub items for oversight. Route paths are UNCHANGED.
 // See: docs/implementation/step-18-7i-admin-work-center.md
 
+// Remove duplicate navigation rows that resolve to the same destination AND show
+// the same label (e.g. "Receivables & Aging" and "Quotation Requests" each
+// appearing twice for admin, because the admin bypass surfaces role-specific
+// entries alongside admin's own). First occurrence wins, so ordering and section
+// placement are preserved. Separators (path === '#') are never deduped here — they
+// are pruned separately once their children are known. Differently-labeled links
+// to the same route are intentionally kept (distinct affordances).
+export function dedupeNavItems(items: NavItem[]): NavItem[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (item.path === '#') return true;
+    const key = `${item.path} ${item.label}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export const NAV_ITEMS: NavItem[] = [
   // ── 1. MY WORK ────────────────────────────────────────────────────────────
   {
