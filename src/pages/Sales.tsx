@@ -67,22 +67,68 @@ function fmtInt(v: number | null | undefined): string {
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
+// Small, light inline affordance — replaces the previous grey "note bar" boxes.
+function InlineTag({ label, tone = 'neutral', title }: { label: string; tone?: 'neutral' | 'amber'; title?: string }) {
+  const cls = tone === 'amber'
+    ? 'bg-amber-50 text-amber-700 border-amber-200'
+    : 'bg-gray-50 text-gray-500 border-gray-200';
+  return (
+    <span
+      title={title}
+      className={`inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.04em] border rounded px-1.5 py-0.5 ${cls} ${title ? 'cursor-help' : ''}`}
+    >
+      <Info size={9} className="shrink-0" />
+      {label}
+    </span>
+  );
+}
+
+// Labelled grouping wrapper for the KPI cards (Portfolio / Pipeline / Risk & Cash).
+function KpiGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-[10px] font-semibold uppercase tracking-[0.09em] text-gray-400 mb-2 px-0.5">{title}</div>
+      <div className="grid grid-cols-2 md:grid-cols-1 gap-3">{children}</div>
+    </div>
+  );
+}
+
 interface KpiCardProps {
   label: string;
   value: string;
   subtitle: string;
   icon: React.ReactNode;
-  accent?: string;
+  /** Render the value calmly (used for zero / unavailable values). */
+  muted?: boolean;
+  /** Critical emphasis — restrained NAFFCO red. Used only for real status meaning. */
   urgent?: boolean;
+  /** Optional trailing affordance (e.g. an "Interim" tag). */
+  tag?: React.ReactNode;
 }
 
-function KpiCard({ label, value, subtitle, icon, accent = 'border-l-gray-200', urgent = false }: KpiCardProps) {
+// Executive KPI card: neutral surface, strong value hierarchy, money/figures in
+// tabular numerals, calm muted zeros, and a single restrained red accent reserved
+// for genuine critical status (not decoration).
+function SalesKpiCard({ label, value, subtitle, icon, muted = false, urgent = false, tag }: KpiCardProps) {
   return (
-    <div className={`bg-white rounded-lg border border-gray-200 border-l-4 ${accent} shadow-sm p-4`}>
-      <div className={`mb-3 ${urgent ? 'text-red-500' : 'text-gray-400'}`}>{icon}</div>
+    <div
+      className={`bg-white rounded-lg border shadow-sm p-4 ${
+        urgent ? 'border-gray-200 border-l-4 border-l-red-500' : 'border-gray-200'
+      }`}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <span className={urgent ? 'text-red-500' : 'text-gray-300'}>{icon}</span>
+        {tag}
+      </div>
       <div className="text-[10px] font-semibold uppercase tracking-[0.07em] text-gray-400 mb-1">{label}</div>
-      <div className={`text-xl font-bold tabular-nums leading-tight ${urgent ? 'text-red-700' : 'text-gray-900'}`}>{value}</div>
-      <div className="text-xs text-gray-400 mt-1">{subtitle}</div>
+      <div
+        className={`text-2xl font-bold tabular-nums leading-tight tracking-[-0.01em] ${
+          urgent ? 'text-red-700' : muted ? 'text-gray-300' : 'text-gray-900'
+        }`}
+      >
+        {value}
+      </div>
+      <div className="text-xs text-gray-400 mt-1 leading-snug">{subtitle}</div>
     </div>
   );
 }
@@ -275,70 +321,68 @@ export function Sales() {
             </div>
           )}
 
-          {/* ── Six KPI cards ─────────────────────────────────────────────────── */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <KpiCard
-              label="Projects"
-              value={fmtInt(summary?.projectsCount)}
-              subtitle="Approved, active & completed"
-              icon={<FolderOpen size={16} />}
-              accent="border-l-emerald-400"
-            />
-            <KpiCard
-              label="Total Project Value"
-              value={sar(summary?.totalProjectValue)}
-              subtitle="Approved / active portfolio"
-              icon={<Wallet size={16} />}
-              accent="border-l-emerald-500"
-            />
-            <KpiCard
-              label="Pipeline Projects"
-              value={fmtInt(summary?.pipelineProjectsCount)}
-              subtitle="Open hot projects"
-              icon={<Flame size={16} />}
-              accent="border-l-orange-400"
-            />
-            <KpiCard
-              label="Pipeline Value"
-              value={sar(summary?.totalPipelineValue)}
-              subtitle="Estimated — unweighted"
-              icon={<TrendingUp size={16} />}
-              accent="border-l-orange-300"
-            />
-            <KpiCard
-              label="Projects At Risk"
-              value={fmtInt(summary?.projectsAtRiskCount)}
-              subtitle="Sent back for revision"
-              icon={<AlertCircle size={16} />}
-              accent={(summary?.projectsAtRiskCount ?? 0) > 0 ? 'border-l-red-500' : 'border-l-gray-200'}
-              urgent={(summary?.projectsAtRiskCount ?? 0) > 0}
-            />
-            <KpiCard
-              label="Pending Invoicing"
-              value={scheduleUnavailable ? '—' : sar(summary?.pendingInvoicingValue)}
-              subtitle={scheduleUnavailable ? 'Unavailable — migration pending' : 'Scheduled, not yet invoiced'}
-              icon={<ReceiptText size={16} />}
-              accent="border-l-indigo-400"
-            />
-          </div>
+          {/* ── KPI cards — grouped Portfolio / Pipeline / Risk & Cash ─────────── */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <KpiGroup title="Portfolio">
+              <SalesKpiCard
+                label="Projects"
+                value={fmtInt(summary?.projectsCount)}
+                subtitle="Approved, active & completed"
+                icon={<FolderOpen size={16} />}
+                muted={(summary?.projectsCount ?? 0) === 0}
+              />
+              <SalesKpiCard
+                label="Total Project Value"
+                value={sar(summary?.totalProjectValue)}
+                subtitle="Approved / active portfolio"
+                icon={<Wallet size={16} />}
+                muted={!summary?.totalProjectValue}
+              />
+            </KpiGroup>
 
-          {/* ── Warnings strip (subtle, info-level only) ──────────────────────── */}
-          {warnings && (warnings.projectsAtRiskDefinitionPending || warnings.noTargetsRecord) && (
-            <div className="flex flex-wrap gap-2">
-              {warnings.projectsAtRiskDefinitionPending && (
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-md px-3 py-1.5">
-                  <Info size={12} className="text-gray-400 shrink-0" />
-                  Projects at risk uses an interim definition (sent back for revision). A refined definition is pending.
-                </div>
-              )}
-              {warnings.noTargetsRecord && (
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-md px-3 py-1.5">
-                  <Info size={12} className="text-gray-400 shrink-0" />
-                  No annual targets configured for {selectedYear}.
-                </div>
-              )}
-            </div>
-          )}
+            <KpiGroup title="Pipeline">
+              <SalesKpiCard
+                label="Pipeline Projects"
+                value={fmtInt(summary?.pipelineProjectsCount)}
+                subtitle="Open hot projects"
+                icon={<Flame size={16} />}
+                muted={(summary?.pipelineProjectsCount ?? 0) === 0}
+              />
+              <SalesKpiCard
+                label="Pipeline Value"
+                value={sar(summary?.totalPipelineValue)}
+                subtitle="Estimated — unweighted"
+                icon={<TrendingUp size={16} />}
+                muted={!summary?.totalPipelineValue}
+              />
+            </KpiGroup>
+
+            <KpiGroup title="Risk & Cash">
+              <SalesKpiCard
+                label="Projects At Risk"
+                value={fmtInt(summary?.projectsAtRiskCount)}
+                subtitle="Sent back for revision"
+                icon={<AlertCircle size={16} />}
+                muted={(summary?.projectsAtRiskCount ?? 0) === 0}
+                urgent={(summary?.projectsAtRiskCount ?? 0) > 0}
+                tag={
+                  warnings?.projectsAtRiskDefinitionPending ? (
+                    <InlineTag
+                      label="Interim"
+                      title="Interim definition: counts projects sent back for revision, not commercial delivery risk. A refined definition is pending."
+                    />
+                  ) : undefined
+                }
+              />
+              <SalesKpiCard
+                label="Pending Invoicing"
+                value={scheduleUnavailable ? '—' : sar(summary?.pendingInvoicingValue)}
+                subtitle={scheduleUnavailable ? 'Unavailable — migration pending' : 'Scheduled, not yet invoiced'}
+                icon={<ReceiptText size={16} />}
+                muted={scheduleUnavailable || !summary?.pendingInvoicingValue}
+              />
+            </KpiGroup>
+          </div>
 
           {/* ── Invoicing Plan table ───────────────────────────────────────────── */}
           <Card padding="none">
@@ -483,9 +527,11 @@ export function Sales() {
                 Annual Targets — {selectedYear}
               </h2>
               {warnings?.noTargetsRecord && (
-                <span className="text-xs text-gray-400 flex items-center gap-1">
-                  <Info size={11} className="shrink-0" /> Targets not configured for {selectedYear}
-                </span>
+                <InlineTag
+                  tone="amber"
+                  label={`Set ${selectedYear} targets`}
+                  title={`No annual targets configured for ${selectedYear}. Annual targets are configured by an administrator.`}
+                />
               )}
             </div>
 
