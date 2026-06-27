@@ -7,6 +7,10 @@ interface RoleRulesCardProps {
   className?: string;
 }
 
+// Light executive card. The previous treatment used a heavy dark
+// purple/indigo panel that clashed with the rest of the dashboard; this renders
+// the same governance content as a restrained white card with a charcoal body
+// and a single NAFFCO-red accent on the heading icon for emphasis only.
 export function RoleRulesCard({ className }: RoleRulesCardProps) {
   const { role } = useAuth();
   if (!role) return null;
@@ -15,43 +19,19 @@ export function RoleRulesCard({ className }: RoleRulesCardProps) {
   const rules = matrix?.rules ?? [];
   if (rules.length === 0) return null;
 
-  // Accent color derived from module: use a subtle bg/border based on role type
-  const accentBg =
-    matrix.type === 'admin'
-      ? 'bg-purple-950 border-purple-800'
-      : matrix.type === 'management'
-        ? 'bg-indigo-950 border-indigo-800'
-        : 'bg-gray-900 border-gray-700';
-
-  const dotColor =
-    matrix.type === 'admin'
-      ? 'text-purple-400'
-      : matrix.type === 'management'
-        ? 'text-indigo-400'
-        : 'text-brand-400';
-
-  const headingColor =
-    matrix.type === 'admin'
-      ? 'text-purple-300'
-      : matrix.type === 'management'
-        ? 'text-indigo-300'
-        : 'text-brand-300';
-
-  const ruleColor = 'text-gray-400';
-
   return (
-    <div className={cn('rounded-xl border p-4', accentBg, className)}>
+    <div className={cn('rounded-lg border border-gray-200/80 bg-white shadow-sm p-4', className)}>
       <div className="flex items-center gap-2 mb-3">
-        <ShieldCheck size={14} className={dotColor} />
-        <span className={cn('text-[11px] font-semibold uppercase tracking-wide', headingColor)}>
+        <ShieldCheck size={14} className="text-brand-600" />
+        <span className="text-[11px] font-semibold uppercase tracking-[0.04em] text-gray-700">
           {matrix.label} — Active Rules
         </span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
         {rules.map((rule) => (
           <div key={rule} className="flex items-start gap-2">
-            <span className={cn('shrink-0 mt-0.5', dotColor)}>▸</span>
-            <span className={cn('text-xs leading-snug', ruleColor)}>{rule}</span>
+            <span className="shrink-0 mt-0.5 text-brand-500" aria-hidden>▸</span>
+            <span className="text-xs leading-snug text-gray-600">{rule}</span>
           </div>
         ))}
       </div>

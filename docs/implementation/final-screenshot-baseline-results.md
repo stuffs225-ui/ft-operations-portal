@@ -74,3 +74,23 @@ run took ~19 min). See the run URL above for the gallery/summary artifact.
 
 > If run #2 surfaces a critical UI failure on a key route, raise it as a **blocker** per
 > `go-no-go-decision-matrix.md` and fix safe issues in a follow-up before go-live.
+
+---
+
+## ⚠️ Data-volume caveat — baseline captured on a near-empty database
+
+The screenshot baseline above was captured against a **near-empty database**. It
+is therefore **valid for empty-state, layout, and navigation review**, but it is
+**not a valid validation of dense-table / data-volume behavior**.
+
+This matters: the Admin Invoicing Schedule "730317 days overdue" defect (see
+`targeted-ui-data-quality-fixes.md`, Issue 1) only surfaces with populated schedule
+rows carrying edge-case dates — exactly the conditions an empty-DB baseline cannot
+exercise. An all-green empty-DB gallery does **not** imply data-heavy pages are
+correct.
+
+**Recommendation (future):** add an **E2E scenario seeder** that loads a small,
+representative dataset — projects with invoicing schedules spanning valid, edge,
+and deliberately-invalid dates; quotations; receivables; NCRs — and re-run the
+baseline against it so populated tables (and their overdue/aging math) are actually
+reviewed.

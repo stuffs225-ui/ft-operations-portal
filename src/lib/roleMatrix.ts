@@ -5,6 +5,13 @@ export interface RoleMatrixEntry {
   label: string;
   type: 'admin' | 'management' | 'operational';
   landingRoute: string;
+  /**
+   * Decorative module accent token. Normalized to a restrained scheme — NAFFCO
+   * red (`bg-brand-600`) reserved for the admin/primary emphasis, neutral slate
+   * for every other role — instead of the previous per-role rainbow. This is the
+   * single source of truth for the module accent; page-level decorative accents
+   * are scheduled to converge on it during the redesign phase.
+   */
   moduleAccentColor: string;
   badgeClass: string;
   rules: string[];
@@ -16,7 +23,7 @@ export const ROLE_MATRIX: Record<UserRole, RoleMatrixEntry> = {
     label: 'Admin',
     type: 'admin',
     landingRoute: '/admin-dashboard',
-    moduleAccentColor: 'bg-purple-600',
+    moduleAccentColor: 'bg-brand-600',
     badgeClass: 'bg-purple-100 text-purple-800',
     rules: [
       'Manage users and roles carefully — assign roles only through the approved user_roles source.',
@@ -34,7 +41,7 @@ export const ROLE_MATRIX: Record<UserRole, RoleMatrixEntry> = {
     label: 'Operations Manager',
     type: 'management',
     landingRoute: '/control-tower',
-    moduleAccentColor: 'bg-indigo-600',
+    moduleAccentColor: 'bg-slate-600',
     badgeClass: 'bg-indigo-100 text-indigo-800',
     rules: [
       'Monitor cross-module blockers daily — approvals, gate violations, QC blockers, and delivery risks.',
@@ -51,7 +58,7 @@ export const ROLE_MATRIX: Record<UserRole, RoleMatrixEntry> = {
     label: 'Sales User',
     type: 'operational',
     landingRoute: '/sales',
-    moduleAccentColor: 'bg-emerald-600',
+    moduleAccentColor: 'bg-slate-600',
     badgeClass: 'bg-emerald-100 text-emerald-800',
     rules: [
       'Quotation requests must include enough detail for coordination — incomplete requests cause delays',
@@ -67,7 +74,7 @@ export const ROLE_MATRIX: Record<UserRole, RoleMatrixEntry> = {
     label: 'Sales Coordinator',
     type: 'operational',
     landingRoute: '/sales-coordinator',
-    moduleAccentColor: 'bg-teal-600',
+    moduleAccentColor: 'bg-slate-600',
     badgeClass: 'bg-teal-100 text-teal-800',
     rules: [
       'Process all incoming quotation requests within 24 hours — new requests trigger the SLA clock',
@@ -85,7 +92,7 @@ export const ROLE_MATRIX: Record<UserRole, RoleMatrixEntry> = {
     label: 'Procurement User',
     type: 'operational',
     landingRoute: '/procurement',
-    moduleAccentColor: 'bg-amber-600',
+    moduleAccentColor: 'bg-slate-600',
     badgeClass: 'bg-amber-100 text-amber-800',
     rules: [
       'PR items must be linked to a PO before placing a supplier order',
@@ -101,7 +108,7 @@ export const ROLE_MATRIX: Record<UserRole, RoleMatrixEntry> = {
     label: 'Factory User',
     type: 'operational',
     landingRoute: '/factory',
-    moduleAccentColor: 'bg-orange-600',
+    moduleAccentColor: 'bg-slate-600',
     badgeClass: 'bg-orange-100 text-orange-800',
     rules: [
       'WO (Work Order) is mandatory before Saudi Factory execution begins',
@@ -117,7 +124,7 @@ export const ROLE_MATRIX: Record<UserRole, RoleMatrixEntry> = {
     label: 'Store User',
     type: 'operational',
     landingRoute: '/store',
-    moduleAccentColor: 'bg-cyan-600',
+    moduleAccentColor: 'bg-slate-600',
     badgeClass: 'bg-cyan-100 text-cyan-800',
     rules: [
       'Vehicle receiving requires chassis number and all 5 required photos before acceptance',
@@ -133,7 +140,7 @@ export const ROLE_MATRIX: Record<UserRole, RoleMatrixEntry> = {
     label: 'QC User',
     type: 'operational',
     landingRoute: '/qc',
-    moduleAccentColor: 'bg-violet-600',
+    moduleAccentColor: 'bg-slate-600',
     badgeClass: 'bg-violet-100 text-violet-800',
     rules: [
       'Store-received materials requiring QC must be inspected before issuance',
@@ -149,7 +156,7 @@ export const ROLE_MATRIX: Record<UserRole, RoleMatrixEntry> = {
     label: 'AFS User',
     type: 'operational',
     landingRoute: '/dubai-afs',
-    moduleAccentColor: 'bg-sky-600',
+    moduleAccentColor: 'bg-slate-600',
     badgeClass: 'bg-sky-100 text-sky-800',
     rules: [
       'PN is required before Dubai follow-up, ETA tracking, and pre-delivery readiness',

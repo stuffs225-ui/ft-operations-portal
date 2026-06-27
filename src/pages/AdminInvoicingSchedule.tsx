@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/common/page-header';
 import { SectionHeader } from '@/components/common/section-header';
 import { Button } from '../components/ui/Button';
 import { cn, formatCurrency, formatDate } from '../lib/utils';
+import { describeOverdue, formatScheduleDate } from '../lib/overdueDisplay';
 import {
   getProjectInvoicingScheduleAdminList,
   getProjectInvoicingScheduleAlerts,
@@ -537,8 +538,8 @@ export function AdminInvoicingSchedule() {
                   <tr key={a.scheduleId} className="border-t border-gray-100 hover:bg-gray-50/60">
                     <td className="px-3 py-2 font-medium text-gray-900">{a.projectCode}</td>
                     <td className="px-3 py-2 text-gray-700">{a.customerName}</td>
-                    <td className="px-3 py-2 text-gray-700">{formatDate(a.currentInvoiceDate)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-red-700 font-medium">{a.daysOverdue}</td>
+                    <td className="px-3 py-2 text-gray-700">{formatScheduleDate(a.currentInvoiceDate)}</td>
+                    <td className="px-3 py-2 text-right"><OverdueCell invoiceDate={a.currentInvoiceDate} /></td>
                     <td className="px-3 py-2 text-right tabular-nums text-gray-900">{formatCurrency(a.invoiceAmount)}</td>
                     <td className="px-3 py-2 text-right tabular-nums text-gray-600">{a.delayCount}</td>
                     <td className="px-3 py-2"><StatusBadge status={a.status} /></td>
@@ -595,7 +596,7 @@ export function AdminInvoicingSchedule() {
                       <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{r.salesUserName ?? '—'}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-gray-600">{r.sequenceNo}</td>
                       <td className="px-3 py-2 text-gray-700">{r.scheduleLabel ?? '—'}</td>
-                      <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{formatDate(r.currentInvoiceDate)}</td>
+                      <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{formatScheduleDate(r.currentInvoiceDate)}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-gray-900">{formatCurrency(r.invoiceAmount)}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-gray-600">{r.invoicePercentage != null ? `${r.invoicePercentage}%` : '—'}</td>
                       <td className="px-3 py-2"><StatusBadge status={r.status} /></td>
@@ -649,6 +650,19 @@ function StatusBadge({ status }: { status: PisStatus }) {
       {status}
     </span>
   );
+}
+
+// Renders a controlled overdue state instead of trusting the raw view figure,
+// which can be impossible (e.g. "730317 days") when the source invoice date is a
+// placeholder/implausible value. See src/lib/overdueDisplay.ts.
+function OverdueCell({ invoiceDate }: { invoiceDate: string | null | undefined }) {
+  const d = describeOverdue(invoiceDate);
+  if (d.kind === 'overdue') {
+    return <span className="tabular-nums text-red-700 font-medium" title={d.label}>{d.days}</span>;
+  }
+  const tone =
+    d.kind === 'invalid' || d.kind === 'no-date' ? 'text-gray-400 italic' : 'text-gray-600';
+  return <span className={cn('text-xs', tone)} title={d.label}>{d.label}</span>;
 }
 
 function IconAction({ title, onClick, disabled, children }: { title: string; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {

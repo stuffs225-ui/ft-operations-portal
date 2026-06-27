@@ -100,3 +100,20 @@ After you accept an Improved Version, ask Claude Code (in a **new, separate task
 pasting: (a) the accepted Artifact design, (b) the page's **Safe Implementation Notes**, and (c) the
 **Development Acceptance Criteria**. Require build + typecheck + changed-file lint to stay green and
 forbid DB/RLS/workflow/permission changes. See `artifact-generation-guide.md`.
+
+## ⚠️ Screenshot baseline caveat — near-empty database
+
+The screenshot baseline that informs these briefs was captured against a
+**near-empty database**. Treat it as valid for **empty-state, layout, and
+navigation** review only — **not** for dense-table or data-volume validation.
+
+Data-heavy defects do not appear on an empty-DB baseline (for example the Admin
+Invoicing Schedule overdue date-math defect — see
+`../implementation/targeted-ui-data-quality-fixes.md`, Issue 1 — only shows up with
+populated schedule rows). When a brief depends on how a page behaves with many
+rows or edge-case values, do **not** rely on these screenshots; validate against a
+seeded dataset.
+
+**Recommended follow-up:** add an E2E scenario seeder (representative projects,
+schedules with valid/edge/invalid dates, quotations, NCRs, …) and re-capture the
+baseline against it before treating data-dense pages as visually verified.
