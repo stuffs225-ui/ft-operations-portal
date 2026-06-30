@@ -454,7 +454,7 @@ export function ReportsProcurement() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {highValuePos.map((po) => (
-                  <tr key={po.id} className="hover:bg-amber-50/40">
+                  <tr key={po.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-900">{po.po_number}</td>
                     <td className="px-4 py-3 text-gray-600">{po.supplier_name}</td>
                     <td className="px-4 py-3 text-gray-600">

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Users, Search, Star } from 'lucide-react';
+import { Users, Search, Star, ShieldCheck } from 'lucide-react';
 import { PageLoader } from '../components/ui/PageLoader';
 import { PageHeader } from '@/components/common/page-header';
 import { StatusBadge } from '@/components/status/status-badge';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
+import { StatusTabsWithCounts } from '../components/procurement/ProcurementUI';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { MOCK_SUPPLIERS } from '@/data/mockProcurement';
 import type { ApprovedSupplier } from '@/types';
@@ -87,6 +88,13 @@ export function ProcurementSuppliers() {
     return true;
   });
 
+  // Tab counts derived from already-loaded suppliers (no new query).
+  const statusCounts: Record<string, number> = { all: suppliers.length };
+  for (const tab of STATUS_TABS) {
+    if (tab.key === 'all') continue;
+    statusCounts[tab.key] = suppliers.filter((s) => s.procurement_status === tab.key).length;
+  }
+
   return (
     <div>
       <PageHeader
@@ -96,8 +104,18 @@ export function ProcurementSuppliers() {
           { label: 'Procurement', href: '/procurement' },
           { label: 'Approved Suppliers' },
         ]}
-        className="mb-6"
+        className="mb-4"
       />
+
+      {/* Approved-register governance rule */}
+      <div className="flex items-start gap-2.5 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 mb-4 text-xs text-gray-600">
+        <ShieldCheck size={14} className="shrink-0 mt-0.5 text-gray-400" />
+        <span>
+          <span className="font-semibold text-gray-700">Approved-register rule: </span>
+          a supplier must be on the approved register (Procurement status <span className="font-medium">Approved</span> or
+          <span className="font-medium"> Approved w/ Conditions</span>) before a PO can be issued to them.
+        </span>
+      </div>
 
       {/* Search */}
       <div className="relative mb-4">
@@ -111,22 +129,14 @@ export function ProcurementSuppliers() {
         />
       </div>
 
-      {/* Status filter tabs */}
-      <div className="flex gap-1 mb-5 overflow-x-auto pb-1 border-b border-gray-200">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveStatus(tab.key)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors -mb-px ${
-              activeStatus === tab.key
-                ? 'bg-brand-600 text-white'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* Status filter tabs with counts */}
+      <StatusTabsWithCounts
+        className="mb-5"
+        tabs={STATUS_TABS}
+        active={activeStatus}
+        counts={statusCounts}
+        onSelect={setActiveStatus}
+      />
 
       {!loading && filtered.length > 0 && (
         <p className="text-xs text-gray-500 mb-3">

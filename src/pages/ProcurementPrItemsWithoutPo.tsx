@@ -126,7 +126,7 @@ export function ProcurementPrItemsWithoutPo() {
         actions={
           canCreate ? (
             <Link to="/procurement/purchase-orders/new">
-              <button className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+              <button className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
                 <ShoppingCart size={15} />
                 Create PO to Supplier
               </button>
@@ -153,7 +153,7 @@ export function ProcurementPrItemsWithoutPo() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search item name, code, PR number, project…"
-          className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
+          className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
         />
       </div>
 
@@ -173,7 +173,7 @@ export function ProcurementPrItemsWithoutPo() {
         <Card>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-amber-50 border-b border-amber-100">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">PR Number</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">Project</th>
@@ -188,7 +188,7 @@ export function ProcurementPrItemsWithoutPo() {
                 {filtered.map((item) => (
                   <tr
                     key={item.id}
-                    className="hover:bg-amber-50/40 cursor-pointer"
+                    className="hover:bg-gray-50 cursor-pointer"
                     onClick={(e) => {
                       if ((e.target as HTMLElement).closest('a')) return;
                       navigate(`/procurement/requests/${item.procurement_request_id}`);
@@ -224,7 +224,7 @@ export function ProcurementPrItemsWithoutPo() {
                         {canCreate && (
                           <Link
                             to="/procurement/purchase-orders/new"
-                            className="text-xs font-medium text-amber-700 hover:text-amber-900 hover:underline whitespace-nowrap"
+                            className="text-xs font-medium text-brand-600 hover:text-brand-700 hover:underline whitespace-nowrap"
                             onClick={(e) => e.stopPropagation()}
                           >
                             Create PO

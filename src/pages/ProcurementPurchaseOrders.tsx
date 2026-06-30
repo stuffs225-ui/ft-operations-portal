@@ -6,6 +6,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
+import { StatusTabsWithCounts, ThresholdFlag, PriorityLensBar } from '../components/procurement/ProcurementUI';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_PURCHASE_ORDERS } from '../data/mockProcurement';
@@ -104,6 +105,17 @@ export function ProcurementPurchaseOrders() {
     return true;
   });
 
+  // Tab counts derived from already-loaded orders (no new query).
+  const statusCounts: Record<string, number> = { all: orders.length };
+  for (const tab of STATUS_TABS) {
+    if (tab.key === 'all') continue;
+    statusCounts[tab.key] = orders.filter((po) => po.po_status === tab.key).length;
+  }
+
+  // Priority lenses → map onto existing status filters; no new filtering logic.
+  const pendingApprovalCount = statusCounts['pending_approval'] ?? 0;
+  const delayedCount = statusCounts['delayed'] ?? 0;
+
   return (
     <div>
       <PageHeader
@@ -116,7 +128,7 @@ export function ProcurementPurchaseOrders() {
         actions={
           canCreate ? (
             <Link to="/procurement/purchase-orders/new">
-              <button className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+              <button className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-sm transition-colors">
                 <Plus size={15} />
                 Create PO
               </button>
@@ -145,22 +157,26 @@ export function ProcurementPurchaseOrders() {
         />
       </div>
 
-      {/* Status filter tabs */}
-      <div className="flex gap-1 mb-5 overflow-x-auto pb-1 border-b border-gray-200">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveStatus(tab.key)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors -mb-px ${
-              activeStatus === tab.key
-                ? 'bg-brand-600 text-white'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Priority lenses — quick jump to the two urgent subsets */}
+      <div className="mb-3">
+        <PriorityLensBar
+          lenses={[
+            { key: 'pending_approval', label: 'Pending Approval', count: pendingApprovalCount, critical: false },
+            { key: 'delayed', label: 'Delayed', count: delayedCount, critical: true },
+          ]}
+          activeKey={activeStatus === 'pending_approval' || activeStatus === 'delayed' ? activeStatus : null}
+          onSelect={(k) => setActiveStatus(k as POFilterStatus)}
+        />
       </div>
+
+      {/* Status filter tabs with counts */}
+      <StatusTabsWithCounts
+        className="mb-5"
+        tabs={STATUS_TABS}
+        active={activeStatus}
+        counts={statusCounts}
+        onSelect={setActiveStatus}
+      />
 
       {!loading && filtered.length > 0 && (
         <p className="text-xs text-gray-500 mb-3">
@@ -230,7 +246,10 @@ export function ProcurementPurchaseOrders() {
                     }}
                   >
                     <td className="px-4 py-3">
-                      <span className="font-mono font-semibold text-gray-900">{po.po_number}</span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono font-semibold text-gray-900">{po.po_number}</span>
+                        {po.approval_required && <ThresholdFlag />}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900">{po.project?.project_code ?? '—'}</div>

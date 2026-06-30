@@ -242,7 +242,7 @@ export function ProcurementEtaHistory() {
             onClick={() => setActiveView(tab.key)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${
               activeView === tab.key
-                ? 'border-amber-500 text-amber-700'
+                ? 'border-brand-600 text-brand-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -267,8 +267,8 @@ export function ProcurementEtaHistory() {
                 onClick={() => setEtaFilter(opt.key)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
                   etaFilter === opt.key
-                    ? 'bg-amber-600 text-white border-amber-600'
-                    : 'bg-white text-gray-600 border-gray-300 hover:border-amber-400 hover:text-amber-700'
+                    ? 'bg-brand-600 text-white border-brand-600'
+                    : 'bg-white text-gray-600 border-gray-300 hover:border-brand-400 hover:text-brand-600'
                 }`}
               >
                 {opt.label}
@@ -320,11 +320,11 @@ export function ProcurementEtaHistory() {
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {filteredPos.map((po) => (
-                        <tr key={po.id} className="hover:bg-amber-50/40">
+                        <tr key={po.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3">
                             <Link
                               to={`/procurement/purchase-orders/${po.id}`}
-                              className="font-mono font-semibold text-amber-700 hover:underline"
+                              className="font-mono font-semibold text-brand-600 hover:underline"
                             >
                               {po.po_number}
                             </Link>
@@ -350,7 +350,7 @@ export function ProcurementEtaHistory() {
                           <td className="px-4 py-3">
                             <Link
                               to={`/procurement/purchase-orders/${po.id}?tab=eta`}
-                              className="text-xs font-medium text-amber-700 hover:underline"
+                              className="text-xs font-medium text-brand-600 hover:underline"
                             >
                               {nextAction(po)}
                             </Link>
@@ -377,7 +377,7 @@ export function ProcurementEtaHistory() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search reason, remarks…"
-              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
+              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
             />
           </div>
 
@@ -389,7 +389,7 @@ export function ProcurementEtaHistory() {
                 onClick={() => setActiveType(tab.key)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors -mb-px ${
                   activeType === tab.key
-                    ? 'bg-amber-600 text-white'
+                    ? 'bg-brand-600 text-white'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
