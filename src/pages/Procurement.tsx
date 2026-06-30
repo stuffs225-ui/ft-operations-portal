@@ -114,20 +114,21 @@ export function Procurement() {
     { label: 'Ready for Store', value: kpiData.fullyReceived, icon: <CheckCircle size={16} />, colorClass: 'text-emerald-700 bg-emerald-50 border-emerald-200', href: '/procurement/purchase-orders?status=fully_received' },
   ];
 
-  const workQueues: WorkQueue[] = [
-    { label: 'New PRs to Process', count: kpiData.newPRs, description: 'Purchase requests received — review and create POs', href: '/procurement/requests', actionLabel: 'View PRs', urgent: kpiData.newPRs > 0 },
-    { label: 'PR Items Without PO', count: kpiData.prItemsWithoutPO, description: 'Items waiting to be linked to a supplier PO', href: '/procurement/pr-items-without-po', actionLabel: 'Process Items', urgent: kpiData.prItemsWithoutPO > 0 },
-    { label: 'POs Pending Approval', count: kpiData.poApprovalPending, description: 'High-value POs (> SAR 10,000) awaiting manager approval', href: '/procurement/purchase-orders', actionLabel: 'View POs', urgent: kpiData.poApprovalPending > 0 },
-    { label: 'Awaiting Supplier Response', count: kpiData.sentToSupplier, description: 'POs sent — follow up for acknowledgement and ETA', href: '/procurement/purchase-orders', actionLabel: 'View POs' },
-    { label: 'ETA Updates Due', count: kpiData.inTransit + kpiData.delayedEta, description: 'In-transit and delayed items needing ETA tracking', href: '/procurement/eta-history', actionLabel: 'ETA Tracking' },
-    { label: 'Delayed Deliveries', count: kpiData.delayedEta, description: 'Supplier items with missed ETA — escalate or update', href: '/procurement/purchase-orders', actionLabel: 'View Delayed', urgent: kpiData.delayedEta > 0 },
-    { label: 'Materials in Transit', count: kpiData.inTransit, description: 'POs confirmed in transit — expect this week', href: '/procurement/purchase-orders', actionLabel: 'Track Transit' },
-    { label: 'Suppliers for Review', count: kpiData.suppliersForReview, description: 'Supplier records pending procurement approval', href: '/procurement/suppliers', actionLabel: 'Review Suppliers' },
+  // One urgency-ordered Priority Queues block (replaces the previous 8 overlapping
+  // work-queue cards). Order is fixed by urgency per the approved Artifact:
+  // 1) Pending Approval  2) Items Without PO  3) Delayed ETA  4) New PRs.
+  // All counts are derived from the same data already loaded above; all links and
+  // query params are preserved.
+  const priorityQueues: WorkQueue[] = [
+    { label: 'POs Pending Approval', count: kpiData.poApprovalPending, description: 'High-value POs (≥ SAR 10,000) awaiting Admin / Operations Manager approval', href: '/procurement/purchase-orders?status=pending_approval', actionLabel: 'Review POs', urgent: kpiData.poApprovalPending > 0 },
+    { label: 'PR Items Without PO', count: kpiData.prItemsWithoutPO, description: 'Approved items still waiting to be linked to a supplier PO', href: '/procurement/pr-items-without-po', actionLabel: 'Process Items', urgent: kpiData.prItemsWithoutPO > 0 },
+    { label: 'Delayed ETA', count: kpiData.delayedEta, description: 'Supplier items with a missed ETA — escalate or update with a reason', href: '/procurement/purchase-orders?status=delayed', actionLabel: 'View Delayed', urgent: kpiData.delayedEta > 0 },
+    { label: 'New PRs to Process', count: kpiData.newPRs, description: 'Purchase requests received — review and create POs', href: '/procurement/requests?status=pr_received', actionLabel: 'View PRs', urgent: kpiData.newPRs > 0 },
   ];
 
   const topActions = [
-    { label: 'Register PR', icon: <Plus size={14} />, href: '/procurement/requests/new', color: 'bg-amber-600 hover:bg-amber-700 text-white', show: canCreate },
-    { label: 'Create PO', icon: <ShoppingCart size={14} />, href: '/procurement/purchase-orders/new', color: 'bg-amber-700 hover:bg-amber-800 text-white', show: canCreate },
+    { label: 'Register PR', icon: <Plus size={14} />, href: '/procurement/requests/new', color: 'bg-brand-600 hover:bg-brand-700 text-white shadow-sm', show: canCreate },
+    { label: 'Create PO', icon: <ShoppingCart size={14} />, href: '/procurement/purchase-orders/new', color: 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50', show: canCreate },
     { label: 'ETA Tracking', icon: <Clock size={14} />, href: '/procurement/eta-history', color: 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50', show: true },
     { label: 'Suppliers', icon: <Users size={14} />, href: '/procurement/suppliers', color: 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50', show: true },
   ];
@@ -177,84 +178,84 @@ export function Procurement() {
         ))}
       </div>
 
-      {/* KPI Strip — 4×2 grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {kpis.map((kpi) => (
-          <Link key={kpi.label} to={kpi.href} className="group block">
-            <div className={`rounded-lg border border-gray-200/80 p-4 bg-white hover:shadow-md transition-all ${kpi.critical ? 'border-l-4 border-l-red-500' : ''}`}>
-              <div className={`inline-flex p-2 rounded-lg mb-2 border ${kpi.colorClass}`}>{kpi.icon}</div>
-              <div className={`text-2xl font-bold tabular-nums ${kpi.critical && kpi.value > 0 ? 'text-red-700' : 'text-gray-900'}`}>
-                {kpi.value}
-              </div>
-              <div className="text-xs text-gray-500 mt-0.5 leading-tight group-hover:text-gray-700 transition-colors">
-                {kpi.label}
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
-
-      {/* Work Queues */}
-      <div>
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Work Queues</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {workQueues.map((queue) => (
-            <Link key={queue.label} to={queue.href} className="group block">
-              <div className={`rounded-lg border border-gray-200/80 p-4 bg-white h-full hover:shadow-md hover:border-amber-300 transition-all ${queue.urgent && queue.count > 0 ? 'border-amber-300 bg-amber-50/50' : ''}`}>
-                <div className="flex items-start justify-between mb-2">
-                  <span className={`text-xl font-bold tabular-nums ${queue.urgent && queue.count > 0 ? 'text-amber-700' : 'text-gray-900'}`}>
-                    {queue.count}
+      {/* Compact KPI band — neutral by default, restrained red only for critical */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {kpis.map((kpi) => {
+          const isCritical = !!kpi.critical && kpi.value > 0;
+          return (
+            <Link key={kpi.label} to={kpi.href} className="group block">
+              <div className={`rounded-lg border bg-white px-3 py-2.5 hover:shadow-sm transition-all ${isCritical ? 'border-gray-200 border-l-4 border-l-red-500' : 'border-gray-200/80'}`}>
+                <div className="flex items-center gap-2">
+                  <span className={isCritical ? 'text-red-500' : 'text-gray-300'}>{kpi.icon}</span>
+                  <span className={`text-xl font-bold tabular-nums ${isCritical ? 'text-red-700' : 'text-gray-900'}`}>
+                    {kpi.value}
                   </span>
-                  {queue.urgent && queue.count > 0 ? (
-                    <Badge variant="warning">Action</Badge>
-                  ) : queue.count === 0 ? (
-                    <Badge variant="success">Clear</Badge>
-                  ) : null}
                 </div>
-                <div className="text-xs font-semibold text-gray-900 mb-1 group-hover:text-amber-700 transition-colors">
-                  {queue.label}
-                </div>
-                <div className="text-xs text-gray-500 leading-relaxed mb-2">{queue.description}</div>
-                <div className="flex items-center gap-1 text-xs font-medium text-amber-700">
-                  {queue.actionLabel}
-                  <ChevronRight size={12} />
+                <div className="text-[11px] text-gray-500 mt-1 leading-tight group-hover:text-gray-700 transition-colors">
+                  {kpi.label}
                 </div>
               </div>
             </Link>
-          ))}
+          );
+        })}
+      </div>
+
+      {/* Priority Queues — single urgency-ordered block */}
+      <div>
+        <h2 className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-400 mb-3">Priority Queues</h2>
+        <div className="rounded-lg border border-gray-200/80 bg-white divide-y divide-gray-100 overflow-hidden">
+          {priorityQueues.map((queue) => {
+            const isUrgent = queue.urgent && queue.count > 0;
+            return (
+              <Link key={queue.label} to={queue.href} className="group flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors">
+                <span className={`text-2xl font-bold tabular-nums w-12 shrink-0 ${isUrgent ? 'text-red-700' : queue.count === 0 ? 'text-gray-300' : 'text-gray-900'}`}>
+                  {queue.count}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-900 group-hover:text-brand-700 transition-colors">{queue.label}</span>
+                    {isUrgent ? <Badge variant="critical">Action</Badge> : queue.count === 0 ? <Badge variant="success">Clear</Badge> : null}
+                  </div>
+                  <p className="text-xs text-gray-500 leading-snug mt-0.5">{queue.description}</p>
+                </div>
+                <span className="hidden sm:flex items-center gap-1 text-xs font-medium text-brand-600 shrink-0">
+                  {queue.actionLabel}
+                  <ChevronRight size={12} />
+                </span>
+              </Link>
+            );
+          })}
         </div>
       </div>
 
-      {/* Quick navigation */}
+      {/* Procurement modules — compact navigation row */}
       <div>
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Procurement Modules</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-400 mb-3">Procurement Modules</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {[
-            { label: 'Purchase Requests', desc: 'Register and track all incoming PRs', href: '/procurement/requests', icon: <FileText size={18} />, badge: kpiData.newPRs > 0 ? `${kpiData.newPRs} new` : undefined },
-            { label: 'PO to Supplier', desc: 'Create, track, and approve supplier POs', href: '/procurement/purchase-orders', icon: <ShoppingCart size={18} />, badge: kpiData.poApprovalPending > 0 ? `${kpiData.poApprovalPending} pending approval` : undefined, badgeCritical: true },
-            { label: 'PR Items Without PO', desc: 'Quick queue for items still needing a PO', href: '/procurement/pr-items-without-po', icon: <AlertCircle size={18} />, badge: kpiData.prItemsWithoutPO > 0 ? `${kpiData.prItemsWithoutPO} items` : undefined, badgeCritical: kpiData.prItemsWithoutPO > 0 },
-            { label: 'ETA Tracking', desc: 'Track and update ETAs for all open POs', href: '/procurement/eta-history', icon: <Clock size={18} /> },
-            { label: 'Approved Suppliers', desc: 'Supplier register with procurement and QC status', href: '/procurement/suppliers', icon: <Users size={18} />, badge: kpiData.suppliersForReview > 0 ? `${kpiData.suppliersForReview} for review` : undefined },
-            { label: 'Procurement Reports', desc: 'PR aging, PO status, ETA delay, supplier reports', href: '/reports/procurement', icon: <FileText size={18} /> },
+            { label: 'Purchase Requests', desc: 'Register and track incoming PRs', href: '/procurement/requests', icon: <FileText size={16} />, badge: kpiData.newPRs > 0 ? `${kpiData.newPRs} new` : undefined },
+            { label: 'PO to Supplier', desc: 'Create and track supplier POs', href: '/procurement/purchase-orders', icon: <ShoppingCart size={16} />, badge: kpiData.poApprovalPending > 0 ? `${kpiData.poApprovalPending} pending approval` : undefined, badgeCritical: true },
+            { label: 'PR Items Without PO', desc: 'Items still needing a PO', href: '/procurement/pr-items-without-po', icon: <AlertCircle size={16} />, badge: kpiData.prItemsWithoutPO > 0 ? `${kpiData.prItemsWithoutPO} items` : undefined, badgeCritical: kpiData.prItemsWithoutPO > 0 },
+            { label: 'ETA Tracking', desc: 'Track and update ETAs for open POs', href: '/procurement/eta-history', icon: <Clock size={16} /> },
+            { label: 'Approved Suppliers', desc: 'Register with procurement & QC status', href: '/procurement/suppliers', icon: <Users size={16} />, badge: kpiData.suppliersForReview > 0 ? `${kpiData.suppliersForReview} for review` : undefined },
+            { label: 'Procurement Reports', desc: 'PR aging, PO status, ETA, suppliers', href: '/reports/procurement', icon: <FileText size={16} /> },
           ].map((item) => (
-            <Link key={item.href} to={item.href} className="group block">
-              <div className="rounded-lg border border-gray-200/80 bg-white p-4 h-full hover:shadow-md hover:border-amber-300 transition-all">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="w-9 h-9 bg-amber-50 rounded-lg flex items-center justify-center shrink-0 text-amber-700">
-                    {item.icon}
-                  </div>
-                  <ArrowRight size={16} className="text-gray-300 group-hover:text-amber-500 mt-1 transition-colors" />
-                </div>
-                <div className="text-sm font-semibold text-gray-900 mb-1 group-hover:text-amber-700 transition-colors">
-                  {item.label}
-                </div>
-                <p className="text-xs text-gray-500 leading-relaxed mb-2">{item.desc}</p>
-                {item.badge && (
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${item.badgeCritical ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                    {item.badge}
-                  </span>
-                )}
+            <Link key={item.href} to={item.href} className="group flex items-center gap-3 rounded-lg border border-gray-200/80 bg-white px-3 py-2.5 hover:shadow-sm hover:border-gray-300 transition-all">
+              <div className="w-8 h-8 bg-gray-50 rounded-md flex items-center justify-center shrink-0 text-gray-500 group-hover:text-brand-600 transition-colors">
+                {item.icon}
               </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-semibold text-gray-900 group-hover:text-brand-700 transition-colors">{item.label}</span>
+                  {item.badge && (
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${item.badgeCritical ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 leading-snug truncate">{item.desc}</p>
+              </div>
+              <ArrowRight size={15} className="text-gray-300 group-hover:text-brand-500 shrink-0 transition-colors" />
             </Link>
           ))}
         </div>

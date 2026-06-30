@@ -6,6 +6,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
+import { StatusTabsWithCounts } from '../components/procurement/ProcurementUI';
 import { useAuth } from '../hooks/useAuth';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { supabase } from '../lib/supabase';
@@ -89,6 +90,13 @@ export function ProcurementRequests() {
     return true;
   });
 
+  // Tab counts derived from already-loaded requests (no new query).
+  const statusCounts: Record<string, number> = { all: requests.length };
+  for (const tab of STATUS_TABS) {
+    if (tab.key === 'all') continue;
+    statusCounts[tab.key] = requests.filter((pr) => pr.status === tab.key).length;
+  }
+
   return (
     <div>
       <PageHeader
@@ -101,7 +109,7 @@ export function ProcurementRequests() {
         actions={
           canCreate ? (
             <Link to="/procurement/requests/new">
-              <button className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+              <button className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
                 <Plus size={15} />
                 Register PR
               </button>
@@ -123,22 +131,14 @@ export function ProcurementRequests() {
         />
       </div>
 
-      {/* Status filter tabs */}
-      <div className="flex gap-1 mb-5 overflow-x-auto pb-1 border-b border-gray-200">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveStatus(tab.key)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors -mb-px ${
-              activeStatus === tab.key
-                ? 'bg-brand-600 text-white'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* Status filter tabs with counts */}
+      <StatusTabsWithCounts
+        className="mb-5"
+        tabs={STATUS_TABS}
+        active={activeStatus}
+        counts={statusCounts}
+        onSelect={setActiveStatus}
+      />
 
       {!loading && filtered.length > 0 && (
         <p className="text-xs text-gray-500 mb-3">
@@ -180,7 +180,7 @@ export function ProcurementRequests() {
           action={
             !search && canCreate ? (
               <Link to="/procurement/requests/new">
-                <button className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors mx-auto">
+                <button className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors mx-auto">
                   <Plus size={14} />
                   Register First PR
                 </button>
