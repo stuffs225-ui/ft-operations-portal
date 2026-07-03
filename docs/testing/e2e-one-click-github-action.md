@@ -119,7 +119,8 @@ WebSocket/Node 20 error — re-run with the same secrets after this fix.
 | Problem | Cause / fix |
 |---------|-------------|
 | **Job fails at "Safety gate"** | `confirm_staging` wasn't exactly `RUN_E2E_STAGING`. Re-run with the exact phrase |
-| **Seed fails with `Node.js 20 detected without native WebSocket support`** | The Supabase client needs native WebSocket at initialization. Fixed — the workflow pins Node 24; check the "Node runtime diagnostic" step shows v24 and `native WebSocket: available`. No secret changes needed |
+| **Seed fails with `Node.js 20 detected without native WebSocket support`** | The Supabase client needs native WebSocket at initialization. Fixed — the workflow pins Node 24 and the diagnostic step now **fails fast** if the runtime is < 22. No secret changes needed |
+| **Diagnostic still shows v20 after the fix merged** | You clicked **"Re-run jobs"** on an old failed run — GitHub re-runs reuse the workflow definition from the *original* run's commit. Always start a **fresh "Run workflow"** dispatch from `main` after a workflow fix merges |
 | **`Could not capture run_id after seed`** | Seed crashed before creating the manifest (bad URL/key, or host blocked). Check the seed step log; nothing was created or a partial manifest exists in the artifact — clean up manually with `npm run e2e:workflow:cleanup -- --run-id <id>` if a manifest file is present in the artifact |
 | **Seed step: `treated as PRODUCTION`** | The `E2E_SUPABASE_URL` host isn't in `E2E_NON_PRODUCTION_HOSTS`. Add the *staging* hostname to that secret (never add production) |
 | **Seed step errors on specific tables** | RLS/CHECK constraint mismatch — the manifest records each failed step and the run continues. Review `<run_id>.md` in the artifact; cleanup still removes whatever was created |
