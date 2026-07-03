@@ -16,10 +16,13 @@ import { defineConfig, devices } from '@playwright/test';
  *   TEST_FACTORY_EMAIL / TEST_FACTORY_PASSWORD
  *   TEST_AFS_EMAIL / TEST_AFS_PASSWORD
  *   TEST_QC_EMAIL / TEST_QC_PASSWORD
+ *   TEST_VIEWER_EMAIL / TEST_VIEWER_PASSWORD           (full-workflow spec)
+ *   TEST_COORDINATOR_EMAIL / TEST_COORDINATOR_PASSWORD (full-workflow spec)
  */
 
 export default defineConfig({
-  testDir: './scripts/playwright',
+  testDir: '.',
+  testMatch: ['scripts/playwright/**/*.spec.ts', 'tests/e2e/**/*.spec.ts'],
   outputDir: './docs/ux-audit/playwright-output',
   timeout: 30_000,
   retries: 1,

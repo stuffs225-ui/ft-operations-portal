@@ -8,7 +8,13 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "create:test-users": "node scripts/create-test-users.mjs"
+    "create:test-users": "node scripts/create-test-users.mjs",
+    "e2e:workflow:dry-run": "tsx tools/e2e/e2e-full-workflow.ts --mode dry-run --scenario all",
+    "e2e:workflow:seed": "tsx tools/e2e/e2e-full-workflow.ts --mode seed",
+    "e2e:workflow:validate": "tsx tools/e2e/e2e-full-workflow.ts --mode validate",
+    "e2e:workflow:cleanup": "tsx tools/e2e/e2e-full-workflow.ts --mode cleanup",
+    "e2e:workflow:report": "tsx tools/e2e/e2e-full-workflow.ts --mode report",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
