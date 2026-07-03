@@ -20,6 +20,12 @@ validate → Playwright → cleanup → artifacts). See
 
 Options B+ below are the equivalent local commands.
 
+> **Runtime note:** the GitHub Action pins **Node 24** — the Supabase client's
+> realtime module requires native WebSocket support at initialization (Node 20
+> fails with `Node.js 20 detected without native WebSocket support`). If you run
+> the seeder locally, use Node ≥ 22 as well. No secret changes are needed if
+> your previous CI failure was this WebSocket/Node 20 error.
+
 ## 0. Prerequisites
 
 Environment (e.g. in `.env.local`, which the tool loads via dotenv):

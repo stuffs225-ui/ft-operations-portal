@@ -89,6 +89,19 @@ Every run uploads `e2e-full-workflow-<run number>` containing:
 - `seed-output.log` — raw seeder output
 - `playwright-report/`, `test-results/`, `docs/ux-audit/playwright-output/` — when UI E2E ran
 
+## Runtime requirement — Node 24
+
+The workflow runs on **Node 24** (`actions/setup-node` with `node-version: 24`).
+This is required: the Supabase client's realtime module needs **native
+WebSocket support at initialization**, and Node 20 fails in this environment
+with `Node.js 20 detected without native WebSocket support` before the seeder
+can create a `run_id`. Node ≥ 22 ships native WebSocket; no polyfill and no
+extra dependency are needed. A diagnostic step prints `node --version`,
+`npm --version`, and the WebSocket availability before the dry-run.
+
+**No secret changes are required** if your previous failure was this
+WebSocket/Node 20 error — re-run with the same secrets after this fix.
+
 ## Safety notes
 
 - The confirm phrase gate runs **before checkout** — nothing executes without it.
@@ -106,6 +119,7 @@ Every run uploads `e2e-full-workflow-<run number>` containing:
 | Problem | Cause / fix |
 |---------|-------------|
 | **Job fails at "Safety gate"** | `confirm_staging` wasn't exactly `RUN_E2E_STAGING`. Re-run with the exact phrase |
+| **Seed fails with `Node.js 20 detected without native WebSocket support`** | The Supabase client needs native WebSocket at initialization. Fixed — the workflow pins Node 24; check the "Node runtime diagnostic" step shows v24 and `native WebSocket: available`. No secret changes needed |
 | **`Could not capture run_id after seed`** | Seed crashed before creating the manifest (bad URL/key, or host blocked). Check the seed step log; nothing was created or a partial manifest exists in the artifact — clean up manually with `npm run e2e:workflow:cleanup -- --run-id <id>` if a manifest file is present in the artifact |
 | **Seed step: `treated as PRODUCTION`** | The `E2E_SUPABASE_URL` host isn't in `E2E_NON_PRODUCTION_HOSTS`. Add the *staging* hostname to that secret (never add production) |
 | **Seed step errors on specific tables** | RLS/CHECK constraint mismatch — the manifest records each failed step and the run continues. Review `<run_id>.md` in the artifact; cleanup still removes whatever was created |
