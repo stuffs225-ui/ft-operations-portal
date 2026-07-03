@@ -3,6 +3,23 @@
 Exact commands for running the full-workflow test pack. **Never run seed or
 cleanup against production** (the tool blocks it by default — see Safety).
 
+## Option A — One-click GitHub Actions execution (no terminal)
+
+The **Full E2E Workflow Test** workflow wraps the whole pack (dry-run → seed →
+validate → Playwright → cleanup → artifacts). See
+`e2e-one-click-github-action.md` for secrets setup and troubleshooting.
+
+1. Go to the repo's **Actions** tab on GitHub.
+2. Open **Full E2E Workflow Test**.
+3. Click **Run workflow**.
+4. Select the scenario (`S01` first; `all` once S01 is green).
+5. Type `RUN_E2E_STAGING` into *confirm_staging* (the run aborts without it).
+6. Click **Run workflow**.
+7. When it finishes, download the `e2e-full-workflow-<run number>` artifact
+   (manifest, run report, seed log, Playwright output) from the run page.
+
+Options B+ below are the equivalent local commands.
+
 ## 0. Prerequisites
 
 Environment (e.g. in `.env.local`, which the tool loads via dotenv):
