@@ -170,6 +170,10 @@ async function makeClient(): Promise<SupabaseClient> {
 // ── Scenario plan builder ─────────────────────────────────────────────────────
 
 const shortId = (runId: string) => runId.replace(/[^a-z0-9]/gi, '').slice(-6);
+
+// quotation_priority enum (migrations/015_quotations.sql + database.ts):
+// 'low' | 'medium' | 'high' | 'urgent' — 'medium' is the DB column default.
+const DEFAULT_QUOTATION_PRIORITY = 'medium';
 const tagFor = (runId: string, sc: ScenarioCode) => `${TAG} run_id=${runId} scenario=${sc}`;
 const iso = (offsetDays: number) => {
   const d = new Date(); d.setDate(d.getDate() + offsetDays);
@@ -190,7 +194,7 @@ function buildPlan(runId: string, scenarios: ScenarioCode[]): PlannedInsert[] {
   if (has('S01-clean-full-flow')) {
     const sc: ScenarioCode = 'S01-clean-full-flow'; const t = tagFor(runId, sc);
     P.push(
-      { table: 'quotation_requests', scenario: sc, as: 'q1', values: { customer_name: `E2E-${s} Clean Flow Customer`, quotation_status: 'quotation_received', priority: 'normal', scope_summary: 'E2E clean full workflow', sales_remarks: t } },
+      { table: 'quotation_requests', scenario: sc, as: 'q1', values: { customer_name: `E2E-${s} Clean Flow Customer`, quotation_status: 'quotation_received', priority: DEFAULT_QUOTATION_PRIORITY, scope_summary: 'E2E clean full workflow', sales_remarks: t } },
       { table: 'projects', scenario: sc, as: 'p1', values: { so_number: `E2E-${s}-SO-01`, customer_name: `E2E-${s} Clean Flow Customer`, customer_delivery_date: iso(30), project_status: 'active', total_sales_value: 250000, notes: t } },
       { table: 'factory_records', scenario: sc, values: { project_id: '$ref:p1' } },
       { table: 'procurement_requests', scenario: sc, as: 'pr1', values: { project_id: '$ref:p1', pr_number: `E2E-${s}-PR-01`, received_date: iso(0), status: 'fully_ordered', source_department: 'factory', remarks: t } },
