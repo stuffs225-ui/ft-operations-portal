@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ClipboardCheck, Package, ShieldCheck } from 'lucide-react';
+import { ClipboardCheck, Package } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
+import { ReadOnlyBanner } from '../components/store/StoreUI';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 // QC handoff: store_user perspective — shows material_qc_inspections for items
@@ -140,17 +141,15 @@ export function StoreQCHandoff() {
         actions={<DataSourceBadge variant="auto" />}
       />
 
-      <div className="bg-cyan-50 border border-cyan-200 rounded-xl px-5 py-3 flex items-start gap-3">
-        <ShieldCheck size={16} className="text-cyan-600 mt-0.5 shrink-0" />
-        <p className="text-sm text-cyan-700">
-          Materials requiring QC must not be issued before QC acceptance.
-          QC inspections are performed by the QC team.{' '}
-          <Link to="/material-qc" className="underline hover:text-cyan-900">
-            Go to Material QC
-          </Link>{' '}
-          if you have QC access.
-        </p>
-      </div>
+      <ReadOnlyBanner>
+        <span className="font-semibold text-gray-700">Read-only view. </span>
+        QC owns pass / fail / NCR decisions — Store can view handoff status here but cannot change QC
+        outcomes. Materials requiring QC must not be issued before QC acceptance.{' '}
+        <Link to="/material-qc" className="underline font-medium text-gray-700 hover:text-gray-900">
+          Go to Material QC
+        </Link>{' '}
+        if you have QC access.
+      </ReadOnlyBanner>
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200">
@@ -161,7 +160,7 @@ export function StoreQCHandoff() {
             className={[
               'px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
               tab === t.id
-                ? 'border-cyan-600 text-cyan-700'
+                ? 'border-brand-600 text-brand-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700',
             ].join(' ')}
           >

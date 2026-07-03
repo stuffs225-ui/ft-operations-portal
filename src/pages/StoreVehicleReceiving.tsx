@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Truck, Plus, Search, ChevronRight, AlertCircle, CheckCircle } from 'lucide-react';
+import { Truck, Plus, Search, ChevronRight, AlertCircle } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
+import { StatusTabsWithCounts, PhotoMeter, AcceptGateFlag } from '../components/store/StoreUI';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { mockOrEmpty } from '../lib/dataMode';
@@ -127,6 +128,13 @@ export function StoreVehicleReceiving() {
   const missingCount = vehicles.filter(v => !v.photos_complete).length;
   const damagedCount = vehicles.filter(v => v.status === 'damaged').length;
 
+  // Tab counts derived from already-loaded vehicles (no new query).
+  const statusCounts: Record<string, number> = { all: vehicles.length };
+  for (const t of STATUS_TABS) {
+    if (t.key === 'all') continue;
+    statusCounts[t.key] = vehicles.filter(v => v.status === t.key).length;
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -167,21 +175,14 @@ export function StoreVehicleReceiving() {
       )}
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        {/* Status tabs */}
-        <div className="flex items-center gap-1 px-4 pt-3 overflow-x-auto border-b border-gray-100">
-          {STATUS_TABS.map(t => (
-            <button
-              key={t.key}
-              onClick={() => setStatusTab(t.key)}
-              className={`px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
-                statusTab === t.key
-                  ? 'text-cyan-700 border-cyan-600'
-                  : 'text-gray-500 border-transparent hover:text-gray-700'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+        {/* Status tabs with counts */}
+        <div className="px-4 pt-3">
+          <StatusTabsWithCounts
+            tabs={STATUS_TABS}
+            active={statusTab}
+            counts={statusCounts}
+            onSelect={setStatusTab}
+          />
         </div>
 
         {/* Filters */}
@@ -193,7 +194,7 @@ export function StoreVehicleReceiving() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Chassis #, vehicle type, project…"
-              className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-300 w-56"
+              className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 w-56"
             />
           </div>
           <label className="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer">
@@ -242,7 +243,7 @@ export function StoreVehicleReceiving() {
                 {filtered.map(v => (
                   <tr key={v.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
-                      <p className="text-sm font-mono font-medium text-cyan-700">{v.chassis_number}</p>
+                      <p className="text-sm font-mono font-medium text-gray-900">{v.chassis_number}</p>
                       {v.condition_status && v.condition_status !== 'good' && (
                         <p className="text-[10px] text-red-600 font-medium uppercase tracking-wide">
                           {v.condition_status.replace(/_/g, ' ')}
@@ -261,14 +262,12 @@ export function StoreVehicleReceiving() {
                       {formatDate(v.received_date)}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
-                        v.photos_complete ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-                      }`}>
-                        {v.photos_complete
-                          ? <><CheckCircle size={11} /> Complete</>
-                          : <><AlertCircle size={11} /> {v.photo_count}/{REQUIRED_PHOTOS.length}</>
-                        }
-                      </span>
+                      <div className="space-y-1">
+                        <PhotoMeter count={v.photo_count} total={REQUIRED_PHOTOS.length} />
+                        {!v.photos_complete && v.status !== 'accepted' && (
+                          <AcceptGateFlag complete={false} />
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant={STATUS_VARIANT[v.status] ?? 'neutral'}>

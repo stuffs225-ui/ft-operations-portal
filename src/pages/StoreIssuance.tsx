@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, Package, Search } from 'lucide-react';
+import { ArrowUpRight, Package, Search, Info } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -97,13 +97,24 @@ export function StoreIssuance() {
             <DataSourceBadge variant="auto" />
             <Link
               to="/custody/new"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-cyan-600 text-white hover:bg-cyan-700 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 transition-colors"
             >
               <ArrowUpRight size={14} /> Issue Material
             </Link>
           </div>
         }
       />
+
+      {/* Issuance preconditions (governance — display only) */}
+      <div className="flex items-start gap-2.5 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-xs text-gray-600">
+        <Info size={14} className="shrink-0 mt-0.5 text-gray-400" />
+        <span>
+          <span className="font-semibold text-gray-700">Before issuing: </span>
+          materials requiring QC must be <span className="font-medium">QC-accepted</span> first, and
+          medical / serialized items must have their <span className="font-medium">serial registered</span>.
+          Temporary custody also requires Admin / Ops approval and receiver acceptance.
+        </span>
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">
@@ -114,7 +125,7 @@ export function StoreIssuance() {
             className={[
               'shrink-0 px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
               tab === t.id
-                ? 'border-cyan-600 text-cyan-700'
+                ? 'border-brand-600 text-brand-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700',
             ].join(' ')}
           >
@@ -138,7 +149,7 @@ export function StoreIssuance() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Custody #, project, item…"
-              className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-300 w-56"
+              className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 w-56"
             />
           </div>
           <span className="ml-auto text-xs text-gray-400">
@@ -180,7 +191,7 @@ export function StoreIssuance() {
                     <td className="px-4 py-3">
                       <Link
                         to={`/custody/${r.id}`}
-                        className="text-sm font-mono font-medium text-cyan-700 hover:underline"
+                        className="text-sm font-mono font-medium text-brand-600 hover:underline"
                       >
                         {r.custody_number}
                       </Link>

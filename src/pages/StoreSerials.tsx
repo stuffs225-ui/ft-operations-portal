@@ -103,7 +103,7 @@ export function StoreSerials() {
       {/* KPI strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'Total Serials', value: serials.length, color: 'border-l-cyan-400' },
+          { label: 'Total Serials', value: serials.length, color: 'border-l-gray-300' },
           { label: 'Awaiting QC', value: needsQc, color: needsQc > 0 ? 'border-l-amber-400' : 'border-l-gray-200' },
           { label: 'QC Failed', value: failed, color: failed > 0 ? 'border-l-red-500' : 'border-l-gray-200' },
           { label: 'QC Passed', value: passed, color: 'border-l-emerald-400' },
@@ -125,13 +125,13 @@ export function StoreSerials() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Serial #, item name, batch…"
-              className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-300 w-52"
+              className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 w-52"
             />
           </div>
           <select
             value={qcFilter}
             onChange={e => setQcFilter(e.target.value as 'all' | SerialQcStatus)}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300"
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="all">All QC Statuses</option>
             <option value="not_checked">Not Checked</option>
@@ -142,7 +142,7 @@ export function StoreSerials() {
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value as 'all' | SerialCurrentStatus)}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300"
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="all">All Statuses</option>
             <option value="in_store">In Store</option>
@@ -198,7 +198,7 @@ export function StoreSerials() {
                       {(s.item as any)?.item_name ? (
                         <Link
                           to={`/store/receipts/${(s.item as any).store_receipt_id}`}
-                          className="text-sm text-cyan-700 hover:underline"
+                          className="text-sm text-brand-600 hover:underline"
                         >
                           {(s.item as any).item_name}
                         </Link>
@@ -237,12 +237,12 @@ export function StoreSerials() {
         )}
       </div>
 
-      <div className="bg-cyan-50 border border-cyan-200 rounded-xl p-4 flex items-start gap-3">
-        <ShieldCheck size={16} className="text-cyan-600 mt-0.5 shrink-0" />
-        <p className="text-sm text-cyan-700">
+      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-start gap-3">
+        <ShieldCheck size={16} className="text-gray-400 mt-0.5 shrink-0" />
+        <p className="text-sm text-gray-600">
           Medical and serialized items must be tracked by serial number before issuance.
           Serial numbers are registered from the{' '}
-          <Link to="/store/receipts" className="underline hover:text-cyan-900">Material Receiving</Link> detail page.
+          <Link to="/store/receipts" className="underline font-medium text-gray-700 hover:text-gray-900">Material Receiving</Link> detail page.
         </p>
       </div>
     </div>

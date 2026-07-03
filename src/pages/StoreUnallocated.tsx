@@ -179,7 +179,7 @@ export function StoreUnallocated() {
               <tbody className="divide-y divide-gray-50">
                 {unallocatedItems.map(item => (
                   <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-sm font-mono text-sky-700">{item.receipt_number}</td>
+                    <td className="px-4 py-3 text-sm font-mono text-gray-900">{item.receipt_number}</td>
                     <td className="px-4 py-3">
                       <p className="text-sm font-medium text-gray-800">{item.item_name}</p>
                       {item.item_code && <p className="text-xs text-gray-400 font-mono">{item.item_code}</p>}
@@ -199,7 +199,7 @@ export function StoreUnallocated() {
                             <select
                               value={selectedProject}
                               onChange={e => setSelectedProject(e.target.value)}
-                              className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-sky-300"
+                              className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
                             >
                               <option value="">Select project…</option>
                               {projects.map(p => (

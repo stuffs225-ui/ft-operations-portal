@@ -6,6 +6,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
+import { StatusTabsWithCounts } from '../components/store/StoreUI';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { mockOrEmpty } from '../lib/dataMode';
@@ -105,6 +106,13 @@ export function StoreReceipts() {
 
   const pendingQc = receipts.filter(r => r.status === 'pending_material_qc').length;
 
+  // Tab counts derived from already-loaded receipts (no new query).
+  const statusCounts: Record<string, number> = { all: receipts.length };
+  for (const t of STATUS_TABS) {
+    if (t.key === 'all') continue;
+    statusCounts[t.key] = receipts.filter(r => r.status === t.key).length;
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -135,21 +143,14 @@ export function StoreReceipts() {
       )}
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        {/* Status tabs */}
-        <div className="flex items-center gap-1 px-4 pt-3 overflow-x-auto border-b border-gray-100">
-          {STATUS_TABS.map(t => (
-            <button
-              key={t.key}
-              onClick={() => setStatusTab(t.key)}
-              className={`px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
-                statusTab === t.key
-                  ? 'text-cyan-700 border-cyan-600'
-                  : 'text-gray-500 border-transparent hover:text-gray-700'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+        {/* Status tabs with counts */}
+        <div className="px-4 pt-3">
+          <StatusTabsWithCounts
+            tabs={STATUS_TABS}
+            active={statusTab}
+            counts={statusCounts}
+            onSelect={setStatusTab}
+          />
         </div>
 
         {/* Search */}
@@ -161,7 +162,7 @@ export function StoreReceipts() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Receipt #, supplier, project, delivery note…"
-              className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-300 w-64"
+              className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 w-64"
             />
           </div>
           <span className="ml-auto text-xs text-gray-400">
@@ -204,7 +205,7 @@ export function StoreReceipts() {
                   return (
                     <tr key={r.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3">
-                        <p className="text-sm font-mono font-medium text-cyan-700">{r.receipt_number}</p>
+                        <p className="text-sm font-mono font-medium text-gray-900">{r.receipt_number}</p>
                         <p className="text-[10px] text-gray-400 uppercase tracking-wide">{r.receipt_type}</p>
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell">
