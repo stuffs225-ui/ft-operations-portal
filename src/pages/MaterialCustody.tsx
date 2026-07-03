@@ -6,6 +6,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
+import { StatusTabsWithCounts } from '../components/store/StoreUI';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { mockOrEmpty } from '../lib/dataMode';
@@ -73,6 +74,13 @@ export function MaterialCustody() {
   const inCustody = records.filter(c => c.status === 'in_custody').length;
   const returned = records.filter(c => c.status === 'returned').length;
 
+  // Tab counts derived from already-loaded records (no new query).
+  const statusCounts: Record<string, number> = { all: records.length };
+  for (const t of STATUS_TABS) {
+    if (t.key === 'all') continue;
+    statusCounts[t.key] = records.filter(c => c.status === t.key).length;
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -107,7 +115,7 @@ export function MaterialCustody() {
         {[
           { label: 'Pending Approval', value: pendingApproval, color: pendingApproval > 0 ? 'border-l-red-500' : 'border-l-gray-200' },
           { label: 'Pending Acceptance', value: pendingAcceptance, color: pendingAcceptance > 0 ? 'border-l-amber-400' : 'border-l-gray-200' },
-          { label: 'In Custody', value: inCustody, color: 'border-l-sky-400' },
+          { label: 'In Custody', value: inCustody, color: 'border-l-gray-300' },
           { label: 'Returned', value: returned, color: 'border-l-gray-400' },
         ].map(k => (
           <div key={k.label} className={`bg-white rounded-xl border border-gray-200 border-l-4 shadow-sm p-4 ${k.color}`}>
@@ -122,21 +130,14 @@ export function MaterialCustody() {
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        {/* Status tabs */}
-        <div className="flex items-center gap-1 px-4 pt-3 overflow-x-auto border-b border-gray-100">
-          {STATUS_TABS.map(t => (
-            <button
-              key={t.key}
-              onClick={() => setStatusTab(t.key)}
-              className={`px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
-                statusTab === t.key
-                  ? 'text-cyan-700 border-cyan-600'
-                  : 'text-gray-500 border-transparent hover:text-gray-700'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+        {/* Status tabs with counts */}
+        <div className="px-4 pt-3">
+          <StatusTabsWithCounts
+            tabs={STATUS_TABS}
+            active={statusTab}
+            counts={statusCounts}
+            onSelect={setStatusTab}
+          />
         </div>
 
         {loading ? (
@@ -172,7 +173,7 @@ export function MaterialCustody() {
               <tbody className="divide-y divide-gray-50">
                 {filtered.map(c => (
                   <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-sm font-mono font-medium text-cyan-700">{c.custody_number}</td>
+                    <td className="px-4 py-3 text-sm font-mono font-medium text-gray-900">{c.custody_number}</td>
                     <td className="px-4 py-3 text-sm text-gray-700 hidden md:table-cell">{c.item?.item_name ?? '—'}</td>
                     <td className="px-4 py-3 text-sm text-gray-500 hidden lg:table-cell font-mono text-xs">
                       {c.project?.project_code ?? '—'}

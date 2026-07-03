@@ -117,7 +117,7 @@ export function StoreInventory() {
             <DataSourceBadge variant="auto" />
             <Link
               to="/store/receipts/new"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-cyan-600 text-white hover:bg-cyan-700 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 transition-colors"
             >
               <Layers size={14} /> Receive Material
             </Link>
@@ -129,7 +129,7 @@ export function StoreInventory() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: 'In Store', value: inStore, color: 'border-l-emerald-400' },
-          { label: 'Issued / In Custody', value: issuedOut, color: 'border-l-sky-400' },
+          { label: 'Issued / In Custody', value: issuedOut, color: 'border-l-gray-300' },
           { label: 'Pending QC', value: pendingQc, color: pendingQc > 0 ? 'border-l-amber-400' : 'border-l-gray-200' },
           { label: 'QC Rejected', value: qcIssues, color: qcIssues > 0 ? 'border-l-red-500' : 'border-l-gray-200' },
         ].map(card => (
@@ -150,13 +150,13 @@ export function StoreInventory() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Item name, code, location…"
-              className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-300 w-52"
+              className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 w-52"
             />
           </div>
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value as 'all' | ItemStatus)}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300"
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="all">All Statuses</option>
             <option value="received">Received</option>
@@ -172,7 +172,7 @@ export function StoreInventory() {
           <select
             value={categoryFilter}
             onChange={e => setCategoryFilter(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300"
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             {categories.map(c => <option key={c} value={c}>{c === 'all' ? 'All Categories' : c}</option>)}
           </select>
@@ -249,7 +249,7 @@ export function StoreInventory() {
                       <td className="px-4 py-3 text-sm hidden xl:table-cell">
                         <Link
                           to={`/store/receipts/${item.store_receipt_id}`}
-                          className="text-cyan-600 hover:underline font-mono text-xs"
+                          className="text-brand-600 hover:underline font-mono text-xs"
                         >
                           {item.receipt_number}
                         </Link>
