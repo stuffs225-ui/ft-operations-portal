@@ -126,4 +126,5 @@ npm run e2e:workflow:report -- --run-id <run_id>
 | `treated as PRODUCTION` | The host isn't in `E2E_NON_PRODUCTION_HOSTS`. Add it only if it is genuinely non-production |
 | `Could not resolve a profile id` | The target DB has no `profiles` rows — create test users first (`npm run create:test-users`) |
 | Step errors in the manifest | RLS may block anon+admin login for some tables — use `SUPABASE_SERVICE_ROLE_KEY` for seeding; each failed step is recorded, the run continues |
+| `invalid input value for enum …` step error | A seeded value doesn't match a DB enum. Check the enum in `src/types/database.ts` / `supabase/migrations` and fix the seeder value (e.g. `quotation_priority` is `low/medium/high/urgent` — fixed to `medium`) |
 | Playwright skips a role | That role's `TEST_*` credentials are unset — intentional; set them or `E2E_STRICT_AUTH=true` |
