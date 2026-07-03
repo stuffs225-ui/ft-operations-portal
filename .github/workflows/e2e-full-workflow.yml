@@ -87,8 +87,31 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
+          # Explicit '24' takes precedence over .nvmrc (which pins 20 for the
+          # Vercel app build and is intentionally left unchanged).
           node-version: '24'
           cache: npm
+
+      # Diagnostic + hard assertion, immediately after setup-node: every later
+      # step (install, build, typecheck, dry-run, seed, validate, Playwright)
+      # runs in this same job shell, so this one check covers them all. The
+      # Supabase client needs native WebSocket (Node >= 22); fail fast here
+      # instead of deep inside the seed step.
+      #
+      # If this prints v20.x you are re-running an OLD failed run: GitHub
+      # "Re-run jobs" reuses the workflow definition from the original run's
+      # commit. Start a fresh "Run workflow" dispatch from main instead.
+      - name: Node runtime diagnostic (fail-fast < 22)
+        run: |
+          set -euo pipefail
+          node --version
+          npm --version
+          MAJOR=$(node -p "process.versions.node.split('.')[0]")
+          if [ "$MAJOR" -lt 22 ]; then
+            echo "::error::Node $MAJOR detected — this workflow requires Node >= 22 (native WebSocket for the Supabase client). If you used 'Re-run jobs', dispatch a FRESH 'Run workflow' from main instead: re-runs reuse the old workflow definition."
+            exit 1
+          fi
+          node -e "console.log('native WebSocket:', typeof WebSocket !== 'undefined' ? 'available' : 'MISSING')"
 
       - name: Install dependencies
         run: npm ci
@@ -109,14 +132,6 @@ jobs:
           set -euo pipefail
           npx tsc --noEmit
           npx tsc --noEmit -p tsconfig.e2e.json
-
-      # ── 5b. Runtime diagnostic ────────────────────────────────────────────
-      - name: Node runtime diagnostic
-        run: |
-          set -euo pipefail
-          node --version
-          npm --version
-          node -e "console.log('native WebSocket:', typeof WebSocket !== 'undefined' ? 'available' : 'MISSING')"
 
       # ── 6. Dry-run (never writes) ─────────────────────────────────────────
       - name: Dry-run (plan only, zero writes)
