@@ -1,0 +1,255 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Full E2E Workflow Test — one-click runner for the E2E workflow test pack
+#
+# Wraps the PR #159 scripts (e2e:workflow:dry-run / seed / validate / cleanup
+# and the Playwright full-workflow spec) so the whole pack can be run from the
+# GitHub Actions UI without local terminal commands.
+#
+# STAGING / TEST ONLY:
+#   • Hard gate: the run fails immediately unless the confirm_staging input is
+#     exactly RUN_E2E_STAGING.
+#   • There is deliberately NO production override input. The seeder itself
+#     additionally blocks any Supabase host not listed in the
+#     E2E_NON_PRODUCTION_HOSTS secret (defense in depth) — this workflow never
+#     sets E2E_ALLOW_PRODUCTION.
+#   • Cleanup only ever runs with the captured run_id (tagged records of this
+#     run only — never untagged data, never a blanket delete).
+#   • Secrets are passed via env only; never echoed.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Full E2E Workflow Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: 'Scenario to run'
+        type: choice
+        options:
+          - S01
+          - all
+        default: S01
+      run_ui_e2e:
+        description: 'Run Playwright UI E2E after seed/validate'
+        type: boolean
+        default: true
+      cleanup_after:
+        description: 'Cleanup generated E2E data after validation/tests'
+        type: boolean
+        default: true
+      strict_auth:
+        description: 'Fail Playwright if any role credentials are missing'
+        type: boolean
+        default: false
+      confirm_staging:
+        description: 'Type RUN_E2E_STAGING to confirm this is a staging/test execution'
+        required: true
+        default: ''
+
+permissions:
+  contents: read
+
+# Never let two E2E runs seed/cleanup concurrently against the same database.
+concurrency:
+  group: e2e-full-workflow
+  cancel-in-progress: false
+
+jobs:
+  e2e-full-workflow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      # Seeder target (staging/test database only)
+      E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+      E2E_NON_PRODUCTION_HOSTS: ${{ secrets.E2E_NON_PRODUCTION_HOSTS }}
+
+    steps:
+      # ── 0. Safety gate — staging confirmation ─────────────────────────────
+      - name: Safety gate — require staging confirmation
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.confirm_staging }}" != "RUN_E2E_STAGING" ]; then
+            echo "::error::Safety gate failed — confirm_staging must be exactly RUN_E2E_STAGING."
+            echo "This workflow is staging/test only. Aborting before any step runs."
+            exit 1
+          fi
+          echo "Staging execution confirmed."
+
+      # ── 1–3. Checkout, Node, dependencies ─────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ── 4–5. Build + typecheck ────────────────────────────────────────────
+      - name: Build
+        id: build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          npm run build
+
+      - name: Typecheck (app + e2e)
+        id: typecheck
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit
+          npx tsc --noEmit -p tsconfig.e2e.json
+
+      # ── 6. Dry-run (never writes) ─────────────────────────────────────────
+      - name: Dry-run (plan only, zero writes)
+        id: dryrun
+        run: |
+          set -euo pipefail
+          npm run e2e:workflow:dry-run
+
+      # ── 7–8. Seed selected scenario + capture run_id ──────────────────────
+      # run_id is captured even if seed exits non-zero mid-run, so a partial
+      # seed can still be cleaned up. If no run_id can be captured, the step
+      # fails and cleanup is skipped (never cleanup blindly).
+      - name: Seed scenario (tagged, staging only)
+        id: seed
+        env:
+          E2E_SEED_CONFIRM: 'true'
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          set +e
+          npm run e2e:workflow:seed -- --scenario "${{ inputs.scenario }}" | tee seed-output.log
+          SEED_STATUS=${PIPESTATUS[0]}
+          set -e
+
+          # Primary: run id from the seeder's own output line "Seeding run <id>"
+          RUN_ID=$(grep -oE 'e2e-[0-9]{14}-[a-f0-9]{4}' seed-output.log | head -1 || true)
+          # Fallback: newest manifest file in the artifacts directory
+          if [ -z "$RUN_ID" ] && ls artifacts/e2e-full-workflow/*.json >/dev/null 2>&1; then
+            RUN_ID=$(ls -t artifacts/e2e-full-workflow/*.json | head -1 | xargs -n1 basename | sed 's/\.json$//')
+          fi
+
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::Could not capture run_id after seed — failing safely. Cleanup will NOT run."
+            exit 1
+          fi
+
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "Captured run_id: $RUN_ID (seed exit: $SEED_STATUS)"
+          exit "$SEED_STATUS"
+
+      # ── 9. Validate the seeded run (read-only) ────────────────────────────
+      - name: Validate seeded records
+        id: validate
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          npm run e2e:workflow:validate -- --run-id "${{ steps.seed.outputs.run_id }}"
+
+      # ── 10. Playwright UI E2E (optional) ──────────────────────────────────
+      - name: Install Playwright browsers
+        if: ${{ inputs.run_ui_e2e }}
+        run: npx playwright install chromium --with-deps
+
+      - name: Start app (vite preview of the built bundle)
+        if: ${{ inputs.run_ui_e2e }}
+        run: |
+          set -euo pipefail
+          nohup npm run preview -- --port 4173 --strictPort >/dev/null 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4173/ -o /dev/null 2>&1; then
+              echo "Preview server ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Preview server did not become ready on :4173"
+          exit 1
+
+      - name: Playwright — full-workflow role/route smoke
+        id: playwright
+        if: ${{ inputs.run_ui_e2e }}
+        env:
+          VITE_APP_URL: http://localhost:4173
+          E2E_STRICT_AUTH: ${{ inputs.strict_auth && 'true' || 'false' }}
+          TEST_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          TEST_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          TEST_OPS_EMAIL: ${{ secrets.E2E_OPS_EMAIL }}
+          TEST_OPS_PASSWORD: ${{ secrets.E2E_OPS_PASSWORD }}
+          TEST_VIEWER_EMAIL: ${{ secrets.E2E_VIEWER_EMAIL }}
+          TEST_VIEWER_PASSWORD: ${{ secrets.E2E_VIEWER_PASSWORD }}
+          TEST_SALES_EMAIL: ${{ secrets.E2E_SALES_EMAIL }}
+          TEST_SALES_PASSWORD: ${{ secrets.E2E_SALES_PASSWORD }}
+          TEST_COORDINATOR_EMAIL: ${{ secrets.E2E_COORDINATOR_EMAIL }}
+          TEST_COORDINATOR_PASSWORD: ${{ secrets.E2E_COORDINATOR_PASSWORD }}
+          TEST_PROCUREMENT_EMAIL: ${{ secrets.E2E_PROCUREMENT_EMAIL }}
+          TEST_PROCUREMENT_PASSWORD: ${{ secrets.E2E_PROCUREMENT_PASSWORD }}
+          TEST_STORE_EMAIL: ${{ secrets.E2E_STORE_EMAIL }}
+          TEST_STORE_PASSWORD: ${{ secrets.E2E_STORE_PASSWORD }}
+          TEST_FACTORY_EMAIL: ${{ secrets.E2E_FACTORY_EMAIL }}
+          TEST_FACTORY_PASSWORD: ${{ secrets.E2E_FACTORY_PASSWORD }}
+          TEST_QC_EMAIL: ${{ secrets.E2E_QC_EMAIL }}
+          TEST_QC_PASSWORD: ${{ secrets.E2E_QC_PASSWORD }}
+          TEST_AFS_EMAIL: ${{ secrets.E2E_AFS_EMAIL }}
+          TEST_AFS_PASSWORD: ${{ secrets.E2E_AFS_PASSWORD }}
+        run: |
+          set -euo pipefail
+          npm run test:e2e -- tests/e2e/full-workflow.spec.ts
+
+      # ── 11. Cleanup (tagged run only — requires captured run_id) ──────────
+      - name: Cleanup seeded data (run-scoped, tagged only)
+        id: cleanup
+        if: ${{ always() && inputs.cleanup_after && steps.seed.outputs.run_id != '' }}
+        env:
+          E2E_SEED_CONFIRM: 'true'
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          npm run e2e:workflow:cleanup -- --run-id "${{ steps.seed.outputs.run_id }}"
+
+      # ── 12. Upload artifacts (always) ─────────────────────────────────────
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-full-workflow-${{ github.run_number }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            artifacts/e2e-full-workflow/**
+            playwright-report/**
+            test-results/**
+            docs/ux-audit/playwright-output/**
+            seed-output.log
+
+      # ── 13. Job summary ───────────────────────────────────────────────────
+      - name: Job summary
+        if: always()
+        run: |
+          set -euo pipefail
+          {
+            echo "## Full E2E Workflow Test — summary"
+            echo ""
+            echo "| Item | Value |"
+            echo "|------|-------|"
+            echo "| Scenario | \`${{ inputs.scenario }}\` |"
+            echo "| run_id | \`${{ steps.seed.outputs.run_id || '(not captured)' }}\` |"
+            echo "| Build | ${{ steps.build.outcome }} |"
+            echo "| Typecheck | ${{ steps.typecheck.outcome }} |"
+            echo "| Dry-run | ${{ steps.dryrun.outcome }} |"
+            echo "| Seed | ${{ steps.seed.outcome }} |"
+            echo "| Validate | ${{ steps.validate.outcome }} |"
+            echo "| UI E2E (Playwright) | ${{ inputs.run_ui_e2e && steps.playwright.outcome || 'disabled by input' }} |"
+            echo "| Cleanup | ${{ inputs.cleanup_after && (steps.cleanup.outcome || 'skipped — no run_id') || 'disabled by input' }} |"
+            echo "| Artifact | \`e2e-full-workflow-${{ github.run_number }}\` |"
+            echo ""
+            echo "_Staging/test execution only — confirm gate passed; no production override exists in this workflow._"
+          } >> "$GITHUB_STEP_SUMMARY"
