@@ -27,6 +27,7 @@ on:
         type: choice
         options:
           - S01
+          - S11
           - all
         default: S01
       run_ui_e2e:
@@ -206,6 +207,8 @@ jobs:
         if: ${{ inputs.run_ui_e2e }}
         env:
           VITE_APP_URL: http://localhost:4173
+          # Enables the S11 seeded-data visibility checks in the spec.
+          E2E_RUN_ID: ${{ steps.seed.outputs.run_id }}
           E2E_STRICT_AUTH: ${{ inputs.strict_auth && 'true' || 'false' }}
           TEST_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
           TEST_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}

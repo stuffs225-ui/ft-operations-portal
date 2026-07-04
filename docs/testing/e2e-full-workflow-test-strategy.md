@@ -30,7 +30,7 @@ permission, or guard changes.
 | Scoped cleanup | `cleanup` requires `--run-id`; deletes **only** the manifest's record ids (children→parents), plus trigger-created invoicing-schedule rows belonging to that run's projects. No pattern-wide deletes, no truncation, no untagged data touched |
 | No service role in frontend | The seeder is a backend CLI tool; `SUPABASE_SERVICE_ROLE_KEY` (or anon key + admin sign-in) is read from env at runtime and never bundled into the app |
 
-## Scenario coverage (10)
+## Scenario coverage (11)
 
 | # | Scenario | What it proves | Seedable |
 |---|----------|----------------|----------|
@@ -44,6 +44,7 @@ permission, or guard changes.
 | S08 | QC failure / NCR / rework | Inspection `completed/rejected` + open `high` NCR; item `rejected_by_qc` (issuance blocked) | ✅ (material-level; project-level rework chain documented as not safely seedable) |
 | S09 | AFS / delivery pending | Project + `dubai_project_followups` stage | ⚠ partial (arrival/predelivery reports not safely seedable — loose types) |
 | S10 | Invoicing / receivables risk | Past-delivery project (trigger line lands overdue) + explicit 30-days-past `admin_manual` schedule line + `overdue` milestone | ✅ |
+| S11 | Two full orders — KSA + Dubai | Two complete non-identical orders: KSA ambulance (6 quotation lines, in-production factory record, approved high-value PO, full + **partial** receiving, QC accepted, serial passed, paid/approved milestones) and Dubai/AFS (VIP box ambulance, vehicle receiving with **5/5 photos**, `handed_to_afs`/`arrived` followup, paid/submitted milestones). See `e2e-two-full-orders-scenario.md` | ✅ (AFS reports / PN refs documented as not safely seedable) |
 
 ## Role × route smoke
 
