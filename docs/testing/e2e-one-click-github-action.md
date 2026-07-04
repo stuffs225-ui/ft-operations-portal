@@ -42,12 +42,45 @@ Already used by the existing screenshot workflow (needed for the build/preview):
 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` — point these at the same staging
 project when running this workflow's UI E2E.
 
-## Optional Playwright role secrets
+## Real E2E role users + shared password secret
 
-One pair per role; roles with missing credentials are **skipped** unless
-`strict_auth` is set: `E2E_ADMIN_EMAIL/PASSWORD`, `E2E_OPS_*`, `E2E_VIEWER_*`,
-`E2E_SALES_*`, `E2E_COORDINATOR_*`, `E2E_PROCUREMENT_*`, `E2E_STORE_*`,
-`E2E_FACTORY_*`, `E2E_QC_*`, `E2E_AFS_*`.
+The Playwright suite logs in as **10 real staging test users** with fixed
+emails (wired into the workflow — no per-role email secrets needed) and **one
+shared password secret**:
+
+| Role | Email |
+|------|-------|
+| admin | `admin@ft.com` |
+| operations_manager | `ops@ft.com` |
+| viewer | `viewer@ft.com` |
+| sales_user | `sales.test@ft.com` |
+| sales_coordinator | `coo@ft.com` |
+| procurement_user | `procurement@ft.com` |
+| store_user | `store@ft.com` |
+| factory_user | `factory@ft.com` |
+| qc_user | `qc@ft.com` |
+| afs_user | `afs@ft.com` |
+
+**Required secret: `E2E_TEST_USER_PASSWORD`** — the shared staging password for
+all 10 users. It is read only as `${{ secrets.E2E_TEST_USER_PASSWORD }}`, never
+hardcoded, and never printed to logs. Do not use these users or this secret
+against production. No other users are used for E2E.
+
+With `strict_auth: true`, a **preflight step** fails the run early (before
+checkout) if this secret is missing — it prints role names and masked emails
+only.
+
+### Optional: `bootstrap_role_users` input
+
+When `true` (default `false`), a staging-only step runs
+`tools/e2e/e2e-auth-bootstrap.ts --mode apply` before Playwright: it creates a
+mapped user **only if missing** (with the shared password), upserts its
+`profiles` row, upserts its `public.user_roles` row (the role source of truth),
+and verifies sign-in. It never deletes users, never touches unrelated users,
+and never prints secrets. It is blocked on any host not in
+`E2E_NON_PRODUCTION_HOSTS`. If an existing user's password differs, the step
+fails with instructions (align manually, or run the tool locally with
+`--update-passwords` — staging only).
 
 ## How to run
 
@@ -68,6 +101,21 @@ One pair per role; roles with missing credentials are **skipped** unless
 | cleanup_after | `true` |
 | strict_auth | `false` |
 | confirm_staging | `RUN_E2E_STAGING` |
+
+### Recommended full S11 run (real role UI coverage)
+
+| Input | Value |
+|-------|-------|
+| scenario | `S11` |
+| run_ui_e2e | `true` |
+| cleanup_after | `true` |
+| strict_auth | `true` |
+| bootstrap_role_users | `true` (first time; `false` once users are verified) |
+| confirm_staging | `RUN_E2E_STAGING` |
+
+Requires the `E2E_TEST_USER_PASSWORD` secret. Always start a **fresh
+"Run workflow" dispatch** — never "Re-run jobs" on an old run (re-runs reuse
+the old workflow definition).
 
 One clean-full-flow scenario, UI smoke, then automatic cleanup — a safe
 end-to-end proof of the whole pipeline.

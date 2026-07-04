@@ -57,6 +57,11 @@ system map). Detection signals:
 - **Crash:** any uncaught `pageerror`, or an empty `#root` → fail.
 - **Rendered:** the route's expected title/section text is visible.
 - Missing credentials → role skipped, unless `E2E_STRICT_AUTH=true` (then fail).
+- In CI the 10 role users are real staging accounts (fixed emails, one shared
+  `E2E_TEST_USER_PASSWORD` secret; role source of truth is `public.user_roles`).
+  The optional `bootstrap_role_users` Action input verifies/provisions them via
+  `tools/e2e/e2e-auth-bootstrap.ts` (staging-only, never deletes, never prints
+  secrets, never touches unrelated users).
 
 ## Explicit non-goals
 
