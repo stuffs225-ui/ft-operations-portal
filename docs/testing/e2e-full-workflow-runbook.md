@@ -91,6 +91,16 @@ order with vehicle receiving + 5/5 photos + handed-to-AFS state) — see
 `e2e-two-full-orders-scenario.md`. Recommended as the first full business run
 after S01 is green.
 
+S11's quotations and projects are **assigned to the real sales user**
+(`E2E_SALES_USER_EMAIL`, default `sales.test@ft.com`) at seed time — the app
+scopes sales_user queries by `requested_by` / `sales_owner_id`, so without this
+ownership the records are invisible in the sales UI. If that profile doesn't
+exist yet (run the auth bootstrap first), the seeder falls back to a generic
+profile and records a loud step-error note; the Playwright sales-visibility
+checks will then fail with diagnostics. The /quotations check selects the
+**All** tab first (the page defaults to "Action Required", which hides
+converted quotations).
+
 ## 3. Validate a run
 
 ```bash

@@ -113,6 +113,13 @@ fails with instructions (align manually, or run the tool locally with
 | bootstrap_role_users | `true` (first time; `false` once users are verified) |
 | confirm_staging | `RUN_E2E_STAGING` |
 
+With real credentials wired, `strict_auth: true` now reaches **real UI
+tests** (no skips): 340 role/route checks + 6 S11 seeded-data visibility
+checks. The S11 checks depend on (a) the seeder assigning the KSA/Dubai
+quotations/projects to `sales.test@ft.com` (automatic — bootstrap the users
+first so the profile exists) and (b) correct list filters (the /quotations
+check clicks the **All** tab, since the page defaults to "Action Required").
+
 Requires the `E2E_TEST_USER_PASSWORD` secret. Always start a **fresh
 "Run workflow" dispatch** — never "Re-run jobs" on an old run (re-runs reuse
 the old workflow definition).

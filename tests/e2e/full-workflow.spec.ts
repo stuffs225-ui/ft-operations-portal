@@ -110,14 +110,18 @@ async function login(page: Page, email: string, password: string): Promise<boole
 const RUN_ID = process.env.E2E_RUN_ID ?? '';
 const SEED_PREFIX = RUN_ID ? `E2E-${RUN_ID.replace(/[^a-z0-9]/gi, '').slice(-6)}` : '';
 
-const S11_DATA_CHECKS: { role: RoleKey; route: string; expects: string }[] = [
+const S11_DATA_CHECKS: { role: RoleKey; route: string; expects: string; tab?: string }[] = [
   { role: 'sales_user',       route: '/projects',                    expects: 'S11 project (SO / customer reference)' },
-  { role: 'sales_user',       route: '/quotations',                  expects: 'S11 quotation (customer reference)' },
+  // /quotations defaults to the "Action Required" tab; S11 quotations are
+  // converted_to_so (under "Converted"), so select the All tab first.
+  { role: 'sales_user',       route: '/quotations',                  expects: 'S11 quotation (customer reference)', tab: 'All' },
   { role: 'procurement_user', route: '/procurement/requests',        expects: 'S11 PR reference' },
   { role: 'procurement_user', route: '/procurement/purchase-orders', expects: 'S11 PO reference' },
   { role: 'store_user',       route: '/store/receipts',              expects: 'S11 store receipt reference' },
   { role: 'store_user',       route: '/store/vehicle-receiving',     expects: 'S11 Dubai vehicle chassis reference' },
 ];
+
+const maskEmail = (e: string) => `${e[0]}***@${e.split('@')[1] ?? '?'}`;
 
 test.describe('S11 seeded-data visibility (requires E2E_RUN_ID)', () => {
   test.skip(!RUN_ID, 'E2E_RUN_ID not set — run the seeder first (the GitHub Action wires this automatically)');
@@ -136,11 +140,43 @@ test.describe('S11 seeded-data visibility (requires E2E_RUN_ID)', () => {
         expect(ok, `login failed for ${check.role}`).toBe(true);
         await page.goto(`${BASE_URL}${check.route}`);
         await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {});
+
+        // Some list pages open on a filtered tab — switch to the required tab
+        // before asserting (e.g. "All" on /quotations).
+        if (check.tab) {
+          const tabButton = page.locator('main').getByRole('button', { name: check.tab, exact: true }).first();
+          if (await tabButton.isVisible().catch(() => false)) {
+            await tabButton.click();
+            await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
+          }
+        }
+
         // The vehicle chassis has no dash after the prefix (E2E<sid>CHS11D);
-        // all other references start with `E2E-<sid>`.
+        // all other references start with `E2E-<sid>`. Scope to <main> so
+        // sidebar text can never satisfy (or hide) the match.
         const sid = SEED_PREFIX.slice(4);
-        const marker = page.getByText(new RegExp(`E2E-?${sid}`, 'i')).first();
-        await expect(marker, `no ${SEED_PREFIX}* reference visible on ${check.route}`).toBeVisible({ timeout: 10_000 });
+        const marker = page.locator('main').getByText(new RegExp(`E2E-?${sid}`, 'i')).first();
+        const visible = await marker.isVisible().catch(() => false) ||
+          await marker.waitFor({ state: 'visible', timeout: 10_000 }).then(() => true).catch(() => false);
+
+        if (!visible) {
+          // Failure diagnostics — everything needed to tell filter issues from
+          // ownership/RLS issues at a glance. No secrets are printed.
+          const emptyState = await page.locator('main').getByText(/No .* (found|yet|available)/i).first()
+            .textContent().catch(() => null);
+          const mainExcerpt = (await page.locator('main').innerText().catch(() => ''))
+            .replace(/\s+/g, ' ').slice(0, 300);
+          expect(visible, [
+            `no ${SEED_PREFIX}* reference visible`,
+            `route: ${check.route} (url: ${page.url()})`,
+            `role: ${check.role} (${maskEmail(roleCfg.email!)})`,
+            `searched prefix: ${SEED_PREFIX} (regex E2E-?${sid})`,
+            `tab selected: ${check.tab ?? '(page default)'}`,
+            `empty-state text: ${emptyState ?? '(none found)'}`,
+            `main excerpt: ${mainExcerpt}`,
+            `hint: empty list for sales_user usually means ownership fields (requested_by / sales_owner_id) were not assigned — ensure the sales profile (E2E_SALES_USER_EMAIL) existed at seed time`,
+          ].join('\n  ')).toBe(true);
+        }
       } finally {
         await page.close();
       }
@@ -194,8 +230,15 @@ for (const role of ROLES) {
 
         if (expectAccess) {
           expect(denied, `unexpected DENIAL for ${role.key} on ${route}`).toBe(false);
-          // Route renders its expected title/section.
-          const headingVisible = await page.getByText(heading).first().isVisible().catch(() => false);
+          // Route renders its expected title/section. Prefer real heading
+          // elements (PageHeader renders an <h1>); fall back to text scoped to
+          // <main>. Never use an unscoped page-wide text match: the sidebar's
+          // mobile-only brand header ("Operations Portal", lg:hidden) sits
+          // earlier in the DOM and made `.first()` select a hidden element —
+          // the /control-tower false negative.
+          const headingVisible =
+            (await page.getByRole('heading', { name: heading }).first().isVisible().catch(() => false)) ||
+            (await page.locator('main').getByText(heading).first().isVisible().catch(() => false));
           expect(headingVisible, `expected heading ${heading} not visible on ${route}`).toBe(true);
         } else {
           expect(denied, `unexpected ACCESS for ${role.key} on ${route} — guard did not deny`).toBe(true);

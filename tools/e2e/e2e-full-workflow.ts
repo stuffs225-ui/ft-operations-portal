@@ -339,11 +339,11 @@ function buildPlan(runId: string, scenarios: ScenarioCode[]): PlannedInsert[] {
       ['Defibrillator mounting kit', 2, 3200],
     ];
     P.push(
-      { table: 'quotation_requests', scenario: sc, as: 'q11k', values: { customer_name: `E2E-${s} KSA Ministry Medical Services`, quotation_status: 'converted_to_so', priority: DEFAULT_QUOTATION_PRIORITY, scope_summary: 'E2E S11 KSA Ambulance Full Flow — Type III ambulance conversion, 6 lines', sales_remarks: t } },
+      { table: 'quotation_requests', scenario: sc, as: 'q11k', values: { customer_name: `E2E-${s} KSA Ministry Medical Services`, quotation_status: 'converted_to_so', priority: DEFAULT_QUOTATION_PRIORITY, requested_by: '$salesProfile', created_by: '$salesProfile', scope_summary: 'E2E S11 KSA Ambulance Full Flow — Type III ambulance conversion, 6 lines', sales_remarks: t } },
       ...KSA_LINES.map(([desc, qty, val], i): PlannedInsert => (
         { table: 'quotation_request_lines', scenario: sc, values: { quotation_request_id: '$ref:q11k', line_number: i + 1, vehicle_type: 'Type III Ambulance', description: `E2E-${s} ${desc}`, quantity: qty, estimated_unit_value: val, remarks: t } }
       )),
-      { table: 'projects', scenario: sc, as: 'p11k', values: { so_number: `E2E-${s}-SO-11K`, customer_name: `E2E-${s} KSA Ministry Medical Services`, customer_delivery_date: iso(60), project_status: 'active', manufacturing_location: 'saudi', medical_items: 'yes', total_sales_value: 950000, notes: `${t} — E2E S11 KSA Ambulance Full Flow` } },
+      { table: 'projects', scenario: sc, as: 'p11k', values: { so_number: `E2E-${s}-SO-11K`, customer_name: `E2E-${s} KSA Ministry Medical Services`, customer_delivery_date: iso(60), project_status: 'active', manufacturing_location: 'saudi', medical_items: 'yes', total_sales_value: 950000, sales_owner_id: '$salesProfile', created_by: '$salesProfile', notes: `${t} — E2E S11 KSA Ambulance Full Flow` } },
       { table: 'project_vehicle_lines', scenario: sc, as: 'pvl11k', values: { project_id: '$ref:p11k', line_number: 1, vehicle_type: 'Type III Ambulance', description: `E2E-${s} Type III Ambulance conversion`, quantity: 2, unit_sales_value: 400000, notes: t } },
       { table: 'factory_records', scenario: sc, values: { project_id: '$ref:p11k', project_vehicle_line_id: '$ref:pvl11k', production_status: 'in_production', progress_percentage: 45, expected_completion_date: iso(45), monthly_update_required: true, remarks: t } },
       { table: 'procurement_requests', scenario: sc, as: 'pr11k', values: { project_id: '$ref:p11k', pr_number: `E2E-${s}-PR-11K`, received_date: iso(-14), status: 'partially_ordered', source_department: 'factory', remarks: t } },
@@ -380,11 +380,11 @@ function buildPlan(runId: string, scenarios: ScenarioCode[]): PlannedInsert[] {
       ['First aid kit cabinet', 2, 2800],
     ];
     P.push(
-      { table: 'quotation_requests', scenario: sc, as: 'q11d', values: { customer_name: `E2E-${s} Dubai Private Hospital Group`, quotation_status: 'converted_to_so', priority: DEFAULT_QUOTATION_PRIORITY, scope_summary: 'E2E S11 Dubai AFS Full Flow — VIP box ambulance, 6 lines', sales_remarks: t } },
+      { table: 'quotation_requests', scenario: sc, as: 'q11d', values: { customer_name: `E2E-${s} Dubai Private Hospital Group`, quotation_status: 'converted_to_so', priority: DEFAULT_QUOTATION_PRIORITY, requested_by: '$salesProfile', created_by: '$salesProfile', scope_summary: 'E2E S11 Dubai AFS Full Flow — VIP box ambulance, 6 lines', sales_remarks: t } },
       ...DXB_LINES.map(([desc, qty, val], i): PlannedInsert => (
         { table: 'quotation_request_lines', scenario: sc, values: { quotation_request_id: '$ref:q11d', line_number: i + 1, vehicle_type: 'VIP Box Ambulance', description: `E2E-${s} ${desc}`, quantity: qty, estimated_unit_value: val, remarks: t } }
       )),
-      { table: 'projects', scenario: sc, as: 'p11d', values: { so_number: `E2E-${s}-SO-11D`, customer_name: `E2E-${s} Dubai Private Hospital Group`, customer_delivery_date: iso(30), project_status: 'active', manufacturing_location: 'dubai', medical_items: 'yes', total_sales_value: 480000, notes: `${t} — E2E S11 Dubai AFS Full Flow` } },
+      { table: 'projects', scenario: sc, as: 'p11d', values: { so_number: `E2E-${s}-SO-11D`, customer_name: `E2E-${s} Dubai Private Hospital Group`, customer_delivery_date: iso(30), project_status: 'active', manufacturing_location: 'dubai', medical_items: 'yes', total_sales_value: 480000, sales_owner_id: '$salesProfile', created_by: '$salesProfile', notes: `${t} — E2E S11 Dubai AFS Full Flow` } },
       { table: 'project_vehicle_lines', scenario: sc, as: 'pvl11d', values: { project_id: '$ref:p11d', line_number: 1, vehicle_type: 'VIP Box Ambulance', description: `E2E-${s} VIP box ambulance conversion`, quantity: 1, unit_sales_value: 480000, notes: t } },
       { table: 'procurement_requests', scenario: sc, as: 'pr11d', values: { project_id: '$ref:p11d', pr_number: `E2E-${s}-PR-11D`, received_date: iso(-20), status: 'fully_ordered', remarks: t } },
       ...DXB_LINES.slice(1, 4).map(([desc, qty]): PlannedInsert => (
@@ -541,6 +541,23 @@ async function modeSeed() {
     run_id: runId, tag: TAG, created_at: new Date().toISOString(),
     supabase_host: supabaseHost(), scenarios, records: [], step_errors: [],
   };
+
+  // Read-only lookup: the real E2E sales user's profile id. The app scopes
+  // sales_user queries by ownership (quotation_requests.requested_by,
+  // projects.sales_owner_id), so S11's commercial records are assigned to this
+  // user so they are visible in the sales UI. Fallback keeps the run valid but
+  // is recorded loudly — sales-visibility UI checks would fail otherwise.
+  const salesEmail = process.env.E2E_SALES_USER_EMAIL ?? 'sales.test@ft.com';
+  let salesProfileId = profileId;
+  const { data: salesProf } = await client
+    .from('profiles').select('id').eq('email', salesEmail).maybeSingle();
+  if (salesProf) {
+    salesProfileId = (salesProf as { id: string }).id;
+  } else {
+    const note = `sales profile "${salesEmail}" not found — S11 ownership falls back to a generic profile; sales_user UI visibility checks will fail. Run the auth bootstrap first.`;
+    console.warn(`  ⚠ ${note}`);
+    manifest.step_errors.push({ table: 'profiles', scenario: 'S11-two-full-orders-ksa-dubai', error: note });
+  }
   const refs: Record<string, string> = {};
 
   log(`\nSeeding run ${runId} (${plan.length} planned rows)…`);
@@ -549,6 +566,7 @@ async function modeSeed() {
     let refMissing = false;
     for (const [k, v] of Object.entries(step.values)) {
       if (v === '$profile') values[k] = profileId;
+      else if (v === '$salesProfile') values[k] = salesProfileId;
       else if (typeof v === 'string' && v.startsWith('$ref:')) {
         const key = v.slice(5);
         if (!refs[key]) { refMissing = true; break; }
