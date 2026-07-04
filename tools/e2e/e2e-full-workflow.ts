@@ -44,6 +44,7 @@ const SCENARIOS = [
   'S08-qc-fail-ncr',
   'S09-afs-delivery-pending',
   'S10-invoicing-receivables-risk',
+  'S11-two-full-orders-ksa-dubai',
 ] as const;
 type ScenarioCode = (typeof SCENARIOS)[number];
 
@@ -57,6 +58,7 @@ const CLEANUP_ORDER = [
   'vehicle_receipts',
   'store_receipt_items',
   'store_receipts',
+  'purchase_order_items',
   'purchase_orders_to_supplier',
   'procurement_request_items',
   'procurement_requests',
@@ -67,7 +69,9 @@ const CLEANUP_ORDER = [
   'project_invoicing_plans',
   'project_invoicing_schedule_history',
   'project_invoicing_schedule',
+  'project_vehicle_lines',
   'projects',
+  'quotation_request_lines',
   'quotation_requests',
 ] as const;
 
@@ -316,6 +320,98 @@ function buildPlan(runId: string, scenarios: ScenarioCode[]): PlannedInsert[] {
     );
   }
 
+  // ── S11 — Two full orders: KSA Ambulance + Dubai/AFS ───────────────────────
+  // All enum values verified against migrations + database.ts:
+  //   quotation_status 'converted_to_so' · quotation_priority DEFAULT ('medium')
+  //   manufacturing_location 'saudi'/'dubai' · medical_items 'yes'
+  //   production_status 'in_production' (025) · dubai_status 'handed_to_afs' /
+  //   eta_status 'arrived' (041) · milestone_status submitted/approved/paid.
+  if (has('S11-two-full-orders-ksa-dubai')) {
+    const sc: ScenarioCode = 'S11-two-full-orders-ksa-dubai'; const t = tagFor(runId, sc);
+
+    // ═══ Order 1 — KSA Ambulance (E2E S11 KSA Ambulance Full Flow) ═══════════
+    const KSA_LINES: [string, number, number][] = [
+      ['Ambulance conversion package', 2, 180000],
+      ['Patient stretcher system', 2, 22000],
+      ['Oxygen cylinder bracket', 4, 1500],
+      ['Medical cabinet set', 2, 9500],
+      ['Suction unit', 2, 6800],
+      ['Defibrillator mounting kit', 2, 3200],
+    ];
+    P.push(
+      { table: 'quotation_requests', scenario: sc, as: 'q11k', values: { customer_name: `E2E-${s} KSA Ministry Medical Services`, quotation_status: 'converted_to_so', priority: DEFAULT_QUOTATION_PRIORITY, scope_summary: 'E2E S11 KSA Ambulance Full Flow — Type III ambulance conversion, 6 lines', sales_remarks: t } },
+      ...KSA_LINES.map(([desc, qty, val], i): PlannedInsert => (
+        { table: 'quotation_request_lines', scenario: sc, values: { quotation_request_id: '$ref:q11k', line_number: i + 1, vehicle_type: 'Type III Ambulance', description: `E2E-${s} ${desc}`, quantity: qty, estimated_unit_value: val, remarks: t } }
+      )),
+      { table: 'projects', scenario: sc, as: 'p11k', values: { so_number: `E2E-${s}-SO-11K`, customer_name: `E2E-${s} KSA Ministry Medical Services`, customer_delivery_date: iso(60), project_status: 'active', manufacturing_location: 'saudi', medical_items: 'yes', total_sales_value: 950000, notes: `${t} — E2E S11 KSA Ambulance Full Flow` } },
+      { table: 'project_vehicle_lines', scenario: sc, as: 'pvl11k', values: { project_id: '$ref:p11k', line_number: 1, vehicle_type: 'Type III Ambulance', description: `E2E-${s} Type III Ambulance conversion`, quantity: 2, unit_sales_value: 400000, notes: t } },
+      { table: 'factory_records', scenario: sc, values: { project_id: '$ref:p11k', project_vehicle_line_id: '$ref:pvl11k', production_status: 'in_production', progress_percentage: 45, expected_completion_date: iso(45), monthly_update_required: true, remarks: t } },
+      { table: 'procurement_requests', scenario: sc, as: 'pr11k', values: { project_id: '$ref:p11k', pr_number: `E2E-${s}-PR-11K`, received_date: iso(-14), status: 'partially_ordered', source_department: 'factory', remarks: t } },
+      ...KSA_LINES.map(([desc, qty]): PlannedInsert => (
+        { table: 'procurement_request_items', scenario: sc, values: { procurement_request_id: '$ref:pr11k', project_id: '$ref:p11k', item_name: `E2E-${s} ${desc}`, quantity_required: qty, unit: 'pcs', remarks: t } }
+      )),
+      // High-value PO — approved (gate passed) but still only partially received.
+      { table: 'purchase_orders_to_supplier', scenario: sc, as: 'po11k', values: { project_id: '$ref:p11k', procurement_request_id: '$ref:pr11k', po_number: `E2E-${s}-PO-11K`, supplier_name: `E2E-${s} KSA Medical Equipment Supplier`, po_date: iso(-12), purchase_value: 45000, currency: 'SAR', po_status: 'partially_received', approval_required: true, approval_status: 'approved', eta_date: iso(5), remarks: `${t} — high-value, approved, partially received` } },
+      { table: 'purchase_order_items', scenario: sc, values: { purchase_order_id: '$ref:po11k', item_name: `E2E-${s} Patient stretcher system`, quantity_ordered: 2, unit: 'pcs', unit_price: 22000, expected_arrival_date: iso(-2), remarks: t } },
+      { table: 'purchase_order_items', scenario: sc, values: { purchase_order_id: '$ref:po11k', item_name: `E2E-${s} Suction unit`, quantity_ordered: 2, unit: 'pcs', unit_price: 6800, expected_arrival_date: iso(5), remarks: t } },
+      // GRN 1 — fully received & accepted (stretchers in store, QC accepted).
+      { table: 'store_receipts', scenario: sc, as: 'grn11k1', values: { project_id: '$ref:p11k', purchase_order_id: '$ref:po11k', receipt_number: `E2E-${s}-GRN-11K1`, receipt_type: 'material', received_date: iso(-2), received_by: '$profile', supplier_name: `E2E-${s} KSA Medical Equipment Supplier`, status: 'accepted', remarks: t } },
+      { table: 'store_receipt_items', scenario: sc, as: 'item11k1', values: { store_receipt_id: '$ref:grn11k1', project_id: '$ref:p11k', item_name: `E2E-${s} Patient stretcher system`, quantity_received: 2, unit: 'pcs', status: 'in_store', remarks: t } },
+      { table: 'store_receipt_items', scenario: sc, as: 'item11k2', values: { store_receipt_id: '$ref:grn11k1', project_id: '$ref:p11k', item_name: `E2E-${s} Defibrillator mounting kit`, quantity_received: 2, unit: 'pcs', serial_required: true, status: 'accepted_by_qc', remarks: t } },
+      { table: 'medical_serial_numbers', scenario: sc, values: { store_receipt_item_id: '$ref:item11k2', project_id: '$ref:p11k', serial_number: `E2E-${s}-SER-11K`, qc_status: 'passed', current_status: 'in_store', manufacturer: 'E2E MedCorp', remarks: t } },
+      { table: 'material_qc_inspections', scenario: sc, values: { store_receipt_item_id: '$ref:item11k1', store_receipt_id: '$ref:grn11k1', project_id: '$ref:p11k', inspection_number: `E2E-${s}-QCI-11K`, inspection_status: 'completed', inspection_result: 'accepted', remarks: t } },
+      // GRN 2 — PARTIAL receiving (the pending-material condition for this order).
+      { table: 'store_receipts', scenario: sc, as: 'grn11k2', values: { project_id: '$ref:p11k', purchase_order_id: '$ref:po11k', receipt_number: `E2E-${s}-GRN-11K2`, receipt_type: 'material', received_date: iso(0), received_by: '$profile', supplier_name: `E2E-${s} KSA Medical Equipment Supplier`, status: 'partially_received', remarks: `${t} — suction units 1 of 2 received, remainder open` } },
+      { table: 'store_receipt_items', scenario: sc, values: { store_receipt_id: '$ref:grn11k2', project_id: '$ref:p11k', item_name: `E2E-${s} Suction unit`, quantity_received: 1, unit: 'pcs', status: 'received', remarks: `${t} — partial: 1 of 2` } },
+      // Invoicing + receivables visibility.
+      { table: 'project_invoicing_plans', scenario: sc, as: 'plan11k', values: { project_id: '$ref:p11k', total_contract_value: 950000, notes: t } },
+      { table: 'project_invoice_milestones', scenario: sc, values: { plan_id: '$ref:plan11k', project_id: '$ref:p11k', milestone_name: `E2E-${s} KSA Advance 30%`, milestone_status: 'paid', amount: 285000, paid_amount: 285000, paid_at: new Date().toISOString(), sort_order: 1, notes: t } },
+      { table: 'project_invoice_milestones', scenario: sc, values: { plan_id: '$ref:plan11k', project_id: '$ref:p11k', milestone_name: `E2E-${s} KSA Progress 40%`, milestone_status: 'approved', amount: 380000, sort_order: 2, notes: `${t} — invoiced, not yet collected` } },
+      { table: 'project_invoicing_schedule', scenario: sc, values: { project_id: '$ref:p11k', sequence_no: 2, schedule_label: `E2E-${s} KSA Delivery Invoice`, schedule_description: t, invoice_amount: 285000, current_invoice_date: iso(15), status: 'scheduled', source: 'admin_manual' } },
+    );
+
+    // ═══ Order 2 — Dubai / AFS (E2E S11 Dubai AFS Full Flow) ═════════════════
+    const DXB_LINES: [string, number, number][] = [
+      ['VIP box ambulance conversion', 1, 320000],
+      ['Ambulance interior medical panel', 1, 28000],
+      ['IV hook rail', 4, 900],
+      ['Sharps container holder', 4, 350],
+      ['Portable oxygen regulator', 2, 4200],
+      ['First aid kit cabinet', 2, 2800],
+    ];
+    P.push(
+      { table: 'quotation_requests', scenario: sc, as: 'q11d', values: { customer_name: `E2E-${s} Dubai Private Hospital Group`, quotation_status: 'converted_to_so', priority: DEFAULT_QUOTATION_PRIORITY, scope_summary: 'E2E S11 Dubai AFS Full Flow — VIP box ambulance, 6 lines', sales_remarks: t } },
+      ...DXB_LINES.map(([desc, qty, val], i): PlannedInsert => (
+        { table: 'quotation_request_lines', scenario: sc, values: { quotation_request_id: '$ref:q11d', line_number: i + 1, vehicle_type: 'VIP Box Ambulance', description: `E2E-${s} ${desc}`, quantity: qty, estimated_unit_value: val, remarks: t } }
+      )),
+      { table: 'projects', scenario: sc, as: 'p11d', values: { so_number: `E2E-${s}-SO-11D`, customer_name: `E2E-${s} Dubai Private Hospital Group`, customer_delivery_date: iso(30), project_status: 'active', manufacturing_location: 'dubai', medical_items: 'yes', total_sales_value: 480000, notes: `${t} — E2E S11 Dubai AFS Full Flow` } },
+      { table: 'project_vehicle_lines', scenario: sc, as: 'pvl11d', values: { project_id: '$ref:p11d', line_number: 1, vehicle_type: 'VIP Box Ambulance', description: `E2E-${s} VIP box ambulance conversion`, quantity: 1, unit_sales_value: 480000, notes: t } },
+      { table: 'procurement_requests', scenario: sc, as: 'pr11d', values: { project_id: '$ref:p11d', pr_number: `E2E-${s}-PR-11D`, received_date: iso(-20), status: 'fully_ordered', remarks: t } },
+      ...DXB_LINES.slice(1, 4).map(([desc, qty]): PlannedInsert => (
+        { table: 'procurement_request_items', scenario: sc, values: { procurement_request_id: '$ref:pr11d', project_id: '$ref:p11d', item_name: `E2E-${s} ${desc}`, quantity_required: qty, unit: 'pcs', remarks: t } }
+      )),
+      { table: 'purchase_orders_to_supplier', scenario: sc, as: 'po11d', values: { project_id: '$ref:p11d', procurement_request_id: '$ref:pr11d', po_number: `E2E-${s}-PO-11D`, supplier_name: `E2E-${s} Dubai Medical Fitout Supplier`, po_date: iso(-18), purchase_value: 8500, currency: 'SAR', po_status: 'fully_received', approval_required: false, eta_date: iso(-6), remarks: t } },
+      { table: 'purchase_order_items', scenario: sc, values: { purchase_order_id: '$ref:po11d', item_name: `E2E-${s} Ambulance interior medical panel`, quantity_ordered: 1, unit: 'pcs', unit_price: 28000, expected_arrival_date: iso(-6), remarks: t } },
+      { table: 'purchase_order_items', scenario: sc, values: { purchase_order_id: '$ref:po11d', item_name: `E2E-${s} IV hook rail`, quantity_ordered: 4, unit: 'pcs', unit_price: 900, expected_arrival_date: iso(-6), remarks: t } },
+      { table: 'store_receipts', scenario: sc, as: 'grn11d', values: { project_id: '$ref:p11d', purchase_order_id: '$ref:po11d', receipt_number: `E2E-${s}-GRN-11D`, receipt_type: 'material', received_date: iso(-5), received_by: '$profile', supplier_name: `E2E-${s} Dubai Medical Fitout Supplier`, status: 'accepted', remarks: t } },
+      { table: 'store_receipt_items', scenario: sc, as: 'item11d1', values: { store_receipt_id: '$ref:grn11d', project_id: '$ref:p11d', item_name: `E2E-${s} Ambulance interior medical panel`, quantity_received: 1, unit: 'pcs', status: 'in_store', remarks: t } },
+      { table: 'store_receipt_items', scenario: sc, values: { store_receipt_id: '$ref:grn11d', project_id: '$ref:p11d', item_name: `E2E-${s} IV hook rail`, quantity_received: 4, unit: 'pcs', status: 'in_store', remarks: t } },
+      // Vehicle receiving — all 5 required photos present, accepted (gate satisfied).
+      { table: 'vehicle_receipts', scenario: sc, as: 'veh11d', values: { project_id: '$ref:p11d', project_vehicle_line_id: '$ref:pvl11d', chassis_number: `E2E${s}CHS11D`, received_date: iso(-8), received_by: '$profile', vehicle_type: 'VIP Box Ambulance', status: 'accepted', remarks: `${t} — 5/5 required photos, acceptance valid` } },
+      ...(['front', 'rear', 'left_side', 'right_side', 'chassis_plate'] as const).map((pt): PlannedInsert => (
+        { table: 'vehicle_receipt_photos', scenario: sc, values: { vehicle_receipt_id: '$ref:veh11d', photo_type: pt, file_name: `e2e-${s}-11d-${pt}.jpg`, storage_path: `e2e/${runId}/veh11d-${pt}.jpg`, uploaded_by: '$profile', remarks: t } }
+      )),
+      { table: 'material_qc_inspections', scenario: sc, values: { store_receipt_item_id: '$ref:item11d1', store_receipt_id: '$ref:grn11d', project_id: '$ref:p11d', inspection_number: `E2E-${s}-QCI-11D`, inspection_status: 'completed', inspection_result: 'accepted', remarks: t } },
+      // Dubai/AFS state — handed to AFS, vehicle arrived (delivery preparation pending).
+      { table: 'dubai_project_followups', scenario: sc, values: { project_id: '$ref:p11d', dubai_status: 'handed_to_afs', eta_status: 'arrived' } },
+      // Invoicing + receivables visibility.
+      { table: 'project_invoicing_plans', scenario: sc, as: 'plan11d', values: { project_id: '$ref:p11d', total_contract_value: 480000, notes: t } },
+      { table: 'project_invoice_milestones', scenario: sc, values: { plan_id: '$ref:plan11d', project_id: '$ref:p11d', milestone_name: `E2E-${s} Dubai Advance 50%`, milestone_status: 'paid', amount: 240000, paid_amount: 240000, paid_at: new Date().toISOString(), sort_order: 1, notes: t } },
+      { table: 'project_invoice_milestones', scenario: sc, values: { plan_id: '$ref:plan11d', project_id: '$ref:p11d', milestone_name: `E2E-${s} Dubai Delivery 50%`, milestone_status: 'submitted', amount: 240000, sort_order: 2, notes: `${t} — submitted, awaiting approval` } },
+      { table: 'project_invoicing_schedule', scenario: sc, values: { project_id: '$ref:p11d', sequence_no: 2, schedule_label: `E2E-${s} Dubai Delivery Invoice`, schedule_description: t, invoice_amount: 240000, current_invoice_date: iso(25), status: 'scheduled', source: 'admin_manual' } },
+    );
+  }
+
   return P;
 }
 
@@ -358,6 +454,24 @@ function writeReport(m: Manifest, extra: string[] = []) {
     '',
     '## Records by table',
     ...Object.entries(byTable).map(([k, v]) => `- ${k}: ${v}`),
+    '',
+    // Key records: every created row with its table, reference/label, and id —
+    // grouped per scenario so multi-order scenarios (e.g. S11 KSA vs Dubai) can
+    // be traced record-by-record. Status: Created (in manifest) → Validated is
+    // appended by the validate mode; failures appear under Step errors below.
+    '## Key records (Created)',
+    ...Object.keys(byScenario).flatMap(scen => [
+      `### ${scen}`,
+      ...m.records
+        .filter(r => r.scenario === scen)
+        .map(r => `- ${r.table} — ${r.label ? `${r.label.slice(0, 100)} — ` : ''}\`${r.id}\``),
+    ]),
+    '',
+    '## Not safely seedable (documented, not silently skipped)',
+    '- AFS arrival/predelivery/missing-item/condition reports — loosely-typed schema section; NOT NULL columns unverifiable from types.',
+    '- Project-level QC rework chain (project_qc_inspections → findings → release_notes) — constraint set not verifiable enough for a consistent chain.',
+    '- Deep factory execution (factory_item_requirements, production_raw_material_requests) — WO-gate coupling.',
+    '- Storage binaries — photo rows carry storage_path strings only; no bucket uploads.',
     '',
     ...(m.step_errors.length
       ? ['## Step errors', ...m.step_errors.map(e => `- [${e.scenario}] ${e.table}: ${e.error}`), '']
@@ -453,7 +567,14 @@ async function modeSeed() {
     }
     const id = (data as { id: string }).id;
     if (step.as) refs[step.as] = id;
-    manifest.records.push({ table: step.table, id, scenario: step.scenario, label: String(values.remarks ?? values.notes ?? values.so_number ?? '') });
+    const label = String(
+      values.so_number ?? values.pr_number ?? values.po_number ?? values.receipt_number ??
+      values.chassis_number ?? values.serial_number ?? values.inspection_number ??
+      values.ncr_number ?? values.milestone_name ?? values.schedule_label ??
+      values.item_name ?? values.customer_name ?? values.photo_type ??
+      values.remarks ?? values.notes ?? '',
+    );
+    manifest.records.push({ table: step.table, id, scenario: step.scenario, label });
     log(`  ✓ [${step.scenario}] ${step.table} → ${id}`);
   }
 

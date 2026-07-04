@@ -72,6 +72,20 @@ One pair per role; roles with missing credentials are **skipped** unless
 One clean-full-flow scenario, UI smoke, then automatic cleanup — a safe
 end-to-end proof of the whole pipeline.
 
+### When to run `scenario: S11` (Two Full Orders KSA + Dubai)
+
+After `S01` is green. `S11` seeds two complete, non-identical business orders
+(~59 rows): a KSA ambulance order with a partial-receiving condition and a
+Dubai/AFS order with vehicle receiving, all 5 required photos, and a
+handed-to-AFS state — the closest thing to a real dual-region business day.
+With `run_ui_e2e: true` the Playwright suite additionally runs **S11
+seeded-data visibility** checks (the Action passes the seed run_id to the
+spec automatically): sales/procurement/store roles must actually SEE this
+run's references on the six deterministic list pages. Read the run report's
+**Key records** section for every created reference and id. Configure the
+`E2E_*` role secrets first if you want those visibility checks to run
+rather than skip.
+
 ### When to run `scenario: all`
 
 After the first `S01` run comes back green (seed + validate + cleanup all

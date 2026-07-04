@@ -76,6 +76,12 @@ E2E_SEED_CONFIRM=true npm run e2e:workflow:seed -- --scenario all
 
 Single scenario: `E2E_SEED_CONFIRM=true npm run e2e:workflow:seed -- --scenario S05`
 
+**S11 — Two Full Orders KSA + Dubai** (`--scenario S11`): seeds two complete,
+non-identical orders (KSA ambulance with a partial-receiving condition; Dubai/AFS
+order with vehicle receiving + 5/5 photos + handed-to-AFS state) — see
+`e2e-two-full-orders-scenario.md`. Recommended as the first full business run
+after S01 is green.
+
 ## 3. Validate a run
 
 ```bash

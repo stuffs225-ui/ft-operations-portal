@@ -99,6 +99,55 @@ async function login(page: Page, email: string, password: string): Promise<boole
   }
 }
 
+/* ── S11 seeded-data visibility checks ─────────────────────────────────────────
+ * Enabled only when E2E_RUN_ID is set (the GitHub Action passes the seed step's
+ * run_id). Verifies that the S11 two-order records (KSA + Dubai) are actually
+ * visible in the UI for the roles whose guards allow the route. Detection is
+ * the run's own `E2E-<shortid>` reference prefix, so only THIS run's data
+ * satisfies the check — pre-existing data cannot produce a false pass.
+ * Read-only; roles with missing credentials skip unless E2E_STRICT_AUTH=true.
+ */
+const RUN_ID = process.env.E2E_RUN_ID ?? '';
+const SEED_PREFIX = RUN_ID ? `E2E-${RUN_ID.replace(/[^a-z0-9]/gi, '').slice(-6)}` : '';
+
+const S11_DATA_CHECKS: { role: RoleKey; route: string; expects: string }[] = [
+  { role: 'sales_user',       route: '/projects',                    expects: 'S11 project (SO / customer reference)' },
+  { role: 'sales_user',       route: '/quotations',                  expects: 'S11 quotation (customer reference)' },
+  { role: 'procurement_user', route: '/procurement/requests',        expects: 'S11 PR reference' },
+  { role: 'procurement_user', route: '/procurement/purchase-orders', expects: 'S11 PO reference' },
+  { role: 'store_user',       route: '/store/receipts',              expects: 'S11 store receipt reference' },
+  { role: 'store_user',       route: '/store/vehicle-receiving',     expects: 'S11 Dubai vehicle chassis reference' },
+];
+
+test.describe('S11 seeded-data visibility (requires E2E_RUN_ID)', () => {
+  test.skip(!RUN_ID, 'E2E_RUN_ID not set — run the seeder first (the GitHub Action wires this automatically)');
+
+  for (const check of S11_DATA_CHECKS) {
+    const roleCfg = ROLES.find(r => r.key === check.role)!;
+    test(`${check.role} sees ${check.expects} on ${check.route}`, async ({ browser }) => {
+      test.skip(!roleCfg.email || !roleCfg.password,
+        STRICT_AUTH ? undefined : `no credentials for ${check.role}`);
+      if ((!roleCfg.email || !roleCfg.password) && STRICT_AUTH) {
+        throw new Error(`Missing credentials for ${check.role} (E2E_STRICT_AUTH=true)`);
+      }
+      const page = await browser.newPage();
+      try {
+        const ok = await login(page, roleCfg.email!, roleCfg.password!);
+        expect(ok, `login failed for ${check.role}`).toBe(true);
+        await page.goto(`${BASE_URL}${check.route}`);
+        await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {});
+        // The vehicle chassis has no dash after the prefix (E2E<sid>CHS11D);
+        // all other references start with `E2E-<sid>`.
+        const sid = SEED_PREFIX.slice(4);
+        const marker = page.getByText(new RegExp(`E2E-?${sid}`, 'i')).first();
+        await expect(marker, `no ${SEED_PREFIX}* reference visible on ${check.route}`).toBeVisible({ timeout: 10_000 });
+      } finally {
+        await page.close();
+      }
+    });
+  }
+});
+
 for (const role of ROLES) {
   test.describe(`role: ${role.key}`, () => {
     test.describe.configure({ mode: 'serial' });
