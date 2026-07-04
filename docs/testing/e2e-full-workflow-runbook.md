@@ -52,6 +52,15 @@ For the UI smoke test, also set `VITE_APP_URL` (defaults to
 TEST_PROCUREMENT_* · TEST_STORE_* · TEST_FACTORY_* · TEST_QC_* · TEST_AFS_*`
 (roles with missing credentials are skipped unless `E2E_STRICT_AUTH=true`).
 
+**In the GitHub Action** the 10 role emails are fixed (admin@ft.com,
+ops@ft.com, viewer@ft.com, sales.test@ft.com, coo@ft.com, procurement@ft.com,
+store@ft.com, factory@ft.com, qc@ft.com, afs@ft.com) and every password comes
+from the single **`E2E_TEST_USER_PASSWORD`** secret — staging users only, never
+production, never printed. The optional `bootstrap_role_users` input verifies /
+provisions these users (`tools/e2e/e2e-auth-bootstrap.ts`; dry-run by default
+locally: `npx tsx tools/e2e/e2e-auth-bootstrap.ts` prints the plan with no
+connection). Never use "Re-run jobs" across a workflow change — dispatch fresh.
+
 ## 1. Dry-run (default — writes nothing)
 
 ```bash
