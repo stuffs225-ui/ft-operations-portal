@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/common/page-header';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { useAuth } from '../hooks/useAuth';
+import { SECTOR_OPTIONS } from '../lib/commercialFields';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { HotProjectStage } from '../types';
 
@@ -23,6 +24,7 @@ interface FormState {
   customer_email: string;
   customer_phone: string;
   opportunity_source: string;
+  sector: '' | 'private' | 'gov' | 'semi_gov';
   stage: HotProjectStage;
   probability: number;
   estimated_value: string;
@@ -37,6 +39,7 @@ const EMPTY: FormState = {
   customer_email: '',
   customer_phone: '',
   opportunity_source: '',
+  sector: '',
   stage: 'lead',
   probability: 50,
   estimated_value: '',
@@ -87,6 +90,8 @@ export function HotProjectNew() {
         customer_email: form.customer_email.trim() || null,
         customer_phone: form.customer_phone.trim() || null,
         opportunity_source: form.opportunity_source.trim() || null,
+        // Migration-101 field — sent only when set (safe before 101 is applied)
+        ...(form.sector ? { sector: form.sector } : {}),
         stage: form.stage,
         probability: form.probability,
         estimated_value: form.estimated_value ? parseFloat(form.estimated_value) : null,
@@ -166,6 +171,12 @@ export function HotProjectNew() {
             </Field>
             <Field label="Opportunity Source">
               <input value={form.opportunity_source} onChange={(e) => set('opportunity_source', e.target.value)} className={inputCls} placeholder="Referral, Tender, etc." />
+            </Field>
+            <Field label="Sector (optional)">
+              <select value={form.sector} onChange={(e) => set('sector', e.target.value as FormState['sector'])} className={inputCls}>
+                <option value="">Not set</option>
+                {SECTOR_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
             </Field>
           </div>
         </Card>

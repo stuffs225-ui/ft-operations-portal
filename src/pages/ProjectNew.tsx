@@ -11,6 +11,7 @@ import { Card } from '../components/ui/Card';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { recordProjectEvent, recordAuditEntry } from '../lib/projectAudit';
+import { SECTOR_OPTIONS, VAT_RATE, lineTotalWithVat, lineVatAmount, type Sector } from '../lib/commercialFields';
 import type { ManufacturingLocation, MedicalItems, QuotationRequest, QuotationRequestLine } from '../types';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -21,6 +22,7 @@ interface VehicleLine {
   description: string;
   quantity: number;
   unit_sales_value: number;
+  vat_applicable: boolean;
 }
 
 interface DocumentEntry {
@@ -186,6 +188,10 @@ export function ProjectNew() {
   const [notes, setNotes] = useState('');
   const [manufacturingLocation, setManufacturingLocation] = useState<ManufacturingLocation>('not_set');
   const [medicalItems, setMedicalItems] = useState<MedicalItems>('not_set');
+  const [sector, setSector] = useState<Sector | ''>('');
+  // NEG PO (optional; number + PDF are both-or-neither — migration 101)
+  const [negPoNumber, setNegPoNumber] = useState('');
+  const [negPoFile, setNegPoFile] = useState<File | undefined>(undefined);
 
   // Step 2 — Documents
   const [documents, setDocuments] = useState<DocumentEntry[]>([
@@ -194,7 +200,7 @@ export function ProjectNew() {
 
   // Step 3 — Vehicle Lines
   const [lines, setLines] = useState<VehicleLine[]>([
-    { id: uid(), vehicle_type: '', description: '', quantity: 1, unit_sales_value: 0 },
+    { id: uid(), vehicle_type: '', description: '', quantity: 1, unit_sales_value: 0, vat_applicable: false },
   ]);
 
   // ── Fetch and prefill from quotation ─────────────────────────────────────────
@@ -233,6 +239,7 @@ export function ProjectNew() {
       setSoNumber('SO-' + q.quotation_code);
       if (q.customer_name) setCustomerName(q.customer_name);
       if (q.required_delivery_expectation) setDeliveryDate(q.required_delivery_expectation);
+      if (q.sector) setSector(q.sector);
 
       const noteParts: string[] = [];
       if (q.scope_summary) noteParts.push(q.scope_summary);
@@ -249,6 +256,7 @@ export function ProjectNew() {
             description: l.description ?? '',
             quantity: l.quantity ?? 1,
             unit_sales_value: l.final_quotation_unit_value ?? l.estimated_unit_value ?? 0,
+            vat_applicable: false,
           })),
         );
       }
@@ -261,6 +269,12 @@ export function ProjectNew() {
   if (!soNumber.trim()) step1Errors.push('SO Number is required');
   if (!customerName.trim()) step1Errors.push('Customer Name is required');
   if (!deliveryDate) step1Errors.push('Customer Required Delivery Date is required');
+  if (negPoNumber.trim() && !negPoFile) step1Errors.push('NEG PO: the PO PDF file is required when a NEG PO number is entered');
+  if (!negPoNumber.trim() && negPoFile) step1Errors.push('NEG PO: enter the PO number for the attached PDF');
+  if (negPoFile && !(negPoFile.type === 'application/pdf' || negPoFile.name.toLowerCase().endsWith('.pdf'))) {
+    step1Errors.push('NEG PO: the attachment must be a PDF file');
+  }
+  if (negPoFile && negPoFile.size > MAX_FILE_SIZE) step1Errors.push('NEG PO: the PDF exceeds the 10 MB size limit');
 
   // Documents are optional for draft — only validate explicitly filled entries
   const step2Errors: string[] = [];
@@ -284,7 +298,10 @@ export function ProjectNew() {
   });
 
   const allErrors = [...step1Errors, ...step2Errors, ...step3Errors];
-  const totalValue = lines.reduce((sum, l) => sum + l.quantity * l.unit_sales_value, 0);
+  const subtotalValue = lines.reduce((sum, l) => sum + l.quantity * l.unit_sales_value, 0);
+  const totalVat = lines.reduce((sum, l) => sum + lineVatAmount(l.quantity * l.unit_sales_value, l.vat_applicable), 0);
+  // Project total is VAT-inclusive when VAT lines are used (line + its VAT combined).
+  const totalValue = subtotalValue + totalVat;
 
   // ── Document helpers ─────────────────────────────────────────────────────────
 
@@ -311,14 +328,14 @@ export function ProjectNew() {
   // ── Line helpers ─────────────────────────────────────────────────────────────
 
   function addLine() {
-    setLines((l) => [...l, { id: uid(), vehicle_type: '', description: '', quantity: 1, unit_sales_value: 0 }]);
+    setLines((l) => [...l, { id: uid(), vehicle_type: '', description: '', quantity: 1, unit_sales_value: 0, vat_applicable: false }]);
   }
 
   function removeLine(id: string) {
     setLines((l) => l.filter((x) => x.id !== id));
   }
 
-  function updateLine(id: string, field: keyof VehicleLine, value: string | number) {
+  function updateLine(id: string, field: keyof VehicleLine, value: string | number | boolean) {
     setLines((l) => l.map((x) => (x.id === id ? { ...x, [field]: value } : x)));
   }
 
@@ -357,6 +374,8 @@ export function ProjectNew() {
           submitted_at: submitForApproval ? new Date().toISOString() : null,
           notes: notes.trim() || null,
           created_by: profile?.id ?? null,
+          // Migration-101 fields — sent only when set (safe before 101 is applied)
+          ...(sector ? { sector } : {}),
         })
         .select()
         .single();
@@ -384,6 +403,8 @@ export function ProjectNew() {
             description: l.description,
             quantity: l.quantity,
             unit_sales_value: l.unit_sales_value,
+            // Migration-101 flag — sent only when checked (safe before 101 is applied)
+            ...(l.vat_applicable ? { vat_applicable: true } : {}),
           })),
         );
         if (linesErr) {
@@ -426,6 +447,50 @@ export function ProjectNew() {
           file_size: doc.file?.size ?? null,
           mime_type: doc.file?.type || null,
         } as any);
+      }
+
+      // ── NEG PO (optional): upload PDF → document row → link on the project.
+      // Hard rule: number without file is never persisted (validated above);
+      // if any step fails, the NEG PO fields stay unset and the user can add
+      // it later from the project detail page.
+      if (negPoNumber.trim() && negPoFile) {
+        try {
+          const negName = `PO#${negPoNumber.trim()} To NEG.pdf`;
+          const negPath = `${projectId}/neg_po/${Date.now()}_${negName.replace(/[^a-zA-Z0-9._# -]/g, '_')}`;
+          const { data: negUp, error: negUpErr } = await supabase.storage
+            .from('project-documents')
+            .upload(negPath, negPoFile, { upsert: false, contentType: 'application/pdf' });
+          if (negUpErr) throw negUpErr;
+
+          const { data: negDoc, error: negDocErr } = await supabase
+            .from('project_documents')
+            .insert({
+              project_id: projectId,
+              document_type: 'customer_po',
+              file_name: negName,
+              uploaded_by: profile?.id ?? null,
+              remarks: 'NEG PO',
+              storage_path: negUp?.path ?? null,
+              file_size: negPoFile.size,
+              mime_type: 'application/pdf',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any)
+            .select('id')
+            .single();
+          if (negDocErr || !negDoc) throw negDocErr ?? new Error('NEG PO document row failed');
+
+          const { error: negLinkErr } = await supabase
+            .from('projects')
+            .update({ neg_po_number: negPoNumber.trim(), neg_po_document_id: negDoc.id })
+            .eq('id', projectId);
+          if (negLinkErr) throw negLinkErr;
+        } catch (negErr) {
+          console.error('[ProjectNew] NEG PO attach failed:', negErr);
+          setSubmitError(
+            'Project was created, but the NEG PO could not be attached' +
+            ' — add it from the project page (Commercial tab).',
+          );
+        }
       }
 
       await recordProjectEvent(
@@ -630,6 +695,19 @@ export function ProjectNew() {
                   <option value="no">No — Non-Medical</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Sector (optional)</label>
+                <select
+                  value={sector}
+                  onChange={(e) => setSector(e.target.value as Sector | '')}
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                >
+                  <option value="">Not set</option>
+                  {SECTOR_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {medicalItems === 'yes' && (
@@ -658,6 +736,49 @@ export function ProjectNew() {
                 </p>
               </div>
             )}
+
+            {/* NEG PO — optional; number + PDF are both-or-neither (can also be added later from the project page) */}
+            <div className="border border-gray-200 rounded-lg p-4">
+              <p className="text-sm font-medium text-gray-700 mb-1">NEG PO (optional)</p>
+              <p className="text-xs text-gray-500 mb-3">
+                Customer PO to NEG. If you enter a number, attaching the PO PDF is mandatory.
+                You can also add it later from the project page at any stage.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">NEG PO Number</label>
+                  <input
+                    type="text"
+                    value={negPoNumber}
+                    onChange={(e) => setNegPoNumber(e.target.value)}
+                    placeholder="e.g. 5929"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    PO PDF {negPoNumber.trim() ? <span className="text-red-500">*</span> : '(required if number is set)'}
+                  </label>
+                  <label className="flex items-center gap-2 px-3 py-2 border border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-colors">
+                    <Upload size={14} className={negPoFile ? 'text-brand-500 shrink-0' : 'text-gray-400 shrink-0'} />
+                    <span className={`text-xs truncate ${negPoFile ? 'text-brand-700 font-medium' : 'text-gray-400'}`}>
+                      {negPoFile ? `${negPoFile.name} (${(negPoFile.size / 1024 / 1024).toFixed(1)} MB)` : 'Choose PDF…'}
+                    </span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,application/pdf"
+                      onChange={(e) => setNegPoFile(e.target.files?.[0] ?? undefined)}
+                    />
+                  </label>
+                </div>
+              </div>
+              {negPoNumber.trim() && negPoFile && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Will be saved as: <span className="font-mono text-gray-700">PO#{negPoNumber.trim()} To NEG.pdf</span>
+                </p>
+              )}
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Notes (optional)</label>
@@ -922,10 +1043,29 @@ export function ProjectNew() {
                     )}
                   </div>
                 </div>
-                <div className="mt-2 text-right text-xs text-gray-500">
-                  Line Total: <span className="font-semibold text-gray-800 tabular-nums">
-                    SAR {formatSAR(line.quantity * line.unit_sales_value)}
-                  </span>
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={line.vat_applicable}
+                      onChange={(e) => updateLine(line.id, 'vat_applicable', e.target.checked)}
+                      className="rounded border-gray-300"
+                    />
+                    Apply VAT ({(VAT_RATE * 100).toFixed(0)}%)
+                  </label>
+                  <div className="text-right text-xs text-gray-500">
+                    {line.vat_applicable && (
+                      <span className="mr-3">
+                        VAT: <span className="font-medium text-gray-700 tabular-nums">
+                          SAR {formatSAR(lineVatAmount(line.quantity * line.unit_sales_value, true))}
+                        </span>
+                      </span>
+                    )}
+                    Line Total{line.vat_applicable ? ' (incl. VAT)' : ''}:{' '}
+                    <span className="font-semibold text-gray-800 tabular-nums">
+                      SAR {formatSAR(lineTotalWithVat(line.quantity * line.unit_sales_value, line.vat_applicable))}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -938,9 +1078,19 @@ export function ProjectNew() {
               Add Vehicle / Item Line
             </button>
 
-            <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">Total Sales Value</span>
-              <span className="text-base font-bold text-gray-900 tabular-nums">SAR {formatSAR(totalValue)}</span>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 space-y-1">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Subtotal (net)</span>
+                <span className="font-medium text-gray-700 tabular-nums">SAR {formatSAR(subtotalValue)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">VAT ({(VAT_RATE * 100).toFixed(0)}% on flagged lines)</span>
+                <span className="font-medium text-gray-700 tabular-nums">SAR {formatSAR(totalVat)}</span>
+              </div>
+              <div className="flex items-center justify-between pt-1 border-t border-gray-200">
+                <span className="text-sm font-medium text-gray-700">Total Sales Value (incl. VAT)</span>
+                <span className="text-base font-bold text-gray-900 tabular-nums">SAR {formatSAR(totalValue)}</span>
+              </div>
             </div>
           </div>
 
@@ -1022,6 +1172,21 @@ export function ProjectNew() {
               <span className="font-medium capitalize">{manufacturingLocation.replace('_', ' ')}</span>
               <span className="text-gray-500">Medical Items</span>
               <span className="font-medium capitalize">{medicalItems.replace('_', ' ')}</span>
+              {sector && (
+                <>
+                  <span className="text-gray-500">Sector</span>
+                  <span className="font-medium">{SECTOR_OPTIONS.find((o) => o.value === sector)?.label}</span>
+                </>
+              )}
+              {negPoNumber.trim() && (
+                <>
+                  <span className="text-gray-500">NEG PO</span>
+                  <span className="font-medium">
+                    {negPoNumber.trim()}
+                    {negPoFile ? <span className="text-xs text-brand-600 font-medium"> · PDF attached</span> : <span className="text-xs text-red-500"> · PDF missing</span>}
+                  </span>
+                </>
+              )}
               <span className="text-gray-500">Sales Owner</span>
               <span className="font-medium">{profile?.full_name ?? profile?.email ?? 'You'}</span>
               {notes && (
@@ -1071,6 +1236,7 @@ export function ProjectNew() {
                     <th className="text-left py-2 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Type</th>
                     <th className="text-left py-2 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Description</th>
                     <th className="text-right py-2 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Qty</th>
+                    <th className="text-right py-2 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">VAT</th>
                     <th className="text-right py-2 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Total (SAR)</th>
                   </tr>
                 </thead>
@@ -1081,13 +1247,14 @@ export function ProjectNew() {
                       <td className="py-2">{l.vehicle_type || <span className="text-red-500">— Required</span>}</td>
                       <td className="py-2 text-gray-600">{l.description || <span className="text-red-500">— Required</span>}</td>
                       <td className="py-2 text-right">{l.quantity}</td>
-                      <td className="py-2 text-right font-semibold">{formatSAR(l.quantity * l.unit_sales_value)}</td>
+                      <td className="py-2 text-right text-xs text-gray-500">{l.vat_applicable ? '15%' : '—'}</td>
+                      <td className="py-2 text-right font-semibold">{formatSAR(lineTotalWithVat(l.quantity * l.unit_sales_value, l.vat_applicable))}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
                   <tr className="border-t-2 border-gray-300">
-                    <td colSpan={4} className="pt-2 text-right text-sm font-semibold text-gray-700">Total</td>
+                    <td colSpan={5} className="pt-2 text-right text-sm font-semibold text-gray-700">Total (incl. VAT)</td>
                     <td className="pt-2 text-right text-base font-bold text-gray-900 tabular-nums">SAR {formatSAR(totalValue)}</td>
                   </tr>
                 </tfoot>

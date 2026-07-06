@@ -10,6 +10,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../hooks/useAuth';
+import { sectorLabel } from '@/lib/commercialFields';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { isQuotationOverdue } from '../lib/quotationSla';
 import { MOCK_QUOTATIONS } from '../data/mockQuotations';
@@ -379,7 +380,14 @@ export function Quotations() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-sm font-medium text-gray-900">{q.customer_name}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {q.customer_name}
+                          {q.sector && (
+                            <span className="ml-2 text-[10px] font-medium text-gray-500 bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5 align-middle">
+                              {sectorLabel(q.sector)}
+                            </span>
+                          )}
+                        </div>
                         {q.scope_summary && (
                           <div className="text-xs text-gray-400 truncate max-w-[200px]">{q.scope_summary}</div>
                         )}

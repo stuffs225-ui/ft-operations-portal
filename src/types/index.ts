@@ -58,6 +58,11 @@ export interface Project {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  // Commercial fields (migration 101) — optional: absent until 101 is applied
+  sector?: 'private' | 'gov' | 'semi_gov' | null;
+  neg_po_number?: string | null;
+  neg_po_document_id?: string | null;
+  expected_delay_penalty_percent?: number | null;
   // Joined fields (optional)
   sales_owner?: { full_name: string | null; email: string } | null;
   approved_by_profile?: { full_name: string | null } | null;
@@ -73,6 +78,8 @@ export interface ProjectVehicleLine {
   quantity: number;
   unit_sales_value: number;
   line_total_value: number;
+  /** VAT flag (migration 101) — optional: absent until 101 is applied. line_total_value stays NET. */
+  vat_applicable?: boolean;
   line_status: string;
   notes: string | null;
   created_at: string;
@@ -180,6 +187,8 @@ export interface QuotationRequest {
   customer_phone: string | null;
   opportunity_source: string | null;
   linked_hot_project_id: string | null;
+  /** Sector (migration 101) — optional: absent until 101 is applied */
+  sector?: 'private' | 'gov' | 'semi_gov' | null;
   requested_by: string | null;
   assigned_coordinator_id: string | null;
   quotation_status: QuotationStatus;
@@ -1590,6 +1599,8 @@ export interface HotProject {
   customer_email: string | null;
   customer_phone: string | null;
   opportunity_source: string | null;
+  /** Sector (migration 101) — optional: absent until 101 is applied */
+  sector?: 'private' | 'gov' | 'semi_gov' | null;
   stage: HotProjectStage;
   probability: number;
   estimated_value: number | null;

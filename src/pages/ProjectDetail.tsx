@@ -5,6 +5,7 @@ import {
   AlertCircle, Info, FileText, List, Clock,
   Check, RotateCcw, X, GitBranch,
   CheckCircle2, Plus, ShoppingCart, Wrench, Truck, FileCheck, ReceiptText,
+  Upload, Percent,
 } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
 import { PageHeader } from '@/components/common/page-header';
@@ -15,6 +16,8 @@ import { Card } from '../components/ui/Card';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { recordProjectEvent, recordAuditEntry } from '../lib/projectAudit';
+import { openSignedUrl } from '../lib/documents';
+import { sectorLabel, VAT_RATE, lineVatAmount, lineTotalWithVat } from '../lib/commercialFields';
 import { fetchProjectReferences, getExecutionGateStatus } from '../lib/executionGate';
 import {
   MOCK_PROJECTS,
@@ -696,6 +699,308 @@ function WoPnGateCard({ project, references, canAdd, onReferenceAdded, className
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 
+// ── NEG PO card (Commercial tab) ──────────────────────────────────────────────
+// Optional customer PO to NEG, attachable at ANY stage. Hard rule: the PO
+// number is never persisted without its PDF — the save action is atomic
+// (upload → document row → project update); any failure persists nothing.
+interface NegPoCardProps {
+  project: Project;
+  canEdit: boolean;
+  profileId: string | null;
+  onUpdated: (negPoNumber: string, negPoDocumentId: string) => void;
+}
+
+function NegPoCard({ project, canEdit, profileId, onUpdated }: NegPoCardProps) {
+  const [editing, setEditing] = useState(false);
+  const [number, setNumber] = useState('');
+  const [file, setFile] = useState<File | undefined>(undefined);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [docPath, setDocPath] = useState<string | null>(null);
+
+  const negNumber = project.neg_po_number ?? null;
+  const negDocId = project.neg_po_document_id ?? null;
+
+  // Resolve the linked document's storage path for the view link.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!negDocId || !supabase) { setDocPath(null); return; }
+      const { data } = await supabase
+        .from('project_documents')
+        .select('storage_path')
+        .eq('id', negDocId)
+        .maybeSingle();
+      if (!cancelled) setDocPath((data as { storage_path: string | null } | null)?.storage_path ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [negDocId]);
+
+  const validPdf = !!file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'));
+  const canSave = number.trim().length > 0 && validPdf && !saving;
+
+  async function handleSave() {
+    if (!canSave || !supabase) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const negName = `PO#${number.trim()} To NEG.pdf`;
+      const negPath = `${project.id}/neg_po/${Date.now()}_${negName.replace(/[^a-zA-Z0-9._# -]/g, '_')}`;
+      const { data: up, error: upErr } = await supabase.storage
+        .from('project-documents')
+        .upload(negPath, file!, { upsert: false, contentType: 'application/pdf' });
+      if (upErr) throw upErr;
+
+      const { data: doc, error: docErr } = await supabase
+        .from('project_documents')
+        .insert({
+          project_id: project.id,
+          document_type: 'customer_po',
+          file_name: negName,
+          uploaded_by: profileId,
+          remarks: 'NEG PO',
+          storage_path: up?.path ?? null,
+          file_size: file!.size,
+          mime_type: 'application/pdf',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any)
+        .select('id, storage_path')
+        .single();
+      if (docErr || !doc) throw docErr ?? new Error('document row failed');
+
+      const { error: linkErr } = await supabase
+        .from('projects')
+        .update({ neg_po_number: number.trim(), neg_po_document_id: doc.id })
+        .eq('id', project.id);
+      if (linkErr) throw linkErr;
+
+      await recordProjectEvent(
+        project.id,
+        'document_uploaded',
+        negNumber ? 'NEG PO replaced' : 'NEG PO attached',
+        `NEG PO ${number.trim()} — ${negName}`,
+        profileId,
+        null,
+      );
+
+      setDocPath((doc as { storage_path: string | null }).storage_path ?? null);
+      onUpdated(number.trim(), (doc as { id: string }).id);
+      setEditing(false);
+      setNumber('');
+      setFile(undefined);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(
+        msg.includes('neg_po') || msg.includes('column')
+          ? 'NEG PO fields are not active in the database yet (migration 101 pending).'
+          : `Could not save the NEG PO: ${msg}`,
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          <FileCheck size={15} className="text-gray-400" /> NEG PO
+        </h3>
+        {canEdit && !editing && (
+          <Button variant="secondary" size="sm" onClick={() => { setEditing(true); setNumber(negNumber ?? ''); }}>
+            {negNumber ? 'Replace' : 'Add NEG PO'}
+          </Button>
+        )}
+      </div>
+
+      {!editing && (
+        negNumber ? (
+          <div className="text-sm">
+            <p className="text-gray-900 font-medium font-mono">{negNumber}</p>
+            {docPath ? (
+              <button
+                onClick={() => void openSignedUrl('project-documents', docPath)}
+                className="mt-1 text-xs text-brand-600 hover:underline font-medium"
+              >
+                View PDF — PO#{negNumber} To NEG.pdf
+              </button>
+            ) : (
+              <p className="mt-1 text-xs text-gray-400">PO document reference unavailable.</p>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400">
+            No NEG PO attached.{canEdit ? ' Add the customer PO number with its PDF at any stage.' : ''}
+          </p>
+        )
+      )}
+
+      {editing && (
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">NEG PO Number <span className="text-red-500">*</span></label>
+            <input
+              type="text"
+              value={number}
+              onChange={(e) => setNumber(e.target.value)}
+              placeholder="e.g. 5929"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">PO PDF <span className="text-red-500">*</span></label>
+            <label className="flex items-center gap-2 px-3 py-2 border border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-colors">
+              <Upload size={14} className={file ? 'text-brand-500 shrink-0' : 'text-gray-400 shrink-0'} />
+              <span className={`text-xs truncate ${file ? 'text-brand-700 font-medium' : 'text-gray-400'}`}>
+                {file ? file.name : 'Choose PDF…'}
+              </span>
+              <input
+                type="file"
+                className="hidden"
+                accept=".pdf,application/pdf"
+                onChange={(e) => setFile(e.target.files?.[0] ?? undefined)}
+              />
+            </label>
+            {file && !validPdf && (
+              <p className="text-xs text-red-600 mt-1">The attachment must be a PDF file.</p>
+            )}
+            {number.trim() && validPdf && (
+              <p className="text-xs text-gray-500 mt-1">
+                Will be saved as <span className="font-mono text-gray-700">PO#{number.trim()} To NEG.pdf</span>
+              </p>
+            )}
+          </div>
+          {error && (
+            <p className="text-xs text-red-600 flex items-start gap-1">
+              <AlertCircle size={11} className="shrink-0 mt-0.5" /> {error}
+            </p>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => { setEditing(false); setError(null); setFile(undefined); }} disabled={saving}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={() => void handleSave()} disabled={!canSave} loading={saving}>
+              Save NEG PO
+            </Button>
+          </div>
+          <p className="text-[11px] text-gray-400">
+            The PO number cannot be saved without its PDF. Replacing keeps the previous document in the Documents tab.
+          </p>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ── Delay Penalty card (Commercial tab) ───────────────────────────────────────
+// Expected penalty % if delivery slips past the expected delivery date.
+// Editable by Operations Manager / Admin only (matches can_write_project RLS,
+// where only admin/ops can update non-draft projects).
+function DelayPenaltyCard({ project, canEdit, profileId, onUpdated }: {
+  project: Project;
+  canEdit: boolean;
+  profileId: string | null;
+  onUpdated: (pct: number | null) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const pct = project.expected_delay_penalty_percent ?? null;
+  const parsed = value.trim() === '' ? null : Number(value);
+  const valid = parsed === null || (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 100);
+
+  async function handleSave() {
+    if (!valid || !supabase) return;
+    setSaving(true);
+    setError(null);
+    const rounded = parsed === null ? null : Math.round(parsed * 100) / 100;
+    const { error: updErr } = await supabase
+      .from('projects')
+      .update({ expected_delay_penalty_percent: rounded })
+      .eq('id', project.id);
+    setSaving(false);
+    if (updErr) {
+      setError(
+        updErr.message.includes('column')
+          ? 'Delay penalty is not active in the database yet (migration 101 pending).'
+          : updErr.message,
+      );
+      return;
+    }
+    await recordProjectEvent(
+      project.id,
+      'project_updated',
+      'Expected delay penalty updated',
+      rounded === null ? 'Penalty cleared' : `Set to ${rounded}%`,
+      profileId,
+      null,
+    );
+    onUpdated(rounded);
+    setEditing(false);
+  }
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          <Percent size={15} className="text-gray-400" /> Delay Penalty
+        </h3>
+        {canEdit && !editing && (
+          <Button variant="secondary" size="sm" onClick={() => { setEditing(true); setValue(pct != null ? String(pct) : ''); }}>
+            {pct != null ? 'Edit' : 'Set Penalty'}
+          </Button>
+        )}
+      </div>
+
+      {!editing && (
+        <div className="text-sm">
+          <p className="text-gray-900 font-semibold tabular-nums text-lg">
+            {pct != null ? `${pct}%` : <span className="text-gray-400 text-sm font-normal">Not set</span>}
+          </p>
+          <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+            Expected penalty applied if delivery slips past the expected delivery date.
+            {canEdit ? '' : ' Entered by Operations.'}
+          </p>
+        </div>
+      )}
+
+      {editing && (
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Penalty % (0–100, leave empty to clear)</label>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={0.01}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder="e.g. 2.5"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 tabular-nums"
+            />
+            {!valid && <p className="text-xs text-red-600 mt-1">Enter a percentage between 0 and 100.</p>}
+          </div>
+          {error && (
+            <p className="text-xs text-red-600 flex items-start gap-1">
+              <AlertCircle size={11} className="shrink-0 mt-0.5" /> {error}
+            </p>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => { setEditing(false); setError(null); }} disabled={saving}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={() => void handleSave()} disabled={!valid || saving} loading={saving}>
+              Save
+            </Button>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const { profile, role } = useAuth();
@@ -1163,6 +1468,7 @@ export function ProjectDetail() {
                   { label: 'Delivery Date', value: formatDate(project.customer_delivery_date) },
                   { label: 'Manufacturing Location', value: project.manufacturing_location.replace(/_/g, ' ') },
                   { label: 'Medical Items', value: project.medical_items.replace(/_/g, ' ') },
+                  ...(project.sector ? [{ label: 'Sector', value: sectorLabel(project.sector) ?? project.sector }] : []),
                   ...(canSeeMoney ? [{ label: 'Total Sales Value', value: formatSAR(project.total_sales_value) }] : []),
                   { label: 'Status', value: project.project_status.replace(/_/g, ' ') },
                   { label: 'Created At', value: formatDateTime(project.created_at) },
@@ -1185,6 +1491,30 @@ export function ProjectDetail() {
             </Card>
           </div>
 
+          {/* NEG PO + Delay Penalty (migration 101) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <NegPoCard
+              project={project}
+              canEdit={
+                role === 'admin' || role === 'operations_manager' ||
+                (role === 'sales_user' && project.created_by === profile?.id &&
+                  ['draft', 'sent_back_for_revision'].includes(project.project_status))
+              }
+              profileId={profile?.id ?? null}
+              onUpdated={(negPoNumber, negPoDocumentId) =>
+                setProject((p) => (p ? { ...p, neg_po_number: negPoNumber, neg_po_document_id: negPoDocumentId } : p))
+              }
+            />
+            <DelayPenaltyCard
+              project={project}
+              canEdit={role === 'admin' || role === 'operations_manager'}
+              profileId={profile?.id ?? null}
+              onUpdated={(pct) =>
+                setProject((p) => (p ? { ...p, expected_delay_penalty_percent: pct } : p))
+              }
+            />
+          </div>
+
           {/* Vehicle Lines section */}
           <div>
             <SectionHeader title="Vehicle Lines" accent="bg-emerald-500" />
@@ -1202,6 +1532,7 @@ export function ProjectDetail() {
                       {canSeeMoney && (
                         <>
                           <th className="text-right px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Unit (SAR)</th>
+                          <th className="text-right px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">VAT</th>
                           <th className="text-right px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Total (SAR)</th>
                         </>
                       )}
@@ -1218,7 +1549,14 @@ export function ProjectDetail() {
                         {canSeeMoney && (
                           <>
                             <td className="px-4 py-3 text-right tabular-nums">{line.unit_sales_value.toLocaleString()}</td>
-                            <td className="px-4 py-3 text-right font-semibold tabular-nums">{line.line_total_value.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-right text-xs text-gray-500 tabular-nums">
+                              {line.vat_applicable
+                                ? `${(VAT_RATE * 100).toFixed(0)}% · ${lineVatAmount(line.line_total_value, true).toLocaleString()}`
+                                : '—'}
+                            </td>
+                            <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                              {lineTotalWithVat(line.line_total_value, line.vat_applicable ?? false).toLocaleString()}
+                            </td>
                           </>
                         )}
                         <td className="px-4 py-3">
@@ -1229,12 +1567,26 @@ export function ProjectDetail() {
                   </tbody>
                   {canSeeMoney && (
                     <tfoot className="border-t-2 border-gray-300 bg-gray-50">
+                      <tr className="text-xs text-gray-500">
+                        <td colSpan={5} className="px-4 pt-3 pb-1 text-right">Subtotal (net)</td>
+                        <td className="px-4 pt-3 pb-1 text-right tabular-nums">
+                          {lines.reduce((s, l) => s + l.line_total_value, 0).toLocaleString()}
+                        </td>
+                        <td />
+                      </tr>
+                      <tr className="text-xs text-gray-500">
+                        <td colSpan={5} className="px-4 py-1 text-right">VAT ({(VAT_RATE * 100).toFixed(0)}% on flagged lines)</td>
+                        <td className="px-4 py-1 text-right tabular-nums">
+                          {lines.reduce((s, l) => s + lineVatAmount(l.line_total_value, l.vat_applicable ?? false), 0).toLocaleString()}
+                        </td>
+                        <td />
+                      </tr>
                       <tr>
                         <td colSpan={5} className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
-                          Total Value
+                          Total Value (incl. VAT)
                         </td>
-                        <td className="px-4 py-3 text-right text-base font-bold text-gray-900">
-                          {lines.reduce((s, l) => s + l.line_total_value, 0).toLocaleString()}
+                        <td className="px-4 py-3 text-right text-base font-bold text-gray-900 tabular-nums">
+                          {lines.reduce((s, l) => s + lineTotalWithVat(l.line_total_value, l.vat_applicable ?? false), 0).toLocaleString()}
                         </td>
                         <td />
                       </tr>

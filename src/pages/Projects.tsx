@@ -13,6 +13,7 @@ import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ReportExportBar } from '../components/features/ReportExportBar';
 import { useAuth } from '@/hooks/useAuth';
+import { sectorLabel } from '@/lib/commercialFields';
 import { usePermission } from '@/hooks/usePermission';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { exportRowsToCsv } from '@/lib/reportExport';
@@ -376,7 +377,14 @@ export function Projects() {
                     <div className="text-xs text-gray-500 mt-0.5">{project.so_number}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="text-gray-900 font-medium">{project.customer_name}</div>
+                    <div className="text-gray-900 font-medium">
+                      {project.customer_name}
+                      {project.sector && (
+                        <span className="ml-2 text-[10px] font-medium text-gray-500 bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5 align-middle">
+                          {sectorLabel(project.sector)}
+                        </span>
+                      )}
+                    </div>
                     {project.medical_items !== 'not_set' && (
                       <div className="mt-1">{medicalBadge(project.medical_items)}</div>
                     )}

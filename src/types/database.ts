@@ -241,6 +241,10 @@ export type Database = {
           rejection_reason: string | null;
           revision_reason: string | null;
           notes: string | null;
+          sector: Database['public']['Enums']['sector_enum'] | null;
+          neg_po_number: string | null;
+          neg_po_document_id: string | null;
+          expected_delay_penalty_percent: number | null;
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -263,6 +267,10 @@ export type Database = {
           rejection_reason?: string | null;
           revision_reason?: string | null;
           notes?: string | null;
+          sector?: Database['public']['Enums']['sector_enum'] | null;
+          neg_po_number?: string | null;
+          neg_po_document_id?: string | null;
+          expected_delay_penalty_percent?: number | null;
           created_by?: string | null;
         };
         Update: {
@@ -282,6 +290,10 @@ export type Database = {
           rejection_reason?: string | null;
           revision_reason?: string | null;
           notes?: string | null;
+          sector?: Database['public']['Enums']['sector_enum'] | null;
+          neg_po_number?: string | null;
+          neg_po_document_id?: string | null;
+          expected_delay_penalty_percent?: number | null;
         };
         Relationships: [];
       };
@@ -295,6 +307,7 @@ export type Database = {
           quantity: number;
           unit_sales_value: number;
           line_total_value: number;
+          vat_applicable: boolean;
           line_status: string;
           notes: string | null;
           created_at: string;
@@ -307,6 +320,7 @@ export type Database = {
           description: string;
           quantity: number;
           unit_sales_value?: number;
+          vat_applicable?: boolean;
           line_status?: string;
           notes?: string | null;
         };
@@ -315,6 +329,7 @@ export type Database = {
           description?: string;
           quantity?: number;
           unit_sales_value?: number;
+          vat_applicable?: boolean;
           line_status?: string;
           notes?: string | null;
         };
@@ -424,6 +439,7 @@ export type Database = {
           customer_phone: string | null;
           opportunity_source: string | null;
           linked_hot_project_id: string | null;
+          sector: Database['public']['Enums']['sector_enum'] | null;
           requested_by: string | null;
           assigned_coordinator_id: string | null;
           quotation_status: string;
@@ -453,6 +469,7 @@ export type Database = {
           customer_phone?: string | null;
           opportunity_source?: string | null;
           linked_hot_project_id?: string | null;
+          sector?: Database['public']['Enums']['sector_enum'] | null;
           requested_by?: string | null;
           assigned_coordinator_id?: string | null;
           quotation_status?: string;
@@ -508,6 +525,7 @@ export type Database = {
           customer_email: string | null;
           customer_phone: string | null;
           opportunity_source: string | null;
+          sector: Database['public']['Enums']['sector_enum'] | null;
           stage: string;
           probability: number;
           estimated_value: number | null;
@@ -529,6 +547,7 @@ export type Database = {
           customer_email?: string | null;
           customer_phone?: string | null;
           opportunity_source?: string | null;
+          sector?: Database['public']['Enums']['sector_enum'] | null;
           stage?: string;
           probability?: number;
           estimated_value?: number | null;
@@ -547,6 +566,7 @@ export type Database = {
           customer_email?: string | null;
           customer_phone?: string | null;
           opportunity_source?: string | null;
+          sector?: Database['public']['Enums']['sector_enum'] | null;
           stage?: string;
           probability?: number;
           estimated_value?: number | null;
@@ -1989,6 +2009,7 @@ export type Database = {
         | 'cancelled'
         | 'closed_lost';
       quotation_priority: 'low' | 'medium' | 'high' | 'urgent';
+      sector_enum: 'private' | 'gov' | 'semi_gov';
       quotation_document_type:
         | 'specification_file'
         | 'quotation_pdf'
