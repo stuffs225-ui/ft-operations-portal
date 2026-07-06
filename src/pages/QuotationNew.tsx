@@ -8,6 +8,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
+import { SECTOR_OPTIONS } from '../lib/commercialFields';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { recordQuotationEvent, recordQuotationAuditEntry } from '../lib/quotationAudit';
 import type { QuotationPriority } from '../types';
@@ -34,6 +35,7 @@ interface FormData {
   customer_email: string;
   customer_phone: string;
   opportunity_source: string;
+  sector: '' | 'private' | 'gov' | 'semi_gov';
   priority: QuotationPriority;
   required_delivery_expectation: string;
   scope_summary: string;
@@ -48,6 +50,7 @@ const INITIAL_FORM: FormData = {
   customer_email: '',
   customer_phone: '',
   opportunity_source: '',
+  sector: '',
   priority: 'medium',
   required_delivery_expectation: '',
   scope_summary: '',
@@ -170,6 +173,7 @@ export function QuotationNew() {
           customer_email: hp.customer_email ?? '',
           customer_phone: hp.customer_phone ?? '',
           opportunity_source: hp.opportunity_source ?? '',
+          sector: hp.sector ?? '',
           scope_summary: hp.title ?? '',
           sales_remarks: hp.notes ?? '',
         }));
@@ -215,6 +219,8 @@ export function QuotationNew() {
           customer_email: form.customer_email.trim() || null,
           customer_phone: form.customer_phone.trim() || null,
           opportunity_source: form.opportunity_source.trim() || null,
+          // Migration-101 field — sent only when set (safe before 101 is applied)
+          ...(form.sector ? { sector: form.sector } : {}),
           priority: form.priority,
           required_delivery_expectation: form.required_delivery_expectation || null,
           scope_summary: form.scope_summary.trim() || null,
@@ -463,6 +469,14 @@ export function QuotationNew() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Opportunity Source</label>
               <input value={form.opportunity_source} onChange={(e) => setForm((f) => ({ ...f, opportunity_source: e.target.value }))}
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="Direct, Tender, Referral…" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sector (optional)</label>
+              <select value={form.sector} onChange={(e) => setForm((f) => ({ ...f, sector: e.target.value as FormData['sector'] }))}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <option value="">Not set</option>
+                {SECTOR_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>

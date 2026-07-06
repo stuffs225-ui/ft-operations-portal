@@ -9,6 +9,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { Skeleton } from '../components/ui/skeleton';
 import { ReportExportBar } from '../components/features/ReportExportBar';
 import { useAuth } from '../hooks/useAuth';
+import { sectorLabel } from '@/lib/commercialFields';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { exportRowsToCsv } from '../lib/reportExport';
 import type { ReportColumn } from '../lib/reportExport';
@@ -321,7 +322,14 @@ export function HotProjects() {
                         </Link>
                         <span className="hidden print:inline font-medium text-gray-900">{hp.title}</span>
                       </td>
-                      <td className="px-4 py-3 text-gray-600 text-sm">{hp.customer_name}</td>
+                      <td className="px-4 py-3 text-gray-600 text-sm">
+                        {hp.customer_name}
+                        {hp.sector && (
+                          <span className="ml-2 text-[10px] font-medium text-gray-500 bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5">
+                            {sectorLabel(hp.sector)}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         <Badge variant={stageCfg.variant} size="sm">{stageCfg.label}</Badge>
                       </td>
