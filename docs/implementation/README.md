@@ -249,6 +249,17 @@ changes are self-documented in the commit message and PR diff.
 
 ---
 
+## Tooling — Real Sales Users and Sales Plan 2026 Import
+
+- **sales-plan-2026-import.md — Real Sales Users and Sales Plan 2026 Import Tool** (branch
+  `feature/real-sales-users-and-plan-import`; `tools/import/sales-users-bootstrap.ts` provisions the
+  10 real sales employee accounts, `tools/import/import-sales-plan-2026.ts` parses the real "Trucks
+  and Vehicles 2026" workbook (`Invoicing plan 2026` sheet, cross-referenced with `Under production
+  Orders`) into projects/lines/invoicing-schedule, with a dependency-free XLSX reader
+  (`tools/import/lib/xlsx-reader.ts`); parse/import/validate/revert modes, batch-tagged and
+  independent of the E2E seeder. **`parse` mode run against the real workbook and committed; no
+  users created, no database writes, nothing deployed this session.**)
+
 ## Tooling — Screenshot Baseline
 
 - **tooling-full-real-auth-role-page-screenshot-baseline.md — Full Real-Auth Role/Page Screenshot Baseline** (branch `tooling/full-real-auth-role-page-screenshot-baseline`; base `f9e2f5d`; 12 accounts × all pages; real Supabase auth enforced)
