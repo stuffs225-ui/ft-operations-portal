@@ -12,5 +12,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["tools/e2e", "tests/e2e"]
+  "include": ["tools/e2e", "tools/import", "tests/e2e"]
 }

@@ -37,3 +37,6 @@ docs/artifact-context/screenshots/**/*.jpg
 docs/artifact-context/screenshots/**/*.jpeg
 docs/artifact-context/screenshots/**/*.zip
 tools/screenshots/screenshot-run-results.json
+
+# 2026 plan import run artifacts (reports + manifests stay local)
+tools/import/reports/

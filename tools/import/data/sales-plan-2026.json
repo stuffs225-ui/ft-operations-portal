@@ -1,0 +1,2287 @@
+{
+  "meta": {
+    "generatedFrom": "Trucks_and_Vehicles_2026_June.xlsx",
+    "xlsxSha256": "29a65c8a0ac4e8e0e9c9647a17d77e0b07453cb4b3329fef4fb2acc87d4c2e8e",
+    "generatedAt": "2026-07-07T13:10:31.110Z",
+    "sheetTotals": {
+      "qty": 248,
+      "totalNet": 227846819.71,
+      "pending": 165684460
+    },
+    "perSalesmanNet": {
+      "Nader": 83569441,
+      "Mahmoud": 73280358.71,
+      "Abdullah": 32664625,
+      "Abdulhamid": 2115550,
+      "ESSAM": 1500000,
+      "Obada": 5618020,
+      "Ahmed Qadomi": 3155150,
+      "Hatem": 3103000,
+      "Suliman": 7900000,
+      "Nadeem": 14940675
+    }
+  },
+  "projects": [
+    {
+      "soNumber": "103009",
+      "soIsSynthetic": false,
+      "salesmanName": "Nader",
+      "salesmanEmail": "nader@ft.com",
+      "customerName": "Afras - Custom project",
+      "projectStatus": "completed",
+      "sheetStatus": "Completed",
+      "manufacturingLocation": "dubai",
+      "medicalItems": "no",
+      "sector": "private",
+      "delayPenaltyPercent": 10,
+      "delayPenaltyText": "0.5% deduction for each late week, up to a maximum of 10%.",
+      "customerDeliveryDate": "2026-04-13",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 28295200,
+      "totalSalesValue": 32539480,
+      "notes": "[2026 Plan Import]\nPO#: 5929\nProj. No: 1921, 1923, 1924, 1922, 1920\nOrder year (sheet #): 2025\nSheet status: Completed\nDelay penalty (sheet): 0.5% deduction for each late week, up to a maximum of 10%.\nPenalty risk flag (sheet): SAFE\nDelivery (contract, row 2): 3 Units,12-Dec-2025 / 3 Units, 12-Feb-2026 / 3 Units, 13-Apr-2026\nDelivery (contract, row 3): 3 Units,12-Dec-2025 / 3 Units, 12-Feb-2026 / 3 Units, 13-Apr-2026\nDelivery (contract, row 4): 5 Units,12-Dec-2025 / 5 Units, 12-Feb-2026 / 10Units, 13-Apr-2026\nDelivery (contract, row 5): 3 Units,12-Dec-2025 / 3 Units, 12-Feb-2026 / 3 Units, 13-Apr-2026\nDelivery (contract, row 6): 2 Units,12-Dec-2025 / 3 Units, 12-Feb-2026 / 2 Units, 13-Apr-2026\nRemarks (row 2): Done\nRemarks (row 3): Done\nRemarks (row 4): Done\nRemarks (row 5): Done\nRemarks (row 6): Done",
+      "lines": [
+        {
+          "sheetRow": 2,
+          "vehicleType": "Combined Fire & Rescue Vehicle",
+          "quantity": 3,
+          "sheetQuantity": 3,
+          "netValue": 6132000,
+          "unitValue": 2044000,
+          "roundingDrift": 0,
+          "vatApplicable": true,
+          "vatSource": "proj_no_match",
+          "pendingValue": null
+        },
+        {
+          "sheetRow": 3,
+          "vehicleType": "Light Rescue Vehicle",
+          "quantity": 2,
+          "sheetQuantity": 2,
+          "netValue": 3160000,
+          "unitValue": 1580000,
+          "roundingDrift": 0,
+          "vatApplicable": true,
+          "vatSource": "proj_no_match",
+          "pendingValue": null
+        },
+        {
+          "sheetRow": 4,
+          "vehicleType": "Water Tanker",
+          "quantity": 4,
+          "sheetQuantity": 4,
+          "netValue": 6501200,
+          "unitValue": 1625300,
+          "roundingDrift": 0,
+          "vatApplicable": true,
+          "vatSource": "proj_no_match",
+          "pendingValue": null
+        },
+        {
+          "sheetRow": 5,
+          "vehicleType": "Rapid Intervention Vehicle",
+          "quantity": 4,
+          "sheetQuantity": 4,
+          "netValue": 3520000,
+          "unitValue": 880000,
+          "roundingDrift": 0,
+          "vatApplicable": true,
+          "vatSource": "proj_no_match",
+          "pendingValue": null
+        },
+        {
+          "sheetRow": 6,
+          "vehicleType": "Hazmat Vehicle",
+          "quantity": 3,
+          "sheetQuantity": 3,
+          "netValue": 8982000,
+          "unitValue": 2994000,
+          "roundingDrift": 0,
+          "vatApplicable": true,
+          "vatSource": "proj_no_match",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 2,
+          "monthName": "February",
+          "amount": 28295200,
+          "invoiceDate": "2026-02-28"
+        }
+      ],
+      "sheetRows": [
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "soNumber": "102964",
+      "soIsSynthetic": false,
+      "salesmanName": "Nader",
+      "salesmanEmail": "nader@ft.com",
+      "customerName": "SRCA - Ambulances",
+      "projectStatus": "completed",
+      "sheetStatus": "Completed",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": "gov",
+      "delayPenaltyPercent": 6,
+      "delayPenaltyText": "1% deduction for each late week, up to a maximum of 6%",
+      "customerDeliveryDate": "2026-06-17",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 605341,
+      "totalSalesValue": 605341,
+      "notes": "[2026 Plan Import]\nPO#: 5818\nProj. No: 1906\nOrder year (sheet #): 2025\nSheet status: Completed\nDelay penalty (sheet): 1% deduction for each late week, up to a maximum of 6%\nPenalty risk flag (sheet): SAFE\nDelivery (contract, row 7): 2026-06-17\nRemarks (row 7): Done",
+      "lines": [
+        {
+          "sheetRow": 7,
+          "vehicleType": "Nupco - 57 ambulances",
+          "quantity": 1,
+          "sheetQuantity": 0,
+          "netValue": 605341,
+          "unitValue": 605341,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 5,
+          "monthName": "May",
+          "amount": 605341,
+          "invoiceDate": "2026-05-31"
+        }
+      ],
+      "sheetRows": [
+        7
+      ]
+    },
+    {
+      "soNumber": "PLAN26-4083",
+      "soIsSynthetic": true,
+      "salesmanName": "Nader",
+      "salesmanEmail": "nader@ft.com",
+      "customerName": "SAR",
+      "projectStatus": "active",
+      "sheetStatus": "Delayed",
+      "manufacturingLocation": "dubai",
+      "medicalItems": "no",
+      "sector": "gov",
+      "delayPenaltyPercent": 6,
+      "delayPenaltyText": "0.25% deduction for each late week, up to a maximum of 6%",
+      "customerDeliveryDate": "2024-09-19",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 54668900,
+      "totalSalesValue": 62058260,
+      "notes": "[2026 Plan Import]\nPO#: 4083\nProj. No: 1593, 1589\nOrder year (sheet #): 2025\nSheet status: Delayed\nDelay penalty (sheet): 0.25% deduction for each late week, up to a maximum of 6%\nPenalty risk flag (sheet): APPLIED\nDelivery (contract, row 8): 2024-09-19\nDelivery (contract, row 9): 2024-09-19\nDelivery (contract, row 10): 2024-09-19\nDelivery (contract, row 11): 2024-09-19\nDelivery (contract, row 12): 2024-09-19\nRemarks (row 8): 1st Fire Truck in Jed, Monitor Broken 4 Ready For FAT: 22 - 23Jun 10 under production, shakeel will share report\nRemarks (row 9): Received in Jeddah, ready for delivery, still waiting SASO inspection",
+      "lines": [
+        {
+          "sheetRow": 8,
+          "vehicleType": "FIRE FIGHTING & RESCUE VEHICLE",
+          "quantity": 15,
+          "sheetQuantity": 15,
+          "netValue": 38692500,
+          "unitValue": 2579500,
+          "roundingDrift": 0,
+          "vatApplicable": true,
+          "vatSource": "proj_no_match",
+          "pendingValue": 38692500
+        },
+        {
+          "sheetRow": 9,
+          "vehicleType": "RailRoad Type I ambulance",
+          "quantity": 6,
+          "sheetQuantity": 6,
+          "netValue": 10569900,
+          "unitValue": 1761650,
+          "roundingDrift": 0,
+          "vatApplicable": true,
+          "vatSource": "proj_no_match",
+          "pendingValue": 10569900
+        },
+        {
+          "sheetRow": 10,
+          "vehicleType": "NFPA 1917",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 126500,
+          "unitValue": 126500,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 126500
+        },
+        {
+          "sheetRow": 11,
+          "vehicleType": "AMC-3 years ambulances",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 1080000,
+          "unitValue": 1080000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 1080000
+        },
+        {
+          "sheetRow": 12,
+          "vehicleType": "AMC-3 years firetrucks",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 4200000,
+          "unitValue": 4200000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 4200000
+        }
+      ],
+      "schedules": [
+        {
+          "month": 7,
+          "monthName": "July",
+          "amount": 7864450,
+          "invoiceDate": "2026-07-31"
+        },
+        {
+          "month": 8,
+          "monthName": "August",
+          "amount": 15602950,
+          "invoiceDate": "2026-08-31"
+        },
+        {
+          "month": 9,
+          "monthName": "September",
+          "amount": 31201500,
+          "invoiceDate": "2026-09-30"
+        }
+      ],
+      "sheetRows": [
+        8,
+        9,
+        10,
+        11,
+        12
+      ]
+    },
+    {
+      "soNumber": "103252/103251",
+      "soIsSynthetic": false,
+      "salesmanName": "Mahmoud",
+      "salesmanEmail": "mahmoud@ft.com",
+      "customerName": "Afras",
+      "projectStatus": "approved",
+      "sheetStatus": "Pending",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2026-12-31",
+      "deliveryDateSource": "default_2026_12_31",
+      "totalNet": 6785000,
+      "totalSalesValue": 6785000,
+      "notes": "[2026 Plan Import]\nPO#: 7259\nProj. No: PR#2554 Start Date 8/25/2025\nOrder year (sheet #): 2025\nSheet status: Pending\nDelivery (contract, row 13): No ETA\nRemarks (row 13): In Hold",
+      "lines": [
+        {
+          "sheetRow": 13,
+          "vehicleType": "Hazmat Vehicle",
+          "quantity": 2,
+          "sheetQuantity": 2,
+          "netValue": 6785000,
+          "unitValue": 3392500,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 6785000
+        }
+      ],
+      "schedules": [],
+      "sheetRows": [
+        13
+      ]
+    },
+    {
+      "soNumber": "103351 | 103243",
+      "soIsSynthetic": false,
+      "salesmanName": "Mahmoud",
+      "salesmanEmail": "mahmoud@ft.com",
+      "customerName": "NUPCO-General Administration of Support",
+      "projectStatus": "completed",
+      "sheetStatus": "Completed",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2026-04-01",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 3368500,
+      "totalSalesValue": 3368500,
+      "notes": "[2026 Plan Import]\nProj. No: 2071\nOrder year (sheet #): 2025\nSheet status: Completed\nDelivery (contract, row 14): 2026-04-01\nDelivery (contract, row 15): 2026-04-01\nRemarks (row 14): Done\nRemarks (row 15): Done",
+      "lines": [
+        {
+          "sheetRow": 14,
+          "vehicleType": "AMBULANCE TYPE II",
+          "quantity": 6,
+          "sheetQuantity": 6,
+          "netValue": 3216000,
+          "unitValue": 536000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": null
+        },
+        {
+          "sheetRow": 15,
+          "vehicleType": "XFRAME STRETCH AMBU II MX PRO R3 STRYKER",
+          "quantity": 6,
+          "sheetQuantity": 6,
+          "netValue": 152500,
+          "unitValue": 25416.67,
+          "roundingDrift": 0.02,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 5,
+          "monthName": "May",
+          "amount": 3368500,
+          "invoiceDate": "2026-05-31"
+        }
+      ],
+      "sheetRows": [
+        14,
+        15
+      ]
+    },
+    {
+      "soNumber": "103084",
+      "soIsSynthetic": false,
+      "salesmanName": "Mahmoud",
+      "salesmanEmail": "mahmoud@ft.com",
+      "customerName": "Royal air defense",
+      "projectStatus": "active",
+      "sheetStatus": "In Progress",
+      "manufacturingLocation": "not_set",
+      "medicalItems": "no",
+      "sector": "gov",
+      "delayPenaltyPercent": 6,
+      "delayPenaltyText": "up to a maximum of 6%",
+      "customerDeliveryDate": "2026-01-28",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 7548900,
+      "totalSalesValue": 8681235,
+      "notes": "[2026 Plan Import]\nPO#: 6151\nProj. No: 1985, 1984\nOrder year (sheet #): 2025\nSheet status: In Progress\nDelay penalty (sheet): up to a maximum of 6%\nPenalty risk flag (sheet): SAFE\nDelivery (contract, row 16): 2026-01-28\nDelivery (contract, row 17): 2026-01-28\nRemarks (row 16): Expected to move from Dubai on 15 July as per the latest update\nRemarks (row 17): Expected to move from Dubai on 15 July as per the latest update",
+      "lines": [
+        {
+          "sheetRow": 16,
+          "vehicleType": "water tanker (18,000 Ltrs)",
+          "quantity": 2,
+          "sheetQuantity": 2,
+          "netValue": 2787000,
+          "unitValue": 1393500,
+          "roundingDrift": 0,
+          "vatApplicable": true,
+          "vatSource": "so_group_match",
+          "pendingValue": 2787000
+        },
+        {
+          "sheetRow": 17,
+          "vehicleType": "RIV F-550",
+          "quantity": 3,
+          "sheetQuantity": 3,
+          "netValue": 4761900,
+          "unitValue": 1587300,
+          "roundingDrift": 0,
+          "vatApplicable": true,
+          "vatSource": "so_group_match",
+          "pendingValue": 4761900
+        }
+      ],
+      "schedules": [
+        {
+          "month": 8,
+          "monthName": "August",
+          "amount": 7548900,
+          "invoiceDate": "2026-08-31"
+        }
+      ],
+      "sheetRows": [
+        16,
+        17
+      ]
+    },
+    {
+      "soNumber": "103165",
+      "soIsSynthetic": false,
+      "salesmanName": "Mahmoud",
+      "salesmanEmail": "mahmoud@ft.com",
+      "customerName": "Royal air defense",
+      "projectStatus": "active",
+      "sheetStatus": "In Progress",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": "gov",
+      "delayPenaltyPercent": 6,
+      "delayPenaltyText": "up to a maximum of 6%",
+      "customerDeliveryDate": "2025-08-20",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 633000,
+      "totalSalesValue": 727950,
+      "notes": "[2026 Plan Import]\nProj. No: 2016\nOrder year (sheet #): 2025\nSheet status: In Progress\nDelay penalty (sheet): up to a maximum of 6%\nPenalty risk flag (sheet): APPLIED\nDelivery (contract, row 18): 2025-08-20\nRemarks (row 18): Ready for Delivery, Waiting Arkan to Deliver Materials",
+      "lines": [
+        {
+          "sheetRow": 18,
+          "vehicleType": "AMBULANCE TYPE II",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 633000,
+          "unitValue": 633000,
+          "roundingDrift": 0,
+          "vatApplicable": true,
+          "vatSource": "so_group_match",
+          "pendingValue": 633000
+        }
+      ],
+      "schedules": [
+        {
+          "month": 6,
+          "monthName": "June",
+          "amount": 633000,
+          "invoiceDate": "2026-06-30"
+        }
+      ],
+      "sheetRows": [
+        18
+      ]
+    },
+    {
+      "soNumber": "103055",
+      "soIsSynthetic": false,
+      "salesmanName": "Mahmoud",
+      "salesmanEmail": "mahmoud@ft.com",
+      "customerName": "Al-Jazerah / john hopkins aramco",
+      "projectStatus": "active",
+      "sheetStatus": "In Progress",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": "private",
+      "delayPenaltyPercent": 6,
+      "delayPenaltyText": "0.5% deduction for each late week, up to a maximum of 6%.",
+      "customerDeliveryDate": "2025-10-28",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 9215000,
+      "totalSalesValue": 9215000,
+      "notes": "[2026 Plan Import]\nPO#: 6052\nProj. No: 1938\nOrder year (sheet #): 2025\nSheet status: In Progress\nDelay penalty (sheet): 0.5% deduction for each late week, up to a maximum of 6%.\nPenalty risk flag (sheet): CRITICAL\nDelivery (contract, row 19): Prototype, 1-May-2025 / 2 Units, 28-Jun-2025 / 3 Units, 28-Jul-2025 / 4 Units, 28Aug-2025 / 5 Units, 28-Sep-2025 / 5 Units, 28-Oct-2025\nRemarks (row 19): 1st Amb, dispatched from AFS. 19 Units pending the boxes from Dubai + raw materiaks",
+      "lines": [
+        {
+          "sheetRow": 19,
+          "vehicleType": "AMBULANCE",
+          "quantity": 19,
+          "sheetQuantity": 19,
+          "netValue": 9215000,
+          "unitValue": 485000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "proj_no_match",
+          "pendingValue": 9215000
+        }
+      ],
+      "schedules": [
+        {
+          "month": 7,
+          "monthName": "July",
+          "amount": 4850000,
+          "invoiceDate": "2026-07-31"
+        },
+        {
+          "month": 8,
+          "monthName": "August",
+          "amount": 4365000,
+          "invoiceDate": "2026-08-31"
+        }
+      ],
+      "sheetRows": [
+        19
+      ]
+    },
+    {
+      "soNumber": "102412",
+      "soIsSynthetic": false,
+      "salesmanName": "Mahmoud",
+      "salesmanEmail": "mahmoud@ft.com",
+      "customerName": "KFSHRC - RIYADH",
+      "projectStatus": "active",
+      "sheetStatus": "In Progress",
+      "manufacturingLocation": "not_set",
+      "medicalItems": "no",
+      "sector": "semi_gov",
+      "delayPenaltyPercent": 6,
+      "delayPenaltyText": "up to a maximum of 6%",
+      "customerDeliveryDate": "2024-09-03",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 2039069,
+      "totalSalesValue": 2039069,
+      "notes": "[2026 Plan Import]\nPO#: 4109\nProj. No: 1605/1606\nOrder year (sheet #): 2025\nSheet status: In Progress\nDelay penalty (sheet): up to a maximum of 6%\nPenalty risk flag (sheet): APPLIED\nDelivery (contract, row 20): 2024-09-03\nRemarks (row 20): 1 Unit Pass SASO 1 Unit waiting SASO",
+      "lines": [
+        {
+          "sheetRow": 20,
+          "vehicleType": "Hazmat & Hazard",
+          "quantity": 2,
+          "sheetQuantity": 2,
+          "netValue": 2039069,
+          "unitValue": 1019534.5,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 2039069
+        }
+      ],
+      "schedules": [
+        {
+          "month": 7,
+          "monthName": "July",
+          "amount": 2039069,
+          "invoiceDate": "2026-07-31"
+        }
+      ],
+      "sheetRows": [
+        20
+      ]
+    },
+    {
+      "soNumber": "103453",
+      "soIsSynthetic": false,
+      "salesmanName": "Mahmoud",
+      "salesmanEmail": "mahmoud@ft.com",
+      "customerName": "King Fahad Military Med. City",
+      "projectStatus": "active",
+      "sheetStatus": "In Progress",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2027-02-04",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 1977730,
+      "totalSalesValue": 1977730,
+      "notes": "[2026 Plan Import]\nPO#: PO NUPCO 4600119387 WO # 26917177 PO#9090\nProj. No: 2129, 2130\nOrder year (sheet #): 2026\nSheet status: In Progress\nDelivery (contract, row 21): 2027-02-04\nDelivery (contract, row 22): 2027-02-04\nRemarks (row 21): Chassis PO is still pending from CEO's office. Waiting for raw materials from Dubai\nRemarks (row 22): Chassis PO is still pending from CEO's office. Waiting for raw materials from Dubai",
+      "lines": [
+        {
+          "sheetRow": 21,
+          "vehicleType": "AMBULANCE TYPE II",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 1111150,
+          "unitValue": 1111150,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 1111150
+        },
+        {
+          "sheetRow": 22,
+          "vehicleType": "AMBULANCE TYPE I",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 866580,
+          "unitValue": 866580,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 866580
+        }
+      ],
+      "schedules": [],
+      "sheetRows": [
+        21,
+        22
+      ]
+    },
+    {
+      "soNumber": "PLAN26-PO-085018",
+      "soIsSynthetic": true,
+      "salesmanName": "Mahmoud",
+      "salesmanEmail": "mahmoud@ft.com",
+      "customerName": "AFRAS - SEAFTY",
+      "projectStatus": "completed",
+      "sheetStatus": "Completed",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2026-03-31",
+      "deliveryDateSource": "last_plan_month",
+      "totalNet": 1009023.71,
+      "totalSalesValue": 1009023.71,
+      "notes": "[2026 Plan Import]\nPO#: PO-085018\nOrder year (sheet #): 2026\nSheet status: Completed",
+      "lines": [
+        {
+          "sheetRow": 23,
+          "vehicleType": "SEAFTY",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 1009023.71,
+          "unitValue": 1009023.71,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 3,
+          "monthName": "March",
+          "amount": 1009023.71,
+          "invoiceDate": "2026-03-31"
+        }
+      ],
+      "sheetRows": [
+        23
+      ]
+    },
+    {
+      "soNumber": "103416",
+      "soIsSynthetic": false,
+      "salesmanName": "Mahmoud",
+      "salesmanEmail": "mahmoud@ft.com",
+      "customerName": "DR. SULAIMAN AL HABIB",
+      "projectStatus": "active",
+      "sheetStatus": "In Progress",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2027-06-05",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 17137500,
+      "totalSalesValue": 17137500,
+      "notes": "[2026 Plan Import]\nPO#: 9008\nProj. No: 2135\nOrder year (sheet #): 2026\nSheet status: In Progress\nDelivery (contract, row 24): 2027-06-05\nRemarks (row 24): Waiting for the chassis. Firs raw materials Batch received in JED. Second batch under process",
+      "lines": [
+        {
+          "sheetRow": 24,
+          "vehicleType": "AMBULANCE TYPE II",
+          "quantity": 50,
+          "sheetQuantity": 50,
+          "netValue": 17137500,
+          "unitValue": 342750,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 17137500
+        }
+      ],
+      "schedules": [
+        {
+          "month": 8,
+          "monthName": "August",
+          "amount": 5141250,
+          "invoiceDate": "2026-08-31"
+        },
+        {
+          "month": 9,
+          "monthName": "September",
+          "amount": 5141250,
+          "invoiceDate": "2026-09-30"
+        },
+        {
+          "month": 10,
+          "monthName": "October",
+          "amount": 6855000,
+          "invoiceDate": "2026-10-31"
+        }
+      ],
+      "sheetRows": [
+        24
+      ]
+    },
+    {
+      "soNumber": "103486",
+      "soIsSynthetic": false,
+      "salesmanName": "Mahmoud",
+      "salesmanEmail": "mahmoud@ft.com",
+      "customerName": "RAC",
+      "projectStatus": "active",
+      "sheetStatus": "In Progress",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2027-04-02",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 22876636,
+      "totalSalesValue": 22876636,
+      "notes": "[2026 Plan Import]\nPO#: New\nProj. No: WO# NIS27063349\nOrder year (sheet #): 2026\nSheet status: In Progress\nDelivery (contract, row 25): 2027-04-02\nDelivery (contract, row 26): 2027-04-02\nDelivery (contract, row 27): 2027-04-02\nDelivery (contract, row 28): 2027-04-02\nDelivery (contract, row 29): 2027-04-02\nDelivery (contract, row 30): 2027-04-02\nDelivery (contract, row 31): 2027-04-02\nDelivery (contract, row 32): 2027-04-02\nRemarks (row 25): Po sent to Dubai\nRemarks (row 26): Po sent to Dubai\nRemarks (row 27): Po sent to Dubai\nRemarks (row 28): Po sent to Dubai\nRemarks (row 29): Po sent to Dubai\nRemarks (row 30): Po sent to Dubai\nRemarks (row 31): Po sent to Dubai\nRemarks (row 32): Po sent to Dubai",
+      "lines": [
+        {
+          "sheetRow": 25,
+          "vehicleType": "Mobile Command Vehicle",
+          "quantity": 4,
+          "sheetQuantity": 4,
+          "netValue": 2289600,
+          "unitValue": 572400,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 2289600
+        },
+        {
+          "sheetRow": 26,
+          "vehicleType": "Structural Pumpers",
+          "quantity": 3,
+          "sheetQuantity": 3,
+          "netValue": 6180000,
+          "unitValue": 2060000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 6180000
+        },
+        {
+          "sheetRow": 27,
+          "vehicleType": "Heayy Rescue Vehicle",
+          "quantity": 2,
+          "sheetQuantity": 2,
+          "netValue": 2880000,
+          "unitValue": 1440000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 2880000
+        },
+        {
+          "sheetRow": 28,
+          "vehicleType": "Light Rescue Vehicle",
+          "quantity": 2,
+          "sheetQuantity": 2,
+          "netValue": 3640000,
+          "unitValue": 1820000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 3640000
+        },
+        {
+          "sheetRow": 29,
+          "vehicleType": "Hazmat Vehicle",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 1688000,
+          "unitValue": 1688000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 1688000
+        },
+        {
+          "sheetRow": 30,
+          "vehicleType": "AMBULANCE",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 699036,
+          "unitValue": 699036,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 699036
+        },
+        {
+          "sheetRow": 31,
+          "vehicleType": "Mini Pumper",
+          "quantity": 2,
+          "sheetQuantity": 2,
+          "netValue": 2100000,
+          "unitValue": 1050000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 2100000
+        },
+        {
+          "sheetRow": 32,
+          "vehicleType": "Water Tanker",
+          "quantity": 2,
+          "sheetQuantity": 2,
+          "netValue": 3400000,
+          "unitValue": 1700000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 3400000
+        }
+      ],
+      "schedules": [],
+      "sheetRows": [
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32
+      ]
+    },
+    {
+      "soNumber": "103522",
+      "soIsSynthetic": false,
+      "salesmanName": "Mahmoud",
+      "salesmanEmail": "mahmoud@ft.com",
+      "customerName": "MBCC",
+      "projectStatus": "active",
+      "sheetStatus": "In Progress",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2026-11-24",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 690000,
+      "totalSalesValue": 690000,
+      "notes": "[2026 Plan Import]\nPO#: 4500845450\nProj. No: WO# NIS27070253\nOrder year (sheet #): 2026\nSheet status: In Progress\nDelivery (contract, row 33): 2026-11-24\nRemarks (row 33): Po sent to Dubai",
+      "lines": [
+        {
+          "sheetRow": 33,
+          "vehicleType": "First response Vehicle",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 690000,
+          "unitValue": 690000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 690000
+        }
+      ],
+      "schedules": [],
+      "sheetRows": [
+        33
+      ]
+    },
+    {
+      "soNumber": "103074",
+      "soIsSynthetic": false,
+      "salesmanName": "Abdullah",
+      "salesmanEmail": "abdullah.s@ft.com",
+      "customerName": "MOD",
+      "projectStatus": "active",
+      "sheetStatus": "Delayed",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": "gov",
+      "delayPenaltyPercent": 6,
+      "delayPenaltyText": "1% deduction for each late week, up to a maximum of 6%",
+      "customerDeliveryDate": "2025-11-20",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 11584300,
+      "totalSalesValue": 11584300,
+      "notes": "[2026 Plan Import]\nPO#: 6342 / WO # 25616597\nProj. No: 1847 / 1970\nOrder year (sheet #): 2025\nSheet status: Delayed\nDelay penalty (sheet): 1% deduction for each late week, up to a maximum of 6%\nPenalty risk flag (sheet): CRITICAL\nDelivery (contract, row 34): 2025-11-20\nRemarks (row 34): 6 VEHICLES: Materials shipped from Dubai, completion Date expected next week",
+      "lines": [
+        {
+          "sheetRow": 34,
+          "vehicleType": "AMBULANCE TYPE II",
+          "quantity": 15,
+          "sheetQuantity": 15,
+          "netValue": 11584300,
+          "unitValue": 772286.67,
+          "roundingDrift": 0.05,
+          "vatApplicable": false,
+          "vatSource": "so_group_match",
+          "pendingValue": 5058850
+        }
+      ],
+      "schedules": [
+        {
+          "month": 5,
+          "monthName": "May",
+          "amount": 6525450,
+          "invoiceDate": "2026-05-31"
+        }
+      ],
+      "sheetRows": [
+        34
+      ]
+    },
+    {
+      "soNumber": "103088",
+      "soIsSynthetic": false,
+      "salesmanName": "Abdullah",
+      "salesmanEmail": "abdullah.s@ft.com",
+      "customerName": "SRCA",
+      "projectStatus": "active",
+      "sheetStatus": "Delayed",
+      "manufacturingLocation": "dubai",
+      "medicalItems": "no",
+      "sector": "gov",
+      "delayPenaltyPercent": 6,
+      "delayPenaltyText": "1% deduction for each late week, up to a maximum of 6%",
+      "customerDeliveryDate": "2025-12-27",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 6000000,
+      "totalSalesValue": 6000000,
+      "notes": "[2026 Plan Import]\nPO#: 6162\nProj. No: 1952\nOrder year (sheet #): 2025\nSheet status: Delayed\nDelay penalty (sheet): 1% deduction for each late week, up to a maximum of 6%\nPenalty risk flag (sheet): CRITICAL\nDelivery (contract, row 35): 2025-12-27\nRemarks (row 35): the units are expected to be received in KSA factory by the next week ,Tariq Said.",
+      "lines": [
+        {
+          "sheetRow": 35,
+          "vehicleType": "Electrical ambulance",
+          "quantity": 10,
+          "sheetQuantity": 10,
+          "netValue": 6000000,
+          "unitValue": 600000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "proj_no_match",
+          "pendingValue": 6000000
+        }
+      ],
+      "schedules": [
+        {
+          "month": 7,
+          "monthName": "July",
+          "amount": 6000000,
+          "invoiceDate": "2026-07-31"
+        }
+      ],
+      "sheetRows": [
+        35
+      ]
+    },
+    {
+      "soNumber": "103076",
+      "soIsSynthetic": false,
+      "salesmanName": "Abdullah",
+      "salesmanEmail": "abdullah.s@ft.com",
+      "customerName": "Amal hospital - Tabouk",
+      "projectStatus": "completed",
+      "sheetStatus": "Completed",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "yes",
+      "sector": "gov",
+      "delayPenaltyPercent": 6,
+      "delayPenaltyText": "1% deduction for each late week, up to a maximum of 6%",
+      "customerDeliveryDate": "2025-06-05",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 38425,
+      "totalSalesValue": 38425,
+      "notes": "[2026 Plan Import]\nPO#: Dubai\nOrder year (sheet #): 2025\nSheet status: Completed\nDelay penalty (sheet): 1% deduction for each late week, up to a maximum of 6%\nPenalty risk flag (sheet): APPLIED\nDelivery (contract, row 36): 2025-06-05",
+      "lines": [
+        {
+          "sheetRow": 36,
+          "vehicleType": "Medical Item",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 38425,
+          "unitValue": 38425,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "so_group_match",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 1,
+          "monthName": "January",
+          "amount": 38425,
+          "invoiceDate": "2026-01-31"
+        }
+      ],
+      "sheetRows": [
+        36
+      ]
+    },
+    {
+      "soNumber": "102792",
+      "soIsSynthetic": false,
+      "salesmanName": "Abdullah",
+      "salesmanEmail": "abdullah.s@ft.com",
+      "customerName": "Saudi Air forces",
+      "projectStatus": "completed",
+      "sheetStatus": "Completed",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": "gov",
+      "delayPenaltyPercent": 6,
+      "delayPenaltyText": "Up to a maximum of 6%.",
+      "customerDeliveryDate": "2026-06-24",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 3540000,
+      "totalSalesValue": 4071000,
+      "notes": "[2026 Plan Import]\nPO#: 5185\nProj. No: 1814\nOrder year (sheet #): 2025\nSheet status: Completed\nDelay penalty (sheet): Up to a maximum of 6%.\nPenalty risk flag (sheet): SAFE\nDelivery (contract, row 37): 2026-06-24",
+      "lines": [
+        {
+          "sheetRow": 37,
+          "vehicleType": "Fire truck - MAN 4x2",
+          "quantity": 2,
+          "sheetQuantity": 2,
+          "netValue": 3540000,
+          "unitValue": 1770000,
+          "roundingDrift": 0,
+          "vatApplicable": true,
+          "vatSource": "proj_no_match",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 1,
+          "monthName": "January",
+          "amount": 3540000,
+          "invoiceDate": "2026-01-31"
+        }
+      ],
+      "sheetRows": [
+        37
+      ]
+    },
+    {
+      "soNumber": "102699",
+      "soIsSynthetic": false,
+      "salesmanName": "Abdullah",
+      "salesmanEmail": "abdullah.s@ft.com",
+      "customerName": "King Faisal Specialist Hospital",
+      "projectStatus": "completed",
+      "sheetStatus": "Completed",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": "semi_gov",
+      "delayPenaltyPercent": 6,
+      "delayPenaltyText": "1% deduction for each late week, up to a maximum of 6%.",
+      "customerDeliveryDate": "2025-04-30",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 652900,
+      "totalSalesValue": 652900,
+      "notes": "[2026 Plan Import]\nPO#: 4906\nProj. No: 1791\nOrder year (sheet #): 2025\nSheet status: Completed\nDelay penalty (sheet): 1% deduction for each late week, up to a maximum of 6%.\nPenalty risk flag (sheet): APPLIED\nDelivery (contract, row 38): 2025-04-30",
+      "lines": [
+        {
+          "sheetRow": 38,
+          "vehicleType": "AMBULANCE TYPE I",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 652900,
+          "unitValue": 652900,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "proj_no_match",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 4,
+          "monthName": "April",
+          "amount": 652900,
+          "invoiceDate": "2026-04-30"
+        }
+      ],
+      "sheetRows": [
+        38
+      ]
+    },
+    {
+      "soNumber": "102978",
+      "soIsSynthetic": false,
+      "salesmanName": "Abdullah",
+      "salesmanEmail": "abdullah.s@ft.com",
+      "customerName": "Cluster2",
+      "projectStatus": "completed",
+      "sheetStatus": "Completed",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": "semi_gov",
+      "delayPenaltyPercent": 20,
+      "delayPenaltyText": "Up to a maximum of 20%.",
+      "customerDeliveryDate": "2025-12-16",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 8997750,
+      "totalSalesValue": 8997750,
+      "notes": "[2026 Plan Import]\nPO#: 5829\nProj. No: 1910\nOrder year (sheet #): 2025\nSheet status: Completed\nDelay penalty (sheet): Up to a maximum of 20%.\nPenalty risk flag (sheet): CRITICAL\nDelivery (contract, row 39): 2025-12-16",
+      "lines": [
+        {
+          "sheetRow": 39,
+          "vehicleType": "AMBULANCE TYPE II",
+          "quantity": 9,
+          "sheetQuantity": 9,
+          "netValue": 8997750,
+          "unitValue": 999750,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "proj_no_match",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 1,
+          "monthName": "January",
+          "amount": 999750,
+          "invoiceDate": "2026-01-31"
+        },
+        {
+          "month": 3,
+          "monthName": "March",
+          "amount": 7998000,
+          "invoiceDate": "2026-03-31"
+        }
+      ],
+      "sheetRows": [
+        39
+      ]
+    },
+    {
+      "soNumber": "102934",
+      "soIsSynthetic": false,
+      "salesmanName": "Abdullah",
+      "salesmanEmail": "abdullah.s@ft.com",
+      "customerName": "Nupco - Riyadh - مدينة الملك عبدالعزيز",
+      "projectStatus": "active",
+      "sheetStatus": "Delayed",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "yes",
+      "sector": "gov",
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": "Depending on NUPCO",
+      "customerDeliveryDate": "2026-07-31",
+      "deliveryDateSource": "last_plan_month",
+      "totalNet": 25500,
+      "totalSalesValue": 25500,
+      "notes": "[2026 Plan Import]\nPO#: Al Jeel Medical PO#5727\nOrder year (sheet #): 2025\nSheet status: Delayed\nDelay penalty (sheet): Depending on NUPCO\nPenalty risk flag (sheet): APPLIED\nRemarks (row 40): Not received yet from Al jeel",
+      "lines": [
+        {
+          "sheetRow": 40,
+          "vehicleType": "Supply of Medical Items",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 25500,
+          "unitValue": 25500,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "so_group_match",
+          "pendingValue": 25500
+        }
+      ],
+      "schedules": [
+        {
+          "month": 7,
+          "monthName": "July",
+          "amount": 25500,
+          "invoiceDate": "2026-07-31"
+        }
+      ],
+      "sheetRows": [
+        40
+      ]
+    },
+    {
+      "soNumber": "102958",
+      "soIsSynthetic": false,
+      "salesmanName": "Abdullah",
+      "salesmanEmail": "abdullah.s@ft.com",
+      "customerName": "Nupco - Jizan - Jizan University",
+      "projectStatus": "completed",
+      "sheetStatus": "Completed",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "yes",
+      "sector": "gov",
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": "Depending on NUPCO",
+      "customerDeliveryDate": "2025-05-01",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 163750,
+      "totalSalesValue": 163750,
+      "notes": "[2026 Plan Import]\nPO#: Al Jeel Medical PO#5835\nOrder year (sheet #): 2025\nSheet status: Completed\nDelay penalty (sheet): Depending on NUPCO\nPenalty risk flag (sheet): APPLIED\nDelivery (contract, row 41): 2025-05-01",
+      "lines": [
+        {
+          "sheetRow": 41,
+          "vehicleType": "Supply of Medical Items",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 163750,
+          "unitValue": 163750,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "so_group_match",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 3,
+          "monthName": "March",
+          "amount": 163750,
+          "invoiceDate": "2026-03-31"
+        }
+      ],
+      "sheetRows": [
+        41
+      ]
+    },
+    {
+      "soNumber": "102975",
+      "soIsSynthetic": false,
+      "salesmanName": "Abdullah",
+      "salesmanEmail": "abdullah.s@ft.com",
+      "customerName": "KFSH",
+      "projectStatus": "completed",
+      "sheetStatus": "Completed",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "yes",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2026-01-31",
+      "deliveryDateSource": "last_plan_month",
+      "totalNet": 162000,
+      "totalSalesValue": 162000,
+      "notes": "[2026 Plan Import]\nPO#: 76835 CPO\nProj. No: 1464\nOrder year (sheet #): 2025\nSheet status: Completed",
+      "lines": [
+        {
+          "sheetRow": 42,
+          "vehicleType": "Supply of Medical Items",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 162000,
+          "unitValue": 162000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 1,
+          "monthName": "January",
+          "amount": 162000,
+          "invoiceDate": "2026-01-31"
+        }
+      ],
+      "sheetRows": [
+        42
+      ]
+    },
+    {
+      "soNumber": "103479",
+      "soIsSynthetic": false,
+      "salesmanName": "Abdullah",
+      "salesmanEmail": "abdullah.s@ft.com",
+      "customerName": "NADEC",
+      "projectStatus": "active",
+      "sheetStatus": "In Progress",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2027-02-10",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 1500000,
+      "totalSalesValue": 1500000,
+      "notes": "[2026 Plan Import]\nOrder year (sheet #): 2026\nSheet status: In Progress\nDelivery (contract, row 43): 2027-02-10\nRemarks (row 43): Waiting for the Payment",
+      "lines": [
+        {
+          "sheetRow": 43,
+          "vehicleType": "Water Tanker",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 1500000,
+          "unitValue": 1500000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 1500000
+        }
+      ],
+      "schedules": [],
+      "sheetRows": [
+        43
+      ]
+    },
+    {
+      "soNumber": "103156",
+      "soIsSynthetic": false,
+      "salesmanName": "Abdulhamid",
+      "salesmanEmail": "abdulhamid@ft.com",
+      "customerName": "Security Forces Hospital",
+      "projectStatus": "active",
+      "sheetStatus": "In Progress",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "yes",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2025-08-28",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 375750,
+      "totalSalesValue": 375750,
+      "notes": "[2026 Plan Import]\nPO#: Al Jeel Medical PO#6551\nOrder year (sheet #): 2025\nSheet status: In Progress\nDelivery (contract, row 44): 2025-08-28\nRemarks (row 44): Ready for Delivery, needs to be discussed",
+      "lines": [
+        {
+          "sheetRow": 44,
+          "vehicleType": "Medical Item",
+          "quantity": 4,
+          "sheetQuantity": 4,
+          "netValue": 375750,
+          "unitValue": 93937.5,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 375750
+        }
+      ],
+      "schedules": [
+        {
+          "month": 7,
+          "monthName": "July",
+          "amount": 375750,
+          "invoiceDate": "2026-07-31"
+        }
+      ],
+      "sheetRows": [
+        44
+      ]
+    },
+    {
+      "soNumber": "103111",
+      "soIsSynthetic": false,
+      "salesmanName": "Abdulhamid",
+      "salesmanEmail": "abdulhamid@ft.com",
+      "customerName": "SRCA",
+      "projectStatus": "active",
+      "sheetStatus": "In Progress",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "yes",
+      "sector": "gov",
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": "Depending on NUPCO",
+      "customerDeliveryDate": "2025-07-14",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 963500,
+      "totalSalesValue": 963500,
+      "notes": "[2026 Plan Import]\nPO#: Al Jeel Medical PO#6315\nOrder year (sheet #): 2025\nSheet status: In Progress\nDelay penalty (sheet): Depending on NUPCO\nPenalty risk flag (sheet): APPLIED\nDelivery (contract, row 45): 2025-07-14\nRemarks (row 45): Ready for Delivery, needs to be discussed",
+      "lines": [
+        {
+          "sheetRow": 45,
+          "vehicleType": "Medical Item",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 963500,
+          "unitValue": 963500,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "so_group_match",
+          "pendingValue": 963500
+        }
+      ],
+      "schedules": [
+        {
+          "month": 7,
+          "monthName": "July",
+          "amount": 963500,
+          "invoiceDate": "2026-07-31"
+        }
+      ],
+      "sheetRows": [
+        45
+      ]
+    },
+    {
+      "soNumber": "103421",
+      "soIsSynthetic": false,
+      "salesmanName": "Abdulhamid",
+      "salesmanEmail": "abdulhamid@ft.com",
+      "customerName": "NUPCO - QASSIM ARMED FORCES HOSPITAL",
+      "projectStatus": "active",
+      "sheetStatus": "In Progress",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "yes",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2025-05-21",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 92800,
+      "totalSalesValue": 92800,
+      "notes": "[2026 Plan Import]\nPO#: PO NUPCO 4600119387\nOrder year (sheet #): 2026\nSheet status: In Progress\nDelivery (contract, row 46): 2025-05-21\nRemarks (row 46): Not received yet",
+      "lines": [
+        {
+          "sheetRow": 46,
+          "vehicleType": "Medical Item 1 Unit",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 92800,
+          "unitValue": 92800,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 92800
+        }
+      ],
+      "schedules": [
+        {
+          "month": 7,
+          "monthName": "July",
+          "amount": 92800,
+          "invoiceDate": "2026-07-31"
+        }
+      ],
+      "sheetRows": [
+        46
+      ]
+    },
+    {
+      "soNumber": "103445",
+      "soIsSynthetic": false,
+      "salesmanName": "Abdulhamid",
+      "salesmanEmail": "abdulhamid@ft.com",
+      "customerName": "NUPCO - MOD Saud Force",
+      "projectStatus": "active",
+      "sheetStatus": "In Progress",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "yes",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2026-04-27",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 600500,
+      "totalSalesValue": 600500,
+      "notes": "[2026 Plan Import]\nPO#: Contract: ATT96412\nOrder year (sheet #): 2026\nSheet status: In Progress\nDelivery (contract, row 47): 2026-04-27\nRemarks (row 47): Not received yet",
+      "lines": [
+        {
+          "sheetRow": 47,
+          "vehicleType": "Medical Item 650 x 3 Units",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 600500,
+          "unitValue": 600500,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 600500
+        }
+      ],
+      "schedules": [],
+      "sheetRows": [
+        47
+      ]
+    },
+    {
+      "soNumber": "103520",
+      "soIsSynthetic": false,
+      "salesmanName": "Abdulhamid",
+      "salesmanEmail": "abdulhamid@ft.com",
+      "customerName": "KFSH",
+      "projectStatus": "active",
+      "sheetStatus": "In Progress",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "yes",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2026-04-28",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 83000,
+      "totalSalesValue": 83000,
+      "notes": "[2026 Plan Import]\nPO#: 77175\nOrder year (sheet #): 2026\nSheet status: In Progress\nDelivery (contract, row 48): 2026-04-28\nRemarks (row 48): AFS to delivery it",
+      "lines": [
+        {
+          "sheetRow": 48,
+          "vehicleType": "Medical Item",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 83000,
+          "unitValue": 83000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 6,
+          "monthName": "June",
+          "amount": 83000,
+          "invoiceDate": "2026-06-30"
+        }
+      ],
+      "sheetRows": [
+        48
+      ]
+    },
+    {
+      "soNumber": "103519",
+      "soIsSynthetic": false,
+      "salesmanName": "ESSAM",
+      "salesmanEmail": "essam@ft.com",
+      "customerName": "Ministry of Defense",
+      "projectStatus": "active",
+      "sheetStatus": "In Progress",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2026-05-19",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 1500000,
+      "totalSalesValue": 1500000,
+      "notes": "[2026 Plan Import]\nPO#: 1955\nProj. No: WO# NIS27063313\nOrder year (sheet #): 2026\nSheet status: In Progress\nDelivery (contract, row 49): 2026-05-19\nRemarks (row 49): POs for some materials sent to Dubai",
+      "lines": [
+        {
+          "sheetRow": 49,
+          "vehicleType": "Fire Fighting Truck",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 1500000,
+          "unitValue": 1500000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 1500000
+        }
+      ],
+      "schedules": [
+        {
+          "month": 11,
+          "monthName": "November",
+          "amount": 1500000,
+          "invoiceDate": "2026-11-30"
+        }
+      ],
+      "sheetRows": [
+        49
+      ]
+    },
+    {
+      "soNumber": "103060",
+      "soIsSynthetic": false,
+      "salesmanName": "Obada",
+      "salesmanEmail": "obada@ft.com",
+      "customerName": "JEDCO",
+      "projectStatus": "active",
+      "sheetStatus": "Delayed",
+      "manufacturingLocation": "dubai",
+      "medicalItems": "no",
+      "sector": "semi_gov",
+      "delayPenaltyPercent": 6,
+      "delayPenaltyText": "1% deduction for each late week, up to a maximum of 6%.",
+      "customerDeliveryDate": "2025-10-30",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 1087000,
+      "totalSalesValue": 1087000,
+      "notes": "[2026 Plan Import]\nPO#: 6238\nProj. No: 1964\nOrder year (sheet #): 2025\nSheet status: Delayed\nDelay penalty (sheet): 1% deduction for each late week, up to a maximum of 6%.\nPenalty risk flag (sheet): CRITICAL\nDelivery (contract, row 50): 2025-10-30",
+      "lines": [
+        {
+          "sheetRow": 50,
+          "vehicleType": "AMBULANCE TYPE II",
+          "quantity": 2,
+          "sheetQuantity": 2,
+          "netValue": 1087000,
+          "unitValue": 543500,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "so_group_match",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 4,
+          "monthName": "April",
+          "amount": 1087000,
+          "invoiceDate": "2026-04-30"
+        }
+      ],
+      "sheetRows": [
+        50
+      ]
+    },
+    {
+      "soNumber": "103056",
+      "soIsSynthetic": false,
+      "salesmanName": "Obada",
+      "salesmanEmail": "obada@ft.com",
+      "customerName": "KFSH",
+      "projectStatus": "completed",
+      "sheetStatus": "Completed",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "yes",
+      "sector": "semi_gov",
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": "Depending on NUPCO",
+      "customerDeliveryDate": "2025-02-23",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 249000,
+      "totalSalesValue": 249000,
+      "notes": "[2026 Plan Import]\nPO#: Al Jeel Medical PO#5835\nOrder year (sheet #): 2025\nSheet status: Completed\nDelay penalty (sheet): Depending on NUPCO\nPenalty risk flag (sheet): APPLIED\nDelivery (contract, row 51): 2025-02-23",
+      "lines": [
+        {
+          "sheetRow": 51,
+          "vehicleType": "Medical Item",
+          "quantity": 3,
+          "sheetQuantity": 3,
+          "netValue": 249000,
+          "unitValue": 83000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "so_group_match",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 1,
+          "monthName": "January",
+          "amount": 249000,
+          "invoiceDate": "2026-01-31"
+        }
+      ],
+      "sheetRows": [
+        51
+      ]
+    },
+    {
+      "soNumber": "102898",
+      "soIsSynthetic": false,
+      "salesmanName": "Obada",
+      "salesmanEmail": "obada@ft.com",
+      "customerName": "KFSH",
+      "projectStatus": "completed",
+      "sheetStatus": "Completed",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "yes",
+      "sector": "semi_gov",
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": "Depending on NUPCO",
+      "customerDeliveryDate": "2024-12-22",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 83000,
+      "totalSalesValue": 83000,
+      "notes": "[2026 Plan Import]\nPO#: LOCAL\nOrder year (sheet #): 2025\nSheet status: Completed\nDelay penalty (sheet): Depending on NUPCO\nPenalty risk flag (sheet): APPLIED\nDelivery (contract, row 52): 2024-12-22",
+      "lines": [
+        {
+          "sheetRow": 52,
+          "vehicleType": "Medical Item",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 83000,
+          "unitValue": 83000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "so_group_match",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 1,
+          "monthName": "January",
+          "amount": 83000,
+          "invoiceDate": "2026-01-31"
+        }
+      ],
+      "sheetRows": [
+        52
+      ]
+    },
+    {
+      "soNumber": "102744",
+      "soIsSynthetic": false,
+      "salesmanName": "Obada",
+      "salesmanEmail": "obada@ft.com",
+      "customerName": "KAMC",
+      "projectStatus": "active",
+      "sheetStatus": "Delayed",
+      "manufacturingLocation": "dubai",
+      "medicalItems": "no",
+      "sector": "gov",
+      "delayPenaltyPercent": 6,
+      "delayPenaltyText": "1% deduction for each late week, up to a maximum of 6%.",
+      "customerDeliveryDate": "2025-03-19",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 4199020,
+      "totalSalesValue": 4199020,
+      "notes": "[2026 Plan Import]\nPO#: 5272\nProj. No: 1851\nOrder year (sheet #): 2025\nSheet status: Delayed\nDelay penalty (sheet): 1% deduction for each late week, up to a maximum of 6%.\nPenalty risk flag (sheet): APPLIED\nDelivery (contract, row 53): 2025-03-19",
+      "lines": [
+        {
+          "sheetRow": 53,
+          "vehicleType": "Ambulance",
+          "quantity": 3,
+          "sheetQuantity": 3,
+          "netValue": 4199020,
+          "unitValue": 1399673.33,
+          "roundingDrift": -0.01,
+          "vatApplicable": false,
+          "vatSource": "proj_no_match",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 4,
+          "monthName": "April",
+          "amount": 1958700,
+          "invoiceDate": "2026-04-30"
+        },
+        {
+          "month": 5,
+          "monthName": "May",
+          "amount": 2240320,
+          "invoiceDate": "2026-05-31"
+        }
+      ],
+      "sheetRows": [
+        53
+      ]
+    },
+    {
+      "soNumber": "103482",
+      "soIsSynthetic": false,
+      "salesmanName": "Ahmed Qadomi",
+      "salesmanEmail": "ahmed.qadomi@ft.com",
+      "customerName": "King AbdelAziz Med.City",
+      "projectStatus": "active",
+      "sheetStatus": "In Progress",
+      "manufacturingLocation": "dubai",
+      "medicalItems": "no",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2026-09-27",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 3155150,
+      "totalSalesValue": 3155150,
+      "notes": "[2026 Plan Import]\nPO#: NUPCO# 4600140435 PN#2157 PO#9426\nProj. No: PO#9426\nOrder year (sheet #): 2026\nSheet status: In Progress\nDelivery (contract, row 54): 2026-09-27\nRemarks (row 54): Waiting for Chassis Qut from Purchase. Offline work on boxes is in progress",
+      "lines": [
+        {
+          "sheetRow": 54,
+          "vehicleType": "AMBULANCE VEHICLE 4X4",
+          "quantity": 4,
+          "sheetQuantity": 4,
+          "netValue": 3155150,
+          "unitValue": 788787.5,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 3155150
+        }
+      ],
+      "schedules": [
+        {
+          "month": 10,
+          "monthName": "October",
+          "amount": 3155150,
+          "invoiceDate": "2026-10-31"
+        }
+      ],
+      "sheetRows": [
+        54
+      ]
+    },
+    {
+      "soNumber": "103123",
+      "soIsSynthetic": false,
+      "salesmanName": "Hatem",
+      "salesmanEmail": "hatem@ft.com",
+      "customerName": "Almoosa Health",
+      "projectStatus": "completed",
+      "sheetStatus": "Completed",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": "private",
+      "delayPenaltyPercent": 6,
+      "delayPenaltyText": "1% deduction for each late week, up to a maximum of 6%.",
+      "customerDeliveryDate": "2025-10-13",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 904000,
+      "totalSalesValue": 904000,
+      "notes": "[2026 Plan Import]\nPO#: 6318\nProj. No: 1969-2044\nOrder year (sheet #): 2025\nSheet status: Completed\nDelay penalty (sheet): 1% deduction for each late week, up to a maximum of 6%.\nPenalty risk flag (sheet): CRITICAL\nDelivery (contract, row 55): 2025-10-13\nRemarks (row 55): Done",
+      "lines": [
+        {
+          "sheetRow": 55,
+          "vehicleType": "AMBULANCE TYPE II",
+          "quantity": 2,
+          "sheetQuantity": 2,
+          "netValue": 904000,
+          "unitValue": 452000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 2,
+          "monthName": "February",
+          "amount": 904000,
+          "invoiceDate": "2026-02-28"
+        }
+      ],
+      "sheetRows": [
+        55
+      ]
+    },
+    {
+      "soNumber": "103126",
+      "soIsSynthetic": false,
+      "salesmanName": "Hatem",
+      "salesmanEmail": "hatem@ft.com",
+      "customerName": "Almoosa Health",
+      "projectStatus": "completed",
+      "sheetStatus": "Completed",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2025-10-16",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 452000,
+      "totalSalesValue": 452000,
+      "notes": "[2026 Plan Import]\nPO#: 6318\nProj. No: 1969-2044\nOrder year (sheet #): 2025\nSheet status: Completed\nDelivery (contract, row 56): 2025-10-16\nRemarks (row 56): Done",
+      "lines": [
+        {
+          "sheetRow": 56,
+          "vehicleType": "AMBULANCE TYPE II",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 452000,
+          "unitValue": 452000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 3,
+          "monthName": "March",
+          "amount": 452000,
+          "invoiceDate": "2026-03-31"
+        }
+      ],
+      "sheetRows": [
+        56
+      ]
+    },
+    {
+      "soNumber": "103127",
+      "soIsSynthetic": false,
+      "salesmanName": "Hatem",
+      "salesmanEmail": "hatem@ft.com",
+      "customerName": "Almoosa Health",
+      "projectStatus": "completed",
+      "sheetStatus": "Completed",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2025-10-16",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 452000,
+      "totalSalesValue": 452000,
+      "notes": "[2026 Plan Import]\nPO#: 6318\nProj. No: 1969-2044\nOrder year (sheet #): 2025\nSheet status: Completed\nDelivery (contract, row 57): 2025-10-16\nRemarks (row 57): Done",
+      "lines": [
+        {
+          "sheetRow": 57,
+          "vehicleType": "AMBULANCE TYPE II",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 452000,
+          "unitValue": 452000,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 3,
+          "monthName": "March",
+          "amount": 452000,
+          "invoiceDate": "2026-03-31"
+        }
+      ],
+      "sheetRows": [
+        57
+      ]
+    },
+    {
+      "soNumber": "102640",
+      "soIsSynthetic": false,
+      "salesmanName": "Hatem",
+      "salesmanEmail": "hatem@ft.com",
+      "customerName": "Imam Abdulrahman Al Faisal Hospital - Dhahran",
+      "projectStatus": "active",
+      "sheetStatus": "Delayed",
+      "manufacturingLocation": "dubai",
+      "medicalItems": "no",
+      "sector": "gov",
+      "delayPenaltyPercent": 6,
+      "delayPenaltyText": "1% deduction for each late week, up to a maximum of 6%.",
+      "customerDeliveryDate": "2025-09-30",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 1295000,
+      "totalSalesValue": 1489250,
+      "notes": "[2026 Plan Import]\nPO#: 5786\nProj. No: 1905\nOrder year (sheet #): 2025\nSheet status: Delayed\nDelay penalty (sheet): 1% deduction for each late week, up to a maximum of 6%.\nPenalty risk flag (sheet): Critical\nDelivery (contract, row 58): 2025-09-30\nRemarks (row 58): SASO",
+      "lines": [
+        {
+          "sheetRow": 58,
+          "vehicleType": "Fire truck",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 1295000,
+          "unitValue": 1295000,
+          "roundingDrift": 0,
+          "vatApplicable": true,
+          "vatSource": "proj_no_match",
+          "pendingValue": null
+        }
+      ],
+      "schedules": [
+        {
+          "month": 6,
+          "monthName": "June",
+          "amount": 1295000,
+          "invoiceDate": "2026-06-30"
+        }
+      ],
+      "sheetRows": [
+        58
+      ]
+    },
+    {
+      "soNumber": "103469",
+      "soIsSynthetic": false,
+      "salesmanName": "Suliman",
+      "salesmanEmail": "suliman@ft.com",
+      "customerName": "DACO",
+      "projectStatus": "active",
+      "sheetStatus": "In Progress",
+      "manufacturingLocation": "dubai",
+      "medicalItems": "no",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2025-09-15",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 7900000,
+      "totalSalesValue": 7900000,
+      "notes": "[2026 Plan Import]\nPO#: 9108\nProj. No: 2138, 2139\nOrder year (sheet #): 2026\nSheet status: In Progress\nDelivery (contract, row 59): 2025-09-15\nDelivery (contract, row 60): 2025-09-15\nDelivery (contract, row 61): 2025-09-15\nDelivery (contract, row 62): 2025-09-15\nDelivery (contract, row 63): 2025-09-15\nRemarks (row 59): Waiting NEG POs for medicals. AL Jazerra to hold the 2 pickup chassis as per tariq request. Production going well so far, as per tariq\nRemarks (row 60): Waiting NEG POs for medicals. AL Jazerra to hold the 2 pickup chassis as per tariq request. Production going well so far, as per tariq\nRemarks (row 61): Waiting NEG POs for medicals. AL Jazerra to hold the 2 pickup chassis as per tariq request. Production going well so far, as per tariq\nRemarks (row 62): Waiting NEG POs for medicals. AL Jazerra to hold the 2 pickup chassis as per tariq request. Production going well so far, as per tariq\nRemarks (row 63): Waiting NEG POs for medicals. AL Jazerra to hold the 2 pickup chassis as per tariq request. Production going well so far, as per tariq",
+      "lines": [
+        {
+          "sheetRow": 59,
+          "vehicleType": "AMBULANCE TYPE II",
+          "quantity": 5,
+          "sheetQuantity": 5,
+          "netValue": 4541000,
+          "unitValue": 908200,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 4541000
+        },
+        {
+          "sheetRow": 60,
+          "vehicleType": "Ambulance Vehicle - heavy duty Box Type",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 873400,
+          "unitValue": 873400,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 873400
+        },
+        {
+          "sheetRow": 61,
+          "vehicleType": "Command/Rapid Response Vehicle",
+          "quantity": 3,
+          "sheetQuantity": 3,
+          "netValue": 1511100,
+          "unitValue": 503700,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 1511100
+        },
+        {
+          "sheetRow": 62,
+          "vehicleType": "Pickup vehicle",
+          "quantity": 2,
+          "sheetQuantity": 2,
+          "netValue": 783300,
+          "unitValue": 391650,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 783300
+        },
+        {
+          "sheetRow": 63,
+          "vehicleType": "Services Charge",
+          "quantity": 1,
+          "sheetQuantity": 1,
+          "netValue": 191200,
+          "unitValue": 191200,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 191200
+        }
+      ],
+      "schedules": [
+        {
+          "month": 9,
+          "monthName": "September",
+          "amount": 7900000,
+          "invoiceDate": "2026-09-30"
+        }
+      ],
+      "sheetRows": [
+        59,
+        60,
+        61,
+        62,
+        63
+      ]
+    },
+    {
+      "soNumber": "103534",
+      "soIsSynthetic": false,
+      "salesmanName": "Nadeem",
+      "salesmanEmail": "nadeem@ft.com",
+      "customerName": "SE Company",
+      "projectStatus": "active",
+      "sheetStatus": "In Progress",
+      "manufacturingLocation": "saudi",
+      "medicalItems": "no",
+      "sector": null,
+      "delayPenaltyPercent": null,
+      "delayPenaltyText": null,
+      "customerDeliveryDate": "2027-08-23",
+      "deliveryDateSource": "contract_text",
+      "totalNet": 14940675,
+      "totalSalesValue": 14940675,
+      "notes": "[2026 Plan Import]\nPO#: PO#4500664526 PR#4448 to make Full PO\nOrder year (sheet #): 2026\nSheet status: In Progress\nDelivery (contract, row 64): 2027-08-23",
+      "lines": [
+        {
+          "sheetRow": 64,
+          "vehicleType": "INCIDENT COMMAND TRUCK (37116)",
+          "quantity": 15,
+          "sheetQuantity": 15,
+          "netValue": 14940675,
+          "unitValue": 996045,
+          "roundingDrift": 0,
+          "vatApplicable": false,
+          "vatSource": "unmatched_default_false",
+          "pendingValue": 14940675
+        }
+      ],
+      "schedules": [],
+      "sheetRows": [
+        64
+      ]
+    }
+  ],
+  "needsReview": [
+    "SO 102964 row 7 (\"Nupco - 57 ambulances\"): sheet quantity is 0 — imported as 1 (DB requires quantity > 0).",
+    "SO 102964: VAT ambiguous (enrichment/plan aggregate ratio 114.391) — VAT left OFF for unmatched lines.",
+    "Plan rows 8,9,10,11,12: no SO number in the sheet — synthetic so_number \"PLAN26-4083\" used (customer SAR).",
+    "SO PLAN26-4083: some lines had no Proj.-No match for VAT detection — VAT left OFF for those lines.",
+    "SO 103252/103251: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO 103252/103251: no contract date and no monthly plan — delivery date defaulted to 2026-12-31.",
+    "SO 103252/103251: no 2026 monthly invoicing breakdown — the default delivery-date schedule line is kept instead.",
+    "SO 103252/103251: 6785000.00 SAR planned in 2027 — NOT imported (2026 plan only).",
+    "SO 103351 | 103243: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO 103351 | 103243 row 15: unit value rounding drift of 0.02 SAR (net 152500 / qty 6).",
+    "SO 103084: blank Dubai/KSA column — manufacturing_location imported as 'not_set'.",
+    "SO 102412: blank Dubai/KSA column — manufacturing_location imported as 'not_set'.",
+    "SO 102412: VAT ambiguous (enrichment/plan aggregate ratio 1.045) — VAT left OFF for unmatched lines.",
+    "SO 103453: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO 103453: no 2026 monthly invoicing breakdown — the default delivery-date schedule line is kept instead.",
+    "SO 103453: 1977730.00 SAR planned in 2027 — NOT imported (2026 plan only).",
+    "Plan rows 23: no SO number in the sheet — synthetic so_number \"PLAN26-PO-085018\" used (customer AFRAS - SEAFTY).",
+    "SO PLAN26-PO-085018: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO PLAN26-PO-085018: no parseable contract delivery date — used end of last planned invoicing month (2026-03-31).",
+    "SO 103416: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO 103486: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO 103486: no 2026 monthly invoicing breakdown — the default delivery-date schedule line is kept instead.",
+    "SO 103486: 22876636.00 SAR planned in 2027 — NOT imported (2026 plan only).",
+    "SO 103522: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO 103522: no 2026 monthly invoicing breakdown — the default delivery-date schedule line is kept instead.",
+    "SO 103522: 690000.00 SAR planned in 2027 — NOT imported (2026 plan only).",
+    "SO 103074 row 34: unit value rounding drift of 0.05 SAR (net 11584300 / qty 15).",
+    "SO 103074: 5058850.00 SAR planned in 2027 — NOT imported (2026 plan only).",
+    "SO 102934: penalty text not parseable to a % (\"Depending on NUPCO\") — kept in notes only.",
+    "SO 102934: no parseable contract delivery date — used end of last planned invoicing month (2026-07-31).",
+    "SO 102958: penalty text not parseable to a % (\"Depending on NUPCO\") — kept in notes only.",
+    "SO 102975: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO 102975: no parseable contract delivery date — used end of last planned invoicing month (2026-01-31).",
+    "SO 103479: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO 103479: no 2026 monthly invoicing breakdown — the default delivery-date schedule line is kept instead.",
+    "SO 103479: 1500000.00 SAR planned in 2027 — NOT imported (2026 plan only).",
+    "SO 103156: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO 103111: penalty text not parseable to a % (\"Depending on NUPCO\") — kept in notes only.",
+    "SO 103421: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO 103445: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO 103445: no 2026 monthly invoicing breakdown — the default delivery-date schedule line is kept instead.",
+    "SO 103445: 600500.00 SAR planned in 2027 — NOT imported (2026 plan only).",
+    "SO 103520: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO 103519: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO 103056: penalty text not parseable to a % (\"Depending on NUPCO\") — kept in notes only.",
+    "SO 102898: penalty text not parseable to a % (\"Depending on NUPCO\") — kept in notes only.",
+    "SO 102744 row 53: unit value rounding drift of -0.01 SAR (net 4199020 / qty 3).",
+    "SO 103482: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO 103123: VAT ambiguous (enrichment/plan aggregate ratio 2.000) — VAT left OFF for unmatched lines.",
+    "SO 103126: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO 103127: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO 103469: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO 103534: no match in \"Under production Orders\" — imported without sector / penalty / VAT (all default).",
+    "SO 103534: no 2026 monthly invoicing breakdown — the default delivery-date schedule line is kept instead.",
+    "SO 103534: 14940675.00 SAR planned in 2027 — NOT imported (2026 plan only)."
+  ],
+  "skippedUnderProductionOnly": [
+    {
+      "salesman": "Zohairy",
+      "soNumber": "103013",
+      "customer": "Sicli - RIV",
+      "item": "RIV",
+      "totalWithVat": 563500
+    },
+    {
+      "salesman": "Zohairy",
+      "soNumber": "102079",
+      "customer": "Dr. Sulaiman Al Habib Hospital",
+      "item": "Type I ambulance on Ford",
+      "totalWithVat": 831000
+    },
+    {
+      "salesman": "Zohairy",
+      "soNumber": "102826",
+      "customer": "Zahrat Al Amaal",
+      "item": "Ambulance Type II(2)",
+      "totalWithVat": 920000
+    },
+    {
+      "salesman": "Zohairy",
+      "soNumber": "102800",
+      "customer": "SICLI - TAX PROJECT",
+      "item": "HAZAMT VEHICLE",
+      "totalWithVat": 6166300
+    },
+    {
+      "salesman": "Zohairy",
+      "soNumber": "102800",
+      "customer": "SICLI - TAX PROJECT",
+      "item": "RIV(2)",
+      "totalWithVat": 1230500
+    },
+    {
+      "salesman": "Ayman",
+      "soNumber": "103077",
+      "customer": "KAH - AlHasa",
+      "item": "Medical Item",
+      "totalWithVat": 650500
+    },
+    {
+      "salesman": "Ayman",
+      "soNumber": "102729",
+      "customer": "Navy",
+      "item": "Type II ambulances",
+      "totalWithVat": 7480000
+    },
+    {
+      "salesman": "Khaled",
+      "soNumber": "103134 / 103156",
+      "customer": "Security Forces Hospital",
+      "item": "Medical Item",
+      "totalWithVat": 375750
+    },
+    {
+      "salesman": "Khaled",
+      "soNumber": "102959",
+      "customer": "King Salman Hospital -Taif",
+      "item": "Medical Item",
+      "totalWithVat": 514000
+    },
+    {
+      "salesman": "Khaled",
+      "soNumber": "102948",
+      "customer": "ADFA Contracting Jazan",
+      "item": "Firefighting Suits",
+      "totalWithVat": 186661.1
+    },
+    {
+      "salesman": "Osama",
+      "soNumber": "102586",
+      "customer": "KING FAHAD UNIVERSITY",
+      "item": "AMBULANCE VEHICLE TYPE II",
+      "totalWithVat": 695000
+    },
+    {
+      "salesman": "Osama",
+      "soNumber": "102584",
+      "customer": "KING FAHD MILITRY MEDCIAL COMPLEX DHAHRAN",
+      "item": "Fire truck",
+      "totalWithVat": 1365050
+    },
+    {
+      "salesman": "Dam (Soliman hassan)",
+      "soNumber": "102408",
+      "customer": "Blood bank - Almadinah",
+      "item": "Mobile blood donation unit",
+      "totalWithVat": 1500000
+    },
+    {
+      "salesman": "Dam (Soliman hassan)",
+      "soNumber": "102578",
+      "customer": "NESMA",
+      "item": "4x4 Ambulance",
+      "totalWithVat": 1240000
+    },
+    {
+      "salesman": "Dam (Soliman hassan)",
+      "soNumber": "102320",
+      "customer": "Al-Fanar",
+      "item": "Type I Ambulance (NF-AMB-TI/GMC)",
+      "totalWithVat": 4645100
+    },
+    {
+      "salesman": "EXPORT (Huthaifa & Mohamad)",
+      "soNumber": "103103",
+      "customer": "Team one company for ambulance services",
+      "item": "AMBULANCE VEHICLE TYPE II",
+      "totalWithVat": 9179811
+    },
+    {
+      "salesman": "EXPORT (Huthaifa & Mohamad)",
+      "soNumber": "103022/102943",
+      "customer": "Capital Ambulance For Medical services",
+      "item": "AMBULANCE VEHICLE TYPE II",
+      "totalWithVat": 6821616
+    }
+  ]
+}

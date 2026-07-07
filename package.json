@@ -14,6 +14,12 @@
     "e2e:workflow:validate": "tsx tools/e2e/e2e-full-workflow.ts --mode validate",
     "e2e:workflow:cleanup": "tsx tools/e2e/e2e-full-workflow.ts --mode cleanup",
     "e2e:workflow:report": "tsx tools/e2e/e2e-full-workflow.ts --mode report",
+    "import:plan2026:extract": "tsx tools/import/extract-sales-plan-2026.ts",
+    "import:plan2026:users": "tsx tools/import/create-sales-users.ts",
+    "import:plan2026:dry-run": "tsx tools/import/import-sales-plan-2026.ts --mode dry-run",
+    "import:plan2026:run": "tsx tools/import/import-sales-plan-2026.ts --mode run",
+    "import:plan2026:validate": "tsx tools/import/import-sales-plan-2026.ts --mode validate",
+    "import:plan2026:rollback": "tsx tools/import/import-sales-plan-2026.ts --mode rollback",
     "test:e2e": "playwright test"
   },
   "dependencies": {
@@ -56,6 +62,7 @@
     "eslint": "^10.5.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
+    "exceljs": "^4.4.0",
     "globals": "^17.6.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
