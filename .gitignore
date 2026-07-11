@@ -40,3 +40,4 @@ tools/screenshots/screenshot-run-results.json
 
 # 2026 plan import run artifacts (reports + manifests stay local)
 tools/import/reports/
+artifacts/import-sales-plan/
