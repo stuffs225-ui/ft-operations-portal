@@ -1926,6 +1926,8 @@ export type Database = {
       };
     };
     Functions: {
+      // Migration 102 — notification recipient resolver (SECURITY DEFINER).
+      notification_recipients_for_roles: { Args: { p_roles: string[] }; Returns: string[] };
       project_has_wo: { Args: { p_project_id: string }; Returns: boolean };
       project_has_pn: { Args: { p_project_id: string }; Returns: boolean };
       can_start_saudi_factory: { Args: { p_project_id: string }; Returns: boolean };

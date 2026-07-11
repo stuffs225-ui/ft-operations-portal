@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Clock, AlertTriangle, Inbox as InboxIcon } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
@@ -7,7 +8,9 @@ import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../hooks/useAuth';
 import { INBOX_TASKS } from '../data/mockInbox';
-import { mockOrEmpty } from '../lib/dataMode';
+import { isDevMockMode } from '../lib/dataMode';
+import { fetchInboxTasks } from '../lib/inboxQueries';
+import { Skeleton } from '../components/ui/skeleton';
 import { ROLE_CONFIGS } from '../lib/roles';
 import type { InboxTask, TaskPriority, TaskCategory } from '../types';
 import { cn } from '../lib/utils';
@@ -85,12 +88,29 @@ function TaskCard({ task }: { task: InboxTask }) {
 }
 
 export function ActionInbox() {
-  const { role } = useAuth();
-  // Admin sees all tasks; other roles see only tasks assigned to their role.
-  // Inbox has no wired live source yet — show nothing (not mock) in live mode.
-  const visibleTasks = mockOrEmpty(INBOX_TASKS).filter(t =>
-    role === 'admin' || t.assignedRole === role
-  );
+  const { role, profile } = useAuth();
+  const [liveTasks, setLiveTasks] = useState<InboxTask[]>([]);
+  const [loading, setLoading] = useState(!isDevMockMode());
+
+  // Live mode: build the inbox from real role-scoped queues (inboxQueries.ts).
+  // Dev-mock mode keeps the demo tasks so the page stays explorable offline.
+  useEffect(() => {
+    let cancelled = false;
+    if (isDevMockMode() || !role) {
+      void Promise.resolve().then(() => { if (!cancelled) setLoading(false); });
+      return () => { cancelled = true; };
+    }
+    void fetchInboxTasks(role, profile?.id ?? null).then((tasks) => {
+      if (cancelled) return;
+      setLiveTasks(tasks);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [role, profile?.id]);
+
+  const visibleTasks = isDevMockMode()
+    ? INBOX_TASKS.filter(t => role === 'admin' || t.assignedRole === role)
+    : liveTasks;
   const criticalCount = visibleTasks.filter((t) => t.priority === 'critical').length;
   const overdueCount  = visibleTasks.filter((t) => t.overdueBy !== undefined).length;
   const hasTasks = visibleTasks.length > 0;
@@ -137,7 +157,13 @@ export function ActionInbox() {
       )}
 
       {/* Task list */}
-      {hasTasks ? (
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-xl" />
+          ))}
+        </div>
+      ) : hasTasks ? (
         <div className="space-y-3">
           {visibleTasks
             .sort((a, b) => {
@@ -152,8 +178,8 @@ export function ActionInbox() {
         <Card className="py-12">
           <EmptyState
             icon={<InboxIcon size={26} className="text-gray-400" />}
-            title="No actions assigned to you yet"
-            description="New workflow actions will appear here once they are assigned to you."
+            title="Nothing needs your action right now"
+            description="Pending approvals, sent-back items, open queues and overdue invoices appear here automatically for your role."
           />
         </Card>
       )}
