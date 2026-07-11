@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { UserRole } from '../types';
@@ -46,6 +46,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<UserRole | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  // The user id whose profile/role is already loaded. Guards against the
+  // profile re-fetch (and the loading flip that unmounts every page) firing on
+  // TOKEN_REFRESHED — Supabase emits it whenever the tab regains focus, which
+  // made the whole app appear frozen until a manual refresh.
+  const loadedForUser = useRef<string | null>(null);
 
   // If Supabase is not configured, boot into dev mode immediately.
   // In production builds (import.meta.env.PROD), skip the dev admin injection so
@@ -74,16 +79,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       else setLoading(false);
     });
 
-    // Auth state listener
+    // Auth state listener. TOKEN_REFRESHED / USER_UPDATED fire on every tab
+    // refocus — they must only update the session object, never re-enter the
+    // loading state or re-fetch the profile for the same user.
     const { data: { subscription } } = supabase!.auth.onAuthStateChange((_event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) {
-        fetchProfile(s.user.id);
-      } else {
+      if (!s?.user) {
+        loadedForUser.current = null;
         setProfile(null);
         setRole(null);
         setLoading(false);
+        return;
+      }
+      if (loadedForUser.current !== s.user.id) {
+        fetchProfile(s.user.id);
       }
     });
 
@@ -91,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function fetchProfile(userId: string) {
+    loadedForUser.current = userId;
     setLoading(true);
     try {
       // Fetch profile

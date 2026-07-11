@@ -140,6 +140,8 @@ export interface ProjectScheduleLine {
   source: string;
   delayCount: number;
   invoiceReference: string | null;
+  /** Migration 104 — units this row invoices (sales per-line plans only). */
+  plannedQuantity: number | null;
 }
 
 export interface ProjectScheduleLinesResult {
@@ -153,9 +155,11 @@ export async function getProjectScheduleLines(projectId: string): Promise<Projec
     return { data: [], availability: { ...NOT_CONFIGURED, migrationNumber: 100 }, error: null };
   }
 
+  // select('*') keeps this tolerant of columns that arrive with later
+  // migrations (104's planned_quantity) — optional fields are read defensively.
   const { data, error } = await supabase
     .from('project_invoicing_schedule')
-    .select('id, sequence_no, schedule_label, invoice_amount, current_invoice_date, status, source, delay_count, invoice_reference')
+    .select('*')
     .eq('project_id', projectId)
     .order('sequence_no', { ascending: true });
 
@@ -176,6 +180,7 @@ export async function getProjectScheduleLines(projectId: string): Promise<Projec
       source: r.source,
       delayCount: r.delay_count,
       invoiceReference: r.invoice_reference,
+      plannedQuantity: r.planned_quantity == null ? null : Number(r.planned_quantity),
     })),
   };
 }

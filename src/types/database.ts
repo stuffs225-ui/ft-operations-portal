@@ -709,7 +709,10 @@ export type Database = {
           invoice_year: number;   // generated column
           invoice_month: number;  // generated column
           status: 'scheduled' | 'overdue' | 'rescheduled' | 'invoiced' | 'cancelled';
-          source: 'delivery_date' | 'admin_split' | 'admin_manual' | 'migration_backfill';
+          source: 'delivery_date' | 'admin_split' | 'admin_manual' | 'migration_backfill' | 'sales_line_plan';
+          // Migration 104 — absent until applied
+          project_vehicle_line_id?: string | null;
+          planned_quantity?: number | null;
           delay_count: number;
           last_change_reason: string | null;
           last_change_details: string | null;
@@ -734,7 +737,7 @@ export type Database = {
           original_invoice_date?: string | null;
           current_invoice_date: string;
           status?: 'scheduled' | 'overdue' | 'rescheduled' | 'invoiced' | 'cancelled';
-          source?: 'delivery_date' | 'admin_split' | 'admin_manual' | 'migration_backfill';
+          source?: 'delivery_date' | 'admin_split' | 'admin_manual' | 'migration_backfill' | 'sales_line_plan';
           invoiced_at?: string | null;
           invoice_reference?: string | null;
           created_by?: string | null;
@@ -1964,6 +1967,11 @@ export type Database = {
       };
     };
     Functions: {
+      // Migration 104 — per-line sales invoicing plan (SECURITY DEFINER, audited).
+      set_line_invoicing_plan: {
+        Args: { p_line_id: string; p_allocations: { year: number; month: number; quantity: number }[] };
+        Returns: undefined;
+      };
       // Migration 102 — notification recipient resolver (SECURITY DEFINER).
       notification_recipients_for_roles: { Args: { p_roles: string[] }; Returns: string[] };
       project_has_wo: { Args: { p_project_id: string }; Returns: boolean };
@@ -2101,7 +2109,7 @@ export type Database = {
       hot_project_stage: 'lead' | 'qualified' | 'proposal_required' | 'quotation_requested' | 'negotiation' | 'won' | 'lost' | 'cancelled';
       milestone_status: 'planned' | 'ready_to_invoice' | 'submitted' | 'approved' | 'paid' | 'overdue' | 'cancelled';
       pis_status_enum: 'scheduled' | 'overdue' | 'rescheduled' | 'invoiced' | 'cancelled';
-      pis_source_enum: 'delivery_date' | 'admin_split' | 'admin_manual' | 'migration_backfill';
+      pis_source_enum: 'delivery_date' | 'admin_split' | 'admin_manual' | 'migration_backfill' | 'sales_line_plan';
       // Phase 9 enums
       dubai_status_enum: 'not_started' | 'pending_dubai_po' | 'dubai_po_sent' | 'under_dubai_production' | 'eta_confirmed' | 'in_transit' | 'arrived_ksa' | 'handed_to_afs' | 'ready_for_pre_delivery' | 'completed' | 'on_hold' | 'cancelled';
       eta_status_enum: 'not_set' | 'on_track' | 'delayed' | 'changed' | 'arrived';

@@ -4,7 +4,7 @@ import {
   FolderOpen, ArrowLeft, Calendar, User, MapPin,
   AlertCircle, Info, FileText, List, Clock,
   Check, RotateCcw, X, GitBranch,
-  CheckCircle2, Plus, ShoppingCart, Wrench, Truck, FileCheck, ReceiptText,
+  CheckCircle2, Plus, ShoppingCart, Wrench, Truck, FileCheck,
   Upload, Percent, Play, Flag, Ban,
 } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
@@ -17,6 +17,7 @@ import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { recordProjectEvent, recordAuditEntry } from '../lib/projectAudit';
 import { notifyUser } from '../lib/workflowNotifications';
+import { LineInvoicingPlanner } from '../components/features/LineInvoicingPlanner';
 import { openSignedUrl } from '../lib/documents';
 import { sectorLabel, VAT_RATE, lineVatAmount, lineTotalWithVat } from '../lib/commercialFields';
 import { fetchProjectReferences, getExecutionGateStatus } from '../lib/executionGate';
@@ -1516,22 +1517,15 @@ export function ProjectDetail() {
               </Card>
             );
           })()}
-          {/* Invoicing Plan quick link */}
-          <Card className="p-5 md:col-span-2 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <ReceiptText size={18} className="text-brand-600" />
-              <div>
-                <div className="text-sm font-semibold text-gray-800">Invoicing Plan & Milestones</div>
-                <div className="text-xs text-gray-500">Track invoice milestones, submission status, and outstanding amounts</div>
-              </div>
-            </div>
-            <Link
-              to={`/projects/${project.id}/invoicing`}
-              className="text-xs font-medium text-brand-600 hover:underline whitespace-nowrap"
-            >
-              Open Invoicing →
-            </Link>
-          </Card>
+          {/* Per-line invoicing months — the salesman's simple planner */}
+          <LineInvoicingPlanner
+            projectId={project.id}
+            lines={lines}
+            canPlan={
+              role === 'admin' || role === 'operations_manager' ||
+              (role === 'sales_user' && project.created_by === profile?.id)
+            }
+          />
         </div>
 
         {/* Approval & Routing — appended to Overview (was separate 'approval' tab) */}

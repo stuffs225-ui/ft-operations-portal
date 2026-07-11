@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ReceiptText, ArrowLeft, History, CalendarClock, Info } from 'lucide-react';
+import { ReceiptText, ArrowLeft, CalendarClock, Info } from 'lucide-react';
 import { PageLoader } from '../components/ui/PageLoader';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
@@ -22,7 +22,7 @@ import {
   type ProjectFinancialsRow, type ProjectScheduleLine,
 } from '../lib/projectFinancialsQueries';
 import type { DeferredAvailability } from '../lib/deferredMigrationSafety';
-import type { ProjectInvoiceMilestone, MilestoneStatus } from '../types';
+
 
 interface ProjectMeta {
   id: string;
@@ -55,16 +55,7 @@ const SOURCE_LABELS: Record<string, string> = {
   admin_split:        'Admin split',
   admin_manual:       'Admin manual',
   migration_backfill: '2026 plan import',
-};
-
-const MILESTONE_STATUS_CONFIG: Record<MilestoneStatus, { label: string; variant: 'neutral' | 'warning' | 'info' | 'success' | 'critical' | 'default' }> = {
-  planned:          { label: 'Planned',          variant: 'neutral'  },
-  ready_to_invoice: { label: 'Ready to Invoice', variant: 'info'     },
-  submitted:        { label: 'Invoice Sent',     variant: 'default'  },
-  approved:         { label: 'Approved',         variant: 'success'  },
-  paid:             { label: 'Paid',             variant: 'success'  },
-  overdue:          { label: 'Overdue',          variant: 'critical' },
-  cancelled:        { label: 'Cancelled',        variant: 'neutral'  },
+  sales_line_plan:    'Sales line plan',
 };
 
 export function ProjectInvoicing() {
@@ -76,7 +67,6 @@ export function ProjectInvoicing() {
   const [scheduleAvailability, setScheduleAvailability] = useState<DeferredAvailability | null>(null);
   const [financials, setFinancials] = useState<ProjectFinancialsRow | null>(null);
   const [financialsAvailability, setFinancialsAvailability] = useState<DeferredAvailability | null>(null);
-  const [legacyMilestones, setLegacyMilestones] = useState<ProjectInvoiceMilestone[]>([]);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,11 +74,10 @@ export function ProjectInvoicing() {
     if (!projectId || !isSupabaseConfigured || !supabase) return;
     let cancelled = false;
     async function load() {
-      const [projRes, schedRes, finRes, msRes] = await Promise.all([
+      const [projRes, schedRes, finRes] = await Promise.all([
         supabase!.from('projects').select('id,project_code,customer_name,so_number,total_sales_value').eq('id', projectId!).single(),
         getProjectScheduleLines(projectId!),
         getProjectFinancials(projectId!),
-        supabase!.from('project_invoice_milestones').select('*').eq('project_id', projectId!).order('sort_order', { ascending: true }),
       ]);
       if (cancelled) return;
       if (projRes.error) setError(projRes.error.message);
@@ -98,8 +87,6 @@ export function ProjectInvoicing() {
       if (schedRes.error) setError(schedRes.error);
       setFinancials(finRes.data);
       setFinancialsAvailability(finRes.availability);
-      // Legacy milestones are read-only history — a load failure here is not fatal.
-      if (!msRes.error) setLegacyMilestones((msRes.data ?? []) as ProjectInvoiceMilestone[]);
       setLoading(false);
     }
     void load();
@@ -200,6 +187,7 @@ export function ProjectInvoicing() {
                 <tr>
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">#</th>
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Label</th>
+                  <th className="px-4 py-2.5 text-center text-xs font-medium text-gray-500">Qty</th>
                   <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500">Amount (net)</th>
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Invoice Date</th>
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Status</th>
@@ -217,6 +205,7 @@ export function ProjectInvoicing() {
                         {l.scheduleLabel ?? '—'}
                         {l.delayCount > 0 && <span className="ml-1.5 text-[10px] text-amber-600">({l.delayCount}× rescheduled)</span>}
                       </td>
+                      <td className="px-4 py-3 text-center text-gray-600">{l.plannedQuantity ?? '—'}</td>
                       <td className="px-4 py-3 text-right font-medium">{formatSAR(l.invoiceAmount)}</td>
                       <td className="px-4 py-3 text-gray-600">{formatDate(l.currentInvoiceDate)}</td>
                       <td className="px-4 py-3"><Badge variant={cfg.variant} size="sm">{cfg.label}</Badge></td>
@@ -231,50 +220,6 @@ export function ProjectInvoicing() {
         </Card>
       )}
 
-      {/* Legacy milestones — read-only, shown only when historical rows exist */}
-      {legacyMilestones.length > 0 && (
-        <Card className="overflow-hidden">
-          <div className="flex items-start gap-2 px-5 py-3 border-b border-amber-100 bg-amber-50">
-            <History size={15} className="text-amber-600 shrink-0 mt-0.5" />
-            <div className="text-xs text-amber-800">
-              <span className="font-semibold">Legacy milestones (read-only).</span>{' '}
-              The invoicing schedule above is the single source of truth — these historical
-              milestone rows are kept for reference only and can no longer be edited here
-              (docs/implementation/financial-truth.md).
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-100">
-                <tr>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Milestone</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Status</th>
-                  <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500">Amount</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Due Date</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Invoice #</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {legacyMilestones.map((ms) => {
-                  const cfg = MILESTONE_STATUS_CONFIG[ms.milestone_status] ?? { label: ms.milestone_status, variant: 'neutral' as const };
-                  return (
-                    <tr key={ms.id}>
-                      <td className="px-4 py-3 font-medium text-gray-700">
-                        {ms.milestone_name}
-                        {ms.percentage != null && <span className="ml-1 text-xs text-gray-400">({ms.percentage}%)</span>}
-                      </td>
-                      <td className="px-4 py-3"><Badge variant={cfg.variant} size="sm">{cfg.label}</Badge></td>
-                      <td className="px-4 py-3 text-right">{formatSAR(ms.amount)}</td>
-                      <td className="px-4 py-3 text-gray-500">{formatDate(ms.due_date)}</td>
-                      <td className="px-4 py-3 text-gray-500 font-mono text-xs">{ms.invoice_number ?? '—'}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
     </div>
   );
 }
