@@ -249,6 +249,15 @@ changes are self-documented in the commit message and PR diff.
 
 ---
 
+## Financial Truth — One Invoicing Source
+
+- **financial-truth.md — Financial Truth: one invoicing source, explicit VAT semantics** (branch
+  `feature/unify-financial-truth`; `project_invoicing_schedule` crowned the ONLY invoicing-plan
+  source; milestones (069) demoted to read-only legacy in the UI; migration 103 adds the
+  `project_financials` (net/VAT/gross) and `project_schedule_reconciliation` views — **written,
+  NOT applied**, activation pack in migration-103-activation.md; ProjectInvoicing rebuilt on the
+  schedule; Admin Invoicing Schedule gains a reconciliation strip.)
+
 ## Tooling — Real Sales Users and Sales Plan 2026 Import
 
 - **sales-plan-2026-import.md — 2026 Sales Plan Import: Salesmen Accounts + One-Shot Importer**

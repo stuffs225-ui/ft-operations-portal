@@ -1924,6 +1924,44 @@ export type Database = {
         };
         Relationships: [];
       };
+      // Migration 103. SECURITY INVOKER view; revenue-restricted in its WHERE
+      // clause to admin / operations_manager / owning sales_user.
+      project_financials: {
+        Row: {
+          project_id: string;
+          project_code: string;
+          so_number: string;
+          customer_name: string;
+          project_status: string;
+          sales_owner_id: string | null;
+          created_by: string | null;
+          total_sales_value: number;
+          line_count: number;
+          lines_net: number;
+          lines_vat: number;
+          lines_gross: number;
+          vat_line_count: number;
+        };
+        Relationships: [];
+      };
+      // Migration 103. Schedule total vs project net/gross, classified.
+      project_schedule_reconciliation: {
+        Row: {
+          project_id: string;
+          project_code: string;
+          so_number: string;
+          customer_name: string;
+          project_status: string;
+          total_sales_value: number;
+          lines_net: number;
+          lines_vat: number;
+          lines_gross: number;
+          schedule_total: number;
+          schedule_lines: number;
+          reconciliation: 'matches_net' | 'matches_gross' | 'mismatch' | 'no_schedule';
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       // Migration 102 — notification recipient resolver (SECURITY DEFINER).

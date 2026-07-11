@@ -21,6 +21,11 @@ import {
   type InvoicingScheduleKpis,
   type PisStatus,
 } from '../lib/projectInvoicingScheduleQueries';
+import {
+  getScheduleReconciliation,
+  type ScheduleReconciliationRow,
+  type ReconciliationClass,
+} from '../lib/projectFinancialsQueries';
 import type { DeferredAvailability } from '../lib/deferredMigrationSafety';
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -36,6 +41,111 @@ const STATUS_STYLES: Record<PisStatus, string> = {
   invoiced:    'bg-emerald-50 text-emerald-700',
   cancelled:   'bg-gray-100 text-gray-500',
 };
+
+// ─── Schedule ↔ project reconciliation (migration 103) ─────────────────────────
+// Convention: schedule amounts are NET. matches_gross = the migration-100
+// trigger's default line carrying total_sales_value (gross for VAT projects) —
+// normalize via "Adjust amount" when relevant. mismatch = needs attention.
+
+const RECON_STYLES: Record<ReconciliationClass, { label: string; cls: string }> = {
+  matches_net:   { label: 'Matches (net)',   cls: 'bg-emerald-50 text-emerald-700' },
+  matches_gross: { label: 'Gross default',   cls: 'bg-amber-50 text-amber-700' },
+  mismatch:      { label: 'Mismatch',        cls: 'bg-red-50 text-red-700' },
+  no_schedule:   { label: 'No schedule',     cls: 'bg-gray-100 text-gray-500' },
+};
+
+function ReconciliationStrip({ reloadKey }: { reloadKey: number }) {
+  const [rows, setRows] = useState<ScheduleReconciliationRow[]>([]);
+  const [reconAvailability, setReconAvailability] = useState<DeferredAvailability | null>(null);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getScheduleReconciliation().then((res) => {
+      if (cancelled) return;
+      setRows(res.data);
+      setReconAvailability(res.availability);
+    });
+    return () => { cancelled = true; };
+  }, [reloadKey]);
+
+  if (!reconAvailability) return null;
+  if (!reconAvailability.available) {
+    return (
+      <div className="flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-800">
+        <Info size={14} className="shrink-0 mt-0.5" />
+        <span>Net/VAT reconciliation pending: {reconAvailability.unavailableReason}</span>
+      </div>
+    );
+  }
+
+  const counts = rows.reduce<Record<ReconciliationClass, number>>((acc, r) => {
+    acc[r.reconciliation] = (acc[r.reconciliation] ?? 0) + 1;
+    return acc;
+  }, { matches_net: 0, matches_gross: 0, mismatch: 0, no_schedule: 0 });
+  const attention = rows.filter((r) => r.reconciliation === 'mismatch' || r.reconciliation === 'matches_gross');
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200/80 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Coins size={15} className="text-gray-400" />
+          <span className="text-sm font-semibold text-gray-700">Schedule ↔ Project Reconciliation</span>
+          <span className="text-[11px] text-gray-400">(amounts are NET — financial-truth.md)</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {(Object.keys(RECON_STYLES) as ReconciliationClass[]).map((k) => (
+            <span key={k} className={cn('text-[11px] rounded-full px-2 py-0.5 font-medium', RECON_STYLES[k].cls)}>
+              {counts[k]} {RECON_STYLES[k].label}
+            </span>
+          ))}
+          {attention.length > 0 && (
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="text-xs font-medium text-brand-600 hover:text-brand-700"
+            >
+              {expanded ? 'Hide' : 'Review'} {attention.length} needing attention
+            </button>
+          )}
+        </div>
+      </div>
+      {expanded && attention.length > 0 && (
+        <div className="border-t border-gray-100 overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Project</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Customer</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Net</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">VAT</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Gross</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Scheduled</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Classification</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {attention.map((r) => (
+                <tr key={r.projectId} className="hover:bg-gray-50">
+                  <td className="px-4 py-2.5 font-medium text-gray-800">{r.projectCode}</td>
+                  <td className="px-4 py-2.5 text-gray-600 max-w-[220px] truncate">{r.customerName}</td>
+                  <td className="px-4 py-2.5 text-right">{formatCurrency(r.linesNet)}</td>
+                  <td className="px-4 py-2.5 text-right text-gray-500">{formatCurrency(r.linesVat)}</td>
+                  <td className="px-4 py-2.5 text-right">{formatCurrency(r.linesGross)}</td>
+                  <td className="px-4 py-2.5 text-right font-medium">{formatCurrency(r.scheduleTotal)}</td>
+                  <td className="px-4 py-2.5">
+                    <span className={cn('text-[11px] rounded-full px-2 py-0.5 font-medium', RECON_STYLES[r.reconciliation].cls)}>
+                      {RECON_STYLES[r.reconciliation].label}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Migration-pending notice ──────────────────────────────────────────────────
 
@@ -471,6 +581,9 @@ export function AdminInvoicingSchedule() {
 
       {/* KPI cards */}
       <KpiCards kpis={kpis} available={available} />
+
+      {/* Net/VAT reconciliation (migration 103) */}
+      <ReconciliationStrip reloadKey={reloadKey} />
 
       {/* Filters */}
       <div className="bg-white rounded-lg border border-gray-200/80 shadow-sm p-4">
