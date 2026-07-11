@@ -5,7 +5,7 @@ import {
   AlertCircle, Info, FileText, List, Clock,
   Check, RotateCcw, X, GitBranch,
   CheckCircle2, Plus, ShoppingCart, Wrench, Truck, FileCheck, ReceiptText,
-  Upload, Percent,
+  Upload, Percent, Play, Flag, Ban,
 } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
 import { PageHeader } from '@/components/common/page-header';
@@ -16,6 +16,7 @@ import { Card } from '../components/ui/Card';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { recordProjectEvent, recordAuditEntry } from '../lib/projectAudit';
+import { notifyUser } from '../lib/workflowNotifications';
 import { openSignedUrl } from '../lib/documents';
 import { sectorLabel, VAT_RATE, lineVatAmount, lineTotalWithVat } from '../lib/commercialFields';
 import { fetchProjectReferences, getExecutionGateStatus } from '../lib/executionGate';
@@ -108,6 +109,126 @@ function statusBadge(status: string) {
   };
   const { label, variant } = map[status] ?? { label: status, variant: 'neutral' };
   return <Badge variant={variant}>{label}</Badge>;
+}
+
+// ── Lifecycle actions (audit C1: approved → active → completed / cancel) ─────
+// The only place the project record itself advances past approval. Gated to
+// admin/operations_manager — matching can_write_project() in the DB, so the
+// UI gate is backed by RLS, not merely decorative.
+
+const LIFECYCLE_STEPS: Record<string, { next: 'active' | 'completed'; label: string; icon: React.ReactNode; confirm: string }> = {
+  approved: {
+    next: 'active', label: 'Start Execution', icon: <Play size={14} />,
+    confirm: 'Mark this project as in execution (Active)? Downstream teams keep full visibility.',
+  },
+  active: {
+    next: 'completed', label: 'Mark Completed', icon: <Flag size={14} />,
+    confirm: 'Mark this project as Completed? Use this once delivery/handover is done.',
+  },
+};
+
+function LifecycleActions({ project, onUpdated }: { project: Project; onUpdated: (u: Partial<Project>) => void }) {
+  const { profile, role } = useAuth();
+  const [mode, setMode] = useState<'advance' | 'cancel' | null>(null);
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const canAct = role === 'admin' || role === 'operations_manager';
+  const step = LIFECYCLE_STEPS[project.project_status];
+  const canCancel = ['approved', 'active'].includes(project.project_status);
+  if (!canAct || (!step && !canCancel)) return null;
+
+  async function applyStatus(next: 'active' | 'completed' | 'cancelled', why: string | null) {
+    setSaving(true); setError(null);
+    if (!isSupabaseConfigured || !supabase) {
+      await new Promise((r) => setTimeout(r, 300));
+      setSaving(false); setMode(null);
+      onUpdated({ project_status: next });
+      return;
+    }
+    try {
+      const { error: e } = await supabase.from('projects')
+        .update({ project_status: next })
+        .eq('id', project.id);
+      if (e) throw e;
+      const titles: Record<string, string> = {
+        active: 'Execution started', completed: 'Project completed', cancelled: 'Project cancelled',
+      };
+      await recordProjectEvent(project.id, `project_${next}`, titles[next],
+        why, profile?.id ?? null, profile?.full_name ?? null,
+        { from: project.project_status, to: next });
+      await recordAuditEntry(`project_${next}`, project.id,
+        `Project ${project.project_code} → ${next}${why ? ` — ${why}` : ''}`,
+        { project_status: project.project_status }, { project_status: next },
+        profile?.id ?? null, profile?.email ?? null, role);
+      void notifyUser(project.created_by, profile?.id, {
+        title: `SO ${project.project_code}: ${titles[next]}`,
+        message: why ?? `${project.customer_name} — status changed to ${next}.`,
+        severity: next === 'cancelled' ? 'important' : 'routine',
+        eventKey: `project_${next}`, entityType: 'projects', entityId: project.id,
+      });
+      setSaving(false); setMode(null); setReason('');
+      onUpdated({ project_status: next });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error updating status');
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      {step && (
+        <Button size="sm" variant="secondary" icon={step.icon}
+          onClick={() => setMode('advance')} disabled={saving}>
+          {step.label}
+        </Button>
+      )}
+      {canCancel && (
+        <Button size="sm" variant="ghost" icon={<Ban size={14} />}
+          onClick={() => { setMode('cancel'); setReason(''); }} disabled={saving}>
+          Cancel
+        </Button>
+      )}
+      {mode !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => !saving && setMode(null)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-5 space-y-4"
+            onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold text-gray-900">
+              {mode === 'advance' ? step?.label : 'Cancel Project'}
+            </h3>
+            <p className="text-sm text-gray-600">
+              {mode === 'advance'
+                ? step?.confirm
+                : 'Cancelling hides this project from operational roles. A reason is required and is recorded in the timeline and audit log.'}
+            </p>
+            {mode === 'cancel' && (
+              <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3}
+                placeholder="Reason for cancellation (required)"
+                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            )}
+            {error && <p className="text-xs text-red-600">{error}</p>}
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setMode(null)} disabled={saving}>
+                Back
+              </Button>
+              {mode === 'advance' && step ? (
+                <Button size="sm" loading={saving} onClick={() => void applyStatus(step.next, null)}>
+                  {step.label}
+                </Button>
+              ) : (
+                <Button size="sm" variant="danger" loading={saving} disabled={!reason.trim()}
+                  onClick={() => void applyStatus('cancelled', reason.trim())}>
+                  Cancel Project
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 const CAN_APPROVE: UserRole[] = ['admin', 'operations_manager'];
@@ -238,6 +359,11 @@ function ApprovePanel({ project, onSuccess, onRoutingWarning }: ApprovePanelProp
       await recordAuditEntry('project_approved', project.id, `Project ${project.project_code} approved`,
         { project_status: 'submitted_for_approval' }, { project_status: 'approved' },
         profile?.id ?? null, profile?.email ?? null, role);
+      void notifyUser(project.created_by, profile?.id, {
+        title: `SO ${project.project_code} approved`,
+        message: `${project.customer_name} — approved (route: ${location}, medical: ${medical}).`,
+        eventKey: 'project_approved', entityType: 'projects', entityId: project.id,
+      });
 
       // Routing persistence — non-blocking; approval already committed above
       const { error: delErr } = await supabase
@@ -294,6 +420,11 @@ function ApprovePanel({ project, onSuccess, onRoutingWarning }: ApprovePanelProp
       if (e) throw e;
       await recordProjectEvent(project.id, 'sent_back_for_revision', 'Sent back for revision',
         reason.trim(), profile?.id ?? null, profile?.full_name ?? null);
+      void notifyUser(project.created_by, profile?.id, {
+        title: `SO ${project.project_code} sent back for revision`,
+        message: reason.trim(), severity: 'important',
+        eventKey: 'project_sent_back', entityType: 'projects', entityId: project.id,
+      });
       onSuccess({ project_status: 'sent_back_for_revision', revision_reason: reason.trim() });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error sending back project');
@@ -319,6 +450,11 @@ function ApprovePanel({ project, onSuccess, onRoutingWarning }: ApprovePanelProp
       if (e) throw e;
       await recordProjectEvent(project.id, 'rejected', 'Project rejected',
         reason.trim(), profile?.id ?? null, profile?.full_name ?? null);
+      void notifyUser(project.created_by, profile?.id, {
+        title: `SO ${project.project_code} rejected`,
+        message: reason.trim(), severity: 'important',
+        eventKey: 'project_rejected', entityType: 'projects', entityId: project.id,
+      });
       onSuccess({ project_status: 'rejected', rejection_reason: reason.trim() });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error rejecting project');
@@ -1195,6 +1331,7 @@ export function ProjectDetail() {
         ]}
         actions={
           <div className="flex items-center gap-2">
+            <LifecycleActions project={project} onUpdated={handleApprovalSuccess} />
             {statusBadge(project.project_status)}
           </div>
         }

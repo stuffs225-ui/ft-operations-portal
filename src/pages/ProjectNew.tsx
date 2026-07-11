@@ -11,6 +11,7 @@ import { Card } from '../components/ui/Card';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { recordProjectEvent, recordAuditEntry } from '../lib/projectAudit';
+import { notifyRoles } from '../lib/workflowNotifications';
 import { SECTOR_OPTIONS, VAT_RATE, lineTotalWithVat, lineVatAmount, type Sector } from '../lib/commercialFields';
 import type { ManufacturingLocation, MedicalItems, QuotationRequest, QuotationRequestLine } from '../types';
 
@@ -501,6 +502,15 @@ export function ProjectNew() {
         profile?.id ?? null,
         profile?.full_name ?? null,
       );
+
+      if (submitForApproval) {
+        void notifyRoles(['admin', 'operations_manager'], profile?.id, {
+          title: `SO ${soNumber} submitted for approval`,
+          message: `${customerName} — submitted by ${profile?.full_name ?? 'a sales user'}.`,
+          severity: 'important',
+          eventKey: 'project_submitted', entityType: 'projects', entityId: projectId,
+        });
+      }
 
       await recordAuditEntry(
         'project_created',
