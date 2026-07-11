@@ -37,9 +37,30 @@ export function salesmanByName(raw: string | null | undefined) {
   return SALESMEN.find((s) => s.name.toLowerCase() === key);
 }
 
-export const SUPABASE_URL =
-  process.env.E2E_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? '';
-export const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+/**
+ * Normalize a pasted Supabase URL: trim whitespace/newlines (secrets pasted
+ * from dashboards often carry them), add https:// when the scheme was
+ * omitted, and drop any trailing slash. Returns '' when clearly unusable so
+ * the caller can fail with a helpful message instead of createClient throwing
+ * a bare "Invalid URL".
+ */
+export function normalizeSupabaseUrl(raw: string | undefined): string {
+  let u = (raw ?? '').trim().replace(/\s+/g, '');
+  if (!u) return '';
+  if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+  u = u.replace(/\/+$/, '');
+  try {
+    const parsed = new URL(u);
+    if (!parsed.hostname.includes('.')) return '';
+    return u;
+  } catch {
+    return '';
+  }
+}
+
+const RAW_SUPABASE_URL = process.env.E2E_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? '';
+export const SUPABASE_URL = normalizeSupabaseUrl(RAW_SUPABASE_URL);
+export const SERVICE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? '').trim();
 
 export function log(msg: string) { console.log(msg); }
 export function fail(msg: string): never { console.error(`\n✗ ${msg}\n`); process.exit(1); }
@@ -72,9 +93,24 @@ export function assertWriteAllowed(action: string) {
 }
 
 export function makeServiceClient(): SupabaseClient {
-  if (!SUPABASE_URL) fail('E2E_SUPABASE_URL / VITE_SUPABASE_URL is not set.');
+  if (!SUPABASE_URL) {
+    fail(
+      RAW_SUPABASE_URL
+        ? 'The Supabase URL is set but is NOT a valid URL (value not printed).\n' +
+          '  It must look exactly like: https://xxxxxxxx.supabase.co\n' +
+          '  Fix the IMPORT_SUPABASE_URL secret (copy "Project URL" from Supabase → Settings → API).'
+        : 'E2E_SUPABASE_URL / VITE_SUPABASE_URL is not set.',
+    );
+  }
   if (!SERVICE_KEY) fail('SUPABASE_SERVICE_ROLE_KEY is required (backend tool only — never ship this key).');
-  return createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+  try {
+    return createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+  } catch (e) {
+    fail(
+      `Could not create the Supabase client: ${e instanceof Error ? e.message : String(e)}\n` +
+      '  Check the IMPORT_SUPABASE_URL secret — it must be https://xxxxxxxx.supabase.co',
+    );
+  }
 }
 
 export function cliArg(name: string): string | undefined {
