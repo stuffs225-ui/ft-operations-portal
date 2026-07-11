@@ -1,0 +1,129 @@
+# ── 2026 Plan — 2) Import Projects ───────────────────────────────────────────
+# One-click 2026 sales-plan import from GitHub Actions, wrapping
+# tools/import/import-sales-plan-2026.ts (its own safety model applies):
+#   • dry-run  (default): read-only preview — preconditions, existing-SO
+#     detection, full plan print, report. Writes NOTHING.
+#   • run      : the real import. Requires typing IMPORT-2026-PLAN.
+#                Idempotent by so_number — re-running never duplicates.
+#   • validate : read-only reconciliation of the DB against the dataset.
+#   • rollback : deletes ONLY rows tagged with the given run_id (children
+#                first, tag re-checked per project). Requires run_id +
+#                IMPORT-2026-PLAN. Works without the original manifest —
+#                the tool rebuilds the target set from the tag.
+#
+# The report (and manifest on "run") is uploaded as a workflow artifact AND
+# rendered into the job summary — open the run page to read it.
+#
+# Required repository secrets:
+#   IMPORT_SUPABASE_URL               — target project URL
+#   IMPORT_SUPABASE_SERVICE_ROLE_KEY  — service_role key (backend only)
+#
+# Order: run "2026 Plan — 1) Salesmen Accounts" (apply) first, and apply
+# migrations 099–102 in the SQL Editor before importing.
+
+name: "2026 Plan — 2) Import Projects"
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run = preview · run = real import · validate = reconcile · rollback = undo a run"
+        type: choice
+        options: [dry-run, run, validate, rollback]
+        default: dry-run
+      run_id:
+        description: "Import run id (rollback only, e.g. plan26-2026-07-11-a1b2c3)"
+        type: string
+        default: ""
+      confirm:
+        description: "Type IMPORT-2026-PLAN to allow run / rollback"
+        type: string
+        default: ""
+
+concurrency:
+  group: sales-plan-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Guard — confirm phrase for writes
+        if: ${{ inputs.mode == 'run' || inputs.mode == 'rollback' }}
+        run: |
+          if [ "${{ inputs.confirm }}" != "IMPORT-2026-PLAN" ]; then
+            echo "::error::${{ inputs.mode }} mode requires typing IMPORT-2026-PLAN in the confirm input."
+            exit 1
+          fi
+
+      - name: Guard — rollback needs a run id
+        if: ${{ inputs.mode == 'rollback' && inputs.run_id == '' }}
+        run: |
+          echo "::error::rollback requires the import run_id (printed by the run mode, e.g. plan26-2026-07-11-a1b2c3)."
+          exit 1
+
+      - name: Guard — secrets present
+        env:
+          URL_SET: ${{ secrets.IMPORT_SUPABASE_URL != '' }}
+          KEY_SET: ${{ secrets.IMPORT_SUPABASE_SERVICE_ROLE_KEY != '' }}
+        run: |
+          ok=true
+          [ "$URL_SET" = "true" ] || { echo "::error::secret IMPORT_SUPABASE_URL is not set."; ok=false; }
+          [ "$KEY_SET" = "true" ] || { echo "::error::secret IMPORT_SUPABASE_SERVICE_ROLE_KEY is not set."; ok=false; }
+          $ok
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Assert Node runtime
+        run: |
+          node --version
+          major=$(node -p 'process.versions.node.split(".")[0]')
+          if [ "$major" -lt 22 ]; then
+            echo "::error::Node $major detected — re-run as a FRESH 'Run workflow' dispatch from main."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Import — ${{ inputs.mode }}
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.IMPORT_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.IMPORT_SUPABASE_SERVICE_ROLE_KEY }}
+          # Write confirmation is granted ONLY for run/rollback (guarded above);
+          # dry-run/validate stay read-only regardless.
+          IMPORT_CONFIRM: ${{ (inputs.mode == 'run' || inputs.mode == 'rollback') && 'true' || 'false' }}
+          IMPORT_ALLOW_PRODUCTION: ${{ (inputs.mode == 'run' || inputs.mode == 'rollback') && 'true' || 'false' }}
+        run: |
+          case "${{ inputs.mode }}" in
+            dry-run)  npm run import:plan2026:dry-run ;;
+            run)      npm run import:plan2026:run ;;
+            validate) npm run import:plan2026:validate ;;
+            rollback) npm run import:plan2026:rollback -- --run-id "${{ inputs.run_id }}" ;;
+          esac
+
+      - name: Render report into the job summary
+        if: ${{ always() }}
+        run: |
+          if ls tools/import/reports/*.md >/dev/null 2>&1; then
+            for f in tools/import/reports/*.md; do
+              echo "---" >> "$GITHUB_STEP_SUMMARY"
+              cat "$f" >> "$GITHUB_STEP_SUMMARY"
+            done
+          else
+            echo "_No report file was produced (the tool failed before writing one — see the log above)._" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload reports + manifest as artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: import-${{ inputs.mode }}-${{ github.run_number }}
+          path: tools/import/reports/
+          retention-days: 90
+          if-no-files-found: ignore

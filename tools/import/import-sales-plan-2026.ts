@@ -432,12 +432,33 @@ async function validate(ds: Dataset) {
 async function rollback() {
   if (!RUN_ID_ARG) fail('rollback requires --run-id <id> (see the manifest file name from the run).');
   assertWriteAllowed('rollback (delete imported rows)');
-  const manifestFile = path.join(REPORT_DIR, `manifest-${RUN_ID_ARG}.json`);
-  if (!existsSync(manifestFile)) fail(`Manifest not found: ${manifestFile}`);
-  const manifest = JSON.parse(readFileSync(manifestFile, 'utf8')) as Manifest;
-  if (manifest.run_id !== RUN_ID_ARG) fail('Manifest run_id mismatch.');
-
   const db = makeServiceClient();
+
+  // Prefer the local manifest; when it is absent (e.g. rollback runs in a fresh
+  // GitHub Actions environment), rebuild the target set from the run tag in the
+  // database itself. Both paths delete ONLY rows carrying this run's tag.
+  let manifest: Manifest;
+  const manifestFile = path.join(REPORT_DIR, `manifest-${RUN_ID_ARG}.json`);
+  if (existsSync(manifestFile)) {
+    manifest = JSON.parse(readFileSync(manifestFile, 'utf8')) as Manifest;
+    if (manifest.run_id !== RUN_ID_ARG) fail('Manifest run_id mismatch.');
+  } else {
+    log(`Manifest not found locally — rebuilding the target set from the "${IMPORT_TAG} run_id=${RUN_ID_ARG}" tag in the database.`);
+    const { data, error } = await db.from('projects')
+      .select('id, so_number')
+      .like('notes', `%${IMPORT_TAG} run_id=${RUN_ID_ARG}%`);
+    if (error) fail(`Tagged-project lookup failed: ${error.message}`);
+    if (!data?.length) fail(`No projects carry run_id=${RUN_ID_ARG} — nothing to roll back.`);
+    manifest = {
+      run_id: RUN_ID_ARG,
+      tag: `${IMPORT_TAG} run_id=${RUN_ID_ARG}`,
+      created_at: '(rebuilt from tag)',
+      supabase_host: supabaseHost(),
+      projects: data.map((p: { id: string; so_number: string }) => ({ id: p.id, so_number: p.so_number })),
+      vehicle_lines: [], schedules: [], kept_default_schedules: [], errors: [],
+    };
+    log(`Rebuilt manifest: ${manifest.projects.length} tagged project(s).`);
+  }
   log(`\n─── ROLLBACK run ${RUN_ID_ARG} on ${supabaseHost()} — deletes ONLY manifest rows ───\n`);
 
   const projectIds = manifest.projects.map((p) => p.id);

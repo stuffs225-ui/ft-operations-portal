@@ -1,0 +1,90 @@
+# ── 2026 Plan — 1) Salesmen Accounts ─────────────────────────────────────────
+# One-click bootstrap of the 10 real salesman accounts (role sales_user) from
+# GitHub Actions, mirroring tools/import/create-sales-users.ts's own safety:
+#   • mode "dry-run" (default): prints the mapping — NO connection, NO writes.
+#   • mode "apply": requires typing the confirm phrase CREATE-SALES-ACCOUNTS.
+#     Creates missing accounts only; existing accounts are skipped and their
+#     passwords are never changed; nothing is ever deleted.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   IMPORT_SUPABASE_URL               — target project URL (https://xxxx.supabase.co)
+#   IMPORT_SUPABASE_SERVICE_ROLE_KEY  — service_role key (backend only)
+#   SALES_USERS_PASSWORD              — the agreed shared initial password
+# Secrets are never printed; the tool masks emails in its output.
+
+name: "2026 Plan — 1) Salesmen Accounts"
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run = preview only · apply = create the accounts"
+        type: choice
+        options: [dry-run, apply]
+        default: dry-run
+      confirm:
+        description: "Type CREATE-SALES-ACCOUNTS to allow apply mode"
+        type: string
+        default: ""
+
+concurrency:
+  group: sales-plan-accounts
+  cancel-in-progress: false
+
+jobs:
+  accounts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Guard — confirm phrase for apply
+        if: ${{ inputs.mode == 'apply' }}
+        run: |
+          if [ "${{ inputs.confirm }}" != "CREATE-SALES-ACCOUNTS" ]; then
+            echo "::error::apply mode requires typing CREATE-SALES-ACCOUNTS in the confirm input."
+            exit 1
+          fi
+
+      - name: Guard — secrets present for apply
+        if: ${{ inputs.mode == 'apply' }}
+        env:
+          URL_SET: ${{ secrets.IMPORT_SUPABASE_URL != '' }}
+          KEY_SET: ${{ secrets.IMPORT_SUPABASE_SERVICE_ROLE_KEY != '' }}
+          PWD_SET: ${{ secrets.SALES_USERS_PASSWORD != '' }}
+        run: |
+          ok=true
+          [ "$URL_SET" = "true" ] || { echo "::error::secret IMPORT_SUPABASE_URL is not set."; ok=false; }
+          [ "$KEY_SET" = "true" ] || { echo "::error::secret IMPORT_SUPABASE_SERVICE_ROLE_KEY is not set."; ok=false; }
+          [ "$PWD_SET" = "true" ] || { echo "::error::secret SALES_USERS_PASSWORD is not set."; ok=false; }
+          $ok
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Assert Node runtime
+        run: |
+          node --version
+          major=$(node -p 'process.versions.node.split(".")[0]')
+          if [ "$major" -lt 22 ]; then
+            echo "::error::Node $major detected — re-run as a FRESH 'Run workflow' dispatch from main."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run (dry-run)
+        if: ${{ inputs.mode == 'dry-run' }}
+        run: npx tsx tools/import/create-sales-users.ts --mode dry-run
+
+      - name: Run (apply)
+        if: ${{ inputs.mode == 'apply' }}
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.IMPORT_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.IMPORT_SUPABASE_SERVICE_ROLE_KEY }}
+          SALES_USERS_PASSWORD: ${{ secrets.SALES_USERS_PASSWORD }}
+          IMPORT_CONFIRM: 'true'
+          IMPORT_ALLOW_PRODUCTION: 'true'
+        run: npx tsx tools/import/create-sales-users.ts --mode apply

@@ -32,6 +32,23 @@ the exact commands below.
 Secrets come from env only. Nothing in this tree, the reports, or the logs
 contains a password or key.
 
+## Easiest path — GitHub Actions (no local machine needed)
+
+Two one-click workflows under the **Actions** tab (add the repository secrets
+`IMPORT_SUPABASE_URL`, `IMPORT_SUPABASE_SERVICE_ROLE_KEY`, `SALES_USERS_PASSWORD`
+first — Settings → Secrets and variables → Actions):
+
+1. **"2026 Plan — 1) Salesmen Accounts"** — mode `dry-run` to preview, then
+   mode `apply` with confirm phrase `CREATE-SALES-ACCOUNTS`.
+2. **"2026 Plan — 2) Import Projects"** — mode `dry-run` (report renders in the
+   job summary + downloadable artifact) → review → mode `run` with confirm
+   phrase `IMPORT-2026-PLAN` (note the printed run id) → mode `validate`.
+   Emergency undo: mode `rollback` + the run id + the same confirm phrase —
+   rollback rebuilds its target set from the run tag, so it works from a fresh
+   Actions environment without the original manifest file.
+
+The CLI path below remains available and identical in behavior.
+
 ## Run order (you run these — dry-run first)
 
 ```bash
