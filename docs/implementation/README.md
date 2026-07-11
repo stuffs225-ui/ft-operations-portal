@@ -251,14 +251,15 @@ changes are self-documented in the commit message and PR diff.
 
 ## Tooling — Real Sales Users and Sales Plan 2026 Import
 
-- **sales-plan-2026-import.md — Real Sales Users and Sales Plan 2026 Import Tool** (branch
-  `feature/real-sales-users-and-plan-import`; `tools/import/sales-users-bootstrap.ts` provisions the
-  10 real sales employee accounts, `tools/import/import-sales-plan-2026.ts` parses the real "Trucks
-  and Vehicles 2026" workbook (`Invoicing plan 2026` sheet, cross-referenced with `Under production
-  Orders`) into projects/lines/invoicing-schedule, with a dependency-free XLSX reader
-  (`tools/import/lib/xlsx-reader.ts`); parse/import/validate/revert modes, batch-tagged and
-  independent of the E2E seeder. **`parse` mode run against the real workbook and committed; no
-  users created, no database writes, nothing deployed this session.**)
+- **sales-plan-2026-import.md — 2026 Sales Plan Import: Salesmen Accounts + One-Shot Importer**
+  (branch `feature/import-sales-plan-2026`; supersedes the earlier
+  `feature/real-sales-users-and-plan-import` variant, whose duplicate tool files were removed.
+  `tools/import/create-sales-users.ts` provisions the 10 real salesman accounts;
+  `tools/import/extract-sales-plan-2026.ts` transcribes the real "Trucks and Vehicles 2026"
+  workbook into the committed reviewed dataset `tools/import/data/sales-plan-2026.json`;
+  `tools/import/import-sales-plan-2026.ts` imports it (dry-run / run / validate / rollback,
+  idempotent by so_number, run-id tagged, migrations 099/100/101 precondition-checked).
+  **No users created, no database writes, nothing deployed by the PR itself.**)
 
 ## Tooling — Screenshot Baseline
 

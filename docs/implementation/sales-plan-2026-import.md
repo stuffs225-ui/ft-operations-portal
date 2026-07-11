@@ -1,210 +1,123 @@
-# Real Sales Users + Sales Plan 2026 Import Tool
+# 2026 Sales Plan Import — Salesmen Accounts + One-Shot Importer
 
-**Branch:** `feature/real-sales-users-and-plan-import`
-**Status:** Tools written and parse-tested against the real workbook. **No users created, no database
-writes performed, nothing deployed.** Part 1 (`sales-users-bootstrap.ts --mode apply`) and Part 2
-(`import-sales-plan-2026.ts --mode import`) are both run manually, later, by a human with the
-confirmation env vars set.
+Loads the June copy of the 2026 plan workbook into the portal: **41 projects,
+63 vehicle lines (248 units, 227,846,819.71 SAR NET)** across the 10 real
+salesmen, with sector, expected delay penalty, per-line VAT flags, and the
+monthly invoicing schedule. Claude never runs the real import — you do, with
+the exact commands below.
 
----
+## Components
 
-## Part 1 — Real sales user accounts
-
-`tools/import/sales-users-bootstrap.ts` provisions the 10 real sales employees as `sales_user`
-accounts, using the exact same create-if-missing / upsert-role / verify-sign-in pattern as
-`tools/e2e/e2e-auth-bootstrap.ts` (see that file for the reference pattern this mirrors).
-
-| Email | Full name |
+| Piece | Purpose |
 |---|---|
-| `nader@ft.com` | Nader |
-| `mahmoud@ft.com` | Mahmoud |
-| `abdullah.s@ft.com` | Abdullah |
-| `abdulhamid@ft.com` | Abdulhamid |
-| `essam@ft.com` | ESSAM |
-| `obada@ft.com` | Obada |
-| `ahmed.qadomi@ft.com` | Ahmed Qadomi |
-| `hatem@ft.com` | Hatem |
-| `suliman@ft.com` | Suliman |
-| `nadeem@ft.com` | Nadeem |
+| `tools/import/lib.ts` | Shared salesman map + safety guards (same model as `tools/e2e`) |
+| `tools/import/create-sales-users.ts` | Idempotent bootstrap of the 10 salesman accounts |
+| `tools/import/extract-sales-plan-2026.ts` | Deterministic workbook → dataset transcription |
+| `tools/import/data/Trucks_and_Vehicles_2026_June.xlsx` | Committed source workbook |
+| `tools/import/data/sales-plan-2026.json` | Committed, reviewed dataset (the ONLY import source) |
+| `tools/import/import-sales-plan-2026.ts` | dry-run / run / validate / rollback |
+| `tools/import/reports/` | Run reports + manifests (gitignored — stay local) |
 
-All 10 sign in with one shared password and land on `/sales` with role `sales_user`.
+## Environment variables
 
-### Running it
+| Var | Used by | Notes |
+|---|---|---|
+| `VITE_SUPABASE_URL` (or `E2E_SUPABASE_URL`) | all modes | target project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | all DB modes | backend-only; never committed or printed |
+| `SALES_USERS_PASSWORD` | users apply | shared initial password; never printed |
+| `IMPORT_CONFIRM=true` | users apply, run, rollback | required for ANY write |
+| `E2E_NON_PRODUCTION_HOSTS` | all writes | comma-separated allow-list; any other host is treated as production |
+| `IMPORT_ALLOW_PRODUCTION=true` | writes to a production-classified host | explicit opt-in (this import IS destined for the real DB — set it deliberately) |
+
+Secrets come from env only. Nothing in this tree, the reports, or the logs
+contains a password or key.
+
+## Run order (you run these — dry-run first)
 
 ```bash
-# Dry-run (default) — no connection, no writes, just prints the plan
-npx tsx tools/import/sales-users-bootstrap.ts --mode dry-run
+# 0. Preconditions: migrations 099 + 100 + 101 applied (Supabase SQL Editor,
+#    supervised packs in docs/implementation/). The tool verifies and aborts
+#    with the missing piece named.
 
-# Apply — creates/aligns the 10 real accounts
-SALES_IMPORT_SUPABASE_URL=https://<project>.supabase.co \
-SUPABASE_SERVICE_ROLE_KEY=<service-role-key> \
-VITE_SUPABASE_ANON_KEY=<anon-key> \
-REAL_SALES_USER_PASSWORD=<the-agreed-shared-password> \
-REAL_SALES_USERS_CONFIRM=true \
-npx tsx tools/import/sales-users-bootstrap.ts --mode apply
+# 1. Accounts — preview, then create the 10 salesmen (idempotent):
+npm run import:plan2026:users                       # dry-run: mapping + actions
+IMPORT_CONFIRM=true IMPORT_ALLOW_PRODUCTION=true \
+SALES_USERS_PASSWORD='<the shared password>' \
+  npx tsx tools/import/create-sales-users.ts --mode apply
+
+# 2. Import preview (read-only; shows every intended insert + report):
+npm run import:plan2026:dry-run
+#    → review tools/import/reports/dry-run-*.md — especially "Needs review"
+
+# 3. Real import (idempotent by SO number; tagged PLAN2026_IMPORT run_id=…):
+IMPORT_CONFIRM=true IMPORT_ALLOW_PRODUCTION=true npm run import:plan2026:run
+#    → note the run id + manifest path it prints
+
+# 4. Reconcile the database against the dataset:
+npm run import:plan2026:validate
+
+# 5. Emergency undo (deletes ONLY that run's manifest rows):
+IMPORT_CONFIRM=true IMPORT_ALLOW_PRODUCTION=true \
+  npm run import:plan2026:rollback -- --run-id <run id>
 ```
 
-The password is read **only** from `REAL_SALES_USER_PASSWORD` — it is never hardcoded, logged, or
-echoed anywhere in the script or its output (only masked emails are printed, e.g. `n***@ft.com`).
-An existing account's password is never changed unless `--update-passwords` is also passed.
+`IMPORT_ALLOW_PRODUCTION=true` is only needed when the target host is not in
+`E2E_NON_PRODUCTION_HOSTS` (i.e. your real project — which is the point of this
+import; the flag makes that choice explicit rather than accidental).
 
----
+## Decision table (how workbook values map)
 
-## Part 2 — Sales Plan 2026 Import Tool
-
-`tools/import/import-sales-plan-2026.ts` reads the real "Trucks and Vehicles 2026" workbook
-(`Invoicing plan 2026` sheet, cross-referenced with `Under production Orders`) and, once approved,
-creates `projects` / `project_vehicle_lines` / `project_invoicing_schedule` rows under the 10 real
-sales users above.
-
-It uses a **dependency-free XLSX reader** (`tools/import/lib/xlsx-reader.ts` — ZIP + shared-strings +
-merged-cell resolution using only Node's built-in `zlib`) rather than adding a new npm package for a
-narrow, internally-controlled input format.
-
-### Modes
-
-| Mode | Connects to DB? | Writes? | Requires |
-|---|---|---|---|
-| `parse` (default) | No | No | `--file <path.xlsx>` |
-| `import` | Yes | Yes | `--file`, `IMPORT_CONFIRM=true`, target host in `SALES_IMPORT_ALLOWED_HOSTS` |
-| `validate` | Yes (SELECT only) | No | `--batch-id <id>` |
-| `revert` | Yes | Deletes (batch only) | `--batch-id <id>`, `IMPORT_CONFIRM=true` |
-
-### Grouping logic — read this before anything else
-
-`SO number` (plan-sheet column F) is the one true project key: `projects.so_number` is `unique` in
-the schema. **`Proj. No` (column E) is a per-line internal reference, not a project identifier** —
-one Sales Order routinely has several distinct `Proj. No` values, one per vehicle/JOH type (e.g. SO
-`103009` has 5 lines: `1921`, `1923`, `1924`, `1922`, `1920`). Rows are grouped by SO number; each
-group becomes **one `projects` row** with **one `project_vehicle_lines` row per line in the group**.
-`project_code` is set to the SO number itself (already unique, human-recognizable) rather than any
-single `Proj. No` — flag in review if a different source is preferred.
-
-Rows with **no SO number** (6 in the source file) and SO-number cells containing **multiple values**
-separated by `|` (1 case: `"103351 | 103243"`) are excluded from import and listed under "Decisions
-needed" in the parse report — never silently assigned to one side or split.
-
-### Column mapping — "Invoicing plan 2026" → schema
-
-| Sheet column | Field | Destination |
+| Workbook | System | Rule |
 |---|---|---|
-| F — SO number | grouping key | `projects.so_number`, `projects.project_code` |
-| G — Customer | customer name (first non-blank in group; flagged if it differs across lines) | `projects.customer_name` |
-| B — Done by | sales owner (normalized, matched against the 10 approved users) | `projects.sales_owner_id` (via `profiles.email` lookup) |
-| L — Dubai/KSA | `Dubai`→`dubai`, `KSA`→`saudi`, else `not_set` (flagged) | `projects.manufacturing_location` |
-| N — Statues | `Completed`→`completed`; `In Progress`/`Pending`/`Delayed`→`active` (note kept) | `projects.project_status` |
-| J — Total Value (summed per group) | | `projects.total_sales_value` |
-| H — JOH | one line per row in the group | `project_vehicle_lines.vehicle_type` / `.description` |
-| I — QTY | `>0` used as-is; `0`/blank defaulted to `1` (flagged — DB requires `quantity > 0`) | `project_vehicle_lines.quantity` |
-| J ÷ I (per row) | | `project_vehicle_lines.unit_sales_value` |
-| P..AA — JANUARY..DECEMBER (2026) | one schedule row per non-zero month | `project_invoicing_schedule.invoice_amount` / `.current_invoice_date` |
-| AC — 2027 | non-zero → one schedule row, month defaulted to January 2027 (flagged) | `project_invoicing_schedule` (`source='migration_backfill'`) |
+| Sheet "Invoicing plan 2026" rows 2–64 | source of truth | TOTAL row used for reconciliation only (qty 248 / 227,846,819.71 / pending 165,684,460) |
+| Consecutive rows, same carried SO/PO/Customer | ONE project | each row = one vehicle line; PO/SO/Customer carry down within a group only |
+| Group with no SO number | synthetic `PLAN26-…` so_number | flagged in needs-review (2: SAR, AFRAS-SEAFTY) |
+| JOH / QTY / Total Value | vehicle line | `unit_sales_value = round(net/qty, 2)`; NET stays net in DB (`line_total_value` trigger untouched); qty 0 → 1 + flag |
+| Statues: Completed / In Progress / Delayed / Pending / blank | `completed` / `active` / `active` / `approved` / `active` | original text always kept in notes; Delayed noted |
+| Col 12 Dubai / KSA / blank | `dubai` / `saudi` / `not_set` | — |
+| JOH contains "Medical Item" | `medical_items = yes` | else `no` |
+| "Delivery based on the contract" | `customer_delivery_date` | latest date in the cell (real date cells + d-Mon-yyyy text); fallback end of last plan month; final fallback 2026-12-31 — every fallback flagged |
+| PO# | **notes** (`PO#: …`) | NEVER `neg_po_number` — the NEG PO number requires its PDF (attach manually from the Commercial tab) |
+| Proj. No / Remarks / order year | notes, structured | — |
+| Under-production Sector (Private/Gov./Semi-Gov.) | `sector` (`private/gov/semi_gov`) | matched by Proj. No, then SO |
+| Under-production "Plentily conditions" | `expected_delay_penalty_percent` | parse "up to a maximum of X%" → X; unparseable → null + text in notes |
+| Under-production "Total Value + VAT" | `vat_applicable` per line | unit ratio ≈ ×1.15 (±1%) → true; ≈ ×1.0 → false; ambiguous/unmatched → false + flag |
+| VAT-inclusive project value | `projects.total_sales_value` | Σ net +15% on VAT lines (matches the app's post-#167 rule); NET reconciles to the sheet |
+| JANUARY…DECEMBER cells | `project_invoicing_schedule` | one row per month with money; last day of month 2026; `source = migration_backfill`; the trigger-created default line is replaced by the plan rows (kept when no monthly breakdown exists) |
+| 2027 column | NOT imported | listed in needs-review |
+| Under-production rows of non-10 salesmen (Zohairy, Ayman, Duha, Rahaf, Khaled, Osama, Soliman, EXPORT) | NOT imported | listed with totals in the report for a later decision |
 
-### Column mapping — "Under production Orders" → enrichment (notes only)
+## Safety & idempotency
 
-These fields have **no destination column in the current schema**. They are preserved verbatim in a
-structured `notes` string (`"PO#: … | Sector: … | Penalty: … | …"`) rather than dropped, and are
-documented here as **future schema candidates**:
+- **Dry-run by default**; every write needs `IMPORT_CONFIRM=true` + the host
+  guard. Dry-run is read-only (preconditions, profile resolution, existing-SO
+  detection, full plan print, report).
+- **Idempotent by `so_number`** (DB-unique): an existing SO is skipped and
+  reported — never updated. Re-running the import never duplicates anything.
+- **Tagging**: every created project/line/schedule row carries
+  `PLAN2026_IMPORT run_id=<id>` in its notes/description; a manifest of created
+  ids is written per run.
+- **Rollback** deletes only that manifest's rows (children first) and
+  re-checks the tag on each project row before deleting it.
+- **DB guards respected**: `project_code` is trigger-generated; the 078
+  approval gate applies to the single sheet-"Pending" project (it carries
+  route + medical flags, so it passes); migration 100's default-schedule
+  trigger line — created by our own insert — is replaced by the plan months
+  (or kept when the project has no monthly breakdown). No trigger, RLS policy,
+  or guard is changed or disabled.
+- **Checksum**: the importer re-hashes the committed workbook against the
+  dataset's recorded sha256 and refuses to run on a mismatch.
+- **Reconciliation gates**: dataset↔sheet (extract time) and DB↔dataset
+  (validate mode) — qty 248, NET 227,846,819.71, per-salesman subtotals,
+  per-project schedule sums. Unit-value rounding can drift a few halalas on
+  non-divisible lines (e.g. 11,584,300 / 15) — each case is flagged, tolerance
+  ±1 SAR per project.
 
-| Sheet column | Content | Where it goes today |
-|---|---|---|
-| D — PO# / Customer PO# | free text, often combines PO#/WO#/PN# | `notes` (`PO#: …`) |
-| E — Proj. No | per-line internal reference | `notes` (`Proj No: …`), also on the vehicle line's own `notes` |
-| K — Pending Value | outstanding amount | `notes` (`Pending Value: …`) |
-| M — Delivery based on the contract | free text, sometimes multiple dates | `notes` (`Delivery (contract): …`) |
-| O — Remarks | free text | `notes` (`Remarks: …`) |
-| J — Sector (Under production Orders only) | Private / Gov. / Semi-Gov. | `notes` (`Sector: …`) — **only merged in when the row's owner is one of the 10 approved users**; see PR #167 (`sector` column added by migration 101, not yet applied — deliberately not used here so this tool has no dependency on an unapplied migration) |
-| AI/AJ/AK — Plentily conditions/status/amount | delay penalty tracking | `notes` (`Penalty: …`) |
-| AL — Total Value + VAT | VAT-inclusive total per the source | `notes` (`Total incl. VAT (source): …`) |
-| S — NO of Delevried | delivered-unit count | `notes` (`Delivered: …`) |
-| P/Q/R — Dubai/JED/Purchase Remarks | free text | `notes` (`Production remarks: …`) |
+## After the import (manual follow-ups)
 
-`Under production Orders` also lists many rows owned by people **outside** the 10 approved sales
-users (Zohairy, Ayman, Duha, Rahaf, Khaled, Osama, Dam (Soliman Hassan), EXPORT (Huthaifa & Mohamad)
-— 31 rows across those 8 people). Per the task instruction, these are **excluded from enrichment and
-import entirely** and listed in the parse report as "needs assignment decision" — never guessed at.
-
-### Gap: `customer_delivery_date` has no source column
-
-`projects.customer_delivery_date` is `date not null`. Neither sheet has a single clean "delivery
-date" column (only free-text contract schedules and numeric Excel date serials in unrelated
-columns). The tool estimates it as **the last month with a scheduled invoicing amount** (or
-`2026-12-31` if a project has none at all) and marks it `(estimated)` in the report. This is called
-out once, up front, in the parse report rather than repeated as a flag on all 38 projects — treat
-every delivery date as provisional and override via the Admin invoicing-schedule UI after import if
-a better date is known.
-
-### Known rounding characteristic
-
-`project_vehicle_lines.unit_sales_value` is derived as `total_value ÷ quantity`, rounded to 2
-decimal places, and the DB then recomputes `line_total_value = quantity × unit_sales_value` via its
-own trigger. When `total_value` is not evenly divisible by `quantity`, the recomputed line total can
-differ from the source total by a few cents (e.g. SO `103074`: source total `11,584,300.00` →
-recomputed `11,584,300.05` for a 15-unit line). This is a normal floating-point/rounding artifact of
-"distribute a total across N units," not a data error — visible directly in the parse report's line
-table.
-
-### Running it
-
-```bash
-# Parse — reads the workbook only, opens no DB connection, writes a report
-npx tsx tools/import/import-sales-plan-2026.ts --mode parse --file "/path/to/Trucks_and_Vehicles_2026.xlsx"
-# → artifacts/import-sales-plan/parse-report.md  (reviewable, committed)
-# → artifacts/import-sales-plan/parse-data.json  (local only, NOT committed)
-
-# Import — only after the parse report has been reviewed and approved
-SALES_IMPORT_SUPABASE_URL=https://<project>.supabase.co \
-SUPABASE_SERVICE_ROLE_KEY=<service-role-key> \
-SALES_IMPORT_ALLOWED_HOSTS=<project>.supabase.co \
-IMPORT_CONFIRM=true \
-npx tsx tools/import/import-sales-plan-2026.ts --mode import --file "/path/to/Trucks_and_Vehicles_2026.xlsx"
-# → artifacts/import-sales-plan/<batch_id>.json  (manifest — every row created, keyed by batch id)
-# → artifacts/import-sales-plan/<batch_id>.md    (batch report)
-
-# Validate a batch (SELECT-only — confirms every manifest row still exists)
-SALES_IMPORT_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
-npx tsx tools/import/import-sales-plan-2026.ts --mode validate --batch-id <batch_id>
-
-# Revert a batch (deletes ONLY that batch's rows, children before parents)
-SALES_IMPORT_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
-SALES_IMPORT_ALLOWED_HOSTS=<project>.supabase.co IMPORT_CONFIRM=true \
-npx tsx tools/import/import-sales-plan-2026.ts --mode revert --batch-id <batch_id>
-```
-
-### Safety model
-
-- **Independent of the E2E seeder** — does not use the `E2E_SCENARIO_SEED` tag, is never touched by
-  `npm run e2e:workflow:cleanup`, and shares no artifact directory with `tools/e2e/`.
-- Every row created carries `IMPORT_BATCH=<batch_id>` in its `notes` / `schedule_description` column,
-  and a JSON manifest records `{table, id, so_number, label}` for every row — a batch can be reviewed
-  (`validate`) or fully reversed (`revert`) by batch id alone.
-- **Never overwrites or deletes existing data.** A group whose `so_number` already exists in
-  `projects` is skipped and reported, never updated.
-- `import` requires **both** `IMPORT_CONFIRM=true` **and** the target host explicitly listed in
-  `SALES_IMPORT_ALLOWED_HOSTS`. This is the same *shape* of guard as `tools/e2e`'s
-  `E2E_NON_PRODUCTION_HOSTS` allow-list, deliberately inverted: the E2E guard exists to keep test
-  data **out of** production by default; this guard exists to make sure a misconfigured environment
-  variable can never silently point real business data at the **wrong** Supabase project — naming the
-  real target host is a deliberate, explicit act either way.
-- A project group is only import-ready if its owner matched one of the 10 approved users **and** it
-  raised no "needs assignment decision" flag; everything else is skipped and reported, never guessed.
-- `project_invoicing_schedule` sequence numbers start at `2` — sequence `1` is always the DB
-  trigger's own auto-created default schedule line (migration 100, fires on every `projects` insert
-  regardless of caller). `revert` deletes that trigger-created row too (scoped strictly to the
-  batch's own project ids), mirroring how `tools/e2e/e2e-full-workflow.ts` handles the same trigger.
-- Schedule rows use `source = 'migration_backfill'` (the schema's own enum value for "created by a
-  migration/import backfill for existing/historical data") — chosen instead of `admin_manual` because
-  it precisely matches what this is, no schema invention needed.
-- Every schedule line marked `'invoiced'` requires **both** the project's mapped status =
-  `completed` **and** the invoicing month being in the past relative to the run date; everything
-  else is `'scheduled'` — the same "let the existing overdue view derive risk from a past scheduled
-  date" pattern the E2E seeder's S10 scenario already uses. This tool never sets `'overdue'` itself.
-
-### What was and wasn't done this session
-
-- ✅ Both tools written, type-checked (`tsc -p tsconfig.e2e.json`), and lint-checked.
-- ✅ `parse` mode run against the real uploaded workbook; the report is committed at
-  `artifacts/import-sales-plan/parse-report.md` for review.
-- ❌ `sales-users-bootstrap.ts --mode apply` was **not** run — no real accounts were created.
-- ❌ `import-sales-plan-2026.ts --mode import` was **not** run — no database writes were made.
-- ❌ Nothing was deployed.
+1. Attach the real NEG PO PDFs from each project's **Commercial tab** (the PO
+   numbers are in the notes).
+2. Review the "needs review" list in the dry-run/run report (blank sectors,
+   ambiguous VAT, synthetic SOs, qty-0 line).
+3. Decide what to do with the 17 under-production-only rows (other salesmen) —
+   they were deliberately not imported.

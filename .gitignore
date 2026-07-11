@@ -38,6 +38,6 @@ docs/artifact-context/screenshots/**/*.jpeg
 docs/artifact-context/screenshots/**/*.zip
 tools/screenshots/screenshot-run-results.json
 
-# Sales Plan 2026 import — raw parsed data holds real customer data; only the
-# Markdown mapping report (parse-report.md) is meant to be reviewed/committed.
-artifacts/import-sales-plan/parse-data.json
+# 2026 plan import run artifacts (reports + manifests stay local)
+tools/import/reports/
+artifacts/import-sales-plan/
