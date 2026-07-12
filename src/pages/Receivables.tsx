@@ -103,17 +103,13 @@ export function Receivables() {
           <div className="text-xl font-bold tabular-nums text-red-700 truncate">{formatSAR(kpis.totalOverdue)}</div>
           <div className="text-xs text-red-400 mt-1">{rows.filter((r) => r.aging_bucket !== 'not_due').length} milestones</div>
         </Card>
-        <div className="col-span-2 lg:col-span-1 grid grid-cols-2 gap-3">
-          {(['due_31_60', 'due_90_plus'] as AgingBucket[]).map((b) => {
-            const cfg = BUCKET_CONFIG[b];
-            return (
-              <div key={b} className={`rounded-lg border p-3 ${cfg.bgColor} ${cfg.borderColor}`}>
-                <div className={`text-xs uppercase tracking-[0.04em] mb-1 ${cfg.color}`}>{cfg.label}</div>
-                <div className={`text-base font-bold tabular-nums truncate ${cfg.color}`}>{formatSAR(kpis.bucketTotals[b])}</div>
-              </div>
-            );
-          })}
-        </div>
+        {/* Not-yet-due completes the split (Total = Not Yet Due + Overdue). The
+            per-bucket breakdown lives in the filter strip below — not repeated here. */}
+        <Card className="p-4 col-span-2 lg:col-span-1">
+          <div className="text-xs text-gray-500 uppercase tracking-[0.04em] mb-1">Not Yet Due</div>
+          <div className="text-xl font-bold tabular-nums text-gray-900 truncate">{formatSAR(kpis.bucketTotals['not_due'])}</div>
+          <div className="text-xs text-gray-400 mt-1">{rows.filter((r) => r.aging_bucket === 'not_due').length} milestones</div>
+        </Card>
       </div>
 
       {/* Aging bucket filter strip */}

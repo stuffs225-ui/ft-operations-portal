@@ -87,13 +87,17 @@ export function ReportExportBar({
         {saved ? 'Saved' : 'Save Snapshot'}
       </Button>
 
-      <span
-        className="inline-flex items-center gap-1 text-[10px] bg-gray-100 text-gray-500 border border-gray-200 rounded px-2 py-1"
-        title="Email/SMS sharing requires a server-side provider (see EMAIL_SMS_INTEGRATION_PLAN.md)"
-      >
-        <Mail size={11} />
-        {EMAIL_PROVIDER_CONFIGURED ? 'Share by email' : 'Share by email — provider not configured'}
-      </span>
+      {/* Share affordance appears only when an email provider is actually wired up.
+          A "provider not configured" placeholder reads as unfinished, so hide it. */}
+      {EMAIL_PROVIDER_CONFIGURED && (
+        <span
+          className="inline-flex items-center gap-1 text-[10px] bg-gray-100 text-gray-500 border border-gray-200 rounded px-2 py-1"
+          title="Email/SMS sharing requires a server-side provider (see EMAIL_SMS_INTEGRATION_PLAN.md)"
+        >
+          <Mail size={11} />
+          Share by email
+        </span>
+      )}
 
       {msg && <span className="text-xs text-gray-500">{msg}</span>}
     </div>
