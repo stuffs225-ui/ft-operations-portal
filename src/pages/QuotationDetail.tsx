@@ -15,6 +15,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { recordQuotationEvent, recordQuotationAuditEntry } from '../lib/quotationAudit';
 import { getQuotationSlaStatus, getOverdueDays } from '../lib/quotationSla';
 import { DocumentPanel } from '../components/documents/DocumentPanel';
+import { QuotationClarificationThread } from '../components/features/QuotationClarificationThread';
 import { openSignedUrl } from '../lib/documents';
 import {
   MOCK_QUOTATIONS,
@@ -70,7 +71,9 @@ const STATUS_VARIANT: Record<QuotationStatus, 'neutral' | 'warning' | 'info' | '
 };
 
 const COORDINATOR_ROLES: UserRole[] = ['admin', 'operations_manager', 'sales_coordinator'];
-const CAN_CONVERT: UserRole[] = ['admin', 'operations_manager', 'sales_user'];
+// SO authoring (incl. converting a quotation to an SO) is Admin/Operations only.
+// Sales prepare the quotation; Operations turns it into a Sales Order.
+const CAN_CONVERT: UserRole[] = ['admin', 'operations_manager'];
 
 // ── Accordion section ─────────────────────────────────────────────────────────
 
@@ -758,6 +761,14 @@ export function QuotationDetail() {
             emptyMessage="No specification documents uploaded."
           />
         </Section>
+
+        {/* Clarification thread (C1) — two-way, multi-round, logged. */}
+        <QuotationClarificationThread
+          quotationId={quotation.id}
+          userId={profile?.id ?? null}
+          userName={profile?.full_name ?? profile?.email ?? null}
+          userRole={role}
+        />
 
         {/* Quotation Response (shown when there's a response or when coordinator can act) */}
         {(['returned_to_sales', 'converted_to_so', 'quotation_received'].includes(quotation.quotation_status) ||

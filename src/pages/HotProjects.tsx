@@ -83,6 +83,8 @@ export function HotProjects() {
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState<TabKey>('all');
   const [stageFilter, setStageFilter] = useState<HotProjectStage | 'all'>('all');
+  // Probability band split (operations request): High ≥80% vs Low <80%.
+  const [probBand, setProbBand] = useState<'all' | 'high' | 'low'>('all');
 
   const isBroadView = role === 'admin' || role === 'operations_manager';
   const canCreate = role ? CAN_CREATE.includes(role) : false;
@@ -135,7 +137,10 @@ export function HotProjects() {
       r.customer_name.toLowerCase().includes(q) ||
       r.hot_project_code.toLowerCase().includes(q);
     const matchStage = stageFilter === 'all' || r.stage === stageFilter;
-    return matchSearch && matchStage;
+    const matchBand =
+      probBand === 'all' ||
+      (probBand === 'high' ? (r.probability ?? 0) >= 80 : (r.probability ?? 0) < 80);
+    return matchSearch && matchStage && matchBand;
   });
 
   const openRecords = records.filter((r) => OPEN_STAGES.includes(r.stage));
@@ -249,6 +254,26 @@ export function HotProjects() {
             <option key={s} value={s}>{STAGE_CONFIG[s].label}</option>
           ))}
         </select>
+        {/* Probability band — High ≥80% vs Low <80% (operations request). */}
+        <div className="inline-flex rounded-lg border border-gray-200 bg-white overflow-hidden text-sm">
+          {([
+            { key: 'all', label: 'All' },
+            { key: 'high', label: 'High ≥80%' },
+            { key: 'low', label: 'Low <80%' },
+          ] as const).map((b) => (
+            <button
+              key={b.key}
+              onClick={() => setProbBand(b.key)}
+              className={`px-3 py-1.5 font-medium transition-colors ${
+                probBand === b.key
+                  ? 'bg-emerald-600 text-white'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              {b.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Table / states */}
@@ -290,7 +315,7 @@ export function HotProjects() {
           <EmptyState
             icon={<Flame size={32} className="text-gray-300" />}
             title="No opportunities found"
-            description={search || stageFilter !== 'all' ? 'Try adjusting your filters.' : 'Create your first hot project to track the pipeline.'}
+            description={search || stageFilter !== 'all' || probBand !== 'all' ? 'Try adjusting your filters.' : 'Create your first pipeline project to track the pipeline.'}
             action={
               canCreate ? (
                 <Link to="/hot-projects/new">
