@@ -14,6 +14,8 @@ export interface SalesDashboardV2Summary {
   pipelineProjectsCount: number;
   /** SUM(hot_projects.estimated_value) for open pipeline — unweighted */
   totalPipelineValue: number;
+  /** SUM(estimated_value × probability) for open pipeline — weighted (matches the Pipeline Projects page) */
+  totalPipelineValueWeighted: number;
   /**
    * COUNT of projects matching the "at risk" definition.
    * Current definition (interim): project_status = 'sent_back_for_revision'.

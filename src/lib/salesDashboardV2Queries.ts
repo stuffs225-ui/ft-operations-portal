@@ -49,6 +49,7 @@ interface HotProjectRow {
   id: string;
   stage: string;
   estimated_value: number | null;
+  probability: number | null;
   sales_owner_id: string | null;
 }
 
@@ -284,7 +285,7 @@ export async function getSalesDashboardV2Data(
   const hotProjectsQuery = (() => {
     const base = supabase
       .from('hot_projects')
-      .select('id, stage, estimated_value, sales_owner_id')
+      .select('id, stage, estimated_value, probability, sales_owner_id')
       .in('stage', [...OPEN_HOT_STAGES]);
     return isBroadView ? base : base.eq('sales_owner_id', salesUserId);
   })();
@@ -369,6 +370,11 @@ export async function getSalesDashboardV2Data(
     totalProjectValue:      activeProjects.reduce((s, p) => s + (p.total_sales_value ?? 0), 0),
     pipelineProjectsCount:  hotProjects.length,
     totalPipelineValue:     hotProjects.reduce((s, h) => s + (h.estimated_value ?? 0), 0),
+    // Probability-weighted pipeline — matches the Pipeline Projects page headline
+    // so the same salesman never sees two different pipeline totals across pages.
+    totalPipelineValueWeighted: hotProjects.reduce(
+      (s, h) => s + ((h.estimated_value ?? 0) * (h.probability ?? 0)) / 100, 0,
+    ),
     projectsAtRiskCount:    projects.filter(p => p.project_status === 'sent_back_for_revision').length,
     // Pending Invoicing now sourced from project_invoicing_schedule
     pendingInvoicingValue:  calcPendingSchedule(schedules),

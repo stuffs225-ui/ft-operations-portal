@@ -55,7 +55,10 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'sales_user'];
+// Sales no longer create Sales Orders directly — an SO arises from converting a
+// quotation, and invoicing/SO ownership sits with Admin/Operations. Sales keep a
+// read-only view of Projects. (Direct create hidden; quotation→SO conversion unaffected.)
+const CAN_CREATE: UserRole[] = ['admin', 'operations_manager'];
 
 // ── Component ──────────────────────────────────────────────────────────────────
 

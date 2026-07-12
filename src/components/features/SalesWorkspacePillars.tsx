@@ -63,7 +63,7 @@ export function HotProjectsPillar({ hotProjects, loading }: { hotProjects: HotPr
       <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-            <Flame size={14} className="text-orange-500" /> My Hot Projects
+            <Flame size={14} className="text-orange-500" /> My Pipeline Projects
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
             {open.length} open · pipeline SAR {sarK(pipelineValue)}
@@ -76,7 +76,7 @@ export function HotProjectsPillar({ hotProjects, loading }: { hotProjects: HotPr
       {loading ? (
         <div className="px-5 py-8 text-center text-sm text-gray-400">Loading…</div>
       ) : hotProjects.length === 0 ? (
-        <div className="px-5 py-8 text-center text-sm text-gray-400">No hot projects yet.</div>
+        <div className="px-5 py-8 text-center text-sm text-gray-400">No pipeline projects yet.</div>
       ) : (
         <div className="px-5 py-4 space-y-3">
           {byStage.map(({ stage, items }) => (

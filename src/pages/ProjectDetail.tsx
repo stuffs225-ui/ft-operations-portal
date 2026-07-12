@@ -1656,17 +1656,19 @@ export function ProjectDetail() {
             </Card>
           )}
 
-          {/* WO / PN Gate card */}
-          <WoPnGateCard
-            project={project}
-            references={references}
-            canAdd={canAddRef}
-            onReferenceAdded={(ref) => setReferences((prev) => [...prev, ref])}
-            className="md:col-span-2"
-          />
+          {/* WO / PN Gate card — operations concern; hidden from the commercial view. */}
+          {!commercialSimplified && (
+            <WoPnGateCard
+              project={project}
+              references={references}
+              canAdd={canAddRef}
+              onReferenceAdded={(ref) => setReferences((prev) => [...prev, ref])}
+              className="md:col-span-2"
+            />
+          )}
 
-          {/* Project Health & Reports */}
-          {(() => {
+          {/* Project Health & Reports — operations concern; hidden from the commercial view. */}
+          {!commercialSimplified && (() => {
             const health = getHealthScoreForProject(project.id);
             const slaBreaches = getSlaEventsForProject(project.id).filter(e => getOpenSlaBreaches().some(b => b.id === e.id));
             const issues = getIssuesForProject(project.id).filter(i => !['closed','cancelled','resolved'].includes(i.status));
@@ -1703,15 +1705,15 @@ export function ProjectDetail() {
               For the simplified commercial view this lives on the Progress tab. */}
           {!commercialSimplified && <ExecutionGlance projectId={project.id} />}
 
-          {/* Per-line invoicing months — the salesman's simple planner */}
-          <LineInvoicingPlanner
-            projectId={project.id}
-            lines={lines}
-            canPlan={
-              role === 'admin' || role === 'operations_manager' ||
-              (role === 'sales_user' && project.created_by === profile?.id)
-            }
-          />
+          {/* Per-line invoicing months. Sales VIEW the plan on their dashboard and
+              cannot edit invoicing dates — the editable planner is Admin/Ops only. */}
+          {!commercialSimplified && (
+            <LineInvoicingPlanner
+              projectId={project.id}
+              lines={lines}
+              canPlan={role === 'admin' || role === 'operations_manager'}
+            />
+          )}
         </div>
 
         {/* Commercial details folded into Overview for the simplified view:
@@ -1744,7 +1746,9 @@ export function ProjectDetail() {
           </div>
         )}
 
-        {/* Approval & Routing — appended to Overview (was separate 'approval' tab) */}
+        {/* Approval & Routing — approval/routing is an Admin/Ops concern; hidden
+            from the commercial view (sales only see project info + commercial). */}
+        {!commercialSimplified && (
         <div className="mt-2">
           <SectionHeader title="Approval & Routing" />
           <div className="space-y-5">
@@ -1796,6 +1800,7 @@ export function ProjectDetail() {
             )}
           </div>
         </div>
+        )}
 
         {/* Documents at the very bottom of Overview for the simplified view. */}
         {commercialSimplified && (

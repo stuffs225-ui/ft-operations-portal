@@ -110,7 +110,7 @@ export function HotProjectDetail() {
   if (!isSupabaseConfigured) {
     return (
       <div className="space-y-4">
-        <PageHeader title="Hot Project" icon={<Flame className="text-brand-600" size={22} />} action={<Link to="/hot-projects"><Button variant="secondary" icon={<ArrowLeft size={14} />} size="sm">Back</Button></Link>} />
+        <PageHeader title="Pipeline Project" icon={<Flame className="text-brand-600" size={22} />} action={<Link to="/hot-projects"><Button variant="secondary" icon={<ArrowLeft size={14} />} size="sm">Back</Button></Link>} />
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">Supabase is not configured.</div>
       </div>
     );
@@ -147,7 +147,7 @@ export function HotProjectDetail() {
   if (!record) {
     return (
       <div className="space-y-4">
-        <PageHeader title="Hot Project" icon={<Flame className="text-brand-600" size={22} />} action={<Link to="/hot-projects"><Button variant="secondary" icon={<ArrowLeft size={14} />} size="sm">Back</Button></Link>} />
+        <PageHeader title="Pipeline Project" icon={<Flame className="text-brand-600" size={22} />} action={<Link to="/hot-projects"><Button variant="secondary" icon={<ArrowLeft size={14} />} size="sm">Back</Button></Link>} />
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error ?? 'Record not found.'}</div>
       </div>
     );
