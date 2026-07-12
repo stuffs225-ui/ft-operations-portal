@@ -28,7 +28,7 @@ with planned_projects as (
 delete from public.project_invoicing_schedule pis
 using planned_projects pp
 where pis.project_id = pp.project_id
-  and coalesce(pis.source, 'default') in ('delivery_date', 'default')
+  and coalesce(pis.source::text, 'default') in ('delivery_date', 'default')  -- cast: enum has no 'default'
   and pis.status <> 'invoiced';   -- never delete invoiced history
 
 -- ── 2. Harden the RPC's cleanup (broaden delivery_date → all auto rows) ───────
@@ -109,7 +109,7 @@ begin
   if jsonb_array_length(p_allocations) > 0 then
     delete from public.project_invoicing_schedule
     where project_id = v_line.project_id
-      and coalesce(source, 'default') in ('delivery_date', 'default')
+      and coalesce(source::text, 'default') in ('delivery_date', 'default')  -- cast: enum has no 'default'
       and status <> 'invoiced';
   end if;
 
