@@ -21,7 +21,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
     .toUpperCase();
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center px-4 gap-3 shrink-0 z-30 sticky top-0">
+    <header className="h-14 bg-white border-b border-gray-200 flex items-center px-4 md:px-6 gap-3 shrink-0 z-30 sticky top-0">
       {/* Hamburger */}
       <button
         onClick={onMenuToggle}
@@ -33,7 +33,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
 
       {/* Brand lockup — only shown on mobile; desktop sidebar carries the brand. */}
       <Link to="/" className="mr-4 shrink-0 lg:hidden">
-        <BrandLogo size={30} withWordmark tagline="Operations Portal" />
+        <BrandLogo size={28} withWordmark tagline="NAFFCO Vehicles Division" />
       </Link>
 
       {/* Global search will return here once the search index is wired. */}
