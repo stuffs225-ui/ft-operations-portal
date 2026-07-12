@@ -5,7 +5,7 @@ import {
   AlertCircle, Info, FileText, List, Clock,
   Check, RotateCcw, X, GitBranch,
   CheckCircle2, Plus, ShoppingCart, Wrench, Truck, FileCheck,
-  Upload, Percent, Play, Flag, Ban,
+  Upload, Percent, Play, Flag, Ban, Activity,
 } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
 import { PageHeader } from '@/components/common/page-header';
@@ -77,7 +77,13 @@ function formatDateTime(iso: string) {
 //   timeline                          → activity
 //   audit                             → activity (canAudit-gated section)
 
-type TabKey = 'overview' | 'commercial' | 'execution' | 'quality' | 'documents' | 'activity';
+type TabKey = 'overview' | 'progress' | 'commercial' | 'execution' | 'quality' | 'documents' | 'activity';
+
+// Commercial-facing roles get a simplified two-tab layout (Overview + Progress):
+// the Commercial cards + Documents fold into Overview, and a read-only Progress
+// glance (timeline + procurement/factory status) replaces the Commercial/Activity
+// tabs. Operational and admin roles keep the full tab set (Execution/Quality edit).
+const COMMERCIAL_SIMPLIFIED_ROLES: UserRole[] = ['sales_user', 'sales_coordinator', 'viewer'];
 
 // UI-only role visibility per tab. null = all roles may see this tab.
 // This does NOT change route guards or RLS — UI hiding only.
@@ -91,6 +97,7 @@ const TAB_ROLES: Partial<Record<TabKey, UserRole[]>> = {
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'overview',    label: 'Overview',          icon: <FolderOpen size={15} /> },
+  { key: 'progress',    label: 'Progress',          icon: <Activity size={15} /> },
   { key: 'commercial',  label: 'Commercial',        icon: <List size={15} /> },
   { key: 'execution',   label: 'Execution',         icon: <ShoppingCart size={15} /> },
   { key: 'quality',     label: 'Quality & Release', icon: <FileCheck size={15} /> },
@@ -1139,6 +1146,172 @@ function DelayPenaltyCard({ project, canEdit, profileId, onUpdated }: {
   );
 }
 
+// ── Timeline (shared: Activity tab + simplified Progress tab) ─────────────────
+function ProjectTimeline({ timeline }: { timeline: ProjectTimelineEvent[] }) {
+  if (timeline.length === 0) {
+    return <Card className="p-8 text-center text-gray-500 text-sm">No timeline events yet.</Card>;
+  }
+  return (
+    <div className="relative">
+      <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200" />
+      <div className="space-y-4">
+        {timeline.map((event) => (
+          <div key={event.id} className="flex items-start gap-4 relative">
+            <div className="w-10 h-10 rounded-full bg-brand-100 border-2 border-white flex items-center justify-center shrink-0 z-10">
+              <Clock size={16} className="text-brand-600" />
+            </div>
+            <Card className="flex-1 p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">{event.title}</p>
+                  {event.actor_name && (
+                    <p className="text-xs text-gray-500 mt-0.5">by {event.actor_name}</p>
+                  )}
+                  {event.body && (
+                    <p className="text-sm text-gray-700 mt-2">{event.body}</p>
+                  )}
+                </div>
+                <time className="text-xs text-gray-400 whitespace-nowrap shrink-0">
+                  {formatDateTime(event.created_at)}
+                </time>
+              </div>
+            </Card>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Vehicle Lines section (shared: Commercial tab + simplified Overview) ──────
+function VehicleLinesSection({ lines, canSeeMoney }: { lines: ProjectVehicleLine[]; canSeeMoney: boolean }) {
+  return (
+    <div>
+      <SectionHeader title="Vehicle Lines" accent="bg-emerald-500" />
+      {lines.length === 0 ? (
+        <Card className="p-8 text-center text-gray-500 text-sm">No vehicle lines registered.</Card>
+      ) : (
+        <div className="bg-white border border-gray-200/80 rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">#</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Type</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Description</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Qty</th>
+                {canSeeMoney && (
+                  <>
+                    <th className="text-right px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Unit (SAR)</th>
+                    <th className="text-right px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">VAT</th>
+                    <th className="text-right px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Total (SAR)</th>
+                  </>
+                )}
+                <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {lines.map((line) => (
+                <tr key={line.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-gray-500">{line.line_number}</td>
+                  <td className="px-4 py-3 font-medium">{line.vehicle_type}</td>
+                  <td className="px-4 py-3 text-gray-700">{line.description}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{line.quantity}</td>
+                  {canSeeMoney && (
+                    <>
+                      <td className="px-4 py-3 text-right tabular-nums">{line.unit_sales_value.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right text-xs text-gray-500 tabular-nums">
+                        {line.vat_applicable
+                          ? `${(VAT_RATE * 100).toFixed(0)}% · ${lineVatAmount(line.line_total_value, true).toLocaleString()}`
+                          : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                        {lineTotalWithVat(line.line_total_value, line.vat_applicable ?? false).toLocaleString()}
+                      </td>
+                    </>
+                  )}
+                  <td className="px-4 py-3">
+                    <Badge variant="neutral">{line.line_status}</Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            {canSeeMoney && (
+              <tfoot className="border-t-2 border-gray-300 bg-gray-50">
+                <tr className="text-xs text-gray-500">
+                  <td colSpan={5} className="px-4 pt-3 pb-1 text-right">Subtotal (net)</td>
+                  <td className="px-4 pt-3 pb-1 text-right tabular-nums">
+                    {lines.reduce((s, l) => s + l.line_total_value, 0).toLocaleString()}
+                  </td>
+                  <td />
+                </tr>
+                <tr className="text-xs text-gray-500">
+                  <td colSpan={5} className="px-4 py-1 text-right">VAT ({(VAT_RATE * 100).toFixed(0)}% on flagged lines)</td>
+                  <td className="px-4 py-1 text-right tabular-nums">
+                    {lines.reduce((s, l) => s + lineVatAmount(l.line_total_value, l.vat_applicable ?? false), 0).toLocaleString()}
+                  </td>
+                  <td />
+                </tr>
+                <tr>
+                  <td colSpan={5} className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
+                    Total Value (incl. VAT)
+                  </td>
+                  <td className="px-4 py-3 text-right text-base font-bold text-gray-900 tabular-nums">
+                    {lines.reduce((s, l) => s + lineTotalWithVat(l.line_total_value, l.vat_applicable ?? false), 0).toLocaleString()}
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Documents section (shared: Documents tab + simplified Overview footer) ────
+function ProjectDocumentsSection({
+  documents, project, role, profileId, onUploaded,
+}: {
+  documents: ProjectDocument[];
+  project: Project;
+  role: UserRole | null;
+  profileId: string | null;
+  onUploaded: (doc: ProjectDocument) => void;
+}) {
+  const canUpload = ['admin', 'operations_manager', 'sales_user'].includes(role ?? '');
+  return (
+    <div className="space-y-3">
+      {!isSupabaseConfigured && (
+        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <Info size={14} className="text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-800">File upload and download require Supabase Storage to be configured.</p>
+        </div>
+      )}
+      <DocumentPanel
+        documents={documents}
+        bucket="project-documents"
+        canUpload={canUpload}
+        upload={canUpload ? {
+          bucket: 'project-documents',
+          table: 'project_documents',
+          foreignKey: { field: 'project_id', value: project.id },
+          uploadedBy: profileId,
+          documentTypeOptions: [
+            { value: 'customer_po', label: 'Customer PO' },
+            { value: 'customer_contract', label: 'Customer Contract' },
+            { value: 'sales_order_supporting_document', label: 'SO Supporting Document' },
+            { value: 'specification_file', label: 'Specification File' },
+            { value: 'other', label: 'Other' },
+          ],
+        } : undefined}
+        onUploaded={(doc) => onUploaded(doc as ProjectDocument)}
+        emptyMessage="No documents attached to this project."
+      />
+    </div>
+  );
+}
+
 export function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const { profile, role } = useAuth();
@@ -1171,6 +1344,8 @@ export function ProjectDetail() {
   const [approvalRoutingWarning, setApprovalRoutingWarning] = useState<string | null>(null);
 
   const canSeeMoney = role === 'admin' || role === 'operations_manager';
+  // Commercial-facing roles see a simplified two-tab layout (Overview + Progress).
+  const commercialSimplified = role ? COMMERCIAL_SIMPLIFIED_ROLES.includes(role) : false;
   const canApprove = role ? CAN_APPROVE.includes(role) : false;
   // Expanded from admin-only to admin + operations_manager per Step 10.5E.
   // Both roles already have access to /audit-log page via navigation.
@@ -1180,6 +1355,12 @@ export function ProjectDetail() {
 
   // Tab visibility helper — UI display layer only (see TAB_ROLES comment above)
   function isTabVisible(key: TabKey): boolean {
+    // Commercial-facing roles: only Overview + Progress. Everything from the old
+    // Commercial/Documents tabs folds into Overview; Progress carries the
+    // read-only timeline + procurement/factory glance.
+    if (commercialSimplified) return key === 'overview' || key === 'progress';
+    // Progress is a simplified-view-only tab; other roles never see it.
+    if (key === 'progress') return false;
     const allowedRoles = TAB_ROLES[key];
     if (!allowedRoles) return true;
     if (!role) return false;
@@ -1518,8 +1699,9 @@ export function ProjectDetail() {
               </Card>
             );
           })()}
-          {/* Read-only execution overview (procurement / factory / store / QC) */}
-          <ExecutionGlance projectId={project.id} />
+          {/* Read-only execution overview (procurement / factory / store / QC).
+              For the simplified commercial view this lives on the Progress tab. */}
+          {!commercialSimplified && <ExecutionGlance projectId={project.id} />}
 
           {/* Per-line invoicing months — the salesman's simple planner */}
           <LineInvoicingPlanner
@@ -1531,6 +1713,36 @@ export function ProjectDetail() {
             }
           />
         </div>
+
+        {/* Commercial details folded into Overview for the simplified view:
+            NEG PO + delay penalty + vehicle lines (the Commercial tab is hidden). */}
+        {commercialSimplified && (
+          <div className="mt-2 space-y-6">
+            <SectionHeader title="Commercial Details" accent="bg-emerald-500" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <NegPoCard
+                project={project}
+                canEdit={
+                  role === 'sales_user' && project.created_by === profile?.id &&
+                  ['draft', 'sent_back_for_revision'].includes(project.project_status)
+                }
+                profileId={profile?.id ?? null}
+                onUpdated={(negPoNumber, negPoDocumentId) =>
+                  setProject((p) => (p ? { ...p, neg_po_number: negPoNumber, neg_po_document_id: negPoDocumentId } : p))
+                }
+              />
+              <DelayPenaltyCard
+                project={project}
+                canEdit={false}
+                profileId={profile?.id ?? null}
+                onUpdated={(pct) =>
+                  setProject((p) => (p ? { ...p, expected_delay_penalty_percent: pct } : p))
+                }
+              />
+            </div>
+            <VehicleLinesSection lines={lines} canSeeMoney={canSeeMoney} />
+          </div>
+        )}
 
         {/* Approval & Routing — appended to Overview (was separate 'approval' tab) */}
         <div className="mt-2">
@@ -1584,7 +1796,39 @@ export function ProjectDetail() {
             )}
           </div>
         </div>
+
+        {/* Documents at the very bottom of Overview for the simplified view. */}
+        {commercialSimplified && (
+          <div className="mt-2">
+            <SectionHeader title="Documents" accent="bg-slate-500" />
+            <ProjectDocumentsSection
+              documents={documents}
+              project={project}
+              role={role}
+              profileId={profile?.id ?? null}
+              onUploaded={(doc) => setDocuments((prev) => [...prev, doc])}
+            />
+          </div>
+        )}
         </>
+      )}
+
+      {/* ── Progress (simplified commercial view only) ─────────────────────────── */}
+      {/* A read-only glance at what's happening: project timeline + procurement/
+          factory/store/QC status. Replaces the Commercial/Activity tabs here. */}
+      {activeTab === 'progress' && (
+        <div className="space-y-8">
+          <div>
+            <SectionHeader title="Project Progress" accent="bg-slate-500" />
+            <p className="text-sm text-gray-500 mb-4">Timeline of what has happened on this project so far.</p>
+            <ProjectTimeline timeline={timeline} />
+          </div>
+          <div>
+            <SectionHeader title="Execution Status" accent="bg-amber-500" />
+            <p className="text-sm text-gray-500 mb-4">Read-only view of procurement, factory, store and quality activity.</p>
+            <ExecutionGlance projectId={project.id} />
+          </div>
+        </div>
       )}
 
       {/* ── Commercial ───────────────────────────────────────────────────────── */}
@@ -1651,119 +1895,19 @@ export function ProjectDetail() {
           </div>
 
           {/* Vehicle Lines section */}
-          <div>
-            <SectionHeader title="Vehicle Lines" accent="bg-emerald-500" />
-            {lines.length === 0 ? (
-              <Card className="p-8 text-center text-gray-500 text-sm">No vehicle lines registered.</Card>
-            ) : (
-              <div className="bg-white border border-gray-200/80 rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">#</th>
-                      <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Type</th>
-                      <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Description</th>
-                      <th className="text-right px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Qty</th>
-                      {canSeeMoney && (
-                        <>
-                          <th className="text-right px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Unit (SAR)</th>
-                          <th className="text-right px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">VAT</th>
-                          <th className="text-right px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Total (SAR)</th>
-                        </>
-                      )}
-                      <th className="text-left px-4 py-3 font-medium text-gray-500 uppercase tracking-[0.04em]">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {lines.map((line) => (
-                      <tr key={line.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-gray-500">{line.line_number}</td>
-                        <td className="px-4 py-3 font-medium">{line.vehicle_type}</td>
-                        <td className="px-4 py-3 text-gray-700">{line.description}</td>
-                        <td className="px-4 py-3 text-right tabular-nums">{line.quantity}</td>
-                        {canSeeMoney && (
-                          <>
-                            <td className="px-4 py-3 text-right tabular-nums">{line.unit_sales_value.toLocaleString()}</td>
-                            <td className="px-4 py-3 text-right text-xs text-gray-500 tabular-nums">
-                              {line.vat_applicable
-                                ? `${(VAT_RATE * 100).toFixed(0)}% · ${lineVatAmount(line.line_total_value, true).toLocaleString()}`
-                                : '—'}
-                            </td>
-                            <td className="px-4 py-3 text-right font-semibold tabular-nums">
-                              {lineTotalWithVat(line.line_total_value, line.vat_applicable ?? false).toLocaleString()}
-                            </td>
-                          </>
-                        )}
-                        <td className="px-4 py-3">
-                          <Badge variant="neutral">{line.line_status}</Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  {canSeeMoney && (
-                    <tfoot className="border-t-2 border-gray-300 bg-gray-50">
-                      <tr className="text-xs text-gray-500">
-                        <td colSpan={5} className="px-4 pt-3 pb-1 text-right">Subtotal (net)</td>
-                        <td className="px-4 pt-3 pb-1 text-right tabular-nums">
-                          {lines.reduce((s, l) => s + l.line_total_value, 0).toLocaleString()}
-                        </td>
-                        <td />
-                      </tr>
-                      <tr className="text-xs text-gray-500">
-                        <td colSpan={5} className="px-4 py-1 text-right">VAT ({(VAT_RATE * 100).toFixed(0)}% on flagged lines)</td>
-                        <td className="px-4 py-1 text-right tabular-nums">
-                          {lines.reduce((s, l) => s + lineVatAmount(l.line_total_value, l.vat_applicable ?? false), 0).toLocaleString()}
-                        </td>
-                        <td />
-                      </tr>
-                      <tr>
-                        <td colSpan={5} className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
-                          Total Value (incl. VAT)
-                        </td>
-                        <td className="px-4 py-3 text-right text-base font-bold text-gray-900 tabular-nums">
-                          {lines.reduce((s, l) => s + lineTotalWithVat(l.line_total_value, l.vat_applicable ?? false), 0).toLocaleString()}
-                        </td>
-                        <td />
-                      </tr>
-                    </tfoot>
-                  )}
-                </table>
-              </div>
-            )}
-          </div>
+          <VehicleLinesSection lines={lines} canSeeMoney={canSeeMoney} />
         </div>
       )}
 
       {/* ── Documents ─────────────────────────────────────────────────────────── */}
       {activeTab === 'documents' && (
-        <div className="space-y-3">
-          {!isSupabaseConfigured && (
-            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <Info size={14} className="text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-800">File upload and download require Supabase Storage to be configured.</p>
-            </div>
-          )}
-          <DocumentPanel
-            documents={documents}
-            bucket="project-documents"
-            canUpload={['admin', 'operations_manager', 'sales_user'].includes(role ?? '')}
-            upload={project && ['admin', 'operations_manager', 'sales_user'].includes(role ?? '') ? {
-              bucket: 'project-documents',
-              table: 'project_documents',
-              foreignKey: { field: 'project_id', value: project.id },
-              uploadedBy: profile?.id ?? null,
-              documentTypeOptions: [
-                { value: 'customer_po', label: 'Customer PO' },
-                { value: 'customer_contract', label: 'Customer Contract' },
-                { value: 'sales_order_supporting_document', label: 'SO Supporting Document' },
-                { value: 'specification_file', label: 'Specification File' },
-                { value: 'other', label: 'Other' },
-              ],
-            } : undefined}
-            onUploaded={(doc) => setDocuments((prev) => [...prev, doc as ProjectDocument])}
-            emptyMessage="No documents attached to this project."
-          />
-        </div>
+        <ProjectDocumentsSection
+          documents={documents}
+          project={project}
+          role={role}
+          profileId={profile?.id ?? null}
+          onUploaded={(doc) => setDocuments((prev) => [...prev, doc])}
+        />
       )}
 
       {/* ── Execution ────────────────────────────────────────────────────────── */}
@@ -2508,38 +2652,7 @@ export function ProjectDetail() {
           <div>
             <SectionHeader title="Timeline" accent="bg-slate-500" />
             <div className="space-y-3">
-              {timeline.length === 0 ? (
-                <Card className="p-8 text-center text-gray-500 text-sm">No timeline events yet.</Card>
-              ) : (
-                <div className="relative">
-                  <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200" />
-                  <div className="space-y-4">
-                    {timeline.map((event) => (
-                      <div key={event.id} className="flex items-start gap-4 relative">
-                        <div className="w-10 h-10 rounded-full bg-brand-100 border-2 border-white flex items-center justify-center shrink-0 z-10">
-                          <Clock size={16} className="text-brand-600" />
-                        </div>
-                        <Card className="flex-1 p-4">
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <p className="text-sm font-semibold text-gray-900">{event.title}</p>
-                              {event.actor_name && (
-                                <p className="text-xs text-gray-500 mt-0.5">by {event.actor_name}</p>
-                              )}
-                              {event.body && (
-                                <p className="text-sm text-gray-700 mt-2">{event.body}</p>
-                              )}
-                            </div>
-                            <time className="text-xs text-gray-400 whitespace-nowrap shrink-0">
-                              {formatDateTime(event.created_at)}
-                            </time>
-                          </div>
-                        </Card>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <ProjectTimeline timeline={timeline} />
             </div>
           </div>
 
