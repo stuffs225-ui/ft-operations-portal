@@ -114,17 +114,26 @@ export const NAV_ITEMS: NavItem[] = [
     // ops_mgr monitors Sales via WORKSTREAM MONITORING (ops-sales-monitor); viewer uses MANAGEMENT VISIBILITY
     roles: ['admin'],
   },
+  // sales_user SALES & COMMERCIAL — ordered: Projects, Pipeline Projects,
+  // Quotations, Collection & Aging, Sales Reports (per operations request).
+  {
+    id: 'sales-projects-link',
+    label: 'Projects',
+    path: '/projects',
+    icon: 'FolderKanban',
+    roles: ['sales_user'],
+  },
   {
     id: 'hot-projects',
-    label: 'Hot Projects',
+    label: 'Pipeline Projects',
     path: '/hot-projects',
     icon: 'Flame',
-    // ops_mgr monitors Hot Projects via WORKSTREAM MONITORING; viewer uses MANAGEMENT VISIBILITY
+    // ops_mgr monitors Pipeline Projects via WORKSTREAM MONITORING; viewer uses MANAGEMENT VISIBILITY
     roles: ['admin', 'sales_user'],
   },
   {
     id: 'quotations',
-    label: 'Quotation Requests',
+    label: 'Quotations',
     path: '/quotations',
     icon: 'FileText',
     // ops_mgr monitors Quotations via WORKSTREAM MONITORING; viewer uses MANAGEMENT VISIBILITY
@@ -132,25 +141,17 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'receivables',
-    label: 'Receivables & Aging',
+    label: 'Collection & Aging',
     path: '/receivables',
     icon: 'BarChart3',
     // viewer uses MANAGEMENT VISIBILITY section
     roles: ['admin'],
   },
-  // sales_user-specific SALES & COMMERCIAL entries
   {
     id: 'sales-receivables',
-    label: 'Receivables & Aging',
+    label: 'Collection & Aging',
     path: '/receivables',
     icon: 'BarChart3',
-    roles: ['sales_user'],
-  },
-  {
-    id: 'sales-projects-link',
-    label: 'Projects / SO',
-    path: '/projects',
-    icon: 'FolderKanban',
     roles: ['sales_user'],
   },
   {
@@ -170,7 +171,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'coord-quotations',
-    label: 'Quotation Requests',
+    label: 'Quotations',
     path: '/quotations',
     icon: 'FileText',
     roles: ['sales_coordinator'],
@@ -784,7 +785,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'ops-hot-projects',
-    label: 'Hot Projects',
+    label: 'Pipeline Projects',
     path: '/hot-projects',
     icon: 'Flame',
     roles: ['operations_manager'],
@@ -955,7 +956,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'viewer-hot-projects',
-    label: 'Hot Projects',
+    label: 'Pipeline Projects',
     path: '/hot-projects',
     icon: 'Flame',
     roles: ['viewer'],
@@ -971,7 +972,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'viewer-receivables',
-    label: 'Receivables',
+    label: 'Collection & Aging',
     path: '/receivables',
     icon: 'BarChart3',
     roles: ['viewer'],

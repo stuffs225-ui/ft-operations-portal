@@ -31,7 +31,10 @@ import type { HotProject, QuotationRequest } from '../types';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const CAN_CREATE_SO: UserRole[] = ['admin', 'operations_manager', 'sales_user'];
+// Sales do not create Sales Orders directly (see Projects.tsx) — the dashboard's
+// "Create SO / Project" shortcut is Admin/Operations only. Quotation→SO conversion
+// remains the sanctioned path for a sales-originated order.
+const CAN_CREATE_SO: UserRole[] = ['admin', 'operations_manager'];
 const BROAD_VIEW_ROLES: UserRole[] = ['admin', 'operations_manager'];
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = [CURRENT_YEAR - 1, CURRENT_YEAR, CURRENT_YEAR + 1];
@@ -308,7 +311,7 @@ export function Sales() {
           </Link>
         )}
         <Link to="/hot-projects/new">
-          <Button variant="secondary" size="sm"><Flame size={13} className="mr-1" /> Add Hot Project</Button>
+          <Button variant="secondary" size="sm"><Flame size={13} className="mr-1" /> Add Pipeline Project</Button>
         </Link>
         <Link to="/receivables">
           <Button variant="secondary" size="sm"><ReceiptText size={13} className="mr-1" /> View Receivables</Button>
@@ -383,7 +386,11 @@ export function Sales() {
               <SalesKpiCard
                 label="Pipeline Value"
                 value={sar(summary?.totalPipelineValue)}
-                subtitle="Estimated — unweighted"
+                subtitle={
+                  summary?.totalPipelineValueWeighted != null
+                    ? `Weighted ${sar(summary.totalPipelineValueWeighted)}`
+                    : 'Estimated — unweighted'
+                }
                 icon={<TrendingUp size={16} />}
                 muted={!summary?.totalPipelineValue}
               />

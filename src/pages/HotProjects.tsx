@@ -141,7 +141,13 @@ export function HotProjects() {
   const openRecords = records.filter((r) => OPEN_STAGES.includes(r.stage));
   const totalEstimated = openRecords.reduce((s, r) => s + (r.estimated_value ?? 0), 0);
   const weightedPipeline = openRecords.reduce((s, r) => s + ((r.estimated_value ?? 0) * r.probability) / 100, 0);
-  const wonCount = records.filter((r) => r.stage === 'won').length;
+  // "Won this year" — won opportunities whose last transition landed in the
+  // current calendar year (updated_at approximates the won date). Previously this
+  // counted all-time wins while the label claimed a period.
+  const currentYear = new Date().getFullYear();
+  const wonCount = records.filter(
+    (r) => r.stage === 'won' && new Date(r.updated_at).getFullYear() === currentYear,
+  ).length;
 
   const tabCounts: Record<TabKey, number> = {
     all:       records.filter(r => OPEN_STAGES.includes(r.stage)).length,
@@ -156,7 +162,7 @@ export function HotProjects() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Hot Projects"
+        title="Pipeline Projects"
         subtitle="Opportunity pipeline — active leads, negotiations, and commercial wins"
         actions={
           canCreate ? (
@@ -169,7 +175,7 @@ export function HotProjects() {
 
       <ReportExportBar
         reportKey="hot_projects_report"
-        reportTitle="Hot Projects Report"
+        reportTitle="Pipeline Projects Report"
         department="Sales"
         onExportCsv={handleExportCsv}
         summary={`${openRecords.length} open · weighted pipeline ${formatSAR(weightedPipeline)}`}
@@ -192,7 +198,7 @@ export function HotProjects() {
         <Card className="p-4">
           <div className="flex items-center gap-1.5 mb-1">
             <TrendingUp size={12} className="text-emerald-500" />
-            <div className="text-xs text-gray-500 uppercase tracking-[0.04em]">Won This Period</div>
+            <div className="text-xs text-gray-500 uppercase tracking-[0.04em]">Won This Year</div>
           </div>
           <div className="text-2xl font-bold tabular-nums text-emerald-600">{wonCount}</div>
         </Card>
@@ -249,7 +255,7 @@ export function HotProjects() {
       <div className="report-print-root">
         {/* Print-only header */}
         <div className="hidden print:block mb-6 pb-4 border-b-2 border-gray-800">
-          <h1 className="text-2xl font-bold text-gray-900">Hot Projects Report — {new Date().getFullYear()}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Pipeline Projects Report — {new Date().getFullYear()}</h1>
           <p className="text-sm text-gray-700 mt-1">Salesperson: {profile?.full_name ?? '—'}</p>
           <p className="text-sm text-gray-700">Generated: {reportDate}</p>
           <p className="text-sm text-gray-700 mt-1">
