@@ -198,9 +198,15 @@ export function effectiveSchedules(schedules: ScheduleRow[]): ScheduleRow[] {
     if (s.source === 'sales_line_plan') projectsWithPlan.add(s.project_id);
   }
   if (projectsWithPlan.size === 0) return schedules;
-  return schedules.filter(
-    (s) => !projectsWithPlan.has(s.project_id) || s.source === 'sales_line_plan',
-  );
+  // Drop only the SUPERSEDED auto rows (delivery_date/default) of planned projects.
+  // Keep the plan rows, and keep any invoiced auto rows so invoiced-to-date history
+  // is never undercounted (mirrors migration 105, which preserves invoiced rows).
+  return schedules.filter((s) => {
+    if (!projectsWithPlan.has(s.project_id)) return true;
+    if (s.source === 'sales_line_plan') return true;
+    if (s.status === 'invoiced') return true; // preserve invoiced history
+    return false; // superseded pending auto row → excluded
+  });
 }
 
 // ── Monthly invoicing plan builder ───────────────────────────────────────────
