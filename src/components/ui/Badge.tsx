@@ -1,10 +1,6 @@
 import { cn } from '../../lib/utils';
 
-// Visual Identity D5 — status chip: RECTANGLE (radius 4px), tint + border + text,
-// 11px/600 UPPERCASE. Only `dangerSolid` (overdue / CRITICAL) fills solid.
-type BadgeVariant =
-  | 'default' | 'success' | 'warning' | 'critical' | 'info' | 'neutral'
-  | 'dangerSolid' | 'outline';
+type BadgeVariant = 'default' | 'success' | 'warning' | 'critical' | 'info' | 'neutral';
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -14,22 +10,20 @@ interface BadgeProps {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default:     'bg-info-tint border border-info-border text-info-text',
-  info:        'bg-info-tint border border-info-border text-info-text',
-  success:     'bg-success-tint border border-success-border text-success-text',
-  warning:     'bg-warning-tint border border-warning-border text-warning-text',
-  critical:    'bg-danger-tint border border-danger-border text-danger-text',
-  neutral:     'bg-gray-100 border border-gray-300 text-gray-600',
-  dangerSolid: 'bg-danger border border-danger text-white',
-  outline:     'bg-transparent border border-gray-300 text-gray-600',
+  default:  'bg-brand-50 text-brand-700',
+  success:  'bg-green-50 text-green-700',
+  warning:  'bg-amber-50 text-amber-700',
+  critical: 'bg-red-50 text-red-700',
+  info:     'bg-sky-50 text-sky-700',
+  neutral:  'bg-gray-100 text-gray-600',
 };
 
 export function Badge({ children, variant = 'default', size = 'sm', className }: BadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-btn font-semibold uppercase tracking-[0.04em] whitespace-nowrap',
-        size === 'sm' ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs',
+        'inline-flex items-center rounded-md font-medium',
+        size === 'sm' ? 'px-2 py-px text-xs' : 'px-2.5 py-1 text-sm',
         variantClasses[variant],
         className,
       )}
