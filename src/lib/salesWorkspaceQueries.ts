@@ -11,38 +11,56 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import type { HotProject, QuotationRequest } from '../types';
 
+// Default on-screen cap (one salesman's list). Report generation passes a much
+// larger cap AND reads the `truncated` flag so a broad report can never drop
+// financial rows without saying so. See getWorkspace* `opts.limit`.
+const DEFAULT_WORKSPACE_LIMIT = 300;
+
+export interface WorkspaceQueryResult<T> {
+  data: T[];
+  error: string | null;
+  /** True when the row count hit the requested cap — the list may be incomplete. */
+  truncated: boolean;
+}
+
 // ── Pillar 2: Hot Projects ────────────────────────────────────────────────────
 
 export async function getWorkspaceHotProjects(
   salesUserId: string | null,
-): Promise<{ data: HotProject[]; error: string | null }> {
-  if (!isSupabaseConfigured || !supabase) return { data: [], error: null };
+  opts?: { limit?: number },
+): Promise<WorkspaceQueryResult<HotProject>> {
+  const limit = opts?.limit ?? DEFAULT_WORKSPACE_LIMIT;
+  if (!isSupabaseConfigured || !supabase) return { data: [], error: null, truncated: false };
   let q = supabase
     .from('hot_projects')
     .select('*')
     .order('created_at', { ascending: false })
-    .limit(300);
+    .limit(limit);
   if (salesUserId) q = q.eq('created_by', salesUserId);
   const { data, error } = await q;
-  if (error) return { data: [], error: error.message };
-  return { data: (data as unknown as HotProject[]) ?? [], error: null };
+  if (error) return { data: [], error: error.message, truncated: false };
+  const rows = (data as unknown as HotProject[]) ?? [];
+  return { data: rows, error: null, truncated: rows.length >= limit };
 }
 
 // ── Pillar 3: Quotations ──────────────────────────────────────────────────────
 
 export async function getWorkspaceQuotations(
   salesUserId: string | null,
-): Promise<{ data: QuotationRequest[]; error: string | null }> {
-  if (!isSupabaseConfigured || !supabase) return { data: [], error: null };
+  opts?: { limit?: number },
+): Promise<WorkspaceQueryResult<QuotationRequest>> {
+  const limit = opts?.limit ?? DEFAULT_WORKSPACE_LIMIT;
+  if (!isSupabaseConfigured || !supabase) return { data: [], error: null, truncated: false };
   let q = supabase
     .from('quotation_requests')
     .select('*')
     .order('created_at', { ascending: false })
-    .limit(300);
+    .limit(limit);
   if (salesUserId) q = q.eq('requested_by', salesUserId);
   const { data, error } = await q;
-  if (error) return { data: [], error: error.message };
-  return { data: (data as unknown as QuotationRequest[]) ?? [], error: null };
+  if (error) return { data: [], error: error.message, truncated: false };
+  const rows = (data as unknown as QuotationRequest[]) ?? [];
+  return { data: rows, error: null, truncated: rows.length >= limit };
 }
 
 // ── Salesman picker (admin reports) ───────────────────────────────────────────
