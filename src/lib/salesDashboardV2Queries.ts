@@ -61,6 +61,7 @@ interface ScheduleRow {
   invoice_year: number;
   invoice_month: number;
   status: string;
+  source: string | null;
   sales_user_id: string | null;
 }
 
@@ -184,6 +185,24 @@ function pct(numerator: number, denominator: number | null): number | null {
   return Math.round((numerator / denominator) * 10000) / 100; // 2 decimal places
 }
 
+/**
+ * One financial truth per project. Once a sales per-line plan exists
+ * (source='sales_line_plan'), the project's auto delivery-date / default rows are
+ * superseded and must NOT be summed again — otherwise Pending/TTL double-count
+ * (the "Pending 6.0M > Total 3.0M" bug). For projects without a per-line plan the
+ * schedule is returned unchanged.
+ */
+export function effectiveSchedules(schedules: ScheduleRow[]): ScheduleRow[] {
+  const projectsWithPlan = new Set<string>();
+  for (const s of schedules) {
+    if (s.source === 'sales_line_plan') projectsWithPlan.add(s.project_id);
+  }
+  if (projectsWithPlan.size === 0) return schedules;
+  return schedules.filter(
+    (s) => !projectsWithPlan.has(s.project_id) || s.source === 'sales_line_plan',
+  );
+}
+
 // ── Monthly invoicing plan builder ───────────────────────────────────────────
 // Source: project_invoicing_schedule
 // - current_invoice_date drives the month column (via invoice_month generated column)
@@ -302,7 +321,7 @@ export async function getSalesDashboardV2Data(
   // Cancelled lines excluded — they should not appear in any totals.
   const scheduleQuery = supabase
     .from('project_invoicing_schedule')
-    .select('id, project_id, invoice_amount, current_invoice_date, invoice_year, invoice_month, status, sales_user_id')
+    .select('id, project_id, invoice_amount, current_invoice_date, invoice_year, invoice_month, status, source, sales_user_id')
     .neq('status', 'cancelled');
 
   // Milestones: used only for Outstanding Receivables and Collection to Date.
@@ -349,7 +368,10 @@ export async function getSalesDashboardV2Data(
 
   const projects    = (projectsRes.data   ?? []) as ProjectRow[];
   const hotProjects = (hotProjectsRes.data ?? []) as HotProjectRow[];
-  const schedules   = (scheduleRes.data    ?? []) as ScheduleRow[];
+  const schedulesRaw = (scheduleRes.data   ?? []) as ScheduleRow[];
+  // Collapse each project to one financial truth: a per-line plan supersedes the
+  // auto delivery-date/default rows, so nothing double-counts (fixes Pending>Total).
+  const schedules   = effectiveSchedules(schedulesRaw);
   const milestones  = (milestonesRes.data  ?? []) as MilestoneRow[];
   const target      = (targetsRes.data     ?? null) as TargetRow | null;
 

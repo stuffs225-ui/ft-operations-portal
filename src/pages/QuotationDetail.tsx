@@ -70,7 +70,9 @@ const STATUS_VARIANT: Record<QuotationStatus, 'neutral' | 'warning' | 'info' | '
 };
 
 const COORDINATOR_ROLES: UserRole[] = ['admin', 'operations_manager', 'sales_coordinator'];
-const CAN_CONVERT: UserRole[] = ['admin', 'operations_manager', 'sales_user'];
+// SO authoring (incl. converting a quotation to an SO) is Admin/Operations only.
+// Sales prepare the quotation; Operations turns it into a Sales Order.
+const CAN_CONVERT: UserRole[] = ['admin', 'operations_manager'];
 
 // ── Accordion section ─────────────────────────────────────────────────────────
 
