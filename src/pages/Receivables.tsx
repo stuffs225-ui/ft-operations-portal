@@ -90,7 +90,7 @@ export function Receivables() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Receivables & Aging"
+        title="Collection & Aging"
         subtitle="Outstanding invoice milestones — live from invoicing plans"
       />
 

@@ -170,7 +170,7 @@ export function Projects() {
   return (
     <div>
       <PageHeader
-        title="Projects / SO"
+        title="Projects"
         subtitle={isSalesUser
           ? 'Your Sales Orders and projects — track approval status, delivery dates, and commercial value'
           : 'Sales Orders and project lifecycle management'}
