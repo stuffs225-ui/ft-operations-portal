@@ -194,7 +194,8 @@ function pct(numerator: number, denominator: number | null): number | null {
 function buildInvoicingPlanRows(
   projects: ProjectRow[],
   schedules: ScheduleRow[],
-  selectedYear: number
+  selectedYear: number,
+  qtyByProject: Map<string, number>
 ): SalesInvoicingPlanRow[] {
   // Group schedule lines by project_id
   const byProject = new Map<string, ScheduleRow[]>();
@@ -224,7 +225,12 @@ function buildInvoicingPlanRows(
       months[key] = (months[key] ?? 0) + (s.invoice_amount ?? 0);
     }
 
-    const ttl = MONTH_NAMES.reduce((sum, k) => sum + (months[k] ?? 0), 0);
+    // Selected-year total = sum of that year's months.
+    const selectedYearValue = MONTH_NAMES.reduce((sum, k) => sum + (months[k] ?? 0), 0);
+
+    // TTL = all-years scheduled total for this project (every non-cancelled line,
+    // regardless of year) — a true grand total, distinct from the year column.
+    const ttl = projectSchedules.reduce((sum, s) => sum + (s.invoice_amount ?? 0), 0);
 
     // Pending: lines not yet invoiced or cancelled (across all years for this project)
     const pendingInvoicing = projectSchedules
@@ -236,12 +242,12 @@ function buildInvoicingPlanRows(
       projectCode:      project.project_code,
       customerName:     project.customer_name,
       orderOrPo:        project.so_number,
-      quantity:         null, // requires join to project_vehicle_lines — deferred
+      quantity:         qtyByProject.get(project.id) ?? null,
       totalValue:       project.total_sales_value,
       pendingInvoicing,
       months,
       ttl,
-      selectedYearValue: ttl,
+      selectedYearValue,
     });
   }
 
@@ -283,6 +289,13 @@ export async function getSalesDashboardV2Data(
     return isBroadView ? base : base.eq('sales_owner_id', salesUserId);
   })();
 
+  // Vehicle-line quantities per project (for the plan table's Qty column).
+  // RLS returns only lines for projects the user may read; extras are ignored
+  // since we index by the projects we already fetched.
+  const vehicleLinesQuery = supabase
+    .from('project_vehicle_lines')
+    .select('project_id, quantity');
+
   // Invoicing schedule: primary source for the invoicing plan table.
   // RLS scopes sales_user to own projects automatically (pis: sales_user own project read).
   // Cancelled lines excluded — they should not appear in any totals.
@@ -307,12 +320,13 @@ export async function getSalesDashboardV2Data(
     .eq('target_year', selectedYear)
     .maybeSingle();
 
-  const [projectsRes, hotProjectsRes, scheduleRes, milestonesRes, targetsRes] = await Promise.all([
+  const [projectsRes, hotProjectsRes, scheduleRes, milestonesRes, targetsRes, vehicleLinesRes] = await Promise.all([
     projectsQuery,
     hotProjectsQuery,
     scheduleQuery,
     milestonesQuery,
     targetsQuery,
+    vehicleLinesQuery,
   ]);
 
   // Projects are fatal (core data). The invoicing schedule is fatal ONLY for genuine
@@ -338,6 +352,12 @@ export async function getSalesDashboardV2Data(
   const milestones  = (milestonesRes.data  ?? []) as MilestoneRow[];
   const target      = (targetsRes.data     ?? null) as TargetRow | null;
 
+  // Total vehicle-line quantity per project (Qty column). Not fatal if blocked.
+  const qtyByProject = new Map<string, number>();
+  for (const l of (vehicleLinesRes.data ?? []) as { project_id: string; quantity: number }[]) {
+    qtyByProject.set(l.project_id, (qtyByProject.get(l.project_id) ?? 0) + (l.quantity ?? 0));
+  }
+
   // ── Summary KPIs ────────────────────────────────────────────────────────────
 
   const activeProjects = projects.filter(p =>
@@ -359,7 +379,7 @@ export async function getSalesDashboardV2Data(
 
   // ── Monthly invoicing plan ───────────────────────────────────────────────────
 
-  const invoicingPlanRows = buildInvoicingPlanRows(projects, schedules, selectedYear);
+  const invoicingPlanRows = buildInvoicingPlanRows(projects, schedules, selectedYear, qtyByProject);
 
   // ── Annual targets ───────────────────────────────────────────────────────────
 
