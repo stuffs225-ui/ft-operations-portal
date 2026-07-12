@@ -15,6 +15,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { recordQuotationEvent, recordQuotationAuditEntry } from '../lib/quotationAudit';
 import { getQuotationSlaStatus, getOverdueDays } from '../lib/quotationSla';
 import { DocumentPanel } from '../components/documents/DocumentPanel';
+import { QuotationClarificationThread } from '../components/features/QuotationClarificationThread';
 import { openSignedUrl } from '../lib/documents';
 import {
   MOCK_QUOTATIONS,
@@ -760,6 +761,14 @@ export function QuotationDetail() {
             emptyMessage="No specification documents uploaded."
           />
         </Section>
+
+        {/* Clarification thread (C1) — two-way, multi-round, logged. */}
+        <QuotationClarificationThread
+          quotationId={quotation.id}
+          userId={profile?.id ?? null}
+          userName={profile?.full_name ?? profile?.email ?? null}
+          userRole={role}
+        />
 
         {/* Quotation Response (shown when there's a response or when coordinator can act) */}
         {(['returned_to_sales', 'converted_to_so', 'quotation_received'].includes(quotation.quotation_status) ||

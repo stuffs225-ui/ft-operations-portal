@@ -8,6 +8,8 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { Skeleton } from '../components/ui/skeleton';
 import { Drawer } from '../components/ui/Drawer';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
+import { MonthlyAgingReview } from '../components/features/MonthlyAgingReview';
 import type { ReceivablesAgingRow, AgingBucket, MilestoneStatus } from '../types';
 
 function formatSAR(v: number | null | undefined) {
@@ -39,6 +41,7 @@ const MILESTONE_STATUS_CONFIG: Partial<Record<MilestoneStatus, { label: string; 
 const BUCKET_ORDER: AgingBucket[] = ['not_due', 'due_0_30', 'due_31_60', 'due_61_90', 'due_90_plus'];
 
 export function Receivables() {
+  const { profile } = useAuth();
   const [rows, setRows] = useState<ReceivablesAgingRow[]>([]);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
@@ -260,6 +263,9 @@ export function Receivables() {
           </div>
         )}
       </Drawer>
+
+      {/* C3 — monthly aging review + salesman clarification loop (safe until migration 107). */}
+      <MonthlyAgingReview userId={profile?.id ?? null} userName={profile?.full_name ?? profile?.email ?? null} />
     </div>
   );
 }
