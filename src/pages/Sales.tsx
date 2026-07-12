@@ -249,9 +249,10 @@ export function Sales() {
   const scheduleUnavailable = warnings?.invoicingScheduleUnavailable ?? false;
 
   // Invoicing Plan table footer totals
-  const footerTotalValue = planRows.reduce((s, r) => s + r.totalValue, 0);
-  const footerPending    = planRows.reduce((s, r) => s + r.pendingInvoicing, 0);
-  const footerTtl        = planRows.reduce((s, r) => s + r.ttl, 0);
+  const footerTotalValue   = planRows.reduce((s, r) => s + r.totalValue, 0);
+  const footerPending      = planRows.reduce((s, r) => s + r.pendingInvoicing, 0);
+  const footerTtl          = planRows.reduce((s, r) => s + r.ttl, 0);
+  const footerSelectedYear = planRows.reduce((s, r) => s + r.selectedYearValue, 0);
   const monthTotals      = MONTH_KEYS.reduce<Record<keyof SalesInvoicingPlanMonths, number>>(
     (acc, k) => ({ ...acc, [k]: planRows.reduce((s, r) => s + (r.months[k] ?? 0), 0) }),
     {} as Record<keyof SalesInvoicingPlanMonths, number>,
@@ -304,9 +305,6 @@ export function Sales() {
         </Link>
         <Link to="/receivables">
           <Button variant="secondary" size="sm"><ReceiptText size={13} className="mr-1" /> View Receivables</Button>
-        </Link>
-        <Link to="/reports/sales">
-          <Button variant="secondary" size="sm"><BarChart3 size={13} className="mr-1" /> Sales Reports</Button>
         </Link>
         <Button variant="secondary" size="sm" onClick={() => setReportOpen(true)}>
           <Printer size={13} className="mr-1" /> Generate Report
@@ -385,21 +383,15 @@ export function Sales() {
             </KpiGroup>
 
             <KpiGroup title="Risk & Cash">
+              {/* Administrative state, not commercial risk — shown calm (not red)
+                  so a routine revision doesn't cry wolf. Real delivery/penalty
+                  risk will get its own KPI once delivery tracking exists. */}
               <SalesKpiCard
-                label="Projects At Risk"
+                label="Needs Revision"
                 value={fmtInt(summary?.projectsAtRiskCount)}
                 subtitle="Sent back for revision"
                 icon={<AlertCircle size={16} />}
                 muted={(summary?.projectsAtRiskCount ?? 0) === 0}
-                urgent={(summary?.projectsAtRiskCount ?? 0) > 0}
-                tag={
-                  warnings?.projectsAtRiskDefinitionPending ? (
-                    <InlineTag
-                      label="Interim"
-                      title="Interim definition: counts projects sent back for revision, not commercial delivery risk. A refined definition is pending."
-                    />
-                  ) : undefined
-                }
               />
               <SalesKpiCard
                 label="Pending Invoicing"
@@ -419,7 +411,7 @@ export function Sales() {
                   <ReceiptText size={14} className="text-indigo-500" />
                   My Invoicing Plan — {selectedYear}
                 </h2>
-                <p className="text-xs text-gray-400 mt-0.5">Per-project monthly milestone schedule</p>
+                <p className="text-xs text-gray-400 mt-0.5">Per-project monthly invoicing schedule</p>
               </div>
               <Link to="/projects" className="text-xs text-emerald-600 hover:underline font-medium shrink-0">
                 Open Projects →
@@ -439,7 +431,7 @@ export function Sales() {
               <div className="px-5 py-10 text-center">
                 <ReceiptText size={28} className="mx-auto text-gray-300 mb-2" />
                 <p className="text-sm text-gray-500">No invoicing plan data for {selectedYear}.</p>
-                <p className="text-xs text-gray-400 mt-1">Projects with milestone schedules will appear here.</p>
+                <p className="text-xs text-gray-400 mt-1">Projects with an invoicing schedule will appear here.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -466,8 +458,8 @@ export function Sales() {
                           {MONTH_LABELS[m]}
                         </th>
                       ))}
-                      <th className="px-3 py-2.5 text-right font-semibold text-gray-700 uppercase tracking-[0.05em] whitespace-nowrap bg-indigo-50/60">
-                        TTL
+                      <th className="px-3 py-2.5 text-right font-semibold text-gray-700 uppercase tracking-[0.05em] whitespace-nowrap bg-indigo-50/60" title="Scheduled total across all years">
+                        All Yrs
                       </th>
                       <th className="px-3 py-2.5 text-right font-semibold text-gray-700 uppercase tracking-[0.05em] whitespace-nowrap bg-indigo-50/60">
                         {selectedYear}
@@ -537,7 +529,7 @@ export function Sales() {
                         {footerTtl > 0 ? sarK(footerTtl) : '—'}
                       </td>
                       <td className="px-3 py-2.5 text-right text-gray-900 tabular-nums bg-indigo-50/40">
-                        {footerTtl > 0 ? sarK(footerTtl) : '—'}
+                        {footerSelectedYear > 0 ? sarK(footerSelectedYear) : '—'}
                       </td>
                     </tr>
                   </tfoot>

@@ -66,8 +66,8 @@ export interface SalesInvoicingPlanRow {
   /** SO number — maps to projects.so_number */
   orderOrPo: string;
   /**
-   * Number of vehicle/item lines for this project.
-   * Requires join to project_vehicle_lines — returned as null in this PR.
+   * Total vehicle-line quantity for this project (units).
+   * Null only when the project has no vehicle lines or lines are not readable.
    */
   quantity: number | null;
   /** projects.total_sales_value */
