@@ -693,6 +693,134 @@ export type Database = {
         };
         Relationships: [];
       };
+      quotation_clarifications: {
+        Row: {
+          id: string;
+          quotation_id: string;
+          author_id: string | null;
+          author_name: string | null;
+          author_role: string | null;
+          direction: 'coordinator_request' | 'sales_reply';
+          body: string;
+          document_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          quotation_id: string;
+          author_id?: string | null;
+          author_name?: string | null;
+          author_role?: string | null;
+          direction: 'coordinator_request' | 'sales_reply';
+          body: string;
+          document_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          body?: string;
+          document_id?: string | null;
+        };
+        Relationships: [];
+      };
+      collection_uploads: {
+        Row: {
+          id: string;
+          period_label: string;
+          document_id: string | null;
+          note: string | null;
+          uploaded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          period_label: string;
+          document_id?: string | null;
+          note?: string | null;
+          uploaded_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          period_label?: string;
+          note?: string | null;
+        };
+        Relationships: [];
+      };
+      aging_snapshots: {
+        Row: {
+          id: string;
+          snapshot_month: string;
+          note: string | null;
+          uploaded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          snapshot_month: string;
+          note?: string | null;
+          uploaded_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          note?: string | null;
+        };
+        Relationships: [];
+      };
+      aging_items: {
+        Row: {
+          id: string;
+          snapshot_id: string;
+          invoice_ref: string;
+          customer_name: string | null;
+          project_code: string | null;
+          amount: number;
+          days_overdue: number | null;
+          sales_owner_id: string | null;
+          is_recurring: boolean;
+          first_seen_month: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          snapshot_id: string;
+          invoice_ref: string;
+          customer_name?: string | null;
+          project_code?: string | null;
+          amount?: number;
+          days_overdue?: number | null;
+          sales_owner_id?: string | null;
+          is_recurring?: boolean;
+          first_seen_month?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          amount?: number;
+          days_overdue?: number | null;
+          is_recurring?: boolean;
+        };
+        Relationships: [];
+      };
+      aging_clarifications: {
+        Row: {
+          id: string;
+          aging_item_id: string;
+          author_id: string | null;
+          author_name: string | null;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          aging_item_id: string;
+          author_id?: string | null;
+          author_name?: string | null;
+          body: string;
+          created_at?: string;
+        };
+        Update: {
+          body?: string;
+        };
+        Relationships: [];
+      };
       project_invoicing_schedule: {
         Row: {
           id: string;

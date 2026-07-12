@@ -39,7 +39,7 @@ export async function listClarifications(quotationId: string): Promise<Clarifica
   }
   const { data, error } = await supabase
     .from('quotation_clarifications')
-    .select('*, quotation_documents(document_name, file_path)')
+    .select('*, quotation_documents(file_name, storage_path)')
     .eq('quotation_id', quotationId)
     .order('created_at', { ascending: true });
 
@@ -50,11 +50,11 @@ export async function listClarifications(quotationId: string): Promise<Clarifica
 
   const rows = (data ?? []).map((r) => {
     const row = r as Record<string, unknown>;
-    const doc = row.quotation_documents as { document_name?: string; file_path?: string } | null;
+    const doc = row.quotation_documents as { file_name?: string; storage_path?: string } | null;
     return {
       ...(row as unknown as QuotationClarification),
-      document_name: doc?.document_name ?? null,
-      document_url: doc?.file_path ?? null,
+      document_name: doc?.file_name ?? null,
+      document_url: doc?.storage_path ?? null,
     };
   });
   return { data: rows, unavailable: false, error: null };
@@ -88,8 +88,8 @@ export async function addClarification(
       .from('quotation_documents')
       .insert({
         quotation_request_id: input.quotationId,
-        document_name: input.file.name,
-        file_path: path,
+        file_name: input.file.name,
+        storage_path: path,
         document_type: 'clarification',
         uploaded_by: input.authorId,
       })
