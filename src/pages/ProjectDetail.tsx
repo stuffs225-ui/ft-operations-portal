@@ -18,6 +18,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { recordProjectEvent, recordAuditEntry } from '../lib/projectAudit';
 import { notifyUser } from '../lib/workflowNotifications';
 import { LineInvoicingPlanner } from '../components/features/LineInvoicingPlanner';
+import { ExecutionGlance } from '../components/features/ExecutionGlance';
 import { openSignedUrl } from '../lib/documents';
 import { sectorLabel, VAT_RATE, lineVatAmount, lineTotalWithVat } from '../lib/commercialFields';
 import { fetchProjectReferences, getExecutionGateStatus } from '../lib/executionGate';
@@ -1517,6 +1518,9 @@ export function ProjectDetail() {
               </Card>
             );
           })()}
+          {/* Read-only execution overview (procurement / factory / store / QC) */}
+          <ExecutionGlance projectId={project.id} />
+
           {/* Per-line invoicing months — the salesman's simple planner */}
           <LineInvoicingPlanner
             projectId={project.id}
