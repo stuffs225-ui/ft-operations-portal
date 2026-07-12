@@ -4,7 +4,7 @@
 // reports use). Everything here is presentation — no RLS assumptions beyond
 // what the queries already ride on.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Flame, FileText, Printer, X } from 'lucide-react';
 import { Badge } from '../ui/Badge';
@@ -17,7 +17,8 @@ import {
 } from '../../lib/salesWorkspaceQueries';
 import {
   renderSalesReport, buildInvoicingSection, buildHotProjectsSection,
-  buildQuotationsSection, openPrintWindow, type ReportPeriod, type ReportContext,
+  buildQuotationsSection, buildTruncationNote, openPrintWindow,
+  type ReportPeriod, type ReportContext,
 } from '../../lib/salesReports';
 import { getSalesDashboardV2Data } from '../../lib/salesDashboardV2Queries';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
@@ -193,6 +194,26 @@ function resolvePeriod(kind: PeriodKind, from: string, to: string): ReportPeriod
   return { label: `${from || '…'} → ${to || '…'}`, from: f, to: t };
 }
 
+/**
+ * The plan year the invoicing section must use — derived from the REPORT period,
+ * not the dashboard's year selector, so all three sections speak for one year.
+ * Falls back to the dashboard year only for an open-ended (no-bounds) period.
+ */
+function reportYearForPeriod(period: ReportPeriod, fallback: number): number {
+  if (period.from) return period.from.getUTCFullYear();
+  if (period.to) return period.to.getUTCFullYear();
+  return fallback;
+}
+
+/** Report generation reads far more rows than the on-screen list, and flags any
+ *  truncation rather than silently dropping financial rows. */
+const REPORT_ROW_CAP = 5000;
+
+/** Custom range is valid only when both ends are set and from ≤ to. */
+function isCustomRangeInvalid(kind: PeriodKind, from: string, to: string): boolean {
+  return kind === 'custom' && (!from || !to || from > to);
+}
+
 interface SalesReportDialogProps {
   open: boolean;
   onClose: () => void;
@@ -215,6 +236,7 @@ export function SalesReportDialog({ open, onClose, selfId, selfName, selfIsBroad
   const [subjectId, setSubjectId] = useState<string>('self');
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open || !canPickSalesman) return;
@@ -223,7 +245,33 @@ export function SalesReportDialog({ open, onClose, selfId, selfName, selfIsBroad
     return () => { cancelled = true; };
   }, [open, canPickSalesman]);
 
+  // Esc-to-close + initial focus (keyboard users are not stranded).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !generating) onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    dialogRef.current?.focus();
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, generating, onClose]);
+
+  // Keep Tab focus inside the dialog while it is open.
+  function trapTab(e: React.KeyboardEvent) {
+    if (e.key !== 'Tab' || !dialogRef.current) return;
+    const focusables = dialogRef.current.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), select, input, [href], [tabindex]:not([tabindex="-1"])',
+    );
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+
   if (!open) return null;
+
+  const customInvalid = isCustomRangeInvalid(periodKind, from, to);
 
   async function generate() {
     setGenerating(true);
@@ -238,8 +286,16 @@ export function SalesReportDialog({ open, onClose, selfId, selfName, selfIsBroad
         setGenerating(false);
         return;
       }
+      if (isCustomRangeInvalid(periodKind, from, to)) {
+        setError('Enter a valid custom range — both dates are required and "from" must be on or before "to".');
+        setGenerating(false);
+        return;
+      }
       const period = resolvePeriod(periodKind, from, to);
-      const ctx: ReportContext = { salesmanName: subjectName, period, year: selectedYear };
+      // Invoicing follows the REPORT period's year (not the dashboard selector),
+      // so invoicing, pipeline and quotations all describe the same year.
+      const reportYear = reportYearForPeriod(period, selectedYear);
+      const ctx: ReportContext = { salesmanName: subjectName, period, year: reportYear };
       // Pillar scope: broad view sees all records; otherwise only the subject's.
       const scope = broad ? null : subjectUserId;
 
@@ -250,13 +306,24 @@ export function SalesReportDialog({ open, onClose, selfId, selfName, selfIsBroad
 
       const [dash, hot, quotes] = await Promise.all([
         wantInvoicing
-          ? getSalesDashboardV2Data({ supabase, salesUserId: subjectUserId, selectedYear, isBroadView: broad })
+          ? getSalesDashboardV2Data({ supabase, salesUserId: subjectUserId, selectedYear: reportYear, isBroadView: broad })
           : Promise.resolve(null),
-        wantHot ? getWorkspaceHotProjects(scope) : Promise.resolve({ data: [] as HotProject[], error: null }),
-        wantQuotes ? getWorkspaceQuotations(scope) : Promise.resolve({ data: [] as QuotationRequest[], error: null }),
+        wantHot
+          ? getWorkspaceHotProjects(scope, { limit: REPORT_ROW_CAP })
+          : Promise.resolve({ data: [] as HotProject[], error: null, truncated: false }),
+        wantQuotes
+          ? getWorkspaceQuotations(scope, { limit: REPORT_ROW_CAP })
+          : Promise.resolve({ data: [] as QuotationRequest[], error: null, truncated: false }),
       ]);
 
       const sections: string[] = [];
+      // Never omit financial rows silently — flag any capped section at the top.
+      const truncated: string[] = [];
+      if (wantHot && hot.truncated) truncated.push('Hot Projects');
+      if (wantQuotes && quotes.truncated) truncated.push('Quotations');
+      const truncNote = buildTruncationNote(REPORT_ROW_CAP, truncated);
+      if (truncNote) sections.push(truncNote);
+
       if (wantInvoicing) {
         const rows: SalesInvoicingPlanRow[] = dash?.data?.invoicingPlanRows ?? [];
         sections.push(buildInvoicingSection(rows, ctx));
@@ -288,12 +355,21 @@ export function SalesReportDialog({ open, onClose, selfId, selfName, selfIsBroad
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !generating && onClose()}>
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sales-report-title"
+        tabIndex={-1}
+        className="bg-white rounded-xl shadow-xl max-w-md w-full p-5 space-y-4 focus:outline-none"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={trapTab}
+      >
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          <h3 id="sales-report-title" className="text-sm font-semibold text-gray-900 flex items-center gap-2">
             <Printer size={15} className="text-brand-600" /> Generate Report
           </h3>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600" disabled={generating}><X size={16} /></button>
+          <button onClick={onClose} aria-label="Close" className="p-1 text-gray-400 hover:text-gray-600" disabled={generating}><X size={16} /></button>
         </div>
 
         <div>
@@ -315,10 +391,17 @@ export function SalesReportDialog({ open, onClose, selfId, selfName, selfIsBroad
             <option value="custom">Custom range…</option>
           </select>
           {periodKind === 'custom' && (
-            <div className="flex gap-2 mt-2">
-              <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={selCls} />
-              <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={selCls} />
-            </div>
+            <>
+              <div className="flex gap-2 mt-2">
+                <input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} className={selCls} aria-label="From date" />
+                <input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className={selCls} aria-label="To date" />
+              </div>
+              {customInvalid && (
+                <p className="text-[11px] text-amber-600 mt-1.5">
+                  {!from || !to ? 'Pick both a start and an end date.' : '“From” must be on or before “To”.'}
+                </p>
+              )}
+            </>
           )}
         </div>
 
@@ -336,7 +419,7 @@ export function SalesReportDialog({ open, onClose, selfId, selfName, selfIsBroad
 
         <div className="flex justify-end gap-2 pt-1">
           <Button size="sm" variant="ghost" onClick={onClose} disabled={generating}>Cancel</Button>
-          <Button size="sm" loading={generating} icon={<Printer size={13} />} onClick={() => void generate()}>
+          <Button size="sm" loading={generating} disabled={customInvalid} icon={<Printer size={13} />} onClick={() => void generate()}>
             Generate & Print
           </Button>
         </div>

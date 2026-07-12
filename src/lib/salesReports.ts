@@ -173,6 +173,18 @@ export function renderSalesReport(title: string, sectionsHtml: string, ctx: Repo
 </html>`;
 }
 
+/**
+ * A visible banner printed at the top of a report when any section hit its row
+ * cap — so a broad report can never silently omit financial rows. `sources`
+ * names the capped sections (e.g. "Hot Projects", "Quotations").
+ */
+export function buildTruncationNote(cap: number, sources: string[]): string {
+  if (sources.length === 0) return '';
+  return `<div style="border:1px solid #fecaca;background:#fef2f2;color:#b91c1c;border-radius:6px;padding:8px 12px;margin:10px 0;font-size:10px;font-weight:600;">
+    ⚠ This report reached the ${cap.toLocaleString('en-US')}-row limit for ${esc(sources.join(' and '))}. Some rows may be omitted — narrow the period or pick a single salesman for a complete list.
+  </div>`;
+}
+
 // ── Section builders ──────────────────────────────────────────────────────────
 
 export function buildInvoicingSection(
@@ -212,7 +224,7 @@ export function buildInvoicingSection(
   </div>
   ${visible.length === 0 ? '<p class="muted">No invoicing plan lines in this period.</p>' : `
   <table>
-    <thead><tr><th>Customer / Project</th><th>Order / PO</th><th class="num">Qty</th><th class="num">Value</th><th class="num">Pending</th>${head}</tr></thead>
+    <thead><tr><th>Customer / Project</th><th>SO #</th><th class="num">Qty</th><th class="num">Value</th><th class="num">Pending</th>${head}</tr></thead>
     <tbody>${body}</tbody>
     <tfoot><tr>
       <td>Total (${visible.length})</td><td></td><td></td>

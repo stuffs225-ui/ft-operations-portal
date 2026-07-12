@@ -60,6 +60,13 @@ function sarK(v: number | null | undefined): string {
   return String(v);
 }
 
+// Exact SAR for a hover title, so two distinct figures that abbreviate to the
+// same "6.1M" are always distinguishable. Empty string = no tooltip (absent value).
+function sarTitle(v: number | null | undefined): string {
+  if (v == null) return '';
+  return 'SAR ' + v.toLocaleString('en-SA', { maximumFractionDigits: 0 });
+}
+
 function fmtPct(v: number | null | undefined): string {
   if (v == null) return '—';
   return v.toFixed(1) + '%';
@@ -442,7 +449,7 @@ export function Sales() {
                         Customer
                       </th>
                       <th className="px-3 py-2.5 text-left font-semibold text-gray-500 uppercase tracking-[0.05em] whitespace-nowrap">
-                        Order / PO
+                        SO #
                       </th>
                       <th className="px-3 py-2.5 text-right font-semibold text-gray-500 uppercase tracking-[0.05em] whitespace-nowrap">
                         Qty
@@ -477,10 +484,10 @@ export function Sales() {
                         <td className="px-3 py-2.5 text-right text-gray-400 tabular-nums">
                           {row.quantity ?? '—'}
                         </td>
-                        <td className="px-3 py-2.5 text-right text-gray-900 font-medium tabular-nums whitespace-nowrap">
+                        <td className="px-3 py-2.5 text-right text-gray-900 font-medium tabular-nums whitespace-nowrap" title={sarTitle(row.totalValue)}>
                           {sarK(row.totalValue)}
                         </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap text-indigo-700 font-medium">
+                        <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap text-indigo-700 font-medium" title={sarTitle(row.pendingInvoicing)}>
                           {row.pendingInvoicing > 0 ? sarK(row.pendingInvoicing) : <span className="text-gray-300">—</span>}
                         </td>
                         {MONTH_KEYS.map(m => {
@@ -489,6 +496,7 @@ export function Sales() {
                           return (
                             <td
                               key={m}
+                              title={sarTitle(v)}
                               className={`px-2 py-2.5 text-right tabular-nums whitespace-nowrap w-16 ${
                                 hasValue ? 'bg-emerald-50 text-emerald-800 font-medium' : 'text-gray-300'
                               }`}
@@ -497,10 +505,10 @@ export function Sales() {
                             </td>
                           );
                         })}
-                        <td className="px-3 py-2.5 text-right text-gray-900 font-semibold tabular-nums whitespace-nowrap bg-indigo-50/40">
+                        <td className="px-3 py-2.5 text-right text-gray-900 font-semibold tabular-nums whitespace-nowrap bg-indigo-50/40" title={sarTitle(row.ttl)}>
                           {row.ttl > 0 ? sarK(row.ttl) : <span className="text-gray-300">—</span>}
                         </td>
-                        <td className="px-3 py-2.5 text-right text-gray-900 font-semibold tabular-nums whitespace-nowrap bg-indigo-50/40">
+                        <td className="px-3 py-2.5 text-right text-gray-900 font-semibold tabular-nums whitespace-nowrap bg-indigo-50/40" title={sarTitle(row.selectedYearValue)}>
                           {row.selectedYearValue > 0 ? sarK(row.selectedYearValue) : <span className="text-gray-300">—</span>}
                         </td>
                       </tr>
@@ -513,22 +521,22 @@ export function Sales() {
                       </td>
                       <td className="px-3 py-2.5" />
                       <td className="px-3 py-2.5 text-right text-gray-400">—</td>
-                      <td className="px-3 py-2.5 text-right text-gray-900 tabular-nums">{sarK(footerTotalValue)}</td>
-                      <td className="px-3 py-2.5 text-right text-indigo-700 tabular-nums">
+                      <td className="px-3 py-2.5 text-right text-gray-900 tabular-nums" title={sarTitle(footerTotalValue)}>{sarK(footerTotalValue)}</td>
+                      <td className="px-3 py-2.5 text-right text-indigo-700 tabular-nums" title={sarTitle(footerPending)}>
                         {footerPending > 0 ? sarK(footerPending) : <span className="text-gray-300">—</span>}
                       </td>
                       {MONTH_KEYS.map(m => {
                         const v = monthTotals[m];
                         return (
-                          <td key={m} className={`px-2 py-2.5 text-right tabular-nums w-16 ${v > 0 ? 'text-emerald-800 font-semibold' : 'text-gray-300'}`}>
+                          <td key={m} title={sarTitle(v)} className={`px-2 py-2.5 text-right tabular-nums w-16 ${v > 0 ? 'text-emerald-800 font-semibold' : 'text-gray-300'}`}>
                             {v > 0 ? sarK(v) : '—'}
                           </td>
                         );
                       })}
-                      <td className="px-3 py-2.5 text-right text-gray-900 tabular-nums bg-indigo-50/40">
+                      <td className="px-3 py-2.5 text-right text-gray-900 tabular-nums bg-indigo-50/40" title={sarTitle(footerTtl)}>
                         {footerTtl > 0 ? sarK(footerTtl) : '—'}
                       </td>
-                      <td className="px-3 py-2.5 text-right text-gray-900 tabular-nums bg-indigo-50/40">
+                      <td className="px-3 py-2.5 text-right text-gray-900 tabular-nums bg-indigo-50/40" title={sarTitle(footerSelectedYear)}>
                         {footerSelectedYear > 0 ? sarK(footerSelectedYear) : '—'}
                       </td>
                     </tr>
