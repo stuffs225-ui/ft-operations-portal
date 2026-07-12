@@ -7,11 +7,11 @@
 // remain unchanged — they are accessible via top action buttons and /projects.
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   FileText, Plus, Flame, ReceiptText, BarChart3, ShieldCheck,
-  AlertCircle, Info, FolderOpen, TrendingUp, Wallet,
+  AlertCircle, Info, FolderOpen, TrendingUp, Wallet, Printer,
 } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
 import { PageHeader } from '@/components/common/page-header';
@@ -23,6 +23,11 @@ import { ROLE_MATRIX } from '../lib/roleMatrix';
 import { useSalesDashboardV2Data } from '../hooks/useSalesDashboardV2Data';
 import type { UserRole } from '../types';
 import type { SalesInvoicingPlanMonths } from '../types/salesDashboardV2';
+import {
+  HotProjectsPillar, QuotationsPillar, SalesReportDialog,
+} from '../components/features/SalesWorkspacePillars';
+import { getWorkspaceHotProjects, getWorkspaceQuotations } from '../lib/salesWorkspaceQueries';
+import type { HotProject, QuotationRequest } from '../types';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -207,6 +212,25 @@ export function Sales() {
   const isBroadView  = role ? BROAD_VIEW_ROLES.includes(role) : false;
   const canCreateSO  = role ? CAN_CREATE_SO.includes(role)    : false;
 
+  // Pillars 2 & 3 — same query layer the printable reports use (no drift).
+  const [hotProjects, setHotProjects] = useState<HotProject[]>([]);
+  const [quotations, setQuotations] = useState<QuotationRequest[]>([]);
+  const [pillarsLoading, setPillarsLoading] = useState(true);
+  const [reportOpen, setReportOpen] = useState(false);
+
+  useEffect(() => {
+    if (authLoading) return;
+    let cancelled = false;
+    const scope = isBroadView ? null : (profile?.id ?? null);
+    void Promise.all([getWorkspaceHotProjects(scope), getWorkspaceQuotations(scope)]).then(([hp, q]) => {
+      if (cancelled) return;
+      setHotProjects(hp.data);
+      setQuotations(q.data);
+      setPillarsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [authLoading, isBroadView, profile?.id]);
+
   const { data, loading, error } = useSalesDashboardV2Data({
     salesUserId: profile?.id ?? null,
     selectedYear,
@@ -284,6 +308,9 @@ export function Sales() {
         <Link to="/reports/sales">
           <Button variant="secondary" size="sm"><BarChart3 size={13} className="mr-1" /> Sales Reports</Button>
         </Link>
+        <Button variant="secondary" size="sm" onClick={() => setReportOpen(true)}>
+          <Printer size={13} className="mr-1" /> Generate Report
+        </Button>
       </div>
 
       {/* ── Loading ───────────────────────────────────────────────────────────── */}
@@ -390,7 +417,7 @@ export function Sales() {
               <div>
                 <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
                   <ReceiptText size={14} className="text-indigo-500" />
-                  Invoicing Plan — {selectedYear}
+                  My Invoicing Plan — {selectedYear}
                 </h2>
                 <p className="text-xs text-gray-400 mt-0.5">Per-project monthly milestone schedule</p>
               </div>
@@ -518,6 +545,12 @@ export function Sales() {
               </div>
             )}
           </Card>
+
+          {/* ── Pillars 2 & 3: Hot Projects + Quotations ───────────────────────── */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <HotProjectsPillar hotProjects={hotProjects} loading={pillarsLoading} />
+            <QuotationsPillar quotations={quotations} loading={pillarsLoading} />
+          </div>
 
           {/* ── Annual Targets ─────────────────────────────────────────────────── */}
           <div>
@@ -653,6 +686,16 @@ export function Sales() {
 
         </>
       )}
+
+      <SalesReportDialog
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        selfId={profile?.id ?? null}
+        selfName={isBroadView ? 'All Salesmen' : (profile?.full_name ?? profile?.email ?? 'Salesman')}
+        selfIsBroad={isBroadView}
+        canPickSalesman={role === 'admin'}
+        selectedYear={selectedYear}
+      />
     </div>
   );
 }
