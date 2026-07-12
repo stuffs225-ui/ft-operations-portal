@@ -4,7 +4,7 @@ import {
   Users, UserPlus, ShieldCheck, ScrollText, Settings,
   GitBranch, BarChart2, Activity, AlertTriangle,
   ClipboardCheck, FolderKanban, FileStack, BellRing,
-  CalendarClock, CalendarRange, Target, type LucideIcon,
+  CalendarClock, CalendarRange, Target, UploadCloud, type LucideIcon,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { SectionHeader } from '@/components/common/section-header';
@@ -135,6 +135,16 @@ const QUICK_ACTIONS: QuickAction[] = [
     iconBg: 'bg-emerald-50',
     iconColor: 'text-emerald-700',
     borderColor: 'border-l-emerald-400',
+  },
+  {
+    id: 'aging-upload',
+    label: 'Monthly Aging Upload',
+    description: 'Upload the Finance collection/aging workbook and publish per-salesman items',
+    path: '/admin/aging-upload',
+    icon: UploadCloud,
+    iconBg: 'bg-indigo-50',
+    iconColor: 'text-indigo-700',
+    borderColor: 'border-l-indigo-400',
   },
 ];
 
