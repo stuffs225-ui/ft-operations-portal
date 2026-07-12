@@ -1,4 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* ── Fonts ────────────────────────────────────────────────────────────────────
+   Identity pairing: Inter (Latin) + IBM Plex Sans Arabic. Both are self-hosted
+   (zero runtime CDN, per FTOperationsIdentity.md D3). Drop the woff2 files into
+   /public/fonts/ and the @font-face blocks below activate them; until then the
+   stack falls through to the system UI font (visually near-identical to Inter).
+
+   See /public/fonts/README.md for the exact files. When they are present,
+   UNCOMMENT the two @font-face blocks below to activate them (kept commented so
+   the app makes no failed font requests until the woff2 files are added).
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/Inter-roman.var.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/IBMPlexSansArabic.woff2') format('woff2');
+}
+*/
 
 @tailwind base;
 @tailwind components;
@@ -6,48 +30,46 @@
 
 @layer base {
   :root {
-    /* ── Visual Identity v2 — NAFFCO brand alignment ─────────────────────────
-       Brand red: #cf1f29 ≈ hsl(357, 73%, 46%)
-       Changes from shadcn default:
-         --border / --input:  warmer neutral (removed blue cast)
-         --muted:             slightly warmer surface
-         --muted-foreground:  slightly warmer medium gray
-         --ring:              brand red focus rings
-       Unchanged: --primary (dark navy used in shadcn badge defaults),
-                  --background / --card / --foreground (no layout risk) */
+    /* ── Visual Identity v1.0 — Executive Navy + cool steel ───────────────────
+       shadcn/Radix HSL tokens mapped to FTOperationsIdentity.md so dialogs,
+       selects, popovers etc. match the token layer:
+         --primary   #2A4572 (Executive Navy — the working primary, NOT red)
+         --background #F9FAFB · --card #FFF · --foreground #101F38 (Navy Ink)
+         --border #E8EBF0 · --input #D1D9E3 · --muted #F4F5F7 · --ring navy
+         --destructive #C8102E (NAFFCO Emergency Red — danger only) */
 
-    --background: 0 0% 97.5%;
-    --foreground: 220 9% 10%;
+    --background: 210 20% 98%;      /* #F9FAFB */
+    --foreground: 219 47% 14%;      /* #101F38 Navy Ink */
     --card: 0 0% 100%;
-    --card-foreground: 220 9% 10%;
+    --card-foreground: 219 47% 14%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 9% 10%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 215 20% 95%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 215 20% 95%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 215 20% 95%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 357 73% 46%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 220 9% 91%;
-    --input: 220 9% 91%;
-    --ring: 357 73% 46%;
-    --radius: 0.375rem;
+    --popover-foreground: 219 47% 14%;
+    --primary: 217 46% 30%;         /* #2A4572 action navy */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 16% 96%;       /* #F4F5F7 */
+    --secondary-foreground: 219 47% 14%;
+    --muted: 220 16% 96%;
+    --muted-foreground: 215 16% 47%;/* #64748B */
+    --accent: 220 16% 96%;
+    --accent-foreground: 219 47% 14%;
+    --destructive: 350 85% 43%;     /* #C8102E */
+    --destructive-foreground: 0 0% 100%;
+    --border: 218 24% 92%;          /* #E8EBF0 */
+    --input: 214 26% 85%;           /* #D1D9E3 */
+    --ring: 217 46% 30%;            /* navy focus ring */
+    --radius: 0.375rem;             /* 6px */
 
     /* Surface hierarchy */
-    --surface-1: 0 0% 97.5%;
-    --surface-2: 0 0% 100%;
-    --surface-3: 220 14% 98%;
+    --surface-1: 210 20% 98%;       /* page #F9FAFB */
+    --surface-2: 0 0% 100%;         /* card #FFF */
+    --surface-3: 220 16% 96%;       /* sunken #F4F5F7 */
 
-    /* Shadow scale — subtle elevation */
-    --shadow-xs:  0 1px 2px 0 rgb(0 0 0 / 0.04);
-    --shadow-sm:  0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.05);
-    --shadow-md:  0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-    --shadow-lg:  0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.04);
-    --shadow-xl:  0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
+    /* Shadow scale — navy-tinted, subtle (identity D4) */
+    --shadow-xs:  0 1px 2px rgba(16,31,56,0.06), 0 1px 1px rgba(16,31,56,0.04);
+    --shadow-sm:  0 1px 3px rgba(16,31,56,0.08), 0 1px 2px rgba(16,31,56,0.06);
+    --shadow-md:  0 4px 6px rgba(16,31,56,0.07), 0 2px 4px rgba(16,31,56,0.05);
+    --shadow-lg:  0 10px 15px rgba(16,31,56,0.08), 0 4px 6px rgba(16,31,56,0.04);
+    --shadow-xl:  0 20px 25px rgba(16,31,56,0.09), 0 8px 10px rgba(16,31,56,0.05);
   }
 
   * {
@@ -56,7 +78,7 @@
   }
 
   html {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Inter', 'IBM Plex Sans Arabic', -apple-system, 'Segoe UI', Tahoma, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -100,6 +122,9 @@
 }
 
 @layer utilities {
+  /* Every financial figure, quantity and date column (identity D3). */
+  .num { font-variant-numeric: tabular-nums; }
+
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: #d1d5db transparent;

@@ -1,44 +1,47 @@
 import { cn } from '../../lib/utils';
 
-// Single source of truth for the brand mark location. To switch to the official
-// NAFFCO logo, replace /public/naffco-logo.svg (or set this to '/naffco-logo.png'
-// after dropping that file into /public).
-const LOGO_SRC = '/naffco-logo.svg';
+// FT Operations brand lockup (Visual Identity D8 — interim mark).
+// Renders the identity "FT" red square + "FT Operations" wordmark, with an
+// optional "NAFFCO VEHICLES DIVISION" tagline. No image dependency so it never
+// shows a broken asset; when the official NAFFCO logo arrives it replaces the
+// mark 1:1 (drop /public/naffco-logo.svg and swap the mark element).
 
 interface BrandLogoProps {
-  /** Pixel size of the square mark. Defaults to 32. */
+  /** Pixel size of the square mark. Defaults to 28. */
   size?: number;
-  /** Show the "NAFFCO / Fire Trucks Department" wordmark next to the mark. */
+  /** Show the "FT Operations" wordmark next to the mark. */
   withWordmark?: boolean;
-  /** Optional tagline under the wordmark, e.g. "Operations Portal". */
+  /** Optional tagline under the wordmark (e.g. "NAFFCO Vehicles Division"). */
   tagline?: string;
+  /** On-dark contexts (the navy sidebar) — white wordmark. */
+  dark?: boolean;
   className?: string;
 }
 
-/**
- * NAFFCO Fire Trucks brand lockup used in the header and sidebar.
- * Renders the mark from /public so the official asset can be swapped in without
- * touching component code.
- */
-export function BrandLogo({ size = 32, withWordmark = false, tagline, className }: BrandLogoProps) {
+export function BrandLogo({ size = 28, withWordmark = false, tagline, dark = false, className }: BrandLogoProps) {
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
-      <img
-        src={LOGO_SRC}
-        alt="NAFFCO"
-        width={size}
-        height={size}
-        className="rounded-lg shrink-0"
-        style={{ width: size, height: size }}
-      />
+      {/* Emergency-red mark — one of the only three places red appears. */}
+      <div
+        className="flex items-center justify-center rounded-btn shrink-0 font-extrabold text-white"
+        style={{ width: size, height: size, background: '#C8102E', fontSize: Math.round(size * 0.46) }}
+      >
+        FT
+      </div>
       {withWordmark && (
         <div className="leading-tight min-w-0">
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-extrabold tracking-tight text-gray-900 text-sm">NAFFCO</span>
-            <span className="text-[11px] font-medium text-brand-700 hidden sm:inline">Fire Trucks</span>
+          <div className={cn('font-semibold tracking-tight text-sm', dark ? 'text-white' : 'text-gray-900')}>
+            FT Operations
           </div>
           {tagline && (
-            <div className="text-[10px] text-gray-500 truncate">{tagline}</div>
+            <div
+              className={cn(
+                'text-[9px] font-semibold uppercase tracking-[0.08em] truncate',
+                dark ? 'text-white/45' : 'text-gray-500',
+              )}
+            >
+              {tagline}
+            </div>
           )}
         </div>
       )}
