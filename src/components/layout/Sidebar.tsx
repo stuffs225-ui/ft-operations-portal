@@ -67,8 +67,8 @@ function buildVisibleNav(role: UserRole | null): NavItem[] {
 function NavItemRow({ item, onClose, isFirst }: { item: NavItem; onClose: () => void; isFirst?: boolean }) {
   if (item.path === '#') {
     return (
-      <div className={cn('px-4 pb-1.5', isFirst ? 'pt-3' : 'pt-5')}>
-        <span className="text-[11px] font-semibold text-white/45 uppercase tracking-[0.08em]">
+      <div className={cn('px-3 pb-1', isFirst ? 'pt-3' : 'pt-6')}>
+        <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-[0.08em]">
           {item.label}
         </span>
       </div>
@@ -83,17 +83,17 @@ function NavItemRow({ item, onClose, isFirst }: { item: NavItem; onClose: () => 
       onClick={onClose}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-2.5 h-9 px-3 mx-2 rounded-btn text-[13px] transition-colors',
+          'flex items-center gap-2.5 px-3 py-3 mx-2 rounded-md text-sm font-medium transition-colors',
           isActive
-            ? 'bg-brand-800 text-white font-semibold shadow-[inset_3px_0_0_0_#C8102E]'
-            : 'text-white/70 hover:bg-white/[0.06] hover:text-white font-medium',
+            ? 'bg-brand-50 text-brand-700 font-semibold shadow-[inset_2px_0_0_0_theme(colors.brand.600)]'
+            : 'text-gray-600 hover:bg-gray-100/70 hover:text-gray-900',
         )
       }
     >
       {Icon && <Icon size={16} className="shrink-0" />}
       <span className="flex-1 truncate">{item.label}</span>
       {item.badge !== undefined && item.badge > 0 && (
-        <span className="ml-auto text-[10px] bg-danger text-white rounded-btn px-1.5 py-0.5 font-semibold num">
+        <span className="ml-auto text-[10px] bg-red-100 text-red-700 rounded-full px-1.5 py-0.5 font-semibold">
           {item.badge}
         </span>
       )}
@@ -115,18 +115,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         />
       )}
 
-      {/* Sidebar panel — dark navy (Visual Identity D5); contrast is the edge, no border. */}
+      {/* Sidebar panel */}
       <aside
         className={cn(
-          'fixed left-0 top-0 h-full w-60 bg-brand-900 z-50 flex flex-col transition-transform duration-200',
+          'fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50 flex flex-col transition-transform duration-200',
           'lg:relative lg:translate-x-0 lg:z-auto',
           isOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
         {/* Mobile close */}
-        <div className="flex items-center justify-between h-14 px-4 border-b border-white/10 lg:hidden">
-          <BrandLogo size={28} withWordmark dark tagline="NAFFCO Vehicles Division" />
-          <button onClick={onClose} className="p-1 rounded text-white/60 hover:text-white">
+        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 lg:hidden">
+          <BrandLogo size={28} withWordmark tagline="Operations Portal" />
+          <button onClick={onClose} className="p-1 rounded text-gray-400 hover:text-gray-600">
             <X size={18} />
           </button>
         </div>
@@ -134,9 +134,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         {/* Desktop brand header */}
         <Link
           to="/"
-          className="hidden lg:flex items-center h-14 px-4 border-b border-white/10 shrink-0 hover:bg-white/[0.04] transition-colors"
+          className="hidden lg:flex items-center h-16 px-4 border-b border-gray-200 shrink-0 hover:bg-gray-50 transition-colors"
         >
-          <BrandLogo size={28} withWordmark dark tagline="NAFFCO Vehicles Division" />
+          <BrandLogo size={28} withWordmark tagline="Operations Portal" />
         </Link>
 
         {/* Nav items */}
@@ -152,9 +152,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         {/* Footer */}
-        <div className="px-4 py-3 border-t border-white/10 flex items-center justify-between">
-          <span className="text-[10px] text-white/45">FT Operations Portal</span>
-          <span className="text-[10px] text-white/30">v9</span>
+        <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+          <span className="text-[10px] text-gray-400">Operations Portal</span>
+          <span className="text-[10px] text-gray-300">v8B</span>
         </div>
       </aside>
     </>
