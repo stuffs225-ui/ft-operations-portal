@@ -10,6 +10,7 @@ import { Flame, FileText, Printer, X } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { Skeleton } from '../ui/skeleton';
 import { isQuotationOverdue } from '../../lib/quotationSla';
 import {
   getWorkspaceHotProjects, getWorkspaceQuotations, getSalesmanOptions,
@@ -49,12 +50,32 @@ const QUOTATION_BADGE: Record<string, 'neutral' | 'warning' | 'info' | 'success'
 };
 const CLOSED_QUOTATION = ['converted_to_so', 'converted_to_hot_project', 'cancelled', 'closed_lost'];
 
+// Same skeleton language as the dashboard's DashboardSkeleton, so the loading
+// state doesn't visibly switch styles between the top sections and the pillars.
+function PillarLoadingRows() {
+  return (
+    <div className="px-5 py-4 space-y-3">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="space-y-1.5">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Pillar 2: Hot Projects ────────────────────────────────────────────────────
 
 export function HotProjectsPillar({ hotProjects, loading }: { hotProjects: HotProject[]; loading: boolean }) {
   const open = hotProjects.filter((h) => OPEN_STAGES.includes(h.stage));
   const pipelineValue = open.reduce((s, h) => s + (h.estimated_value ?? 0), 0);
+  // Scoped to the same open stages as the header count/value above — this widget
+  // is the *pipeline*; won/lost/cancelled are historical outcomes, not pipeline,
+  // and live in /hot-projects with the rest of the record.
   const byStage = STAGE_ORDER
+    .filter((stage) => OPEN_STAGES.includes(stage))
     .map((stage) => ({ stage, items: hotProjects.filter((h) => h.stage === stage) }))
     .filter((g) => g.items.length > 0);
 
@@ -68,13 +89,14 @@ export function HotProjectsPillar({ hotProjects, loading }: { hotProjects: HotPr
           <p className="text-xs text-gray-400 mt-0.5">
             {open.length} open · pipeline SAR {sarK(pipelineValue)}
           </p>
+          <p className="text-[10px] text-gray-300 mt-0.5">Current open pipeline — not scoped to the year selector above.</p>
         </div>
         <Link to="/hot-projects" className="text-xs text-brand-600 hover:underline font-medium shrink-0">
           Open pipeline →
         </Link>
       </div>
       {loading ? (
-        <div className="px-5 py-8 text-center text-sm text-gray-400">Loading…</div>
+        <PillarLoadingRows />
       ) : hotProjects.length === 0 ? (
         <div className="px-5 py-8 text-center text-sm text-gray-400">No pipeline projects yet.</div>
       ) : (
@@ -101,7 +123,9 @@ export function HotProjectsPillar({ hotProjects, loading }: { hotProjects: HotPr
                   </Link>
                 ))}
                 {items.length > 4 && (
-                  <div className="text-[11px] text-gray-400 px-2">+ {items.length - 4} more…</div>
+                  <Link to="/hot-projects" className="block text-[11px] text-brand-600 hover:underline px-2 py-1">
+                    + {items.length - 4} more…
+                  </Link>
                 )}
               </div>
             </div>
@@ -128,13 +152,14 @@ export function QuotationsPillar({ quotations, loading }: { quotations: Quotatio
           <p className="text-xs text-gray-400 mt-0.5">
             {open.length} open{overdue.length > 0 && <span className="text-red-600 font-medium"> · {overdue.length} overdue (SLA)</span>}
           </p>
+          <p className="text-[10px] text-gray-300 mt-0.5">Currently open quotations — not scoped to the year selector above.</p>
         </div>
         <Link to="/quotations" className="text-xs text-brand-600 hover:underline font-medium shrink-0">
           Open quotations →
         </Link>
       </div>
       {loading ? (
-        <div className="px-5 py-8 text-center text-sm text-gray-400">Loading…</div>
+        <PillarLoadingRows />
       ) : quotations.length === 0 ? (
         <div className="px-5 py-8 text-center text-sm text-gray-400">No quotations yet.</div>
       ) : (
@@ -157,7 +182,11 @@ export function QuotationsPillar({ quotations, loading }: { quotations: Quotatio
           {open.length === 0 && (
             <div className="py-4 text-center text-sm text-gray-400">Nothing open — all quotations are closed or converted.</div>
           )}
-          {open.length > 8 && <div className="text-[11px] text-gray-400 py-2">+ {open.length - 8} more open…</div>}
+          {open.length > 8 && (
+            <Link to="/quotations" className="block text-[11px] text-brand-600 hover:underline py-2">
+              + {open.length - 8} more open…
+            </Link>
+          )}
         </div>
       )}
     </Card>
