@@ -4,7 +4,7 @@
 // Deferred-migration safe: before migration 107, reads return unavailable:true.
 
 import { supabase, isSupabaseConfigured } from './supabase';
-import { isMissingRelationError } from './deferredMigrationSafety';
+import { isMissingRelationError, isMissingFunctionError } from './deferredMigrationSafety';
 
 export interface AgingItem {
   id: string;
@@ -17,6 +17,8 @@ export interface AgingItem {
   sales_owner_id: string | null;
   is_recurring: boolean;
   first_seen_month: string | null;
+  /** Absent until migration 108 — undefined (not just null) before that. */
+  expected_collection_date?: string | null;
 }
 
 export interface AgingClarification {
@@ -28,16 +30,28 @@ export interface AgingClarification {
   created_at: string;
 }
 
+export interface AgingCollection {
+  id: string;
+  aging_item_id: string;
+  amount: number;
+  collected_at: string;
+  note: string | null;
+  recorded_by: string | null;
+  recorded_by_name: string | null;
+  created_at: string;
+}
+
 export interface LatestAgingResult {
   snapshotMonth: string | null;
   items: AgingItem[];
   clarificationsByItem: Record<string, AgingClarification[]>;
+  collectionsByItem: Record<string, AgingCollection[]>;
   unavailable: boolean;
   error: string | null;
 }
 
 const EMPTY: LatestAgingResult = {
-  snapshotMonth: null, items: [], clarificationsByItem: {}, unavailable: false, error: null,
+  snapshotMonth: null, items: [], clarificationsByItem: {}, collectionsByItem: {}, unavailable: false, error: null,
 };
 
 export async function getLatestAging(): Promise<LatestAgingResult> {
@@ -78,7 +92,23 @@ export async function getLatestAging(): Promise<LatestAgingResult> {
     }
   }
 
-  return { snapshotMonth: snap.snapshot_month, items, clarificationsByItem, unavailable: false, error: null };
+  // Collection records (migration 108) — best-effort: an aging_items-only
+  // deployment (107 applied, 108 not yet) simply shows no collection history.
+  const collectionsByItem: Record<string, AgingCollection[]> = {};
+  if (items.length > 0) {
+    const collRes = await db
+      .from('aging_item_collections')
+      .select('*')
+      .in('aging_item_id', items.map((i) => i.id))
+      .order('collected_at', { ascending: false });
+    if (!collRes.error) {
+      for (const c of (collRes.data ?? []) as AgingCollection[]) {
+        (collectionsByItem[c.aging_item_id] ??= []).push(c);
+      }
+    }
+  }
+
+  return { snapshotMonth: snap.snapshot_month, items, clarificationsByItem, collectionsByItem, unavailable: false, error: null };
 }
 
 export async function addAgingClarification(
@@ -89,4 +119,38 @@ export async function addAgingClarification(
     aging_item_id: itemId, author_id: authorId, author_name: authorName, body: body.trim(),
   });
   return { ok: !error, error: error?.message ?? null };
+}
+
+/** Set the salesman's current estimate of when an item will be collected. */
+export async function setExpectedCollectionDate(
+  itemId: string, date: string | null,
+): Promise<{ ok: boolean; unavailable: boolean; error: string | null }> {
+  if (!isSupabaseConfigured || !supabase) return { ok: false, unavailable: false, error: 'Supabase is not configured.' };
+  const { error } = await supabase.rpc('set_aging_item_expected_date', { p_item_id: itemId, p_date: date });
+  if (error) {
+    if (isMissingFunctionError(error)) return { ok: false, unavailable: true, error: null };
+    return { ok: false, unavailable: false, error: error.message };
+  }
+  return { ok: true, unavailable: false, error: null };
+}
+
+/** Log an amount collected (full or partial) against an item — append-only. */
+export async function recordAgingCollection(
+  itemId: string, amount: number, collectedAt: string, note: string | null,
+  recordedBy: string | null, recordedByName: string | null,
+): Promise<{ ok: boolean; unavailable: boolean; error: string | null }> {
+  if (!isSupabaseConfigured || !supabase) return { ok: false, unavailable: false, error: 'Supabase is not configured.' };
+  const { error } = await supabase.from('aging_item_collections').insert({
+    aging_item_id: itemId,
+    amount,
+    collected_at: collectedAt,
+    note: note?.trim() || null,
+    recorded_by: recordedBy,
+    recorded_by_name: recordedByName,
+  });
+  if (error) {
+    if (isMissingRelationError(error)) return { ok: false, unavailable: true, error: null };
+    return { ok: false, unavailable: false, error: error.message };
+  }
+  return { ok: true, unavailable: false, error: null };
 }

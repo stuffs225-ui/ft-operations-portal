@@ -777,6 +777,7 @@ export type Database = {
           sales_owner_id: string | null;
           is_recurring: boolean;
           first_seen_month: string | null;
+          expected_collection_date: string | null;
           created_at: string;
         };
         Insert: {
@@ -790,12 +791,40 @@ export type Database = {
           sales_owner_id?: string | null;
           is_recurring?: boolean;
           first_seen_month?: string | null;
+          expected_collection_date?: string | null;
           created_at?: string;
         };
         Update: {
           amount?: number;
           days_overdue?: number | null;
           is_recurring?: boolean;
+          expected_collection_date?: string | null;
+        };
+        Relationships: [];
+      };
+      aging_item_collections: {
+        Row: {
+          id: string;
+          aging_item_id: string;
+          amount: number;
+          collected_at: string;
+          note: string | null;
+          recorded_by: string | null;
+          recorded_by_name: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          aging_item_id: string;
+          amount: number;
+          collected_at?: string;
+          note?: string | null;
+          recorded_by?: string | null;
+          recorded_by_name?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          note?: string | null;
         };
         Relationships: [];
       };
@@ -2102,6 +2131,8 @@ export type Database = {
       };
       // Migration 102 — notification recipient resolver (SECURITY DEFINER).
       notification_recipients_for_roles: { Args: { p_roles: string[] }; Returns: string[] };
+      // Migration 108 — set an aging item's expected collection date (SECURITY DEFINER).
+      set_aging_item_expected_date: { Args: { p_item_id: string; p_date: string | null }; Returns: undefined };
       project_has_wo: { Args: { p_project_id: string }; Returns: boolean };
       project_has_pn: { Args: { p_project_id: string }; Returns: boolean };
       can_start_saudi_factory: { Args: { p_project_id: string }; Returns: boolean };
