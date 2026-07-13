@@ -2167,6 +2167,14 @@ export type Database = {
         };
         Returns: undefined;
       };
+      // Migration 111 — split one schedule line into N installments (SECURITY DEFINER).
+      split_project_invoicing_schedule: {
+        Args: {
+          p_schedule_id: string;
+          p_installments: { invoice_date: string; amount: number; label?: string | null }[];
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       user_role:

@@ -1,12 +1,14 @@
-import { Plus, Info } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Plus, Info, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { ROLE_CONFIGS } from '../lib/roles';
 import { MOCK_NOTIFICATION_EVENTS, MOCK_ESCALATION_RULES } from '../data/mockNotifications';
-import { mockOrEmpty } from '../lib/dataMode';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { isMissingRelationError } from '../lib/deferredMigrationSafety';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
-import type { NotificationSeverity, UserRole } from '../types';
+import type { NotificationEvent, NotificationEscalationRule, NotificationSeverity, UserRole } from '../types';
 
 function severityBadge(severity: NotificationSeverity) {
   const variant = severity === 'critical' ? 'critical' : severity === 'important' ? 'warning' : 'neutral';
@@ -18,8 +20,34 @@ function roleLabel(key: string): string {
 }
 
 export function AdminNotificationRules() {
-  const events = mockOrEmpty(MOCK_NOTIFICATION_EVENTS);
-  const escalationRules = mockOrEmpty(MOCK_ESCALATION_RULES);
+  // Dev-mock mode seeds from mock at init (no synchronous setState in the effect).
+  const [events, setEvents] = useState<NotificationEvent[]>(() => (isSupabaseConfigured ? [] : MOCK_NOTIFICATION_EVENTS));
+  const [escalationRules, setEscalationRules] = useState<NotificationEscalationRule[]>(() => (isSupabaseConfigured ? [] : MOCK_ESCALATION_RULES));
+  const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [unavailable, setUnavailable] = useState(false);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return; // dev mode already seeded above
+    let alive = true;
+    const db = supabase;
+    void (async () => {
+      const [evtRes, ruleRes] = await Promise.all([
+        db.from('notification_events').select('*').order('module_name'),
+        db.from('notification_escalation_rules').select('*').order('module_name'),
+      ]);
+      if (!alive) return;
+      // Migration 065 pending → show a clear notice instead of an empty table.
+      if (isMissingRelationError(evtRes.error) || isMissingRelationError(ruleRes.error)) {
+        setUnavailable(true);
+        setLoading(false);
+        return;
+      }
+      setEvents((evtRes.data ?? []) as unknown as NotificationEvent[]);
+      setEscalationRules((ruleRes.data ?? []) as unknown as NotificationEscalationRule[]);
+      setLoading(false);
+    })();
+    return () => { alive = false; };
+  }, []);
 
   return (
     <div>
@@ -28,13 +56,13 @@ export function AdminNotificationRules() {
         subtitle="Notification events and escalation governance"
         actions={
           <div className="flex items-center gap-2">
-            <DataSourceBadge variant="preview" />
+            <DataSourceBadge variant="auto" />
             <Button
               variant="secondary"
               size="sm"
               icon={<Plus size={14} />}
               disabled
-              title="Configuration UI — foundation"
+              title="Rules are seeded and maintained server-side (read-only here)."
             >
               Add Rule
             </Button>
@@ -45,13 +73,30 @@ export function AdminNotificationRules() {
       <div className="flex items-start gap-2 bg-sky-50 border border-sky-200 rounded-lg p-3 mb-6">
         <Info size={15} className="text-sky-600 shrink-0 mt-0.5" />
         <p className="text-xs text-sky-800">
-          Rule changes require an administrator. Actual escalation dispatch runs server-side in a
-          Supabase Edge Function once an email/SMS provider is configured — the browser never sends
-          notifications directly.
+          Read-only view of the events catalog and escalation ladders. Rules are seeded server-side;
+          actual escalation dispatch runs in a Supabase Edge Function once an email/SMS provider is
+          configured — the browser never sends notifications directly.
         </p>
       </div>
 
+      {loading && (
+        <div className="flex items-center gap-2 text-sm text-gray-400 py-8 justify-center">
+          <Loader2 size={15} className="animate-spin" /> Loading notification configuration…
+        </div>
+      )}
+
+      {unavailable && !loading && (
+        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6">
+          <Info size={15} className="text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-800">
+            Notifications module is pending — apply migration 065 to enable the events catalog and
+            escalation rules.
+          </p>
+        </div>
+      )}
+
       {/* A. Notification Events */}
+      {!loading && !unavailable && (
       <section className="mb-8">
         <h2 className="text-base font-semibold text-gray-900 mb-3">Notification Events</h2>
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -68,7 +113,7 @@ export function AdminNotificationRules() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {events.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-xs text-gray-400">No events to display in live mode — the events catalog is seeded server-side.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-xs text-gray-400">No notification events configured yet.</td></tr>
               )}
               {events.map((evt) => (
                 <tr key={evt.event_key} className="hover:bg-gray-50 transition-colors">
@@ -96,8 +141,10 @@ export function AdminNotificationRules() {
           </table>
         </div>
       </section>
+      )}
 
       {/* B. Escalation Rules */}
+      {!loading && !unavailable && (
       <section>
         <h2 className="text-base font-semibold text-gray-900 mb-3">Escalation Rules</h2>
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -116,7 +163,7 @@ export function AdminNotificationRules() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {escalationRules.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-xs text-gray-400">No escalation rules to display in live mode — rules are managed server-side.</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-xs text-gray-400">No escalation rules configured yet.</td></tr>
               )}
               {escalationRules.map((rule) => (
                 <tr key={rule.rule_key} className="hover:bg-gray-50 transition-colors">
@@ -152,6 +199,7 @@ export function AdminNotificationRules() {
           </table>
         </div>
       </section>
+      )}
     </div>
   );
 }

@@ -14,6 +14,7 @@ import {
   getProjectInvoicingScheduleHistory,
   rescheduleProjectInvoicingSchedule,
   updateProjectInvoicingScheduleAmount,
+  splitProjectInvoicingSchedule,
   computeInvoicingScheduleKpis,
   type InvoicingScheduleAdminRow,
   type InvoicingScheduleAlertRow,
@@ -420,45 +421,91 @@ function HistoryDrawer({ row, onClose }: { row: InvoicingScheduleAdminRow; onClo
   );
 }
 
-// ─── Split modal (disabled — pending dedicated RPC) ────────────────────────────
+// ─── Split modal ──────────────────────────────────────────────────────────────
+// Splits one line into N installments. The RPC (migration 111) cancels the source
+// line and inserts N 'admin_split' lines atomically, with full history, and rejects
+// any split whose installments don't sum to the original amount.
 
-function SplitModal({ row, onClose }: { row: InvoicingScheduleAdminRow; onClose: () => void }) {
+interface SplitRow { date: string; amount: string; label: string }
+
+function SplitModal({ row, onClose, onDone }: { row: InvoicingScheduleAdminRow; onClose: () => void; onDone: () => void }) {
+  const half = Math.round((row.invoiceAmount / 2) * 100) / 100;
+  const [rows, setRows] = useState<SplitRow[]>([
+    { date: row.currentInvoiceDate, amount: String(half), label: '' },
+    { date: row.currentInvoiceDate, amount: String(Math.round((row.invoiceAmount - half) * 100) / 100), label: '' },
+  ]);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ kind: 'error' | 'info'; text: string } | null>(null);
+
+  const total = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  const balanced = Math.round(total * 100) === Math.round(row.invoiceAmount * 100);
+
+  function update(i: number, patch: Partial<SplitRow>) {
+    setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  }
+  function addRow() { setRows((prev) => [...prev, { date: row.currentInvoiceDate, amount: '0', label: '' }]); }
+  function removeRow(i: number) { setRows((prev) => (prev.length <= 2 ? prev : prev.filter((_, idx) => idx !== i))); }
+
+  async function handleSave() {
+    setSaving(true);
+    setMsg(null);
+    const res = await splitProjectInvoicingSchedule({
+      scheduleId: row.id,
+      originalAmount: row.invoiceAmount,
+      installments: rows.map((r) => ({ invoiceDate: r.date, amount: Number(r.amount) || 0, label: r.label })),
+    });
+    setSaving(false);
+    if (res.success) { onDone(); return; }
+    if (res.unavailable) { setMsg({ kind: 'info', text: res.unavailableReason ?? 'Split is unavailable — apply migration 111.' }); return; }
+    setMsg({ kind: 'error', text: res.error ?? 'Could not split the line.' });
+  }
+
   return (
     <ModalShell title="Split into Installments" onClose={onClose}>
       <div className="space-y-4">
         <FieldRow label="Project">
           <span className="text-sm text-gray-900">{row.projectCode} — {row.customerName}</span>
         </FieldRow>
-        <div className="rounded-lg border border-amber-200 bg-amber-50/70 px-4 py-3 flex items-start gap-3">
-          <Info size={16} className="text-amber-600 mt-0.5 shrink-0" />
-          <div>
-            <p className="text-sm font-medium text-amber-800">Installment split is not active yet</p>
-            <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
-              Splitting one schedule line into multiple installments must reduce the original line,
-              create new lines, and write history atomically. To guarantee a complete audit trail,
-              this requires a dedicated <code className="text-[11px]">split_project_invoicing_schedule</code> RPC
-              in a future migration. The UI is in place and will be enabled once that RPC ships —
-              no partial or unaudited inserts are performed in the meantime.
-            </p>
+        <FieldRow label="Original amount">
+          <span className="text-sm text-gray-900 tabular-nums">{formatCurrency(row.invoiceAmount)}</span>
+        </FieldRow>
+
+        <div className="space-y-2">
+          <div className="grid grid-cols-[1fr_1fr_1.2fr_auto] gap-2 text-[11px] uppercase tracking-[0.04em] text-gray-400">
+            <span>Date</span><span>Amount</span><span>Label (optional)</span><span />
           </div>
-        </div>
-        <div className="opacity-50 pointer-events-none space-y-2" aria-hidden>
-          <div className="grid grid-cols-4 gap-2 text-[11px] uppercase tracking-[0.04em] text-gray-400">
-            <span>Date</span><span>Amount</span><span>%</span><span>Label</span>
-          </div>
-          {[0, 1].map((i) => (
-            <div key={i} className="grid grid-cols-4 gap-2">
-              <input disabled className="px-2 py-1.5 text-sm border border-gray-200 rounded bg-gray-50" />
-              <input disabled className="px-2 py-1.5 text-sm border border-gray-200 rounded bg-gray-50" />
-              <input disabled className="px-2 py-1.5 text-sm border border-gray-200 rounded bg-gray-50" />
-              <input disabled className="px-2 py-1.5 text-sm border border-gray-200 rounded bg-gray-50" />
+          {rows.map((r, i) => (
+            <div key={i} className="grid grid-cols-[1fr_1fr_1.2fr_auto] gap-2 items-center">
+              <input type="date" value={r.date} onChange={(e) => update(i, { date: e.target.value })}
+                className="px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              <input type="number" min="0" step="0.01" value={r.amount} onChange={(e) => update(i, { amount: e.target.value })}
+                className="px-2 py-1.5 text-sm border border-gray-300 rounded tabular-nums focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              <input type="text" value={r.label} onChange={(e) => update(i, { label: e.target.value })} placeholder="e.g. Milestone 1"
+                className="px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              <button onClick={() => removeRow(i)} disabled={rows.length <= 2}
+                className="p-1 rounded text-gray-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed" title="Remove installment">
+                <X size={14} />
+              </button>
             </div>
           ))}
+          <button onClick={addRow} className="text-xs text-brand-600 hover:underline font-medium">+ Add installment</button>
         </div>
+
+        <div className={cn('flex items-center justify-between text-sm rounded-lg px-3 py-2 border',
+          balanced ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-amber-50 border-amber-200 text-amber-700')}>
+          <span>Installments total</span>
+          <span className="tabular-nums font-semibold">
+            {formatCurrency(total)}{!balanced && ` / ${formatCurrency(row.invoiceAmount)}`}
+          </span>
+        </div>
+        {!balanced && (
+          <p className="text-[11px] text-amber-600">Installments must sum exactly to the original amount before you can save.</p>
+        )}
+        {msg && <ModalMessage kind={msg.kind} text={msg.text} />}
       </div>
       <ModalFooter>
-        <Button variant="ghost" size="sm" onClick={onClose}>Close</Button>
-        <Button size="sm" disabled>Save Split</Button>
+        <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
+        <Button size="sm" onClick={handleSave} loading={saving} disabled={saving || !balanced}>Save Split</Button>
       </ModalFooter>
     </ModalShell>
   );
@@ -721,7 +768,7 @@ export function AdminInvoicingSchedule() {
                           <IconAction title="View history" onClick={() => setModal({ kind: 'history', row: r })}><HistoryIcon size={14} /></IconAction>
                           <IconAction title={locked ? 'Cannot reschedule an invoiced/cancelled line' : 'Reschedule'} onClick={() => setModal({ kind: 'reschedule', row: r })} disabled={locked}><CalendarRange size={14} /></IconAction>
                           <IconAction title={locked ? 'Cannot adjust an invoiced/cancelled line' : 'Update amount'} onClick={() => setModal({ kind: 'amount', row: r })} disabled={locked}><Coins size={14} /></IconAction>
-                          <IconAction title="Split into installments (pending RPC)" onClick={() => setModal({ kind: 'split', row: r })}><Split size={14} /></IconAction>
+                          <IconAction title={locked ? 'Cannot split an invoiced/cancelled line' : 'Split into installments'} onClick={() => setModal({ kind: 'split', row: r })} disabled={locked}><Split size={14} /></IconAction>
                         </div>
                       </td>
                     </tr>
@@ -743,7 +790,7 @@ export function AdminInvoicingSchedule() {
       {modal?.kind === 'reschedule' && <RescheduleModal row={modal.row} onClose={() => setModal(null)} onDone={() => { setModal(null); reload(); }} />}
       {modal?.kind === 'amount' && <AmountModal row={modal.row} onClose={() => setModal(null)} onDone={() => { setModal(null); reload(); }} />}
       {modal?.kind === 'history' && <HistoryDrawer row={modal.row} onClose={() => setModal(null)} />}
-      {modal?.kind === 'split' && <SplitModal row={modal.row} onClose={() => setModal(null)} />}
+      {modal?.kind === 'split' && <SplitModal row={modal.row} onClose={() => setModal(null)} onDone={() => { setModal(null); reload(); }} />}
     </div>
   );
 }
