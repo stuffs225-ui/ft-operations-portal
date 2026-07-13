@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/common/page-header';
-import { Button } from '../components/ui/Button';
+import { Info } from 'lucide-react';
 import {
-  Plus, Pencil,
   CheckCircle2, AlertTriangle, Database, ShieldCheck, Loader2,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -141,20 +140,13 @@ function SectionHeader({ title }: { title: string }) {
   return (
     <div className="flex items-center justify-between mb-3">
       <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
-      <Button size="sm" variant="outline" icon={<Plus size={13} />} onClick={() => undefined}>
-        Add
-      </Button>
     </div>
   );
 }
 
-function EditBtn() {
-  return (
-    <button className="p-1 rounded text-gray-400 hover:text-brand-600 transition-colors">
-      <Pencil size={13} />
-    </button>
-  );
-}
+// Reference data is read-only in the app — it is seeded and maintained through
+// database migrations, not edited in the UI. The previous "Add"/pencil controls
+// did nothing (no-op handlers); they are removed rather than left as dead affordances.
 
 function TableSkeleton({ cols }: { cols: number }) {
   return (
@@ -184,7 +176,6 @@ function VehicleTypesTab({ data, loading }: { data: VehicleTypeRow[]; loading: b
             <th className="px-4 py-2.5 text-left">Name</th>
             <th className="px-4 py-2.5 text-left">Code</th>
             <th className="px-4 py-2.5 text-left hidden md:table-cell">Description</th>
-            <th className="px-4 py-2.5 text-right w-10" />
           </tr>
         </thead>
         {loading ? <TableSkeleton cols={4} /> : (
@@ -194,7 +185,6 @@ function VehicleTypesTab({ data, loading }: { data: VehicleTypeRow[]; loading: b
                 <td className="px-4 py-2.5 font-medium text-gray-900 text-xs">{r.name}</td>
                 <td className="px-4 py-2.5 font-mono text-xs text-brand-700">{r.code}</td>
                 <td className="px-4 py-2.5 text-xs text-gray-500 hidden md:table-cell">{r.description}</td>
-                <td className="px-4 py-2.5 text-right"><EditBtn /></td>
               </tr>
             ))}
           </tbody>
@@ -214,7 +204,6 @@ function MaterialCategoriesTab({ data, loading }: { data: MaterialCategoryRow[];
             <th className="px-4 py-2.5 text-left">Name</th>
             <th className="px-4 py-2.5 text-left">Serial Required</th>
             <th className="px-4 py-2.5 text-left hidden md:table-cell">Description</th>
-            <th className="px-4 py-2.5 text-right w-10" />
           </tr>
         </thead>
         {loading ? <TableSkeleton cols={4} /> : (
@@ -228,7 +217,6 @@ function MaterialCategoriesTab({ data, loading }: { data: MaterialCategoryRow[];
                   </span>
                 </td>
                 <td className="px-4 py-2.5 text-xs text-gray-500 hidden md:table-cell">{r.description}</td>
-                <td className="px-4 py-2.5 text-right"><EditBtn /></td>
               </tr>
             ))}
           </tbody>
@@ -247,7 +235,6 @@ function SupplierCategoriesTab({ data, loading }: { data: SupplierCategoryRow[];
           <tr className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide bg-gray-50 border-b border-gray-200">
             <th className="px-4 py-2.5 text-left">Name</th>
             <th className="px-4 py-2.5 text-left hidden md:table-cell">Description</th>
-            <th className="px-4 py-2.5 text-right w-10" />
           </tr>
         </thead>
         {loading ? <TableSkeleton cols={3} /> : (
@@ -256,7 +243,6 @@ function SupplierCategoriesTab({ data, loading }: { data: SupplierCategoryRow[];
               <tr key={r.id} className="hover:bg-gray-50">
                 <td className="px-4 py-2.5 font-medium text-gray-900 text-xs">{r.name}</td>
                 <td className="px-4 py-2.5 text-xs text-gray-500 hidden md:table-cell">{r.description}</td>
-                <td className="px-4 py-2.5 text-right"><EditBtn /></td>
               </tr>
             ))}
           </tbody>
@@ -276,7 +262,6 @@ function DocumentTypesTab({ data, loading }: { data: DocumentTypeRow[]; loading:
             <th className="px-4 py-2.5 text-left">Name</th>
             <th className="px-4 py-2.5 text-left">Required At</th>
             <th className="px-4 py-2.5 text-left hidden md:table-cell">Description</th>
-            <th className="px-4 py-2.5 text-right w-10" />
           </tr>
         </thead>
         {loading ? <TableSkeleton cols={4} /> : (
@@ -288,7 +273,6 @@ function DocumentTypesTab({ data, loading }: { data: DocumentTypeRow[]; loading:
                   <span className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-700">{r.required_at}</span>
                 </td>
                 <td className="px-4 py-2.5 text-xs text-gray-500 hidden md:table-cell">{r.description}</td>
-                <td className="px-4 py-2.5 text-right"><EditBtn /></td>
               </tr>
             ))}
           </tbody>
@@ -309,7 +293,6 @@ function SlaRulesTab({ data, loading }: { data: SlaRuleRow[]; loading: boolean }
             <th className="px-4 py-2.5 text-left hidden md:table-cell">Required Action</th>
             <th className="px-4 py-2.5 text-left">SLA (hrs)</th>
             <th className="px-4 py-2.5 text-left hidden lg:table-cell">Escalate To</th>
-            <th className="px-4 py-2.5 text-right w-10" />
           </tr>
         </thead>
         {loading ? <TableSkeleton cols={5} /> : (
@@ -322,7 +305,6 @@ function SlaRulesTab({ data, loading }: { data: SlaRuleRow[]; loading: boolean }
                   <span className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700">{r.sla_hours}h</span>
                 </td>
                 <td className="px-4 py-2.5 text-xs text-gray-500 hidden lg:table-cell">{r.escalate_to}</td>
-                <td className="px-4 py-2.5 text-right"><EditBtn /></td>
               </tr>
             ))}
           </tbody>
@@ -341,7 +323,6 @@ function RootCauseCategoriesTab({ data, loading }: { data: RootCauseCategoryRow[
           <tr className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide bg-gray-50 border-b border-gray-200">
             <th className="px-4 py-2.5 text-left">Name</th>
             <th className="px-4 py-2.5 text-left hidden md:table-cell">Description</th>
-            <th className="px-4 py-2.5 text-right w-10" />
           </tr>
         </thead>
         {loading ? <TableSkeleton cols={3} /> : (
@@ -350,7 +331,6 @@ function RootCauseCategoriesTab({ data, loading }: { data: RootCauseCategoryRow[
               <tr key={r.id} className="hover:bg-gray-50">
                 <td className="px-4 py-2.5 font-medium text-gray-900 text-xs">{r.name}</td>
                 <td className="px-4 py-2.5 text-xs text-gray-500 hidden md:table-cell">{r.description}</td>
-                <td className="px-4 py-2.5 text-right"><EditBtn /></td>
               </tr>
             ))}
           </tbody>
@@ -371,7 +351,6 @@ function StoreLocationsTab({ data, loading }: { data: StoreLocationRow[]; loadin
             <th className="px-4 py-2.5 text-left">Code</th>
             <th className="px-4 py-2.5 text-left hidden md:table-cell">Capacity</th>
             <th className="px-4 py-2.5 text-left hidden lg:table-cell">Description</th>
-            <th className="px-4 py-2.5 text-right w-10" />
           </tr>
         </thead>
         {loading ? <TableSkeleton cols={5} /> : (
@@ -391,7 +370,6 @@ function StoreLocationsTab({ data, loading }: { data: StoreLocationRow[]; loadin
                   </span>
                 </td>
                 <td className="px-4 py-2.5 text-xs text-gray-500 hidden lg:table-cell">{r.description}</td>
-                <td className="px-4 py-2.5 text-right"><EditBtn /></td>
               </tr>
             ))}
           </tbody>
@@ -411,7 +389,6 @@ function WoPnStatusTab({ woData, pnData, loading }: { woData: StatusRow[]; pnDat
             <tr className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide bg-gray-50 border-b border-gray-200">
               <th className="px-4 py-2.5 text-left">Status</th>
               <th className="px-4 py-2.5 text-left hidden md:table-cell">Description</th>
-              <th className="px-4 py-2.5 text-right w-10" />
             </tr>
           </thead>
           {loading ? <TableSkeleton cols={3} /> : (
@@ -422,7 +399,6 @@ function WoPnStatusTab({ woData, pnData, loading }: { woData: StatusRow[]; pnDat
                     <span className={cn('inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold', r.color)}>{r.name}</span>
                   </td>
                   <td className="px-4 py-2.5 text-xs text-gray-500 hidden md:table-cell">{r.description}</td>
-                  <td className="px-4 py-2.5 text-right"><EditBtn /></td>
                 </tr>
               ))}
             </tbody>
@@ -437,7 +413,6 @@ function WoPnStatusTab({ woData, pnData, loading }: { woData: StatusRow[]; pnDat
             <tr className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide bg-gray-50 border-b border-gray-200">
               <th className="px-4 py-2.5 text-left">Status</th>
               <th className="px-4 py-2.5 text-left hidden md:table-cell">Description</th>
-              <th className="px-4 py-2.5 text-right w-10" />
             </tr>
           </thead>
           {loading ? <TableSkeleton cols={3} /> : (
@@ -448,7 +423,6 @@ function WoPnStatusTab({ woData, pnData, loading }: { woData: StatusRow[]; pnDat
                     <span className={cn('inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold', r.color)}>{r.name}</span>
                   </td>
                   <td className="px-4 py-2.5 text-xs text-gray-500 hidden md:table-cell">{r.description}</td>
-                  <td className="px-4 py-2.5 text-right"><EditBtn /></td>
                 </tr>
               ))}
             </tbody>
@@ -657,6 +631,17 @@ export function Settings() {
           </span>
         }
       />
+
+      {/* Reference data is read-only in the UI — maintained via database migrations. */}
+      {activeTab !== 'System Status' && (
+        <div className="flex items-start gap-2 bg-sky-50 border border-sky-200 rounded-lg p-3">
+          <Info size={15} className="text-sky-600 shrink-0 mt-0.5" />
+          <p className="text-xs text-sky-800">
+            This is reference master data, shown read-only. It is seeded and maintained through
+            database migrations, not edited here.
+          </p>
+        </div>
+      )}
 
       {/* Tab bar */}
       <div className="flex gap-0.5 flex-wrap bg-gray-100 rounded-lg p-1">

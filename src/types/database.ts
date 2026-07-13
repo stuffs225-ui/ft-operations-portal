@@ -11,6 +11,7 @@ export type Database = {
           avatar_url: string | null;
           department: string | null;
           is_active: boolean;
+          account_status: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -21,6 +22,7 @@ export type Database = {
           avatar_url?: string | null;
           department?: string | null;
           is_active?: boolean;
+          account_status?: string | null;
         };
         Update: {
           full_name?: string | null;
@@ -28,6 +30,7 @@ export type Database = {
           avatar_url?: string | null;
           department?: string | null;
           is_active?: boolean;
+          account_status?: string | null;
         };
         Relationships: [];
       };

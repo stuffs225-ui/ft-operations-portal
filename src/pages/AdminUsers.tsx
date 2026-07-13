@@ -246,14 +246,29 @@ export function AdminUsers() {
     setTimeout(() => setMessage(null), 3000);
   }
 
-  function toggleSuspend(user: UserAccount) {
+  async function toggleSuspend(user: UserAccount) {
     const next: AccountStatus = user.account_status === 'suspended' ? 'active' : 'suspended';
+    const name = user.full_name ?? user.email;
+    // Optimistic update — reverted below if the write fails.
     setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, account_status: next } : u)));
-    flash(
-      next === 'suspended'
-        ? `${user.full_name ?? user.email} suspended (dev — not persisted).`
-        : `${user.full_name ?? user.email} reactivated (dev — not persisted).`,
-    );
+
+    if (!isSupabaseConfigured || !supabase) {
+      flash(next === 'suspended' ? `${name} suspended (dev — not persisted).` : `${name} reactivated (dev — not persisted).`);
+      return;
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ account_status: next })
+      .eq('id', user.id);
+
+    if (error) {
+      // Revert the optimistic change and surface the real reason.
+      setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, account_status: user.account_status } : u)));
+      flash(`Could not update ${name}: ${error.message}`);
+      return;
+    }
+    flash(next === 'suspended' ? `${name} suspended.` : `${name} reactivated.`);
   }
 
   const selectClass =
