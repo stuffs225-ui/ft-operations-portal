@@ -33,11 +33,18 @@ interface SidebarProps {
 }
 
 // An item is visible if it has no roles restriction, or the user's role is listed.
-// strict: true disables the admin bypass — item is only visible to its listed roles.
+//
+// Admin no longer has a blanket bypass. The bypass surfaced EVERY non-strict item
+// (every role's deep workspace pages + the ops-manager monitoring duplicates),
+// producing a sidebar with 2–3 links to the same destination and dozens of pages
+// meant for other roles. The nav already curates a coherent admin set via explicit
+// `roles: ['admin', …]` on the module hub links and the admin-only sections, so
+// admin now sees exactly that. This is nav-only: route guards and RLS are
+// unchanged, and admin can still reach any page by URL. (`strict` is retained for
+// backward compatibility but is now a no-op, since there is no bypass to disable.)
 function isItemVisible(item: NavItem, role: UserRole | null): boolean {
   if (!item.roles || item.roles.length === 0) return true;
   if (!role) return false;
-  if (role === 'admin' && !item.strict) return true;
   return item.roles.includes(role);
 }
 
