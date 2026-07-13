@@ -10,7 +10,6 @@ interface PlaceholderPageProps {
   module: string;
   roles: string[];
   features: string[];
-  governanceNotes?: string[];
 }
 
 export function PlaceholderPage({
@@ -20,7 +19,6 @@ export function PlaceholderPage({
   module,
   roles,
   features,
-  governanceNotes = [],
 }: PlaceholderPageProps) {
   return (
     <div>
@@ -90,22 +88,6 @@ export function PlaceholderPage({
               ))}
             </div>
           </Card>
-
-          {governanceNotes.length > 0 && (
-            <Card className="bg-amber-50 border-amber-200">
-              <h3 className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-3">
-                Governance Rules
-              </h3>
-              <ul className="space-y-2">
-                {governanceNotes.map((note) => (
-                  <li key={note} className="text-xs text-amber-800 flex items-start gap-2">
-                    <span className="text-amber-500 shrink-0 mt-0.5">▸</span>
-                    {note}
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
         </div>
       </div>
     </div>

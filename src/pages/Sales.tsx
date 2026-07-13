@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  FileText, Plus, Flame, ReceiptText, BarChart3, ShieldCheck,
+  FileText, Plus, Flame, ReceiptText, BarChart3,
   AlertCircle, Info, FolderOpen, TrendingUp, Wallet, Printer,
 } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
@@ -252,7 +252,6 @@ export function Sales() {
   const targets  = data?.targets;
   const planRows = data?.invoicingPlanRows ?? [];
   const warnings = data?.warnings;
-  const salesRules = ROLE_MATRIX.sales_user.rules;
 
   // When project_invoicing_schedule (migration 100) is unavailable, schedule-derived
   // values are shown as unavailable (—) rather than a silent zero, with a banner.
@@ -673,23 +672,6 @@ export function Sales() {
 
             </div>
           </div>
-
-          {/* ── Sales Governance Rules ────────────────────────────────────────── */}
-          <Card padding="none">
-            <div className="px-5 py-3 border-b border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <ShieldCheck size={14} className="text-emerald-500" /> Sales Governance Rules
-              </h3>
-            </div>
-            <div className="px-5 py-4 space-y-2">
-              {salesRules.map((rule, i) => (
-                <div key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                  <span className="text-emerald-500 mt-0.5 shrink-0">▸</span>
-                  <span>{rule}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
 
         </>
       )}

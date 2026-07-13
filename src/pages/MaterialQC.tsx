@@ -250,26 +250,6 @@ export function MaterialQC() {
           </div>
         )}
       </Card>
-
-      <Card>
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-700">Governance Rules</h2>
-        </div>
-        <div className="px-5 py-4 space-y-2">
-          {[
-            'Material QC starts after Store receives materials.',
-            'Rejected material must create an NCR with root cause and corrective action.',
-            'Open NCRs block Release Note issuance.',
-            'QC users must not see purchase cost values.',
-            'Medical items must be received with serial number tracking.',
-          ].map((rule, i) => (
-            <div key={i} className="flex items-start gap-2 text-sm text-gray-600">
-              <ChevronRight size={14} className="text-sky-400 mt-0.5 shrink-0" />
-              <span>{rule}</span>
-            </div>
-          ))}
-        </div>
-      </Card>
     </div>
   );
 }

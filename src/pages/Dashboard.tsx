@@ -12,7 +12,6 @@ import {
 import { PageHeader } from '@/components/common/page-header';
 import { SectionHeader } from '@/components/common/section-header';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
-import { RoleRulesCard } from '../components/ui/RoleRulesCard';
 import { DASHBOARD_KPI_CARDS, AFS_KPI_CARDS, PROJECT_SUMMARY } from '../data/mockDashboard';
 import { mockOrEmpty, isLiveMode } from '../lib/dataMode';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
@@ -526,9 +525,6 @@ export function Dashboard() {
           </div>
         );
       })}
-
-      {/* Role-specific governance rules — replaces generic banner */}
-      <RoleRulesCard />
     </div>
   );
 }

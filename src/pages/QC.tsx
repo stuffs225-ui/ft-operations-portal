@@ -7,10 +7,8 @@ import {
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '../components/ui/Button';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
-import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { ROLE_MATRIX } from '../lib/roleMatrix';
 import {
   MOCK_MATERIAL_QC_INSPECTIONS,
   MOCK_MATERIAL_NCRS,
@@ -143,8 +141,6 @@ export function QC() {
     { label: 'Blocked Release Notes', count: kpis.blockedRelease, desc: 'Release notes blocked by open NCRs, findings, or rework', href: '/project-qc/release-notes', variant: kpis.blockedRelease > 0 ? 'critical' : 'clear', action: 'View Blockers' },
     { label: 'Ready to Issue Release Note', count: kpis.readyForRelease, desc: 'QC complete — all checks passed, ready for release', href: '/project-qc/release-notes', variant: 'clear', action: 'Issue Release Note' },
   ];
-
-  const qcRules = ROLE_MATRIX.qc_user.rules;
 
   return (
     <div className="space-y-5">
@@ -284,27 +280,6 @@ export function QC() {
             </div>
           </Link>
         ))}
-      </div>
-
-      {/* QC Rules */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div className="px-5 py-3 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-violet-800 flex items-center gap-2">
-            <ShieldCheck size={14} className="text-violet-500" /> QC Governance Rules
-          </h2>
-        </div>
-        <div className="px-5 py-4 space-y-2">
-          {qcRules.length === 0 ? (
-            <EmptyState icon={<ShieldCheck size={20} className="text-gray-400" />} title="No rules defined" description="QC governance rules not configured." />
-          ) : (
-            qcRules.map((rule, i) => (
-              <div key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                <ShieldCheck size={13} className="text-violet-400 mt-0.5 shrink-0" />
-                <span>{rule}</span>
-              </div>
-            ))
-          )}
-        </div>
       </div>
     </div>
   );
