@@ -157,14 +157,18 @@ function MetricRow({ label, value, muted = false }: { label: string; value: stri
   );
 }
 
-function TargetBar({ pct, label }: { pct: number | null; label: string }) {
-  if (pct == null) return null;
-  const clamped = Math.min(100, Math.max(0, pct));
-  const barColor =
-    pct >= 100 ? 'bg-emerald-500'
+// Same severity ramp everywhere a target-attainment percent is drawn — a meter's
+// fill color, never a per-metric identity hue (identity comes from the row label).
+function pctBarColor(pct: number): string {
+  return pct >= 100 ? 'bg-emerald-500'
     : pct >= 75 ? 'bg-brand-600'
     : pct >= 40 ? 'bg-amber-400'
     : 'bg-gray-300';
+}
+
+function TargetBar({ pct, label }: { pct: number | null; label: string }) {
+  if (pct == null) return null;
+  const clamped = Math.min(100, Math.max(0, pct));
   return (
     <div>
       <div className="flex justify-between text-xs mb-1">
@@ -172,9 +176,64 @@ function TargetBar({ pct, label }: { pct: number | null; label: string }) {
         <span className="font-semibold text-gray-700">{fmtPct(pct)}</span>
       </div>
       <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-        <div className={`h-full ${barColor} rounded-full transition-all`} style={{ width: `${clamped}%` }} />
+        <div className={`h-full ${pctBarColor(pct)} rounded-full transition-all`} style={{ width: `${clamped}%` }} />
       </div>
     </div>
+  );
+}
+
+interface TargetComparisonRow {
+  key: string;
+  label: string;
+  achieved: number | null | undefined;
+  target: number | null | undefined;
+  pct: number | null | undefined;
+}
+
+// Three small-multiple meters (one per metric) — each row is Δ-to-its-own-target,
+// not a shared axis, since the three metrics aren't comparable magnitudes.
+function TargetComparisonChart({ rows, year }: { rows: TargetComparisonRow[]; year: number }) {
+  return (
+    <Card padding="none" className="mt-4">
+      <div className="px-4 py-3 border-b border-gray-100">
+        <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-[0.06em] flex items-center gap-1.5">
+          <BarChart3 size={12} className="text-gray-500" /> Target vs Achieved — {year}
+        </h3>
+        <p className="text-[11px] text-gray-400 mt-0.5">
+          Actual-to-date against the full-year target for each metric. (The Invoicing card above shows
+          "Expected vs target" — a projection — so its percentage will differ from the Invoicing row here.)
+        </p>
+      </div>
+      <div className="px-4 py-4 space-y-4">
+        {rows.map((r) => {
+          const pct = r.pct ?? null;
+          const clamped = pct == null ? 0 : Math.min(100, Math.max(0, pct));
+          return (
+            <div key={r.key} className="flex items-center gap-3">
+              <div className="w-24 shrink-0 text-xs font-medium text-gray-600">{r.label}</div>
+              <div className="flex-1 min-w-0">
+                <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${pct == null ? 'bg-gray-200' : pctBarColor(pct)}`}
+                    style={{ width: `${clamped}%` }}
+                  />
+                </div>
+              </div>
+              <div
+                className="w-36 shrink-0 text-right text-xs tabular-nums text-gray-500"
+                title={r.target != null ? `${sarTitle(r.achieved)} of ${sarTitle(r.target)}` : sarTitle(r.achieved)}
+              >
+                {sarK(r.achieved)}
+                {r.target != null && <span className="text-gray-300"> / {sarK(r.target)}</span>}
+              </div>
+              <div className="w-14 shrink-0 text-right text-xs font-semibold tabular-nums text-gray-800">
+                {fmtPct(pct)}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
   );
 }
 
@@ -671,6 +730,33 @@ export function Sales() {
               </Card>
 
             </div>
+
+            <TargetComparisonChart
+              year={selectedYear}
+              rows={[
+                {
+                  key: 'invoicing',
+                  label: 'Invoicing',
+                  achieved: targets?.invoicingUpToDate,
+                  target: targets?.invoicingTarget,
+                  pct: targets?.invoicingActualPercentUpToNow,
+                },
+                {
+                  key: 'sales_orders',
+                  label: 'Sales Orders',
+                  achieved: targets?.salesOrderAchieved,
+                  target: targets?.salesOrderTarget,
+                  pct: targets?.salesOrderPercent,
+                },
+                {
+                  key: 'collection',
+                  label: 'Collection',
+                  achieved: targets?.collectedToDate,
+                  target: targets?.collectionTarget,
+                  pct: targets?.collectionPercent,
+                },
+              ]}
+            />
           </div>
 
         </>

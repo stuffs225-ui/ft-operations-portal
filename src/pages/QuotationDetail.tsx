@@ -16,6 +16,8 @@ import { recordQuotationEvent, recordQuotationAuditEntry } from '../lib/quotatio
 import { getQuotationSlaStatus, getOverdueDays } from '../lib/quotationSla';
 import { DocumentPanel } from '../components/documents/DocumentPanel';
 import { QuotationClarificationThread } from '../components/features/QuotationClarificationThread';
+import type { ClarificationDirection } from '../lib/quotationClarifications';
+import { notifyUser } from '../lib/workflowNotifications';
 import { openSignedUrl } from '../lib/documents';
 import {
   MOCK_QUOTATIONS,
@@ -171,7 +173,7 @@ function NextActionBanner({
           <AlertTriangle size={18} className="text-red-600 shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-red-900">Clarification Required</p>
-            <p className="text-xs text-red-700">The Sales Coordinator has requested clarification. Review the coordinator remarks below and respond by updating the quotation request.</p>
+            <p className="text-xs text-red-700">The Sales Coordinator has requested clarification. Review the note below and reply in the Clarifications thread — the status updates automatically once you respond.</p>
             {quotation.coordinator_remarks && (
               <p className="mt-2 text-sm text-red-800 bg-red-100 rounded-lg px-3 py-2">{quotation.coordinator_remarks}</p>
             )}
@@ -202,7 +204,7 @@ function NextActionBanner({
           <Send size={18} className="text-sky-600 shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-sky-900">Submitted by Sales — Awaiting Coordinator Action</p>
-            <p className="text-xs text-sky-700">Mark this quotation as received, forward to Estimation, or request clarification from Sales. Use the Coordinator Actions section below.</p>
+            <p className="text-xs text-sky-700">Mark this quotation as received, forward to Estimation, or request clarification from Sales via the Clarifications thread below.</p>
           </div>
         </div>
       </div>
@@ -256,7 +258,6 @@ export function QuotationDetail() {
   // Coordinator form state
   const [coordRemarks, setCoordRemarks] = useState('');
   const [estimationContact, setEstimationContact] = useState('');
-  const [clarification, setClarification] = useState('');
   const [saving, setSaving] = useState(false);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
 
@@ -390,15 +391,49 @@ export function QuotationDetail() {
     );
   }
 
-  function handleRequestClarification() {
-    if (!clarification.trim()) { setActionMsg('Clarification message is required.'); return; }
-    performUpdate(
-      { quotation_status: 'need_clarification', coordinator_remarks: clarification },
-      'clarification_requested',
-      'Clarification requested by coordinator',
-      clarification,
-      'status_changed',
-    );
+  // Clarification thread posts a message; the status transition and notification
+  // follow automatically so sales/coordinator never have to update status by hand.
+  async function handleClarificationSent(direction: ClarificationDirection) {
+    if (!quotation) return;
+    if (direction === 'coordinator_request') {
+      if (quotation.quotation_status !== 'need_clarification') {
+        await performUpdate(
+          { quotation_status: 'need_clarification' },
+          'clarification_requested',
+          'Clarification requested by coordinator',
+          null,
+          'status_changed',
+        );
+      }
+      void notifyUser(quotation.requested_by, profile?.id, {
+        title: 'Clarification requested',
+        message: `The coordinator requested clarification on quotation ${quotation.quotation_code}.`,
+        severity: 'important',
+        moduleName: 'sales',
+        eventKey: 'quotation_clarification_requested',
+        entityType: 'quotation_requests',
+        entityId: quotation.id,
+      });
+    } else {
+      if (quotation.quotation_status === 'need_clarification') {
+        await performUpdate(
+          { quotation_status: 'submitted_by_sales' },
+          'clarification_replied',
+          'Sales replied to clarification request',
+          null,
+          'status_changed',
+        );
+      }
+      void notifyUser(quotation.assigned_coordinator_id, profile?.id, {
+        title: 'Clarification reply received',
+        message: `Sales replied to the clarification request on quotation ${quotation.quotation_code}.`,
+        severity: 'routine',
+        moduleName: 'sales',
+        eventKey: 'quotation_clarification_replied',
+        entityType: 'quotation_requests',
+        entityId: quotation.id,
+      });
+    }
   }
 
   function handleSaveCoordRemarks() {
@@ -762,12 +797,14 @@ export function QuotationDetail() {
           />
         </Section>
 
-        {/* Clarification thread (C1) — two-way, multi-round, logged. */}
+        {/* Clarification thread (C1) — two-way, multi-round, logged. Posting here
+            drives the quotation status automatically (see handleClarificationSent). */}
         <QuotationClarificationThread
           quotationId={quotation.id}
           userId={profile?.id ?? null}
           userName={profile?.full_name ?? profile?.email ?? null}
           userRole={role}
+          onSent={handleClarificationSent}
         />
 
         {/* Quotation Response (shown when there's a response or when coordinator can act) */}
@@ -842,10 +879,10 @@ export function QuotationDetail() {
                 )}
                 <div className="space-y-2">
                   <h4 className="text-sm font-semibold text-gray-800">Request Clarification</h4>
-                  <p className="text-xs text-gray-500">Ask Sales for additional information.</p>
-                  <textarea rows={2} value={clarification} onChange={(e) => setClarification(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none mb-2" placeholder="What clarification is needed?" />
-                  <Button size="sm" variant="outline" loading={saving} onClick={handleRequestClarification} icon={<AlertTriangle size={14} />}>Request Clarification</Button>
+                  <p className="text-xs text-gray-500">
+                    Use the <span className="font-medium text-gray-700">Clarifications</span> thread above to ask
+                    Sales a question — the status and notification are handled automatically when you post there.
+                  </p>
                 </div>
               </div>
 

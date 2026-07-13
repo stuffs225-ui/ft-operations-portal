@@ -18,6 +18,8 @@ interface Props {
   userId: string | null;
   userName: string | null;
   userRole: UserRole | null;
+  /** Called after a message is successfully saved, so the parent can react (status transition, notification). */
+  onSent?: (direction: ClarificationDirection) => void | Promise<void>;
 }
 
 function fmt(iso: string): string {
@@ -26,7 +28,7 @@ function fmt(iso: string): string {
   });
 }
 
-export function QuotationClarificationThread({ quotationId, userId, userName, userRole }: Props) {
+export function QuotationClarificationThread({ quotationId, userId, userName, userRole, onSent }: Props) {
   const [items, setItems] = useState<QuotationClarification[]>([]);
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
@@ -63,6 +65,7 @@ export function QuotationClarificationThread({ quotationId, userId, userName, us
     setBody(''); setFile(null);
     if (fileRef.current) fileRef.current.value = '';
     void reload();
+    void onSent?.(direction);
   }
 
   return (
