@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/common/page-header';
-import { Info } from 'lucide-react';
+import { Button } from '../components/ui/Button';
 import {
+  Info, Plus, Pencil, Power, X,
   CheckCircle2, AlertTriangle, Database, ShieldCheck, Loader2,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { saveSettingsRow, setSettingsRowActive, type SettingsTable } from '../lib/settingsQueries';
 
 // ── Row types (match database.ts + static fallback shape) ─────────────────────
 
@@ -134,304 +136,258 @@ const TABS = [
 
 type Tab = (typeof TABS)[number];
 
-// ── Shared UI helpers ─────────────────────────────────────────────────────────
+// ── Editable master-data config ───────────────────────────────────────────────
 
-function SectionHeader({ title }: { title: string }) {
-  return (
-    <div className="flex items-center justify-between mb-3">
-      <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
-    </div>
-  );
+type FieldType = 'text' | 'number' | 'boolean' | 'textarea' | 'select';
+interface FieldDef {
+  key: string;
+  label: string;
+  type: FieldType;
+  required?: boolean;
+  options?: { value: string; label: string }[];
 }
 
-// Reference data is read-only in the app — it is seeded and maintained through
-// database migrations, not edited in the UI. The previous "Add"/pencil controls
-// did nothing (no-op handlers); they are removed rather than left as dead affordances.
+const STATUS_COLOR_OPTIONS = [
+  { value: 'bg-gray-100 text-gray-600',   label: 'Gray' },
+  { value: 'bg-blue-100 text-blue-700',   label: 'Blue' },
+  { value: 'bg-brand-100 text-brand-700', label: 'Brand' },
+  { value: 'bg-amber-100 text-amber-700', label: 'Amber' },
+  { value: 'bg-green-100 text-green-700', label: 'Green' },
+  { value: 'bg-red-100 text-red-700',     label: 'Red' },
+  { value: 'bg-purple-100 text-purple-700', label: 'Purple' },
+];
+const CAPACITY_OPTIONS = [
+  { value: 'High', label: 'High' }, { value: 'Medium', label: 'Medium' }, { value: 'Low', label: 'Low' },
+];
 
-function TableSkeleton({ cols }: { cols: number }) {
+const STATUS_FIELDS: FieldDef[] = [
+  { key: 'name', label: 'Status', type: 'text', required: true },
+  { key: 'color', label: 'Color', type: 'select', options: STATUS_COLOR_OPTIONS },
+  { key: 'sort_order', label: 'Order', type: 'number' },
+  { key: 'description', label: 'Description', type: 'textarea' },
+];
+
+const TAB_FIELDS: Record<string, { table: SettingsTable; fields: FieldDef[] }> = {
+  'Vehicle Types':        { table: 'vehicle_types', fields: [
+    { key: 'name', label: 'Name', type: 'text', required: true },
+    { key: 'code', label: 'Code', type: 'text', required: true },
+    { key: 'description', label: 'Description', type: 'textarea' },
+  ]},
+  'Material Categories':  { table: 'material_categories', fields: [
+    { key: 'name', label: 'Name', type: 'text', required: true },
+    { key: 'requires_serial', label: 'Serial Required', type: 'boolean' },
+    { key: 'description', label: 'Description', type: 'textarea' },
+  ]},
+  'Supplier Categories':  { table: 'supplier_categories', fields: [
+    { key: 'name', label: 'Name', type: 'text', required: true },
+    { key: 'description', label: 'Description', type: 'textarea' },
+  ]},
+  'Document Types':       { table: 'document_types', fields: [
+    { key: 'name', label: 'Name', type: 'text', required: true },
+    { key: 'required_at', label: 'Required At', type: 'text' },
+    { key: 'description', label: 'Description', type: 'textarea' },
+  ]},
+  'SLA Rules':            { table: 'sla_rule_templates', fields: [
+    { key: 'trigger_event', label: 'Trigger', type: 'text', required: true },
+    { key: 'required_action', label: 'Required Action', type: 'text', required: true },
+    { key: 'sla_hours', label: 'SLA (hrs)', type: 'number', required: true },
+    { key: 'escalate_to', label: 'Escalate To', type: 'text' },
+  ]},
+  'Root Cause Categories':{ table: 'root_cause_categories', fields: [
+    { key: 'name', label: 'Name', type: 'text', required: true },
+    { key: 'description', label: 'Description', type: 'textarea' },
+  ]},
+  'Store Locations':      { table: 'store_locations', fields: [
+    { key: 'name', label: 'Name', type: 'text', required: true },
+    { key: 'code', label: 'Code', type: 'text', required: true },
+    { key: 'capacity', label: 'Capacity', type: 'select', options: CAPACITY_OPTIONS },
+    { key: 'description', label: 'Description', type: 'textarea' },
+  ]},
+};
+
+function colorLabel(value: string): string {
+  return STATUS_COLOR_OPTIONS.find((o) => o.value === value)?.label ?? value;
+}
+
+// ── Row-edit modal ─────────────────────────────────────────────────────────────
+
+function RowModal({
+  title, table, fields, row, onClose, onDone,
+}: {
+  title: string;
+  table: SettingsTable;
+  fields: FieldDef[];
+  row: Record<string, unknown> | null; // null = create
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [values, setValues] = useState<Record<string, unknown>>(() => {
+    const init: Record<string, unknown> = {};
+    for (const f of fields) {
+      init[f.key] = row?.[f.key] ?? (f.type === 'boolean' ? false : f.type === 'select' ? (f.options?.[0]?.value ?? '') : '');
+    }
+    return init;
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function set(key: string, v: unknown) { setValues((prev) => ({ ...prev, [key]: v })); }
+
+  async function handleSave() {
+    // Required-field check
+    for (const f of fields) {
+      if (f.required && (values[f.key] == null || String(values[f.key]).trim() === '')) {
+        setError(`${f.label} is required.`); return;
+      }
+    }
+    // Normalize payload (numbers, trimmed strings, null-empty)
+    const payload: Record<string, unknown> = {};
+    for (const f of fields) {
+      const v = values[f.key];
+      if (f.type === 'number') payload[f.key] = v === '' || v == null ? null : Number(v);
+      else if (f.type === 'boolean') payload[f.key] = Boolean(v);
+      else payload[f.key] = typeof v === 'string' ? (v.trim() || null) : v;
+    }
+    setSaving(true); setError(null);
+    const res = await saveSettingsRow(table, (row?.id as string) ?? null, payload);
+    setSaving(false);
+    if (res.ok) { onDone(); return; }
+    if (res.unavailable) { setError('This table is not available — its migration is pending.'); return; }
+    setError(res.error ?? 'Could not save.');
+  }
+
   return (
-    <tbody>
-      {[1, 2, 3].map((i) => (
-        <tr key={i} className="border-b border-gray-100">
-          {Array.from({ length: cols }).map((_, j) => (
-            <td key={j} className="px-4 py-3">
-              <div className="h-3 bg-gray-100 rounded animate-pulse" style={{ width: `${60 + (j * 20) % 40}%` }} />
-            </td>
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 sticky top-0 bg-white">
+          <h2 className="text-sm font-semibold text-gray-900">{row ? 'Edit' : 'Add'} · {title}</h2>
+          <button onClick={onClose} className="p-1 rounded text-gray-400 hover:text-gray-600"><X size={16} /></button>
+        </div>
+        <div className="px-5 py-4 space-y-3">
+          {fields.map((f) => (
+            <div key={f.key}>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                {f.label}{f.required && <span className="text-red-500"> *</span>}
+              </label>
+              {f.type === 'boolean' ? (
+                <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" checked={Boolean(values[f.key])} onChange={(e) => set(f.key, e.target.checked)} className="rounded border-gray-300" />
+                  Yes
+                </label>
+              ) : f.type === 'select' ? (
+                <select value={String(values[f.key] ?? '')} onChange={(e) => set(f.key, e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+                  {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              ) : f.type === 'textarea' ? (
+                <textarea value={String(values[f.key] ?? '')} onChange={(e) => set(f.key, e.target.value)} rows={2}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              ) : (
+                <input type={f.type === 'number' ? 'number' : 'text'} value={String(values[f.key] ?? '')} onChange={(e) => set(f.key, e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              )}
+            </div>
           ))}
-        </tr>
-      ))}
-    </tbody>
-  );
-}
-
-// ── Tab content components (all receive data as props) ────────────────────────
-
-function VehicleTypesTab({ data, loading }: { data: VehicleTypeRow[]; loading: boolean }) {
-  return (
-    <div>
-      <SectionHeader title="Vehicle Types" />
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide bg-gray-50 border-b border-gray-200">
-            <th className="px-4 py-2.5 text-left">Name</th>
-            <th className="px-4 py-2.5 text-left">Code</th>
-            <th className="px-4 py-2.5 text-left hidden md:table-cell">Description</th>
-          </tr>
-        </thead>
-        {loading ? <TableSkeleton cols={4} /> : (
-          <tbody className="divide-y divide-gray-100">
-            {data.map((r) => (
-              <tr key={r.id} className="hover:bg-gray-50">
-                <td className="px-4 py-2.5 font-medium text-gray-900 text-xs">{r.name}</td>
-                <td className="px-4 py-2.5 font-mono text-xs text-brand-700">{r.code}</td>
-                <td className="px-4 py-2.5 text-xs text-gray-500 hidden md:table-cell">{r.description}</td>
-              </tr>
-            ))}
-          </tbody>
-        )}
-      </table>
+          {error && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{error}</p>}
+        </div>
+        <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-200 sticky bottom-0 bg-white">
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button size="sm" onClick={handleSave} loading={saving} disabled={saving}>{row ? 'Save' : 'Add'}</Button>
+        </div>
+      </div>
     </div>
   );
 }
 
-function MaterialCategoriesTab({ data, loading }: { data: MaterialCategoryRow[]; loading: boolean }) {
-  return (
-    <div>
-      <SectionHeader title="Material Categories" />
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide bg-gray-50 border-b border-gray-200">
-            <th className="px-4 py-2.5 text-left">Name</th>
-            <th className="px-4 py-2.5 text-left">Serial Required</th>
-            <th className="px-4 py-2.5 text-left hidden md:table-cell">Description</th>
-          </tr>
-        </thead>
-        {loading ? <TableSkeleton cols={4} /> : (
-          <tbody className="divide-y divide-gray-100">
-            {data.map((r) => (
-              <tr key={r.id} className="hover:bg-gray-50">
-                <td className="px-4 py-2.5 font-medium text-gray-900 text-xs">{r.name}</td>
-                <td className="px-4 py-2.5 text-xs">
-                  <span className={cn('inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium', r.requires_serial ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500')}>
-                    {r.requires_serial ? 'Yes' : 'No'}
-                  </span>
-                </td>
-                <td className="px-4 py-2.5 text-xs text-gray-500 hidden md:table-cell">{r.description}</td>
-              </tr>
-            ))}
-          </tbody>
-        )}
-      </table>
-    </div>
-  );
+// ── Editable table (generic) ────────────────────────────────────────────────────
+
+function renderCell(f: FieldDef, row: Record<string, unknown>) {
+  const v = row[f.key];
+  if (f.type === 'boolean') {
+    return <span className={cn('inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium', v ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500')}>{v ? 'Yes' : 'No'}</span>;
+  }
+  if (f.key === 'color' && typeof v === 'string') {
+    return <span className={cn('inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold', v)}>{colorLabel(v)}</span>;
+  }
+  const text = v == null || v === '' ? '—' : String(v);
+  return <span className={cn('text-xs', f.key === 'code' ? 'font-mono text-brand-700' : 'text-gray-600')}>{text}</span>;
 }
 
-function SupplierCategoriesTab({ data, loading }: { data: SupplierCategoryRow[]; loading: boolean }) {
+function EditableTable({
+  title, table, fields, rows, loading, canEdit, onChanged,
+}: {
+  title: string;
+  table: SettingsTable;
+  fields: FieldDef[];
+  rows: Record<string, unknown>[];
+  loading: boolean;
+  canEdit: boolean;
+  onChanged: () => void;
+}) {
+  const [modal, setModal] = useState<{ row: Record<string, unknown> | null } | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function deactivate(row: Record<string, unknown>) {
+    if (!window.confirm(`Deactivate "${row.name ?? row.trigger_event ?? 'this item'}"? It will be hidden from the app (reversible in the database).`)) return;
+    setBusyId(row.id as string);
+    const res = await setSettingsRowActive(table, row.id as string, false);
+    setBusyId(null);
+    if (res.ok) onChanged();
+  }
+
   return (
     <div>
-      <SectionHeader title="Supplier Categories" />
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide bg-gray-50 border-b border-gray-200">
-            <th className="px-4 py-2.5 text-left">Name</th>
-            <th className="px-4 py-2.5 text-left hidden md:table-cell">Description</th>
-          </tr>
-        </thead>
-        {loading ? <TableSkeleton cols={3} /> : (
-          <tbody className="divide-y divide-gray-100">
-            {data.map((r) => (
-              <tr key={r.id} className="hover:bg-gray-50">
-                <td className="px-4 py-2.5 font-medium text-gray-900 text-xs">{r.name}</td>
-                <td className="px-4 py-2.5 text-xs text-gray-500 hidden md:table-cell">{r.description}</td>
-              </tr>
-            ))}
-          </tbody>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
+        {canEdit && (
+          <Button size="sm" variant="outline" icon={<Plus size={13} />} onClick={() => setModal({ row: null })}>Add</Button>
         )}
-      </table>
-    </div>
-  );
-}
-
-function DocumentTypesTab({ data, loading }: { data: DocumentTypeRow[]; loading: boolean }) {
-  return (
-    <div>
-      <SectionHeader title="Document Types" />
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide bg-gray-50 border-b border-gray-200">
-            <th className="px-4 py-2.5 text-left">Name</th>
-            <th className="px-4 py-2.5 text-left">Required At</th>
-            <th className="px-4 py-2.5 text-left hidden md:table-cell">Description</th>
-          </tr>
-        </thead>
-        {loading ? <TableSkeleton cols={4} /> : (
-          <tbody className="divide-y divide-gray-100">
-            {data.map((r) => (
-              <tr key={r.id} className="hover:bg-gray-50">
-                <td className="px-4 py-2.5 font-medium text-gray-900 text-xs">{r.name}</td>
-                <td className="px-4 py-2.5 text-xs">
-                  <span className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-700">{r.required_at}</span>
-                </td>
-                <td className="px-4 py-2.5 text-xs text-gray-500 hidden md:table-cell">{r.description}</td>
-              </tr>
-            ))}
-          </tbody>
-        )}
-      </table>
-    </div>
-  );
-}
-
-function SlaRulesTab({ data, loading }: { data: SlaRuleRow[]; loading: boolean }) {
-  return (
-    <div>
-      <SectionHeader title="SLA Rules" />
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide bg-gray-50 border-b border-gray-200">
-            <th className="px-4 py-2.5 text-left">Trigger</th>
-            <th className="px-4 py-2.5 text-left hidden md:table-cell">Required Action</th>
-            <th className="px-4 py-2.5 text-left">SLA (hrs)</th>
-            <th className="px-4 py-2.5 text-left hidden lg:table-cell">Escalate To</th>
-          </tr>
-        </thead>
-        {loading ? <TableSkeleton cols={5} /> : (
-          <tbody className="divide-y divide-gray-100">
-            {data.map((r) => (
-              <tr key={r.id} className="hover:bg-gray-50">
-                <td className="px-4 py-2.5 font-medium text-gray-900 text-xs">{r.trigger_event}</td>
-                <td className="px-4 py-2.5 text-xs text-gray-600 hidden md:table-cell">{r.required_action}</td>
-                <td className="px-4 py-2.5 text-xs">
-                  <span className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700">{r.sla_hours}h</span>
-                </td>
-                <td className="px-4 py-2.5 text-xs text-gray-500 hidden lg:table-cell">{r.escalate_to}</td>
-              </tr>
-            ))}
-          </tbody>
-        )}
-      </table>
-    </div>
-  );
-}
-
-function RootCauseCategoriesTab({ data, loading }: { data: RootCauseCategoryRow[]; loading: boolean }) {
-  return (
-    <div>
-      <SectionHeader title="Root Cause Categories" />
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide bg-gray-50 border-b border-gray-200">
-            <th className="px-4 py-2.5 text-left">Name</th>
-            <th className="px-4 py-2.5 text-left hidden md:table-cell">Description</th>
-          </tr>
-        </thead>
-        {loading ? <TableSkeleton cols={3} /> : (
-          <tbody className="divide-y divide-gray-100">
-            {data.map((r) => (
-              <tr key={r.id} className="hover:bg-gray-50">
-                <td className="px-4 py-2.5 font-medium text-gray-900 text-xs">{r.name}</td>
-                <td className="px-4 py-2.5 text-xs text-gray-500 hidden md:table-cell">{r.description}</td>
-              </tr>
-            ))}
-          </tbody>
-        )}
-      </table>
-    </div>
-  );
-}
-
-function StoreLocationsTab({ data, loading }: { data: StoreLocationRow[]; loading: boolean }) {
-  return (
-    <div>
-      <SectionHeader title="Store Locations" />
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide bg-gray-50 border-b border-gray-200">
-            <th className="px-4 py-2.5 text-left">Name</th>
-            <th className="px-4 py-2.5 text-left">Code</th>
-            <th className="px-4 py-2.5 text-left hidden md:table-cell">Capacity</th>
-            <th className="px-4 py-2.5 text-left hidden lg:table-cell">Description</th>
-          </tr>
-        </thead>
-        {loading ? <TableSkeleton cols={5} /> : (
-          <tbody className="divide-y divide-gray-100">
-            {data.map((r) => (
-              <tr key={r.id} className="hover:bg-gray-50">
-                <td className="px-4 py-2.5 font-medium text-gray-900 text-xs">{r.name}</td>
-                <td className="px-4 py-2.5 font-mono text-xs text-brand-700">{r.code}</td>
-                <td className="px-4 py-2.5 text-xs hidden md:table-cell">
-                  <span className={cn(
-                    'inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium',
-                    r.capacity === 'High'   ? 'bg-green-100 text-green-700' :
-                    r.capacity === 'Medium' ? 'bg-amber-100 text-amber-700' :
-                                             'bg-red-100 text-red-700',
-                  )}>
-                    {r.capacity}
-                  </span>
-                </td>
-                <td className="px-4 py-2.5 text-xs text-gray-500 hidden lg:table-cell">{r.description}</td>
-              </tr>
-            ))}
-          </tbody>
-        )}
-      </table>
-    </div>
-  );
-}
-
-function WoPnStatusTab({ woData, pnData, loading }: { woData: StatusRow[]; pnData: StatusRow[]; loading: boolean }) {
-  return (
-    <div className="space-y-8">
-      <div>
-        <SectionHeader title="Work Order (WO) Statuses" />
+      </div>
+      <div className="border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide bg-gray-50 border-b border-gray-200">
-              <th className="px-4 py-2.5 text-left">Status</th>
-              <th className="px-4 py-2.5 text-left hidden md:table-cell">Description</th>
+              {fields.map((f) => <th key={f.key} className="px-4 py-2.5 text-left">{f.label}</th>)}
+              {canEdit && <th className="px-4 py-2.5 text-right w-20">Actions</th>}
             </tr>
           </thead>
-          {loading ? <TableSkeleton cols={3} /> : (
+          {loading ? (
+            <tbody>
+              {[1, 2, 3].map((i) => (
+                <tr key={i} className="border-b border-gray-100">
+                  {fields.map((f) => <td key={f.key} className="px-4 py-3"><div className="h-3 bg-gray-100 rounded animate-pulse w-3/4" /></td>)}
+                  {canEdit && <td />}
+                </tr>
+              ))}
+            </tbody>
+          ) : (
             <tbody className="divide-y divide-gray-100">
-              {woData.map((r) => (
-                <tr key={r.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2.5">
-                    <span className={cn('inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold', r.color)}>{r.name}</span>
-                  </td>
-                  <td className="px-4 py-2.5 text-xs text-gray-500 hidden md:table-cell">{r.description}</td>
+              {rows.length === 0 && (
+                <tr><td colSpan={fields.length + (canEdit ? 1 : 0)} className="px-4 py-8 text-center text-xs text-gray-400">No entries.</td></tr>
+              )}
+              {rows.map((r) => (
+                <tr key={String(r.id)} className="hover:bg-gray-50">
+                  {fields.map((f) => <td key={f.key} className="px-4 py-2.5">{renderCell(f, r)}</td>)}
+                  {canEdit && (
+                    <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                      <button onClick={() => setModal({ row: r })} className="p-1 rounded text-gray-400 hover:text-brand-600 transition-colors" title="Edit"><Pencil size={13} /></button>
+                      <button onClick={() => void deactivate(r)} disabled={busyId === r.id} className="p-1 rounded text-gray-400 hover:text-red-600 transition-colors disabled:opacity-40" title="Deactivate"><Power size={13} /></button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
           )}
         </table>
       </div>
-
-      <div>
-        <SectionHeader title="Part Number (PN) Statuses" />
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide bg-gray-50 border-b border-gray-200">
-              <th className="px-4 py-2.5 text-left">Status</th>
-              <th className="px-4 py-2.5 text-left hidden md:table-cell">Description</th>
-            </tr>
-          </thead>
-          {loading ? <TableSkeleton cols={3} /> : (
-            <tbody className="divide-y divide-gray-100">
-              {pnData.map((r) => (
-                <tr key={r.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2.5">
-                    <span className={cn('inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold', r.color)}>{r.name}</span>
-                  </td>
-                  <td className="px-4 py-2.5 text-xs text-gray-500 hidden md:table-cell">{r.description}</td>
-                </tr>
-              ))}
-            </tbody>
-          )}
-        </table>
-      </div>
+      {modal && (
+        <RowModal title={title} table={table} fields={fields} row={modal.row}
+          onClose={() => setModal(null)} onDone={() => { setModal(null); onChanged(); }} />
+      )}
     </div>
   );
 }
+
 
 function SystemStatusTab() {
   const supabaseHost = isSupabaseConfigured
@@ -553,6 +509,11 @@ export function Settings() {
   // True once the fetch resolved (even with empty results). Used to
   // distinguish "DB returned 0 rows" from "never fetched (dev mode)".
   const [fetchComplete, setFetchComplete] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = () => { setDbLoading(true); setReloadKey((k) => k + 1); };
+
+  // Editing requires a live Supabase connection (RLS enforces admin/ops on write).
+  const canEdit = isSupabaseConfigured;
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
@@ -586,7 +547,7 @@ export function Settings() {
       setDbLoading(false);
       setFetchComplete(true);
     });
-  }, []);
+  }, [reloadKey]);
 
   // Use live data once the fetch is complete (even if some tables are empty).
   // Only fall back to static arrays when Supabase was never queried (dev mode).
@@ -632,13 +593,13 @@ export function Settings() {
         }
       />
 
-      {/* Reference data is read-only in the UI — maintained via database migrations. */}
-      {activeTab !== 'System Status' && (
-        <div className="flex items-start gap-2 bg-sky-50 border border-sky-200 rounded-lg p-3">
-          <Info size={15} className="text-sky-600 shrink-0 mt-0.5" />
-          <p className="text-xs text-sky-800">
-            This is reference master data, shown read-only. It is seeded and maintained through
-            database migrations, not edited here.
+      {/* Editing is live only. In dev-mock mode there is no database to write to. */}
+      {activeTab !== 'System Status' && !canEdit && (
+        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <Info size={15} className="text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-800">
+            Dev mode — showing sample data, read-only. Connect Supabase to add, edit, and deactivate
+            these entries (admin / operations manager only).
           </p>
         </div>
       )}
@@ -663,14 +624,27 @@ export function Settings() {
 
       {/* Tab content */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
-        {activeTab === 'Vehicle Types'        && <VehicleTypesTab        data={d.vehicleTypes}        loading={dbLoading} />}
-        {activeTab === 'Material Categories'  && <MaterialCategoriesTab  data={d.materialCategories}  loading={dbLoading} />}
-        {activeTab === 'Supplier Categories'  && <SupplierCategoriesTab  data={d.supplierCategories}  loading={dbLoading} />}
-        {activeTab === 'Document Types'       && <DocumentTypesTab       data={d.documentTypes}       loading={dbLoading} />}
-        {activeTab === 'SLA Rules'            && <SlaRulesTab            data={d.slaRules}            loading={dbLoading} />}
-        {activeTab === 'Root Cause Categories'&& <RootCauseCategoriesTab data={d.rootCauseCategories} loading={dbLoading} />}
-        {activeTab === 'Store Locations'      && <StoreLocationsTab      data={d.storeLocations}      loading={dbLoading} />}
-        {activeTab === 'WO / PN Status'       && <WoPnStatusTab          woData={d.woStatuses}        pnData={d.pnStatuses} loading={dbLoading} />}
+        {activeTab !== 'System Status' && activeTab !== 'WO / PN Status' && (() => {
+          const cfg = TAB_FIELDS[activeTab];
+          const rowsByTab = {
+            'Vehicle Types': d.vehicleTypes, 'Material Categories': d.materialCategories,
+            'Supplier Categories': d.supplierCategories, 'Document Types': d.documentTypes,
+            'SLA Rules': d.slaRules, 'Root Cause Categories': d.rootCauseCategories,
+            'Store Locations': d.storeLocations,
+          } as unknown as Record<string, Record<string, unknown>[]>;
+          return (
+            <EditableTable title={activeTab} table={cfg.table} fields={cfg.fields}
+              rows={rowsByTab[activeTab] ?? []} loading={dbLoading} canEdit={canEdit} onChanged={reload} />
+          );
+        })()}
+        {activeTab === 'WO / PN Status' && (
+          <div className="space-y-8">
+            <EditableTable title="Work Order (WO) Statuses" table="wo_statuses" fields={STATUS_FIELDS}
+              rows={d.woStatuses as unknown as Record<string, unknown>[]} loading={dbLoading} canEdit={canEdit} onChanged={reload} />
+            <EditableTable title="Part Number (PN) Statuses" table="pn_statuses" fields={STATUS_FIELDS}
+              rows={d.pnStatuses as unknown as Record<string, unknown>[]} loading={dbLoading} canEdit={canEdit} onChanged={reload} />
+          </div>
+        )}
         {activeTab === 'System Status'        && <SystemStatusTab />}
       </div>
     </div>
