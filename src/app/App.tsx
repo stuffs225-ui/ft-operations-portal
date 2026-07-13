@@ -126,6 +126,7 @@ const AdminReportSubscriptions = lazy(() => import('../pages/AdminReportSubscrip
 const AdminReportSubscriptionDetail = lazy(() => import('../pages/AdminReportSubscriptionDetail').then((m) => ({ default: m.AdminReportSubscriptionDetail })));
 const AdminInvoicingSchedule = lazy(() => import('../pages/AdminInvoicingSchedule').then((m) => ({ default: m.AdminInvoicingSchedule })));
 const AdminSalesTargets = lazy(() => import('../pages/AdminSalesTargets').then((m) => ({ default: m.AdminSalesTargets })));
+const AdminAgingUpload = lazy(() => import('../pages/AdminAgingUpload').then((m) => ({ default: m.AdminAgingUpload })));
 const NotFound = lazy(() => import('../pages/NotFound').then((m) => ({ default: m.NotFound })));
 const HotProjects = lazy(() => import('../pages/HotProjects').then((m) => ({ default: m.HotProjects })));
 const HotProjectNew = lazy(() => import('../pages/HotProjectNew').then((m) => ({ default: m.HotProjectNew })));
@@ -177,7 +178,9 @@ export function App() {
             <Route path="hot-projects/new" element={<RequireRole roles={['admin', 'operations_manager', 'sales_user']}><HotProjectNew /></RequireRole>} />
             <Route path="hot-projects/:id" element={<RequireRole roles={['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'viewer']}><HotProjectDetail /></RequireRole>} />
             <Route path="projects" element={<Projects />} />
-            <Route path="projects/new" element={<RequireRole roles={['admin', 'operations_manager', 'sales_user']}><ProjectNew /></RequireRole>} />
+            {/* SO authoring is Admin/Operations only — sales view projects read-only
+                (incl. quotation→SO conversion, which routes here). */}
+            <Route path="projects/new" element={<RequireRole roles={['admin', 'operations_manager']}><ProjectNew /></RequireRole>} />
             <Route path="projects/:id" element={<ProjectDetail />} />
             <Route path="projects/:projectId/invoicing" element={<RequireRole roles={['admin', 'operations_manager', 'sales_user', 'sales_coordinator', 'viewer']}><ProjectInvoicing /></RequireRole>} />
             <Route path="templates" element={<Templates />} />
@@ -315,6 +318,7 @@ export function App() {
             {/* ── Commercial admin controls ── */}
             <Route path="admin/invoicing-schedule" element={<RequireRole roles={['admin']}><AdminInvoicingSchedule /></RequireRole>} />
             <Route path="admin/sales-targets" element={<RequireRole roles={['admin']}><AdminSalesTargets /></RequireRole>} />
+            <Route path="admin/aging-upload" element={<RequireRole roles={['admin', 'operations_manager']}><AdminAgingUpload /></RequireRole>} />
 
             <Route path="*" element={<NotFound />} />
           </Route>

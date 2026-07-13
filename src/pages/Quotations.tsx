@@ -224,7 +224,7 @@ export function Quotations() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Quotation Requests"
+        title="Quotations"
         subtitle={isSalesUser
           ? 'Your quotation requests — track status, respond to clarifications, and convert to projects'
           : isCoordinator
