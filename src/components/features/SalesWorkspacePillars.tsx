@@ -68,7 +68,7 @@ function PillarLoadingRows() {
 
 // ── Pillar 2: Hot Projects ────────────────────────────────────────────────────
 
-export function HotProjectsPillar({ hotProjects, loading }: { hotProjects: HotProject[]; loading: boolean }) {
+export function HotProjectsPillar({ hotProjects, loading, broad }: { hotProjects: HotProject[]; loading: boolean; broad?: boolean }) {
   const open = hotProjects.filter((h) => OPEN_STAGES.includes(h.stage));
   const pipelineValue = open.reduce((s, h) => s + (h.estimated_value ?? 0), 0);
   // Scoped to the same open stages as the header count/value above — this widget
@@ -84,7 +84,7 @@ export function HotProjectsPillar({ hotProjects, loading }: { hotProjects: HotPr
       <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-            <Flame size={14} className="text-orange-500" /> My Pipeline Projects
+            <Flame size={14} className="text-orange-500" /> {broad ? 'Pipeline Projects' : 'My Pipeline Projects'}
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
             {open.length} open · pipeline SAR {sarK(pipelineValue)}
@@ -138,7 +138,7 @@ export function HotProjectsPillar({ hotProjects, loading }: { hotProjects: HotPr
 
 // ── Pillar 3: Quotations ──────────────────────────────────────────────────────
 
-export function QuotationsPillar({ quotations, loading }: { quotations: QuotationRequest[]; loading: boolean }) {
+export function QuotationsPillar({ quotations, loading, broad }: { quotations: QuotationRequest[]; loading: boolean; broad?: boolean }) {
   const open = quotations.filter((q) => !CLOSED_QUOTATION.includes(q.quotation_status));
   const overdue = open.filter((q) => isQuotationOverdue(q));
 
@@ -147,7 +147,7 @@ export function QuotationsPillar({ quotations, loading }: { quotations: Quotatio
       <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-            <FileText size={14} className="text-brand-600" /> My Quotations
+            <FileText size={14} className="text-brand-600" /> {broad ? 'Quotations' : 'My Quotations'}
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
             {open.length} open{overdue.length > 0 && <span className="text-red-600 font-medium"> · {overdue.length} overdue (SLA)</span>}

@@ -294,8 +294,8 @@ export function Sales() {
               </select>
             </div>
             {role && (
-              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ROLE_MATRIX.sales_user.badgeClass}`}>
-                Sales User
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ROLE_MATRIX[role]?.badgeClass ?? ROLE_MATRIX.sales_user.badgeClass}`}>
+                {isBroadView ? `${ROLE_MATRIX[role]?.label ?? 'Admin'} · All Salesmen` : (ROLE_MATRIX[role]?.label ?? 'Sales User')}
               </span>
             )}
             <DataSourceBadge variant="auto" />
@@ -426,7 +426,7 @@ export function Sales() {
               <div>
                 <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
                   <ReceiptText size={14} className="text-indigo-500" />
-                  My Invoicing Plan — {selectedYear}
+                  {isBroadView ? 'Invoicing Plan' : 'My Invoicing Plan'} — {selectedYear}
                 </h2>
                 <p className="text-xs text-gray-400 mt-0.5">Per-project monthly invoicing schedule</p>
               </div>
@@ -558,8 +558,8 @@ export function Sales() {
 
           {/* ── Pillars 2 & 3: Hot Projects + Quotations ───────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <HotProjectsPillar hotProjects={hotProjects} loading={pillarsLoading} />
-            <QuotationsPillar quotations={quotations} loading={pillarsLoading} />
+            <HotProjectsPillar hotProjects={hotProjects} loading={pillarsLoading} broad={isBroadView} />
+            <QuotationsPillar quotations={quotations} loading={pillarsLoading} broad={isBroadView} />
           </div>
 
           {/* ── Annual Targets ─────────────────────────────────────────────────── */}
@@ -567,7 +567,7 @@ export function Sales() {
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
                 <BarChart3 size={14} className="text-gray-500" />
-                Annual Targets — {selectedYear}
+                Annual Targets{isBroadView ? ' — All Salesmen' : ''} — {selectedYear}
               </h2>
               {warnings?.noTargetsRecord && (
                 <InlineTag

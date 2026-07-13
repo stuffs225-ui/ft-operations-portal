@@ -338,13 +338,17 @@ export async function getSalesDashboardV2Data(
     .select('id, project_id, milestone_status, amount, due_date, paid_amount, paid_at')
     .neq('milestone_status', 'cancelled');
 
-  // Targets: only meaningful for sales_user; admin/ops will get null result via RLS
-  const targetsQuery = supabase
-    .from('sales_user_targets')
-    .select('sales_order_target, invoicing_target, collection_target, target_year')
-    .eq('sales_user_id', salesUserId)
-    .eq('target_year', selectedYear)
-    .maybeSingle();
+  // Targets: for a sales_user, their own row. For a broad view (admin/ops) the
+  // achieved figures below are ORG-WIDE, so the target must be too — sum every
+  // salesman's target for the year, otherwise the section shows real achieved
+  // numbers against a blank target (looks like "no targets configured").
+  const targetsQuery = (() => {
+    const base = supabase
+      .from('sales_user_targets')
+      .select('sales_order_target, invoicing_target, collection_target, target_year')
+      .eq('target_year', selectedYear);
+    return isBroadView ? base : base.eq('sales_user_id', salesUserId);
+  })();
 
   const [projectsRes, hotProjectsRes, scheduleRes, milestonesRes, targetsRes, vehicleLinesRes] = await Promise.all([
     projectsQuery,
@@ -379,7 +383,23 @@ export async function getSalesDashboardV2Data(
   // auto delivery-date/default rows, so nothing double-counts (fixes Pending>Total).
   const schedules   = effectiveSchedules(schedulesRaw);
   const milestones  = (milestonesRes.data  ?? []) as MilestoneRow[];
-  const target      = (targetsRes.data     ?? null) as TargetRow | null;
+  // Non-broad → the salesman's single row. Broad → the org-wide sum of every
+  // salesman's target (null only when NO salesman has that target set).
+  const targetRows = (targetsRes.data ?? []) as TargetRow[];
+  const sumOrNull = (key: keyof TargetRow): number | null => {
+    const vals = targetRows.map((t) => t[key] as number | null).filter((v): v is number => v != null);
+    return vals.length === 0 ? null : vals.reduce((s, v) => s + v, 0);
+  };
+  const target: TargetRow | null = targetRows.length === 0
+    ? null
+    : isBroadView
+      ? {
+          sales_order_target: sumOrNull('sales_order_target'),
+          invoicing_target:   sumOrNull('invoicing_target'),
+          collection_target:  sumOrNull('collection_target'),
+          target_year:        selectedYear,
+        }
+      : targetRows[0];
 
   // Total vehicle-line quantity per project (Qty column). Not fatal if blocked.
   const qtyByProject = new Map<string, number>();
