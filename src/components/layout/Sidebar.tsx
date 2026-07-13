@@ -7,7 +7,7 @@ import {
   CalendarClock, Activity, Flame, Package, Clock, AlertCircle, AlertTriangle,
   Layers, ArrowUpRight, Hash, RotateCcw, CheckCircle2, XCircle,
   ListChecks, AlertOctagon, Search, FileCheck, FilePlus,
-  CalendarRange, Target, UploadCloud,
+  CalendarRange, Target, UploadCloud, Gauge,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -24,7 +24,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   CalendarClock, Activity, Flame, Package, Clock, AlertCircle, AlertTriangle,
   Layers, ArrowUpRight, Hash, RotateCcw, CheckCircle2, XCircle,
   ListChecks, AlertOctagon, Search, FileCheck, FilePlus,
-  CalendarRange, Target, UploadCloud,
+  CalendarRange, Target, UploadCloud, Gauge,
 };
 
 interface SidebarProps {

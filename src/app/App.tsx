@@ -126,6 +126,7 @@ const AdminReportSubscriptions = lazy(() => import('../pages/AdminReportSubscrip
 const AdminReportSubscriptionDetail = lazy(() => import('../pages/AdminReportSubscriptionDetail').then((m) => ({ default: m.AdminReportSubscriptionDetail })));
 const AdminInvoicingSchedule = lazy(() => import('../pages/AdminInvoicingSchedule').then((m) => ({ default: m.AdminInvoicingSchedule })));
 const AdminSalesTargets = lazy(() => import('../pages/AdminSalesTargets').then((m) => ({ default: m.AdminSalesTargets })));
+const SalesAdminConsole = lazy(() => import('../pages/SalesAdminConsole').then((m) => ({ default: m.SalesAdminConsole })));
 const AdminAgingUpload = lazy(() => import('../pages/AdminAgingUpload').then((m) => ({ default: m.AdminAgingUpload })));
 const NotFound = lazy(() => import('../pages/NotFound').then((m) => ({ default: m.NotFound })));
 const HotProjects = lazy(() => import('../pages/HotProjects').then((m) => ({ default: m.HotProjects })));
@@ -316,6 +317,7 @@ export function App() {
             <Route path="admin/report-subscriptions/:id" element={<RequireRole roles={['admin']}><AdminReportSubscriptionDetail /></RequireRole>} />
 
             {/* ── Commercial admin controls ── */}
+            <Route path="admin/sales-console" element={<RequireRole roles={['admin']}><SalesAdminConsole /></RequireRole>} />
             <Route path="admin/invoicing-schedule" element={<RequireRole roles={['admin']}><AdminInvoicingSchedule /></RequireRole>} />
             <Route path="admin/sales-targets" element={<RequireRole roles={['admin']}><AdminSalesTargets /></RequireRole>} />
             <Route path="admin/aging-upload" element={<RequireRole roles={['admin', 'operations_manager']}><AdminAgingUpload /></RequireRole>} />
