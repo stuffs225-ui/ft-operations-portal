@@ -120,12 +120,13 @@ export type Database = {
           name: string;
           code: string;
           description: string | null;
+          category: string | null;
           is_active: boolean;
           created_at: string;
           updated_at: string;
         };
-        Insert: { name: string; code: string; description?: string | null; is_active?: boolean };
-        Update: { name?: string; code?: string; description?: string | null; is_active?: boolean };
+        Insert: { name: string; code: string; description?: string | null; category?: string | null; is_active?: boolean };
+        Update: { name?: string; code?: string; description?: string | null; category?: string | null; is_active?: boolean };
         Relationships: [];
       };
       material_categories: {

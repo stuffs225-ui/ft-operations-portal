@@ -11,7 +11,7 @@ import { saveSettingsRow, setSettingsRowActive, type SettingsTable } from '../li
 
 // ── Row types (match database.ts + static fallback shape) ─────────────────────
 
-interface VehicleTypeRow       { id: string; name: string; code: string; description: string | null }
+interface VehicleTypeRow       { id: string; name: string; code: string; description: string | null; category?: string | null }
 interface MaterialCategoryRow  { id: string; name: string; requires_serial: boolean; description: string | null }
 interface SupplierCategoryRow  { id: string; name: string; description: string | null }
 interface DocumentTypeRow      { id: string; name: string; required_at: string | null; description: string | null }
@@ -171,6 +171,12 @@ const TAB_FIELDS: Record<string, { table: SettingsTable; fields: FieldDef[] }> =
   'Vehicle Types':        { table: 'vehicle_types', fields: [
     { key: 'name', label: 'Name', type: 'text', required: true },
     { key: 'code', label: 'Code', type: 'text', required: true },
+    { key: 'category', label: 'Category', type: 'select', options: [
+      { value: 'Ambulance & Medical', label: 'Ambulance & Medical' },
+      { value: 'Firefighting & Rescue', label: 'Firefighting & Rescue' },
+      { value: 'Command & Special-Purpose', label: 'Command & Special-Purpose' },
+      { value: 'Other', label: 'Other' },
+    ] },
     { key: 'description', label: 'Description', type: 'textarea' },
   ]},
   'Material Categories':  { table: 'material_categories', fields: [
@@ -519,7 +525,7 @@ export function Settings() {
     if (!isSupabaseConfigured || !supabase) return;
 
     Promise.all([
-      supabase.from('vehicle_types').select('id,name,code,description').eq('is_active', true).order('name'),
+      supabase.from('vehicle_types').select('id,name,code,description,category').eq('is_active', true).order('category').order('name'),
       supabase.from('material_categories').select('id,name,requires_serial,description').eq('is_active', true).order('name'),
       supabase.from('supplier_categories').select('id,name,description').eq('is_active', true).order('name'),
       supabase.from('document_types').select('id,name,required_at,description').eq('is_active', true).order('name'),
