@@ -630,7 +630,7 @@ export function Sales() {
                     muted={targets?.salesOrderTarget == null}
                   />
                   <MetricRow label="Achieved (approved in year)" value={sar(targets?.salesOrderAchieved)}    />
-                  <MetricRow label="Year plan (portfolio)"       value={sar(targets?.salesOrderYearPlan)}    />
+                  <MetricRow label="Active portfolio (all-time)" value={sar(targets?.salesOrderYearPlan)}    />
                   <MetricRow label="Total expected SO"           value={sar(targets?.salesOrderExpectedTotal)} />
                 </div>
                 <div className="px-4 pb-3 mt-2">
