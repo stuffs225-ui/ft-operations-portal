@@ -1062,6 +1062,27 @@ export const NAV_ITEMS: NavItem[] = [
     icon: 'CalendarClock',
     roles: ['admin'],
   },
+  {
+    id: 'admin-invoicing-schedule',
+    label: 'Invoicing Schedule',
+    path: '/admin/invoicing-schedule',
+    icon: 'CalendarRange',
+    roles: ['admin'],
+  },
+  {
+    id: 'admin-sales-targets',
+    label: 'Sales Annual Targets',
+    path: '/admin/sales-targets',
+    icon: 'Target',
+    roles: ['admin'],
+  },
+  {
+    id: 'admin-aging-upload',
+    label: 'Monthly Aging Upload',
+    path: '/admin/aging-upload',
+    icon: 'UploadCloud',
+    roles: ['admin'],
+  },
 
   // ── 9. SYSTEM GOVERNANCE (admin only) ────────────────────────────────────
   {
