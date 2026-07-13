@@ -173,10 +173,7 @@ function NextActionBanner({
           <AlertTriangle size={18} className="text-red-600 shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-red-900">Clarification Required</p>
-            <p className="text-xs text-red-700">The Sales Coordinator has requested clarification. Review the note below and reply in the Clarifications thread — the status updates automatically once you respond.</p>
-            {quotation.coordinator_remarks && (
-              <p className="mt-2 text-sm text-red-800 bg-red-100 rounded-lg px-3 py-2">{quotation.coordinator_remarks}</p>
-            )}
+            <p className="text-xs text-red-700">The Sales Coordinator has requested clarification — see the request and reply in the Clarifications thread below. The status updates automatically once you respond.</p>
           </div>
         </div>
       </div>

@@ -109,21 +109,23 @@ function AgingItemModal({
           {/* Snapshot figures */}
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="bg-gray-50 rounded-lg px-2 py-2.5">
-              <p className="text-[10px] uppercase tracking-wide text-gray-400">Outstanding</p>
+              <p className="text-[10px] uppercase tracking-wide text-gray-400">Per Finance Snapshot</p>
               <p className="text-sm font-semibold tabular-nums text-gray-900 mt-0.5">{sar(item.amount)}</p>
             </div>
             <div className="bg-emerald-50 rounded-lg px-2 py-2.5">
-              <p className="text-[10px] uppercase tracking-wide text-emerald-600">Collected</p>
+              <p className="text-[10px] uppercase tracking-wide text-emerald-600">Collected (self-reported)</p>
               <p className="text-sm font-semibold tabular-nums text-emerald-700 mt-0.5">{sar(totalCollected)}</p>
             </div>
             <div className="bg-amber-50 rounded-lg px-2 py-2.5">
-              <p className="text-[10px] uppercase tracking-wide text-amber-600">Remaining</p>
+              <p className="text-[10px] uppercase tracking-wide text-amber-600">Remaining (est.)</p>
               <p className="text-sm font-semibold tabular-nums text-amber-700 mt-0.5">{sar(outstanding)}</p>
             </div>
           </div>
-          {item.days_overdue != null && (
-            <p className="text-xs text-gray-500 -mt-3">{item.days_overdue} days overdue</p>
-          )}
+          <p className="text-[11px] text-gray-400 -mt-3">
+            "Per Finance Snapshot" is the amount from the last monthly upload; it won't reflect a collection
+            recorded here until next month's Finance snapshot confirms it.
+            {item.days_overdue != null && ` · ${item.days_overdue} days overdue`}
+          </p>
 
           {/* Remarks */}
           <div>
@@ -319,7 +321,11 @@ export function MonthlyAgingReview({ userId, userName }: { userId: string | null
                       ? <Badge variant="warning" size="sm">Recurring</Badge>
                       : <Badge variant="info" size="sm">New</Badge>}
                     {needsClar && <Badge variant="critical" size="sm">Clarification needed</Badge>}
-                    {totalCollected > 0 && <Badge variant="success" size="sm">Partially collected</Badge>}
+                    {totalCollected > 0 && (
+                      <Badge variant="success" size="sm">
+                        {totalCollected >= it.amount ? 'Fully collected' : 'Partially collected'}
+                      </Badge>
+                    )}
                   </div>
                   <div className="text-[11px] text-gray-400 font-mono mt-0.5">
                     {it.invoice_ref}{it.project_code ? ` · ${it.project_code}` : ''}
