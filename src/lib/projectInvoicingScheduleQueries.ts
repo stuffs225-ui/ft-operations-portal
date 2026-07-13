@@ -429,6 +429,79 @@ export async function updateProjectInvoicingScheduleAmount(
   return { success: true, unavailable: false, error: null };
 }
 
+// ── 6. Split into installments (RPC) ──────────────────────────────────────────
+
+export interface SplitInstallmentInput {
+  invoiceDate: string;
+  amount: number;
+  label?: string | null;
+}
+
+export interface SplitParams {
+  scheduleId: string;
+  /** The line's current amount — installments must sum to this. */
+  originalAmount: number;
+  installments: SplitInstallmentInput[];
+}
+
+export async function splitProjectInvoicingSchedule(
+  params: SplitParams,
+): Promise<ScheduleMutationResult> {
+  const { scheduleId, originalAmount, installments } = params;
+
+  // ── Client-side validation (mirrors the RPC's own checks) ──
+  if (!scheduleId) return { success: false, unavailable: false, error: 'Schedule line is required.' };
+  if (!Array.isArray(installments) || installments.length < 2) {
+    return { success: false, unavailable: false, error: 'A split needs at least 2 installments.' };
+  }
+  for (const it of installments) {
+    if (!it.invoiceDate) return { success: false, unavailable: false, error: 'Every installment needs a date.' };
+    if (typeof it.amount !== 'number' || Number.isNaN(it.amount) || it.amount < 0) {
+      return { success: false, unavailable: false, error: 'Every installment needs a valid amount.' };
+    }
+  }
+  const sum = installments.reduce((s, it) => s + it.amount, 0);
+  if (Math.round(sum * 100) !== Math.round(originalAmount * 100)) {
+    return {
+      success: false,
+      unavailable: false,
+      error: `Installments must sum to the original amount (${originalAmount.toLocaleString()}). Current total: ${sum.toLocaleString()}.`,
+    };
+  }
+
+  if (!supabase) {
+    return {
+      success: false,
+      unavailable: true,
+      unavailableReason: 'Supabase is not configured in this environment.',
+      error: null,
+    };
+  }
+
+  const { error } = await supabase.rpc('split_project_invoicing_schedule', {
+    p_schedule_id: scheduleId,
+    p_installments: installments.map((it) => ({
+      invoice_date: it.invoiceDate,
+      amount: it.amount,
+      label: it.label?.trim() || null,
+    })),
+  });
+
+  if (error) {
+    if (isMissingFunctionError(error) || isMissingRelationError(error)) {
+      return {
+        success: false,
+        unavailable: true,
+        unavailableReason: formatDeferredMigrationMessage('split_project_invoicing_schedule', 111),
+        error: null,
+      };
+    }
+    return { success: false, unavailable: false, error: error.message };
+  }
+
+  return { success: true, unavailable: false, error: null };
+}
+
 // ── KPI summary (pure, from already-fetched rows) ─────────────────────────────
 
 export interface InvoicingScheduleKpis {
