@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Factory as FactoryIcon, GitBranch, Wrench, FileText, Package,
   CalendarClock, CheckCircle2, AlertTriangle, AlertCircle,
-  ChevronRight, ArrowUpRight, ShieldCheck,
+  ChevronRight, ArrowUpRight,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
@@ -18,7 +18,6 @@ import {
 } from '../data/mockFactory';
 import { MOCK_PROJECTS as MOCK_PROJECTS_RAW } from '../data/mockProjects';
 import { mockOrEmpty } from '../lib/dataMode';
-import { ROLE_MATRIX } from '../lib/roleMatrix';
 
 const MOCK_FACTORY_RECORDS = mockOrEmpty(MOCK_FACTORY_RECORDS_RAW);
 const MOCK_FACTORY_REQUIREMENTS = mockOrEmpty(MOCK_FACTORY_REQUIREMENTS_RAW);
@@ -102,8 +101,6 @@ export function Factory() {
       setLoading(false);
     })();
   }, []);
-
-  const factoryRules = ROLE_MATRIX.factory_user?.rules ?? [];
 
   const kpiCards = [
     { label: 'Missing WO', value: kpis.missingWo, link: '/wo-pn-gate', accent: kpis.missingWo > 0 ? 'border-l-red-500' : 'border-l-gray-200', valueClass: kpis.missingWo > 0 ? 'text-red-600' : 'text-gray-900' },
@@ -264,24 +261,6 @@ export function Factory() {
           ))}
         </div>
       </div>
-
-      {/* Factory Rules */}
-      {factoryRules.length > 0 && (
-        <div className="bg-orange-50 border border-orange-200 rounded-xl px-5 py-4">
-          <div className="flex items-center gap-2 mb-3">
-            <ShieldCheck size={15} className="text-orange-600" />
-            <span className="text-sm font-semibold text-orange-900">Factory Governance Rules</span>
-          </div>
-          <ul className="space-y-1.5">
-            {factoryRules.map((rule, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs text-orange-800">
-                <span className="text-orange-400 shrink-0 mt-0.5">▸</span>
-                {rule}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
 }

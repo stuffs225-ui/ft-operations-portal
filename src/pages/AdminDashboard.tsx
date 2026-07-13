@@ -9,7 +9,6 @@ import {
 import { PageHeader } from '@/components/common/page-header';
 import { SectionHeader } from '@/components/common/section-header';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
-import { RoleRulesCard } from '../components/ui/RoleRulesCard';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { cn } from '../lib/utils';
 
@@ -291,9 +290,6 @@ export function AdminDashboard() {
           })}
         </div>
       </div>
-
-      {/* Governance rules */}
-      <RoleRulesCard />
     </div>
   );
 }

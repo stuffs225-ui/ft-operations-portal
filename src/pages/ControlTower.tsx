@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   AlertTriangle, CheckCircle2, XCircle, ArrowRight,
   Loader2, ShieldCheck, Wrench, ShoppingCart, Microscope,
-  Calendar, AlertCircle, GitBranch, Activity,
+  Calendar, AlertCircle, GitBranch,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { PageLoader } from '../components/ui/PageLoader';
@@ -19,7 +19,6 @@ import { MOCK_PROJECTS } from '../data/mockProjects';
 import { MOCK_PROCUREMENT_REQUESTS } from '../data/mockProcurement';
 import { MOCK_AFS_MAINTENANCE_REQUESTS } from '../data/mockAfs';
 import { mockOrEmpty } from '../lib/dataMode';
-import { ROLE_MATRIX } from '../lib/roleMatrix';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -306,7 +305,6 @@ export function ControlTower() {
   const overdueCount = m.overdueProjects.length;
   const gateIssues = m.missingWo + m.missingPn;
   const totalExceptions = exceptions.length;
-  const govRules = ROLE_MATRIX.operations_manager.rules;
 
   const lifecycleCards = [
     { label: 'Total Active Projects', value: m.totalActive, accent: 'border-indigo-400', icon: <AlertCircle size={14} className="text-indigo-500" /> },
@@ -568,29 +566,6 @@ export function ControlTower() {
             </Link>
           ))}
         </div>
-      </section>
-
-      {/* Section 6: Governance Rules */}
-      <section>
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-indigo-600 mb-3">
-          Governance Rules
-        </h2>
-        <Card className="border-indigo-100 bg-indigo-50/40">
-          <div className="p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Activity size={15} className="text-indigo-600 shrink-0" />
-              <span className="text-sm font-semibold text-indigo-800">Operations Manager — Governance Rules</span>
-            </div>
-            <ul className="space-y-2">
-              {govRules.map((rule, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-indigo-900">
-                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
-                  {rule}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </Card>
       </section>
 
       {/* SLA / Health scores: schema blocker notice */}

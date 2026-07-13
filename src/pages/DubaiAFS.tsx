@@ -97,8 +97,6 @@ export function DubaiAFS() {
     })();
   }, []);
 
-  const afsRules = ROLE_MATRIX.afs_user.rules;
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -196,23 +194,6 @@ export function DubaiAFS() {
               ))}
             </div>
           )}
-        </Card>
-
-        {/* AFS Rules */}
-        <Card>
-          <div className="px-5 py-3 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-              <ShieldCheck size={14} className="text-sky-500" /> AFS Governance Rules
-            </h3>
-          </div>
-          <div className="px-5 py-4 space-y-2">
-            {afsRules.map((rule, i) => (
-              <div key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                <span className="text-sky-500 mt-0.5 shrink-0">▸</span>
-                <span>{rule}</span>
-              </div>
-            ))}
-          </div>
         </Card>
       </div>
 

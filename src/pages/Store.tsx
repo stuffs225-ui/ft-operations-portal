@@ -5,7 +5,6 @@ import {
   ArrowUpRight, Hash, CheckCircle2, XCircle, Warehouse,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
-import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
@@ -19,7 +18,6 @@ import {
   MOCK_MEDICAL_SERIALS,
 } from '../data/mockStore';
 import { MOCK_MATERIAL_QC_INSPECTIONS } from '../data/mockQc';
-import { ROLE_MATRIX } from '../lib/roleMatrix';
 import type { UserRole } from '../types';
 import { mockOrEmpty } from '../lib/dataMode';
 
@@ -64,7 +62,6 @@ interface WorkQueue {
 export function Store() {
   const { role } = useAuth();
   const canCreate = role ? CAN_CREATE.includes(role as UserRole) : false;
-  const storeRules = ROLE_MATRIX.store_user?.rules ?? [];
 
   const [loading, setLoading] = useState(true);
   const [kpi, setKpi] = useState<KpiData>({
@@ -369,24 +366,6 @@ export function Store() {
           ))}
         </div>
       </div>
-
-      {/* Store Governance Rules */}
-      <Card className="p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <ShieldCheck size={14} className="text-brand-600" />
-          <span className="text-xs font-semibold text-gray-700 uppercase tracking-[0.04em]">
-            {ROLE_MATRIX.store_user?.label ?? 'Store User'} — Governance Rules
-          </span>
-        </div>
-        <div className="space-y-1.5">
-          {storeRules.map((rule, i) => (
-            <div key={i} className="flex items-start gap-2 text-xs text-gray-600">
-              <span className="text-brand-500 mt-0.5 shrink-0" aria-hidden>▸</span>
-              <span>{rule}</span>
-            </div>
-          ))}
-        </div>
-      </Card>
     </div>
   );
 }

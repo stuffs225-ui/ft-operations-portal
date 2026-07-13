@@ -160,16 +160,6 @@ export function AfterSales() {
             ))}
           </div>
         </Card>
-
-        <Card className="p-5">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Governance Rules</h3>
-          <ul className="space-y-2 text-xs text-gray-600">
-            <li className="flex items-start gap-2"><span className="text-sky-600 mt-0.5">▸</span>Maintenance request must be linked to the original project (SO) where applicable.</li>
-            <li className="flex items-start gap-2"><span className="text-sky-600 mt-0.5">▸</span>Link to WO or PN when applicable.</li>
-            <li className="flex items-start gap-2"><span className="text-sky-600 mt-0.5">▸</span>Resolution notes are required to close a request.</li>
-            <li className="flex items-start gap-2"><span className="text-sky-600 mt-0.5">▸</span>Requests can be raised by Sales, Operations, or AFS team.</li>
-          </ul>
-        </Card>
       </div>
     </div>
   );

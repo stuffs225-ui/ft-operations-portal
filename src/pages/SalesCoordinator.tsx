@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ClipboardList, Clock, AlertTriangle, Send,
-  RotateCcw, ChevronRight, UserCheck, ShieldCheck,
+  RotateCcw, ChevronRight, UserCheck,
   CheckCircle2, RefreshCw, FileText,
 } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
@@ -10,7 +10,6 @@ import { PageHeader } from '@/components/common/page-header';
 import { SectionHeader } from '@/components/common/section-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
@@ -127,7 +126,6 @@ export function SalesCoordinator() {
   const [reloadKey, setReloadKey] = useState(0);
 
   const canView = role === 'admin' || role === 'operations_manager' || role === 'sales_coordinator';
-  const coordRules = ROLE_MATRIX.sales_coordinator.rules;
 
   useEffect(() => {
     let cancelled = false;
@@ -380,23 +378,6 @@ export function SalesCoordinator() {
           )}
         </div>
       )}
-
-      {/* Governance rules */}
-      <Card>
-        <div className="px-5 py-3 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <ShieldCheck size={14} className="text-teal-500" /> Coordinator Governance Rules
-          </h3>
-        </div>
-        <div className="px-5 py-4 space-y-2">
-          {coordRules.map((rule, i) => (
-            <div key={i} className="flex items-start gap-2 text-sm text-gray-600">
-              <span className="text-teal-500 mt-0.5 shrink-0">▸</span>
-              <span>{rule}</span>
-            </div>
-          ))}
-        </div>
-      </Card>
     </div>
   );
 }

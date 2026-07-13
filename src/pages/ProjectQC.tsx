@@ -276,27 +276,6 @@ export function ProjectQC() {
         </Card>
       )}
 
-      <Card>
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-700">Governance Rules</h2>
-        </div>
-        <div className="px-5 py-4 space-y-2">
-          {[
-            'Vehicle / Project QC starts after Factory marks production completed / sent to QC.',
-            'QC must inspect each vehicle/item line independently.',
-            'QC can request Rework. Rework findings must be closed by Factory and confirmed by QC.',
-            'Release Note cannot be issued if any QC finding or Rework remains open.',
-            'Release Note cannot be issued if any Material NCR for the project is open.',
-            'Release Note marks the project/line as ready for delivery.',
-            'QC users must not see purchase cost values.',
-          ].map((rule, i) => (
-            <div key={i} className="flex items-start gap-2 text-sm text-gray-600">
-              <ChevronRight size={14} className="text-sky-400 mt-0.5 shrink-0" />
-              <span>{rule}</span>
-            </div>
-          ))}
-        </div>
-      </Card>
     </div>
   );
 }
