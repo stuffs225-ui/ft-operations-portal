@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Target, X, Plus, Info, RefreshCw, Pencil } from 'lucide-react';
+import { Target, X, Info, RefreshCw, Pencil, Plus, Search } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { SectionHeader } from '@/components/common/section-header';
+import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import { cn, formatCurrency, formatDate } from '../lib/utils';
@@ -9,7 +10,6 @@ import {
   getSalesUsers,
   getSalesTargetsAdminList,
   upsertSalesTarget,
-  computeMissingTargetUsers,
   validateTargetInput,
   type SalesUserOption,
   type SalesTargetAdminRow,
@@ -48,13 +48,12 @@ function ModalMessage({ kind, text }: { kind: 'error' | 'info'; text: string }) 
   );
 }
 
-// ─── Add / edit modal ──────────────────────────────────────────────────────────
+// ─── Add / edit modal — always scoped to one already-chosen employee ──────────
 
 interface TargetModalProps {
   year: number;
-  salesUsers: SalesUserOption[];
+  user: SalesUserOption;
   existing: SalesTargetAdminRow | null;
-  presetUserId?: string;
   actorId: string | null;
   onClose: () => void;
   onDone: () => void;
@@ -66,8 +65,7 @@ function nullableNumber(s: string): number | null {
   return Number.isNaN(n) ? NaN : n;
 }
 
-function TargetModal({ year, salesUsers, existing, presetUserId, actorId, onClose, onDone }: TargetModalProps) {
-  const [userId, setUserId] = useState(existing?.sales_user_id ?? presetUserId ?? '');
+function TargetModal({ year, user, existing, actorId, onClose, onDone }: TargetModalProps) {
   const [salesOrder, setSalesOrder] = useState(existing?.sales_order_target != null ? String(existing.sales_order_target) : '');
   const [invoicing, setInvoicing] = useState(existing?.invoicing_target != null ? String(existing.invoicing_target) : '');
   const [collection, setCollection] = useState(existing?.collection_target != null ? String(existing.collection_target) : '');
@@ -81,7 +79,7 @@ function TargetModal({ year, salesUsers, existing, presetUserId, actorId, onClos
   async function handleSave() {
     setMsg(null);
     const params = {
-      salesUserId: userId,
+      salesUserId: user.id,
       targetYear: year,
       salesOrderTarget: nullableNumber(salesOrder),
       invoicingTarget: nullableNumber(invoicing),
@@ -102,26 +100,14 @@ function TargetModal({ year, salesUsers, existing, presetUserId, actorId, onClos
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 sticky top-0 bg-white">
-          <h2 className="text-sm font-semibold text-gray-900">{isEdit ? 'Edit Target' : 'Add Target'} · {year}</h2>
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">{isEdit ? 'Update Target' : 'Set Target'} · {year}</h2>
+            <p className="text-xs text-gray-500 mt-0.5">{user.fullName ?? user.email}</p>
+          </div>
           <button onClick={onClose} className="p-1 rounded text-gray-400 hover:text-gray-600"><X size={16} /></button>
         </div>
 
         <div className="px-5 py-4 space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">Sales User <span className="text-red-500">*</span></label>
-            <select
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              disabled={isEdit}
-              className={cn(SELECT_CLS, 'w-full', isEdit && 'bg-gray-50 text-gray-500')}
-            >
-              <option value="">Select a sales user…</option>
-              {salesUsers.map((u) => (
-                <option key={u.id} value={u.id}>{u.fullName ?? u.email}</option>
-              ))}
-            </select>
-          </div>
-
           <NumberField label="Sales Order Target" value={salesOrder} onChange={setSalesOrder} placeholder="Leave blank for not set" />
           <NumberField label="Invoicing Target" value={invoicing} onChange={setInvoicing} placeholder="Leave blank for not set" />
           <NumberField label="Collection Target" value={collection} onChange={setCollection} placeholder="Leave blank for not set" />
@@ -159,7 +145,9 @@ function TargetModal({ year, salesUsers, existing, presetUserId, actorId, onClos
 
         <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-200 sticky bottom-0 bg-white">
           <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button size="sm" onClick={handleSave} loading={saving} disabled={saving}>Save Target</Button>
+          <Button size="sm" onClick={handleSave} loading={saving} disabled={saving}>
+            {isEdit ? 'Update Target' : 'Save Target'}
+          </Button>
         </div>
       </div>
     </div>
@@ -190,11 +178,14 @@ function targetCell(value: number | null): string {
 }
 
 // ─── Main page ───────────────────────────────────────────────────────────────
+// One list: every sales employee, whether or not they have a target yet for the
+// selected year. Pick a name → set (first time) or update (already has one) —
+// no separate "add" vs "missing" flows to reconcile.
 
-type ActiveModal =
-  | { kind: 'add'; presetUserId?: string }
-  | { kind: 'edit'; row: SalesTargetAdminRow }
-  | null;
+interface EmployeeRow {
+  user: SalesUserOption;
+  target: SalesTargetAdminRow | null;
+}
 
 export function AdminSalesTargets() {
   const { profile } = useAuth();
@@ -206,7 +197,7 @@ export function AdminSalesTargets() {
   const [availability, setAvailability] = useState<DeferredAvailability | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [modal, setModal] = useState<ActiveModal>(null);
+  const [activeEmployee, setActiveEmployee] = useState<EmployeeRow | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   const reload = () => setReloadKey((k) => k + 1);
@@ -231,16 +222,23 @@ export function AdminSalesTargets() {
   }, [year, reloadKey]);
 
   const available = availability?.available ?? false;
-  const missingUsers = computeMissingTargetUsers(salesUsers, targets);
 
-  const filteredTargets = targets.filter((t) => {
+  // Every sales employee, one row each, joined to their target for this year (if any).
+  const employeeRows: EmployeeRow[] = salesUsers.map((user) => ({
+    user,
+    target: targets.find((t) => t.sales_user_id === user.id) ?? null,
+  }));
+
+  const filteredRows = employeeRows.filter((r) => {
     if (!search.trim()) return true;
     const needle = search.trim().toLowerCase();
     return (
-      (t.salesUserName ?? '').toLowerCase().includes(needle) ||
-      (t.salesUserEmail ?? '').toLowerCase().includes(needle)
+      (r.user.fullName ?? '').toLowerCase().includes(needle) ||
+      r.user.email.toLowerCase().includes(needle)
     );
   });
+
+  const missingCount = employeeRows.filter((r) => r.target == null).length;
 
   const totals = targets.reduce(
     (acc, t) => ({
@@ -255,18 +253,13 @@ export function AdminSalesTargets() {
     <div className="space-y-6">
       <PageHeader
         title="Sales Annual Targets"
-        subtitle="Set annual commercial targets for each Sales User."
+        subtitle="Every sales employee, one list — pick a name to set or update their annual targets."
         icon={<Target size={18} />}
         breadcrumb={[{ label: 'Admin', href: '/admin-dashboard' }, { label: 'Sales Targets' }]}
         actions={
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" icon={<RefreshCw size={14} />} onClick={reload} disabled={loading}>
-              Refresh
-            </Button>
-            <Button size="sm" icon={<Plus size={14} />} onClick={() => setModal({ kind: 'add' })} disabled={!available}>
-              Add Target
-            </Button>
-          </div>
+          <Button variant="secondary" size="sm" icon={<RefreshCw size={14} />} onClick={reload} disabled={loading}>
+            Refresh
+          </Button>
         }
       />
 
@@ -275,9 +268,9 @@ export function AdminSalesTargets() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <KpiCard label="Sales Employees" value={available ? String(salesUsers.length) : '—'} tone="text-gray-900" dim={!available} />
         <KpiCard label="With Targets" value={available ? String(targets.length) : '—'} tone="text-emerald-700" dim={!available} />
-        <KpiCard label="Missing Targets" value={available ? String(missingUsers.length) : '—'} tone="text-amber-700" dim={!available} />
-        <KpiCard label="Total SO Target" value={available ? formatCurrency(totals.so) : '—'} tone="text-gray-900" dim={!available} />
+        <KpiCard label="Missing Targets" value={available ? String(missingCount) : '—'} tone="text-amber-700" dim={!available} />
         <KpiCard label="Total Invoicing" value={available ? formatCurrency(totals.inv) : '—'} tone="text-blue-700" dim={!available} />
         <KpiCard label="Total Collection" value={available ? formatCurrency(totals.col) : '—'} tone="text-violet-700" dim={!available} />
       </div>
@@ -293,68 +286,80 @@ export function AdminSalesTargets() {
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[11px] uppercase tracking-[0.04em] text-gray-500">Search</label>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Sales user name or email"
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white w-64"
-            />
+            <div className="relative">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Sales employee name or email"
+                className="pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white w-72"
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Targets table */}
+      {/* Employee list */}
       <div>
-        <SectionHeader title="Targets" accent="bg-brand-600" />
+        <SectionHeader title={`Sales Employees — ${year}`} accent="bg-brand-600" />
         {loading ? (
           <div className="bg-white rounded-lg border border-gray-200/80 shadow-sm p-8 text-center text-sm text-gray-400">Loading…</div>
         ) : !available ? (
           <div className="bg-white rounded-lg border border-gray-200/80 shadow-sm p-8 text-center text-sm text-gray-400">
             Targets are unavailable until migration {availability?.migrationNumber ?? 99} is applied.
           </div>
-        ) : filteredTargets.length === 0 ? (
+        ) : salesUsers.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200/80 shadow-sm p-8 text-center text-sm text-gray-400">
-            No targets set for {year}. Use “Add Target” or the missing-user list below.
+            No sales_user accounts found.
+          </div>
+        ) : filteredRows.length === 0 ? (
+          <div className="bg-white rounded-lg border border-gray-200/80 shadow-sm p-8 text-center text-sm text-gray-400">
+            No employees match “{search}”.
           </div>
         ) : (
           <div className="bg-white rounded-lg border border-gray-200/80 shadow-sm overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50/80">
                 <tr className="text-left text-[11px] uppercase tracking-[0.04em] text-gray-500 whitespace-nowrap">
-                  <th className="px-3 py-2 font-medium">Sales User</th>
-                  <th className="px-3 py-2 font-medium text-right">Year</th>
+                  <th className="px-3 py-2 font-medium">Sales Employee</th>
                   <th className="px-3 py-2 font-medium text-right">Sales Order</th>
                   <th className="px-3 py-2 font-medium text-right">Invoicing</th>
                   <th className="px-3 py-2 font-medium text-right">Collection</th>
-                  <th className="px-3 py-2 font-medium">Currency</th>
-                  <th className="px-3 py-2 font-medium">Notes</th>
+                  <th className="px-3 py-2 font-medium">Status</th>
                   <th className="px-3 py-2 font-medium">Updated</th>
-                  <th className="px-3 py-2 font-medium text-right">Actions</th>
+                  <th className="px-3 py-2 font-medium text-right">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredTargets.map((t) => (
-                  <tr key={t.id} className="border-t border-gray-100 hover:bg-gray-50/60">
+                {filteredRows.map((r) => (
+                  <tr
+                    key={r.user.id}
+                    onClick={() => setActiveEmployee(r)}
+                    className="border-t border-gray-100 hover:bg-brand-50/40 cursor-pointer transition-colors"
+                  >
                     <td className="px-3 py-2">
-                      <div className="font-medium text-gray-900">{t.salesUserName ?? '—'}</div>
-                      <div className="text-[11px] text-gray-400">{t.salesUserEmail ?? ''}</div>
+                      <div className="font-medium text-gray-900">{r.user.fullName ?? r.user.email}</div>
+                      <div className="text-[11px] text-gray-400">{r.user.email}</div>
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-gray-600">{t.target_year}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-gray-900">{targetCell(t.sales_order_target)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-gray-900">{targetCell(t.invoicing_target)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-gray-900">{targetCell(t.collection_target)}</td>
-                    <td className="px-3 py-2 text-gray-600">{t.currency}</td>
-                    <td className="px-3 py-2 text-gray-500 max-w-[160px] truncate" title={t.notes ?? ''}>{t.notes ?? '—'}</td>
-                    <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{formatDate(t.updated_at)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-gray-900">{targetCell(r.target?.sales_order_target ?? null)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-gray-900">{targetCell(r.target?.invoicing_target ?? null)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-gray-900">{targetCell(r.target?.collection_target ?? null)}</td>
+                    <td className="px-3 py-2">
+                      {r.target
+                        ? <Badge variant="success" size="sm">Set</Badge>
+                        : <Badge variant="warning" size="sm">Not set</Badge>}
+                    </td>
+                    <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{r.target ? formatDate(r.target.updated_at) : '—'}</td>
                     <td className="px-3 py-2 text-right">
-                      <button
-                        title="Edit target"
-                        onClick={() => setModal({ kind: 'edit', row: t })}
-                        className="p-1.5 rounded-md text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                      <Button
+                        variant={r.target ? 'ghost' : 'outline'}
+                        size="sm"
+                        icon={r.target ? <Pencil size={13} /> : <Plus size={13} />}
+                        onClick={(e) => { e.stopPropagation(); setActiveEmployee(r); }}
                       >
-                        <Pencil size={14} />
-                      </button>
+                        {r.target ? 'Update' : 'Set Target'}
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -364,46 +369,15 @@ export function AdminSalesTargets() {
         )}
       </div>
 
-      {/* Missing targets */}
-      {available && missingUsers.length > 0 && (
-        <div>
-          <SectionHeader title={`Sales Users Without a ${year} Target`} accent="bg-amber-500" />
-          <div className="bg-white rounded-lg border border-gray-200/80 shadow-sm divide-y divide-gray-100">
-            {missingUsers.map((u) => (
-              <div key={u.id} className="flex items-center justify-between px-4 py-2.5">
-                <div>
-                  <div className="text-sm font-medium text-gray-900">{u.fullName ?? u.email}</div>
-                  <div className="text-[11px] text-gray-400">{u.email}</div>
-                </div>
-                <Button variant="outline" size="sm" icon={<Plus size={14} />} onClick={() => setModal({ kind: 'add', presetUserId: u.id })}>
-                  Create Target
-                </Button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Modal */}
-      {modal?.kind === 'add' && (
+      {/* Modal — always bound to the employee row that was clicked */}
+      {activeEmployee && (
         <TargetModal
           year={year}
-          salesUsers={salesUsers}
-          existing={null}
-          presetUserId={modal.presetUserId}
+          user={activeEmployee.user}
+          existing={activeEmployee.target}
           actorId={profile?.id ?? null}
-          onClose={() => setModal(null)}
-          onDone={() => { setModal(null); reload(); }}
-        />
-      )}
-      {modal?.kind === 'edit' && (
-        <TargetModal
-          year={year}
-          salesUsers={salesUsers}
-          existing={modal.row}
-          actorId={profile?.id ?? null}
-          onClose={() => setModal(null)}
-          onDone={() => { setModal(null); reload(); }}
+          onClose={() => setActiveEmployee(null)}
+          onDone={() => { setActiveEmployee(null); reload(); }}
         />
       )}
     </div>
