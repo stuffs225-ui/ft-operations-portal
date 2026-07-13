@@ -334,7 +334,16 @@ export function MonthlyAgingReview({ userId, userName }: { userId: string | null
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <div className="text-sm font-semibold tabular-nums text-gray-900">{sar(it.amount)}</div>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold tabular-nums text-gray-900">
+                      {sar(Math.max(0, it.amount - totalCollected))}
+                    </div>
+                    {totalCollected > 0 && (
+                      <div className="text-[10px] text-gray-400 tabular-nums">
+                        of {sar(it.amount)} — {sar(totalCollected)} collected
+                      </div>
+                    )}
+                  </div>
                   <ChevronRight size={15} className="text-gray-300" />
                 </div>
               </button>

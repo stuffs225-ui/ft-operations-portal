@@ -11,6 +11,7 @@ import {
   listClarifications, addClarification,
   type QuotationClarification, type ClarificationDirection,
 } from '../../lib/quotationClarifications';
+import { openSignedUrl } from '../../lib/documents';
 import type { UserRole } from '../../types';
 
 interface Props {
@@ -105,9 +106,18 @@ export function QuotationClarificationThread({ quotationId, userId, userName, us
                       </div>
                       <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">{m.body}</p>
                       {m.document_name && (
-                        <div className="mt-1.5 flex items-center gap-1 text-xs text-brand-600">
-                          <Paperclip size={12} /> {m.document_name}
-                        </div>
+                        m.document_url ? (
+                          <button
+                            onClick={() => void openSignedUrl('quotation-documents', m.document_url!)}
+                            className="mt-1.5 flex items-center gap-1 text-xs text-brand-600 hover:underline"
+                          >
+                            <Paperclip size={12} /> {m.document_name}
+                          </button>
+                        ) : (
+                          <div className="mt-1.5 flex items-center gap-1 text-xs text-gray-400">
+                            <Paperclip size={12} /> {m.document_name} (file unavailable)
+                          </div>
+                        )
                       )}
                     </div>
                   </div>

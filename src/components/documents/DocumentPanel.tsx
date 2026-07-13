@@ -38,6 +38,7 @@ export function DocumentPanel({
   const [docType, setDocType] = useState(upload?.documentTypeOptions[0]?.value ?? 'other');
   const [remarks, setRemarks] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [customName, setCustomName] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleUpload() {
@@ -65,7 +66,7 @@ export function DocumentPanel({
     const insertPayload: Record<string, unknown> = {
       [upload.foreignKey.field]: upload.foreignKey.value,
       document_type: docType,
-      file_name: file.name,
+      file_name: docType === 'other' && customName.trim() ? customName.trim() : file.name,
       storage_path: storagePath,
       file_size: file.size,
       mime_type: file.type || null,
@@ -90,6 +91,7 @@ export function DocumentPanel({
 
     setFile(null);
     setRemarks('');
+    setCustomName('');
     if (inputRef.current) inputRef.current.value = '';
     onUploaded?.(inserted);
   }
@@ -127,12 +129,26 @@ export function DocumentPanel({
                   accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
                   onChange={(e) => {
                     setUploadError(null);
-                    setFile(e.target.files?.[0] ?? null);
+                    const f = e.target.files?.[0] ?? null;
+                    setFile(f);
+                    setCustomName(f?.name ?? '');
                   }}
                 />
               </label>
             </div>
           </div>
+          {docType === 'other' && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Document Name</label>
+              <input
+                type="text"
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value)}
+                placeholder="Give this document a name…"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+            </div>
+          )}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Remarks (optional)</label>
             <input
