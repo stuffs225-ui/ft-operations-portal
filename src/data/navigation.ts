@@ -1070,6 +1070,13 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin'],
   },
   {
+    id: 'admin-procurement-console',
+    label: 'Procurement Admin Console',
+    path: '/admin/procurement-console',
+    icon: 'ShoppingCart',
+    roles: ['admin'],
+  },
+  {
     id: 'admin-invoicing-schedule',
     label: 'Invoicing Schedule',
     path: '/admin/invoicing-schedule',
