@@ -653,8 +653,9 @@ export function Sales() {
                   <MetricRow label="Expected total"          value={scheduleUnavailable ? '—' : sar(targets?.invoicingExpectedTotal)}         muted={scheduleUnavailable} />
                   <MetricRow label="Actual % up to now"      value={scheduleUnavailable ? '—' : fmtPct(targets?.invoicingActualPercentUpToNow)} muted={scheduleUnavailable} />
                 </div>
-                <div className="px-4 pb-3 mt-2">
+                <div className="px-4 pb-3 mt-2 space-y-3">
                   <TargetBar pct={scheduleUnavailable ? null : (targets?.invoicingPercent ?? null)} label="Expected vs target" />
+                  <TargetBar pct={scheduleUnavailable ? null : (targets?.invoicingActualPercentUpToNow ?? null)} label="Actual vs target (to date)" />
                   {scheduleUnavailable && (
                     <p className="text-[11px] text-amber-600 flex items-center gap-1 mt-2">
                       <AlertCircle size={10} className="shrink-0" />

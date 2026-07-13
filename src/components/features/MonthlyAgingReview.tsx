@@ -11,6 +11,7 @@ import { CalendarClock, Info, Send, ChevronRight, X, CalendarDays, Wallet, Plus 
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
+import { Skeleton } from '../ui/skeleton';
 import {
   getLatestAging, addAgingClarification, setExpectedCollectionDate, recordAgingCollection,
   type AgingItem, type AgingClarification, type AgingCollection,
@@ -259,8 +260,29 @@ export function MonthlyAgingReview({ userId, userName }: { userId: string | null
     return () => { alive = false; };
   }, []);
 
+  // Same skeleton language as the dashboard's DashboardSkeleton, so this card
+  // doesn't pop in blank while the rest of the page is already visible.
+  if (loading) {
+    return (
+      <Card padding="none">
+        <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
+          <CalendarClock size={15} className="text-brand-600" />
+          <h3 className="text-sm font-semibold text-gray-800">Monthly Aging Review</h3>
+        </div>
+        <div className="px-5 py-4 space-y-3">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="space-y-1.5">
+              <Skeleton className="h-3 w-40" />
+              <Skeleton className="h-4 w-full" />
+            </div>
+          ))}
+        </div>
+      </Card>
+    );
+  }
+
   // Applied but no snapshot yet, or not configured → render nothing (keep the page clean).
-  if (loading || (!unavailable && items.length === 0 && !month)) return null;
+  if (!unavailable && items.length === 0 && !month) return null;
 
   const activeItem = activeItemId ? items.find((i) => i.id === activeItemId) ?? null : null;
 
