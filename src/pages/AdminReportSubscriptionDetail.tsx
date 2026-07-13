@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Play, Pause, PlayCircle } from 'lucide-react';
+import { ArrowLeft, Play, Pause, PlayCircle, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -8,7 +8,8 @@ import { Button } from '../components/ui/Button';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import { getReportDef } from '../data/departmentReports';
 import { getMockSubscription, MOCK_DELIVERY_LOGS } from '../data/mockReportSubscriptions';
-import { isDevMockMode, mockOrEmpty } from '../lib/dataMode';
+import { isDevMockMode } from '../lib/dataMode';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { EMAIL_PROVIDER_CONFIGURED, SMS_PROVIDER_CONFIGURED } from '../lib/notifications';
 import type {
   NotificationDeliveryStatus,
@@ -34,12 +35,40 @@ function channelStatus(channel: string): NotificationDeliveryStatus {
 
 export function AdminReportSubscriptionDetail() {
   const { id } = useParams<{ id: string }>();
-  // Live mode has no wired query for this detail page yet — never seed mock.
-  const base = id && isDevMockMode() ? getMockSubscription(id) : undefined;
-
-  const [subscription, setSubscription] = useState<ScheduledReportSubscription | undefined>(base);
+  const [subscription, setSubscription] = useState<ScheduledReportSubscription | undefined>(
+    () => (id && isDevMockMode() ? getMockSubscription(id) : undefined),
+  );
+  const [liveLogs, setLiveLogs] = useState<ReportDeliveryLog[]>([]);
   const [simulatedLogs, setSimulatedLogs] = useState<ReportDeliveryLog[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(isSupabaseConfigured && !!id);
+  const [toggling, setToggling] = useState(false);
+
+  // Live mode: fetch the subscription + its delivery history by id.
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !id) return; // initial `loading` already false
+    const db = supabase;
+    let alive = true;
+    void (async () => {
+      const [subRes, logRes] = await Promise.all([
+        db.from('scheduled_report_subscriptions').select('*').eq('id', id).maybeSingle(),
+        db.from('report_delivery_logs').select('*').eq('subscription_id', id).order('generated_at', { ascending: false }).limit(100),
+      ]);
+      if (!alive) return;
+      if (subRes.data) setSubscription(subRes.data as unknown as ScheduledReportSubscription);
+      setLiveLogs((logRes.data ?? []) as unknown as ReportDeliveryLog[]);
+      setLoading(false);
+    })();
+    return () => { alive = false; };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-gray-400 py-16 justify-center">
+        <Loader2 size={15} className="animate-spin" /> Loading subscription…
+      </div>
+    );
+  }
 
   if (!subscription) {
     return (
@@ -60,9 +89,28 @@ export function AdminReportSubscriptionDetail() {
     setTimeout(() => setMessage(null), 3000);
   }
 
-  function handleToggleActive() {
-    setSubscription((prev) => (prev ? { ...prev, is_active: !prev.is_active } : prev));
-    flash(subscription?.is_active ? 'Subscription paused (dev — not persisted).' : 'Subscription activated (dev — not persisted).');
+  async function handleToggleActive() {
+    if (!subscription) return;
+    const next = !subscription.is_active;
+    // Optimistic
+    setSubscription((prev) => (prev ? { ...prev, is_active: next } : prev));
+
+    if (!isSupabaseConfigured || !supabase) {
+      flash(next ? 'Subscription activated (dev — not persisted).' : 'Subscription paused (dev — not persisted).');
+      return;
+    }
+    setToggling(true);
+    const { error } = await supabase
+      .from('scheduled_report_subscriptions')
+      .update({ is_active: next })
+      .eq('id', subscription.id);
+    setToggling(false);
+    if (error) {
+      setSubscription((prev) => (prev ? { ...prev, is_active: !next } : prev)); // revert
+      flash(`Could not update: ${error.message}`);
+      return;
+    }
+    flash(next ? 'Subscription activated.' : 'Subscription paused.');
   }
 
   function handleGenerateNow() {
@@ -84,10 +132,13 @@ export function AdminReportSubscriptionDetail() {
       created_at: now,
     }));
     setSimulatedLogs((prev) => [...rows, ...prev]);
-    flash('Manual run simulated — in-app delivered; email/SMS skipped pending provider.');
+    flash('Preview only — no report was generated or sent. Scheduled delivery runs server-side once a provider is configured.');
   }
 
-  const persistedLogs = mockOrEmpty(MOCK_DELIVERY_LOGS).filter((l) => l.subscription_id === subscription.id);
+  // Live: delivery logs from the DB. Dev: the mock logs for this subscription.
+  const persistedLogs = isSupabaseConfigured
+    ? liveLogs
+    : MOCK_DELIVERY_LOGS.filter((l) => l.subscription_id === subscription.id);
   const allLogs = [...simulatedLogs, ...persistedLogs];
 
   return (
@@ -104,17 +155,18 @@ export function AdminReportSubscriptionDetail() {
           subtitle="Scheduled report subscription configuration and delivery history"
           actions={
             <div className="flex items-center gap-2">
-              <DataSourceBadge variant="preview" />
+              <DataSourceBadge variant="auto" />
               <Button
                 size="sm"
                 variant={subscription.is_active ? 'secondary' : 'primary'}
                 icon={subscription.is_active ? <Pause size={14} /> : <Play size={14} />}
-                onClick={handleToggleActive}
+                onClick={() => void handleToggleActive()}
+                loading={toggling}
               >
                 {subscription.is_active ? 'Pause' : 'Activate'}
               </Button>
-              <Button size="sm" icon={<PlayCircle size={14} />} onClick={handleGenerateNow}>
-                Generate Now
+              <Button size="sm" variant="secondary" icon={<PlayCircle size={14} />} onClick={handleGenerateNow} title="Preview a delivery run (does not send)">
+                Preview Run
               </Button>
             </div>
           }

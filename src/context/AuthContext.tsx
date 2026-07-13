@@ -12,6 +12,8 @@ export interface UserProfile {
   avatar_url: string | null;
   department: string | null;
   is_active: boolean;
+  /** Lifecycle status (migration 062). 'suspended'/'inactive' are blocked from the app. */
+  account_status: string | null;
 }
 
 export interface AuthState {
@@ -34,6 +36,7 @@ const DEV_PROFILE: UserProfile = {
   avatar_url: null,
   department: 'Operations',
   is_active: true,
+  account_status: 'active',
 };
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -119,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           avatar_url: profileData.avatar_url,
           department: profileData.department,
           is_active: profileData.is_active,
+          account_status: (profileData as { account_status?: string | null }).account_status ?? 'active',
         });
       }
 
