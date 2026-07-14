@@ -12,13 +12,9 @@ import { useAuth } from '../hooks/useAuth';
 import { sectorLabel } from '@/lib/commercialFields';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { exportRowsToCsv } from '../lib/reportExport';
+import { formatSAR } from '../lib/currency';
 import type { ReportColumn } from '../lib/reportExport';
 import type { HotProject, HotProjectStage, UserRole } from '../types';
-
-function formatSAR(v: number | null) {
-  if (v == null) return '—';
-  return 'SAR ' + v.toLocaleString('en-SA', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-}
 
 function formatDate(iso: string | null) {
   if (!iso) return '—';

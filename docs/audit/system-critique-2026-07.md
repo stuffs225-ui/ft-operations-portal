@@ -89,12 +89,12 @@ is correctness hardening and UX polish, catalogued below.
 
 ## Prioritised remediation plan (open items only)
 
-1. ~~**P1 — `alert()` → inline errors** (5 files, §1.4/5.1).~~ ✅ Done in this PR.
-2. **P1 — QC & AFS admin consoles** (§4.4). Same proven pattern as the other four.
-3. **P2 — Bundle split** (§5.2). `manualChunks` for exceljs + report export.
-4. **P2 — Exact counts on remaining list KPIs** (§5.3).
-5. **P3 — Currency util consolidation** (§5.4).
+1. ~~**P1 — `alert()` → inline errors** (5 files, §1.4/5.1).~~ ✅ Done (PR #203).
+2. ~~**P1 — QC & AFS admin consoles** (§4.4).~~ ✅ Done (PR #204) — all six per-role consoles now exist.
+3. ~~**P2 — Bundle split** (§5.2).~~ ✅ Done — `manualChunks` split the eager `index` chunk from **531 kB → 99 kB** (gzip 24 kB); react/supabase/radix/icons are now separately-cached vendor chunks; exceljs stays its own lazy chunk.
+4. ~~**P2 — Exact counts on list KPIs** (§5.3).~~ ✅ Done — StoreInventory & StoreSerials KPI strips now use `head:true` counts (exact past the 500-row list limit). StoreIssuance uses tab-badge counts over the visible list (acceptable — reflects the filtered list).
+5. **P3 — Currency util consolidation** (§5.4). ◑ Canonical `src/lib/currency.ts` created (`formatSAR` / `sarCompact` / `sarTitle`); adopted in Receivables, Quotations, HotProjects. Remaining pages with a local `formatSAR` should migrate to it incrementally.
 
-Nothing in this plan requires weakening RLS, and only the redistribution feature
-(already shipped) needed a migration (113). The system is structurally healthy —
-this is hardening and completeness work, not rescue work.
+Nothing in this plan required weakening RLS, and only the redistribution feature
+needed a migration (113). The system is structurally healthy — this was hardening
+and completeness work, not rescue work.

@@ -38,8 +38,11 @@ interface LiveItem extends StoreReceiptItem {
   project_code?: string | null;
 }
 
+interface InventoryCounts { inStore: number; issuedOut: number; pendingQc: number; qcIssues: number; }
+
 export function StoreInventory() {
   const [items, setItems] = useState<LiveItem[]>([]);
+  const [counts, setCounts] = useState<InventoryCounts | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | ItemStatus>('all');
@@ -50,7 +53,8 @@ export function StoreInventory() {
     (async () => {
       setLoading(true);
       if (isSupabaseConfigured && supabase) {
-        const { data } = await supabase
+        const sb = supabase;
+        const { data } = await sb
           .from('store_receipt_items')
           .select('*, store_receipt:store_receipts(receipt_number, project:projects(project_code))')
           .order('created_at', { ascending: false })
@@ -64,6 +68,16 @@ export function StoreInventory() {
           }));
           setItems(mapped);
         }
+        // KPI cards use exact server-side counts (not the 500-row list) so they
+        // stay correct as the store grows past the list limit.
+        const cnt = (res: { count: number | null }) => res.count ?? 0;
+        const [inStoreRes, issuedRes, pendingRes, rejectedRes] = await Promise.all([
+          sb.from('store_receipt_items').select('id', { count: 'exact', head: true }).eq('status', 'in_store'),
+          sb.from('store_receipt_items').select('id', { count: 'exact', head: true }).in('status', ['issued', 'in_custody']),
+          sb.from('store_receipt_items').select('id', { count: 'exact', head: true }).eq('status', 'pending_qc'),
+          sb.from('store_receipt_items').select('id', { count: 'exact', head: true }).eq('status', 'rejected_by_qc'),
+        ]);
+        setCounts({ inStore: cnt(inStoreRes), issuedOut: cnt(issuedRes), pendingQc: cnt(pendingRes), qcIssues: cnt(rejectedRes) });
       } else {
         const result: LiveItem[] = [];
         mockOrEmpty(MOCK_STORE_RECEIPTS).forEach(r => {
@@ -101,10 +115,11 @@ export function StoreInventory() {
     return list;
   }, [items, statusFilter, categoryFilter, medicalOnly, search]);
 
-  const inStore = items.filter(i => i.status === 'in_store').length;
-  const issuedOut = items.filter(i => ['issued', 'in_custody'].includes(i.status)).length;
-  const pendingQc = items.filter(i => i.status === 'pending_qc').length;
-  const qcIssues = items.filter(i => i.status === 'rejected_by_qc').length;
+  // Live mode: exact server counts; mock mode: derive from the loaded set.
+  const inStore = counts ? counts.inStore : items.filter(i => i.status === 'in_store').length;
+  const issuedOut = counts ? counts.issuedOut : items.filter(i => ['issued', 'in_custody'].includes(i.status)).length;
+  const pendingQc = counts ? counts.pendingQc : items.filter(i => i.status === 'pending_qc').length;
+  const qcIssues = counts ? counts.qcIssues : items.filter(i => i.status === 'rejected_by_qc').length;
 
   return (
     <div className="space-y-5">
