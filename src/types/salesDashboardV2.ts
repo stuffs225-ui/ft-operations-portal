@@ -67,6 +67,15 @@ export interface SalesInvoicingPlanRow {
   customerName: string;
   /** SO number — maps to projects.so_number */
   orderOrPo: string;
+  /** Work Order (WO) reference numbers from project_execution_references (Saudi). */
+  woNumbers: string[];
+  /** Part Number (PN) reference numbers from project_execution_references (Dubai). */
+  pnNumbers: string[];
+  /**
+   * "Job On Hand" — the vehicle type(s) on this project's vehicle lines
+   * (e.g. "Ambulance"). Joined distinct from project_vehicle_lines.vehicle_type.
+   */
+  vehicleType: string;
   /**
    * Total vehicle-line quantity for this project (units).
    * Null only when the project has no vehicle lines or lines are not readable.
@@ -87,8 +96,14 @@ export interface SalesInvoicingPlanRow {
   months: SalesInvoicingPlanMonths;
   /** SUM of all month cells (schedule lines in selectedYear) */
   ttl: number;
-  /** Same as ttl — included for UI flexibility */
+  /** Same as ttl — included for UI flexibility. "Up to the end of {year}". */
   selectedYearValue: number;
+  /**
+   * "Carry over" — SUM(invoice_amount) for schedule lines dated AFTER the selected
+   * year (invoice_year > selectedYear): anything that will not invoice during the
+   * selected year. Source: project_invoicing_schedule.
+   */
+  carryOver: number;
 }
 
 // ── Annual Targets ────────────────────────────────────────────────────────────

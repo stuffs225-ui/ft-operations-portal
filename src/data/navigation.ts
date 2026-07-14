@@ -114,6 +114,15 @@ export const NAV_ITEMS: NavItem[] = [
     // ops_mgr monitors Sales via WORKSTREAM MONITORING (ops-sales-monitor); viewer uses MANAGEMENT VISIBILITY
     roles: ['admin'],
   },
+  {
+    // Admin Projects/SO now lives directly under Sales Workspace as the second
+    // SALES & COMMERCIAL item (moved out of the standalone PROJECTS section).
+    id: 'sales-projects-so',
+    label: 'Projects / SO',
+    path: '/projects',
+    icon: 'FolderKanban',
+    roles: ['admin'],
+  },
   // sales_user SALES & COMMERCIAL — ordered: Projects, Pipeline Projects,
   // Quotations, Collection & Aging, Sales Reports (per operations request).
   {
@@ -213,22 +222,9 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['operations_manager'],
   },
   // ── 3. PROJECTS ───────────────────────────────────────────────────────────
+  // Admin Projects/SO relocated to SALES & COMMERCIAL (see 'sales-projects-so').
   // ops_mgr sees Projects/SO via WORKSTREAM MONITORING (ops-projects).
   // ops_mgr sees Approvals/WO Gate via CONTROL TOWER section above.
-  {
-    id: 'sep-2',
-    label: 'PROJECTS',
-    path: '#',
-    icon: '',
-  },
-  {
-    id: 'projects',
-    label: 'Projects / SO',
-    path: '/projects',
-    icon: 'FolderKanban',
-    // viewer uses Portfolio Overview in MANAGEMENT VISIBILITY section
-    roles: ['admin'],
-  },
   // admin-approvals and wo-pn-gate moved to SYSTEM GOVERNANCE section for admin
 
 

@@ -221,7 +221,10 @@ function buildInvoicingPlanRows(
   projects: ProjectRow[],
   schedules: ScheduleRow[],
   selectedYear: number,
-  qtyByProject: Map<string, number>
+  qtyByProject: Map<string, number>,
+  vehicleTypesByProject: Map<string, string[]>,
+  woByProject: Map<string, string[]>,
+  pnByProject: Map<string, string[]>,
 ): SalesInvoicingPlanRow[] {
   // Group schedule lines by project_id
   const byProject = new Map<string, ScheduleRow[]>();
@@ -258,6 +261,12 @@ function buildInvoicingPlanRows(
     // regardless of year) — a true grand total, distinct from the year column.
     const ttl = projectSchedules.reduce((sum, s) => sum + (s.invoice_amount ?? 0), 0);
 
+    // Carry-over = scheduled amount dated after the selected year: anything that
+    // will not invoice during the selected year (e.g. "carry over 2027").
+    const carryOver = projectSchedules
+      .filter(s => s.invoice_year > selectedYear)
+      .reduce((sum, s) => sum + (s.invoice_amount ?? 0), 0);
+
     // Pending: lines not yet invoiced or cancelled (across all years for this project)
     const pendingInvoicing = projectSchedules
       .filter(s => (PIS_PENDING_STATUSES as readonly string[]).includes(s.status))
@@ -268,12 +277,16 @@ function buildInvoicingPlanRows(
       projectCode:      project.project_code,
       customerName:     project.customer_name,
       orderOrPo:        project.so_number,
+      woNumbers:        woByProject.get(project.id) ?? [],
+      pnNumbers:        pnByProject.get(project.id) ?? [],
+      vehicleType:      (vehicleTypesByProject.get(project.id) ?? []).join(', '),
       quantity:         qtyByProject.get(project.id) ?? null,
       totalValue:       project.total_sales_value,
       pendingInvoicing,
       months,
       ttl,
       selectedYearValue,
+      carryOver,
     });
   }
 
@@ -315,12 +328,18 @@ export async function getSalesDashboardV2Data(
     return isBroadView ? base : base.eq('sales_owner_id', salesUserId);
   })();
 
-  // Vehicle-line quantities per project (for the plan table's Qty column).
+  // Vehicle-line quantities + type per project (Qty and "Job On Hand" columns).
   // RLS returns only lines for projects the user may read; extras are ignored
   // since we index by the projects we already fetched.
   const vehicleLinesQuery = supabase
     .from('project_vehicle_lines')
-    .select('project_id, quantity');
+    .select('project_id, quantity, vehicle_type');
+
+  // WO / PN reference numbers per project (Saudi WO, Dubai PN). Deferred-safe:
+  // a missing project_execution_references table just leaves those columns blank.
+  const execRefsQuery = supabase
+    .from('project_execution_references')
+    .select('project_id, reference_type, reference_number');
 
   // Invoicing schedule: primary source for the invoicing plan table.
   // RLS scopes sales_user to own projects automatically (pis: sales_user own project read).
@@ -350,13 +369,14 @@ export async function getSalesDashboardV2Data(
     return isBroadView ? base : base.eq('sales_user_id', salesUserId);
   })();
 
-  const [projectsRes, hotProjectsRes, scheduleRes, milestonesRes, targetsRes, vehicleLinesRes] = await Promise.all([
+  const [projectsRes, hotProjectsRes, scheduleRes, milestonesRes, targetsRes, vehicleLinesRes, execRefsRes] = await Promise.all([
     projectsQuery,
     hotProjectsQuery,
     scheduleQuery,
     milestonesQuery,
     targetsQuery,
     vehicleLinesQuery,
+    execRefsQuery,
   ]);
 
   // Projects are fatal (core data). The invoicing schedule is fatal ONLY for genuine
@@ -401,10 +421,32 @@ export async function getSalesDashboardV2Data(
         }
       : targetRows[0];
 
-  // Total vehicle-line quantity per project (Qty column). Not fatal if blocked.
+  // Total vehicle-line quantity + distinct vehicle types per project (Qty and JOH
+  // columns). Not fatal if blocked.
   const qtyByProject = new Map<string, number>();
-  for (const l of (vehicleLinesRes.data ?? []) as { project_id: string; quantity: number }[]) {
+  const vehicleTypesByProject = new Map<string, string[]>();
+  for (const l of (vehicleLinesRes.data ?? []) as { project_id: string; quantity: number; vehicle_type: string | null }[]) {
     qtyByProject.set(l.project_id, (qtyByProject.get(l.project_id) ?? 0) + (l.quantity ?? 0));
+    const t = (l.vehicle_type ?? '').trim();
+    if (t) {
+      const list = vehicleTypesByProject.get(l.project_id) ?? [];
+      if (!list.includes(t)) list.push(t);
+      vehicleTypesByProject.set(l.project_id, list);
+    }
+  }
+
+  // WO / PN reference numbers per project. Deferred-safe: a missing table just
+  // leaves the columns empty (no fabricated values).
+  const woByProject = new Map<string, string[]>();
+  const pnByProject = new Map<string, string[]>();
+  if (!execRefsRes.error) {
+    for (const r of (execRefsRes.data ?? []) as { project_id: string; reference_type: string; reference_number: string }[]) {
+      const map = r.reference_type === 'wo' ? woByProject : r.reference_type === 'pn' ? pnByProject : null;
+      if (!map || !r.reference_number) continue;
+      const list = map.get(r.project_id) ?? [];
+      if (!list.includes(r.reference_number)) list.push(r.reference_number);
+      map.set(r.project_id, list);
+    }
   }
 
   // ── Summary KPIs ────────────────────────────────────────────────────────────
@@ -433,7 +475,10 @@ export async function getSalesDashboardV2Data(
 
   // ── Monthly invoicing plan ───────────────────────────────────────────────────
 
-  const invoicingPlanRows = buildInvoicingPlanRows(projects, schedules, selectedYear, qtyByProject);
+  const invoicingPlanRows = buildInvoicingPlanRows(
+    projects, schedules, selectedYear, qtyByProject,
+    vehicleTypesByProject, woByProject, pnByProject,
+  );
 
   // ── Annual targets ───────────────────────────────────────────────────────────
 

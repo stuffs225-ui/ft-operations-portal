@@ -85,6 +85,9 @@ export function HotProjects() {
   const [stageFilter, setStageFilter] = useState<HotProjectStage | 'all'>('all');
   // Probability band split (operations request): High ≥80% vs Low <80%.
   const [probBand, setProbBand] = useState<'all' | 'high' | 'low'>('all');
+  // Broad-view salesman filter — only owners that actually have pipeline records.
+  const [ownerFilter, setOwnerFilter] = useState<string>('all');
+  const [ownerNames, setOwnerNames] = useState<Record<string, string>>({});
 
   const isBroadView = role === 'admin' || role === 'operations_manager';
   const canCreate = role ? CAN_CREATE.includes(role) : false;
@@ -96,11 +99,25 @@ export function HotProjects() {
     const uid = profile?.id;
     const query = supabase!.from('hot_projects').select('*').order('created_at', { ascending: false });
     const scoped = (!isBroadView && uid) ? query.eq('sales_owner_id', uid) : query;
-    scoped.then(({ data, error: err }) => {
+    scoped.then(async ({ data, error: err }) => {
       if (cancelled) return;
-      if (err) setError(err.message);
-      else setRecords((data ?? []) as HotProject[]);
+      if (err) { setError(err.message); setLoading(false); return; }
+      const rows = (data ?? []) as HotProject[];
+      setRecords(rows);
       setLoading(false);
+      // Broad view: resolve owner names for the salesman filter (owners present only).
+      if (isBroadView) {
+        const ids = Array.from(new Set(rows.map(r => r.sales_owner_id).filter((v): v is string => !!v)));
+        if (ids.length > 0) {
+          const { data: profs } = await supabase!.from('profiles').select('id, full_name, email').in('id', ids);
+          if (cancelled) return;
+          const map: Record<string, string> = {};
+          for (const p of (profs ?? []) as { id: string; full_name: string | null; email: string | null }[]) {
+            map[p.id] = p.full_name || p.email || 'Unknown';
+          }
+          setOwnerNames(map);
+        }
+      }
     });
     return () => { cancelled = true; };
   }, [isBroadView, profile?.id]);
@@ -140,8 +157,23 @@ export function HotProjects() {
     const matchBand =
       probBand === 'all' ||
       (probBand === 'high' ? (r.probability ?? 0) >= 80 : (r.probability ?? 0) < 80);
-    return matchSearch && matchStage && matchBand;
+    const matchOwner = ownerFilter === 'all' || r.sales_owner_id === ownerFilter;
+    return matchSearch && matchStage && matchBand && matchOwner;
+  }).sort((a, b) => {
+    // Closed opportunities (won/lost/cancelled) always sink below open ones;
+    // within each group the largest estimated value ranks first.
+    const aClosed = CLOSED_STAGES.includes(a.stage) ? 1 : 0;
+    const bClosed = CLOSED_STAGES.includes(b.stage) ? 1 : 0;
+    if (aClosed !== bClosed) return aClosed - bClosed;
+    return (b.estimated_value ?? 0) - (a.estimated_value ?? 0);
   });
+
+  // Salesmen present in the pipeline (broad view) — for the owner filter dropdown.
+  const ownerOptions = isBroadView
+    ? Array.from(new Set(records.map(r => r.sales_owner_id).filter((v): v is string => !!v)))
+        .map(id => ({ id, name: ownerNames[id] ?? 'Unknown' }))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    : [];
 
   const openRecords = records.filter((r) => OPEN_STAGES.includes(r.stage));
   const totalEstimated = openRecords.reduce((s, r) => s + (r.estimated_value ?? 0), 0);
@@ -254,6 +286,19 @@ export function HotProjects() {
             <option key={s} value={s}>{STAGE_CONFIG[s].label}</option>
           ))}
         </select>
+        {/* Salesman filter — broad view only; lists salesmen who own pipeline records. */}
+        {isBroadView && ownerOptions.length > 0 && (
+          <select
+            value={ownerFilter}
+            onChange={(e) => setOwnerFilter(e.target.value)}
+            className="text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
+          >
+            <option value="all">All Salesmen</option>
+            {ownerOptions.map((o) => (
+              <option key={o.id} value={o.id}>{o.name}</option>
+            ))}
+          </select>
+        )}
         {/* Probability band — High ≥80% vs Low <80% (operations request). */}
         <div className="inline-flex rounded-lg border border-gray-200 bg-white overflow-hidden text-sm">
           {([
@@ -331,6 +376,7 @@ export function HotProjects() {
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wide">Opportunity</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wide">Customer</th>
+                  {isBroadView && <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wide hidden md:table-cell">Salesman</th>}
                   <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wide">Stage</th>
                   <th className="px-4 py-3 text-right font-medium text-gray-500 text-xs uppercase tracking-wide hidden sm:table-cell">Prob.</th>
                   <th className="px-4 py-3 text-right font-medium text-gray-500 text-xs uppercase tracking-wide hidden md:table-cell">Est. Value</th>
@@ -361,6 +407,11 @@ export function HotProjects() {
                           </span>
                         )}
                       </td>
+                      {isBroadView && (
+                        <td className="px-4 py-3 text-gray-600 text-sm hidden md:table-cell">
+                          {hp.sales_owner_id ? (ownerNames[hp.sales_owner_id] ?? '—') : <span className="text-gray-400 italic">Unassigned</span>}
+                        </td>
+                      )}
                       <td className="px-4 py-3">
                         <Badge variant={stageCfg.variant} size="sm">{stageCfg.label}</Badge>
                       </td>

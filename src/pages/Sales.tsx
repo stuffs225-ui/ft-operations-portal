@@ -22,7 +22,8 @@ import { useAuth } from '../hooks/useAuth';
 import { ROLE_MATRIX } from '../lib/roleMatrix';
 import { useSalesDashboardV2Data } from '../hooks/useSalesDashboardV2Data';
 import type { UserRole } from '../types';
-import type { SalesInvoicingPlanMonths } from '../types/salesDashboardV2';
+import type { SalesInvoicingPlanMonths, SalesInvoicingPlanRow } from '../types/salesDashboardV2';
+import { redistributeProjectInvoicingSchedule } from '../lib/projectInvoicingScheduleQueries';
 import {
   HotProjectsPillar, QuotationsPillar, SalesReportDialog,
 } from '../components/features/SalesWorkspacePillars';
@@ -245,12 +246,16 @@ export function Sales() {
     return () => { cancelled = true; };
   }, [authLoading, isBroadView, profile?.id]);
 
-  const { data, loading, error } = useSalesDashboardV2Data({
+  const { data, loading, error, refetch } = useSalesDashboardV2Data({
     salesUserId: profile?.id ?? null,
     selectedYear,
     isBroadView,
     enabled: !authLoading,
   });
+
+  // Admin-only: double-click a plan row to redistribute its pending invoicing.
+  const canRedistribute = role === 'admin';
+  const [redistributeRow, setRedistributeRow] = useState<SalesInvoicingPlanRow | null>(null);
 
   const summary  = data?.summary;
   const targets  = data?.targets;
@@ -264,8 +269,8 @@ export function Sales() {
   // Invoicing Plan table footer totals
   const footerTotalValue   = planRows.reduce((s, r) => s + r.totalValue, 0);
   const footerPending      = planRows.reduce((s, r) => s + r.pendingInvoicing, 0);
-  const footerTtl          = planRows.reduce((s, r) => s + r.ttl, 0);
   const footerSelectedYear = planRows.reduce((s, r) => s + r.selectedYearValue, 0);
+  const footerCarryOver    = planRows.reduce((s, r) => s + r.carryOver, 0);
   const monthTotals      = MONTH_KEYS.reduce<Record<keyof SalesInvoicingPlanMonths, number>>(
     (acc, k) => ({ ...acc, [k]: planRows.reduce((s, r) => s + (r.months[k] ?? 0), 0) }),
     {} as Record<keyof SalesInvoicingPlanMonths, number>,
@@ -452,48 +457,54 @@ export function Sales() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-xs border-collapse" style={{ minWidth: '1280px' }}>
+                {canRedistribute && (
+                  <p className="px-5 pt-3 text-[11px] text-gray-400">
+                    Double-click any project row to redistribute its pending invoicing across the months.
+                  </p>
+                )}
+                <table className="w-full text-xs border-collapse" style={{ minWidth: '1360px' }}>
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
-                      <th className="sticky left-0 z-10 bg-gray-50 px-4 py-2.5 text-left font-semibold text-gray-500 uppercase tracking-[0.05em] whitespace-nowrap border-r border-gray-100">
-                        Customer
-                      </th>
-                      <th className="px-3 py-2.5 text-left font-semibold text-gray-500 uppercase tracking-[0.05em] whitespace-nowrap">
-                        SO #
-                      </th>
-                      <th className="px-3 py-2.5 text-right font-semibold text-gray-500 uppercase tracking-[0.05em] whitespace-nowrap">
-                        Qty
-                      </th>
-                      <th className="px-3 py-2.5 text-right font-semibold text-gray-500 uppercase tracking-[0.05em] whitespace-nowrap">
-                        Total Value
-                      </th>
-                      <th className="px-3 py-2.5 text-right font-semibold text-gray-500 uppercase tracking-[0.05em] whitespace-nowrap">
-                        Pending
-                      </th>
+                      <th className="px-2 py-2.5 text-right font-semibold text-gray-500 uppercase tracking-[0.05em] whitespace-nowrap w-10">No</th>
+                      <th className="px-3 py-2.5 text-left font-semibold text-gray-500 uppercase tracking-[0.05em] whitespace-nowrap">SO #</th>
+                      <th className="px-3 py-2.5 text-left font-semibold text-gray-500 uppercase tracking-[0.05em] whitespace-nowrap">PN # / WO #</th>
+                      <th className="sticky left-0 z-10 bg-gray-50 px-4 py-2.5 text-left font-semibold text-gray-500 uppercase tracking-[0.05em] whitespace-nowrap border-r border-gray-100">Customer</th>
+                      <th className="px-3 py-2.5 text-left font-semibold text-gray-500 uppercase tracking-[0.05em] whitespace-nowrap" title="Job On Hand — vehicle type">JOH</th>
+                      <th className="px-3 py-2.5 text-right font-semibold text-gray-500 uppercase tracking-[0.05em] whitespace-nowrap">Qty</th>
+                      <th className="px-3 py-2.5 text-right font-semibold text-gray-500 uppercase tracking-[0.05em] whitespace-nowrap">Total Value</th>
+                      <th className="px-3 py-2.5 text-right font-semibold text-gray-500 uppercase tracking-[0.05em] whitespace-nowrap">Pending</th>
                       {MONTH_KEYS.map(m => (
                         <th key={m} className="px-2 py-2.5 text-right font-semibold text-gray-500 uppercase tracking-[0.05em] whitespace-nowrap w-16">
                           {MONTH_LABELS[m]}
                         </th>
                       ))}
-                      <th className="px-3 py-2.5 text-right font-semibold text-gray-700 uppercase tracking-[0.05em] whitespace-nowrap bg-indigo-50/60" title="Scheduled total across all years">
-                        All Yrs
+                      <th className="px-3 py-2.5 text-right font-semibold text-gray-700 uppercase tracking-[0.05em] whitespace-nowrap bg-indigo-50/60" title={`Up to the end of ${selectedYear}`}>
+                        End {selectedYear}
                       </th>
-                      <th className="px-3 py-2.5 text-right font-semibold text-gray-700 uppercase tracking-[0.05em] whitespace-nowrap bg-indigo-50/60">
-                        {selectedYear}
+                      <th className="px-3 py-2.5 text-right font-semibold text-gray-700 uppercase tracking-[0.05em] whitespace-nowrap bg-amber-50/60" title={`Carry over ${selectedYear + 1} — anything that will not invoice during ${selectedYear}`}>
+                        Carry {selectedYear + 1}
                       </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {planRows.map(row => (
-                      <tr key={row.projectId} className="hover:bg-gray-50/60 group">
+                    {planRows.map((row, i) => {
+                      const refs = [...row.pnNumbers, ...row.woNumbers];
+                      return (
+                      <tr
+                        key={row.projectId}
+                        className={`hover:bg-gray-50/60 group ${canRedistribute ? 'cursor-pointer' : ''}`}
+                        onDoubleClick={canRedistribute ? () => setRedistributeRow(row) : undefined}
+                        title={canRedistribute ? 'Double-click to redistribute invoicing' : undefined}
+                      >
+                        <td className="px-2 py-2.5 text-right text-gray-400 tabular-nums">{i + 1}</td>
+                        <td className="px-3 py-2.5 text-gray-600 font-mono whitespace-nowrap">{row.orderOrPo || '—'}</td>
+                        <td className="px-3 py-2.5 text-gray-600 font-mono whitespace-nowrap text-[11px]">{refs.length > 0 ? refs.join(', ') : <span className="text-gray-300">—</span>}</td>
                         <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50/60 px-4 py-2.5 border-r border-gray-100">
                           <div className="font-medium text-gray-900 whitespace-nowrap">{row.customerName}</div>
                           <div className="text-gray-400 font-mono text-[11px] mt-0.5">{row.projectCode}</div>
                         </td>
-                        <td className="px-3 py-2.5 text-gray-600 font-mono whitespace-nowrap">{row.orderOrPo || '—'}</td>
-                        <td className="px-3 py-2.5 text-right text-gray-400 tabular-nums">
-                          {row.quantity ?? '—'}
-                        </td>
+                        <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{row.vehicleType || <span className="text-gray-300">—</span>}</td>
+                        <td className="px-3 py-2.5 text-right text-gray-500 tabular-nums">{row.quantity ?? '—'}</td>
                         <td className="px-3 py-2.5 text-right text-gray-900 font-medium tabular-nums whitespace-nowrap" title={sarTitle(row.totalValue)}>
                           {sarK(row.totalValue)}
                         </td>
@@ -515,17 +526,21 @@ export function Sales() {
                             </td>
                           );
                         })}
-                        <td className="px-3 py-2.5 text-right text-gray-900 font-semibold tabular-nums whitespace-nowrap bg-indigo-50/40" title={sarTitle(row.ttl)}>
-                          {row.ttl > 0 ? sarK(row.ttl) : <span className="text-gray-300">—</span>}
-                        </td>
                         <td className="px-3 py-2.5 text-right text-gray-900 font-semibold tabular-nums whitespace-nowrap bg-indigo-50/40" title={sarTitle(row.selectedYearValue)}>
                           {row.selectedYearValue > 0 ? sarK(row.selectedYearValue) : <span className="text-gray-300">—</span>}
                         </td>
+                        <td className="px-3 py-2.5 text-right text-amber-700 font-semibold tabular-nums whitespace-nowrap bg-amber-50/40" title={sarTitle(row.carryOver)}>
+                          {row.carryOver > 0 ? sarK(row.carryOver) : <span className="text-gray-300">—</span>}
+                        </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                   <tfoot>
                     <tr className="border-t-2 border-gray-200 bg-gray-50 font-semibold">
+                      <td className="px-2 py-2.5" />
+                      <td className="px-3 py-2.5" />
+                      <td className="px-3 py-2.5" />
                       <td className="sticky left-0 z-10 bg-gray-50 px-4 py-2.5 border-r border-gray-100 text-xs text-gray-700 uppercase tracking-[0.05em]">
                         Total ({planRows.length})
                       </td>
@@ -543,11 +558,11 @@ export function Sales() {
                           </td>
                         );
                       })}
-                      <td className="px-3 py-2.5 text-right text-gray-900 tabular-nums bg-indigo-50/40" title={sarTitle(footerTtl)}>
-                        {footerTtl > 0 ? sarK(footerTtl) : '—'}
-                      </td>
                       <td className="px-3 py-2.5 text-right text-gray-900 tabular-nums bg-indigo-50/40" title={sarTitle(footerSelectedYear)}>
                         {footerSelectedYear > 0 ? sarK(footerSelectedYear) : '—'}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-amber-700 tabular-nums bg-amber-50/40" title={sarTitle(footerCarryOver)}>
+                        {footerCarryOver > 0 ? sarK(footerCarryOver) : '—'}
                       </td>
                     </tr>
                   </tfoot>
@@ -690,6 +705,119 @@ export function Sales() {
         canPickSalesman={role === 'admin'}
         selectedYear={selectedYear}
       />
+
+      {redistributeRow && (
+        <RedistributeModal
+          row={redistributeRow}
+          year={selectedYear}
+          onClose={() => setRedistributeRow(null)}
+          onSaved={() => { setRedistributeRow(null); refetch(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Redistribute Invoicing Plan modal ─────────────────────────────────────────
+// Admin-only: rewrite a project's pending invoicing across the year's months plus
+// a carry-over into the next year. The distribution must sum to the pending total.
+
+function RedistributeModal({
+  row, year, onClose, onSaved,
+}: {
+  row: SalesInvoicingPlanRow;
+  year: number;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const pending = row.pendingInvoicing;
+  const [amounts, setAmounts] = useState<Record<keyof SalesInvoicingPlanMonths, string>>(() =>
+    MONTH_KEYS.reduce((acc, k) => ({ ...acc, [k]: row.months[k] && row.months[k]! > 0 ? String(Math.round(row.months[k]!)) : '' }),
+      {} as Record<keyof SalesInvoicingPlanMonths, string>),
+  );
+  const [carryover, setCarryover] = useState<string>(row.carryOver > 0 ? String(Math.round(row.carryOver)) : '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const num = (s: string) => { const n = Number(s); return Number.isFinite(n) && n > 0 ? n : 0; };
+  const distributed = MONTH_KEYS.reduce((s, k) => s + num(amounts[k]), 0) + num(carryover);
+  const balance = Math.round((pending - distributed) * 100) / 100;
+  const balanced = Math.abs(balance) < 0.005;
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    const monthsPayload = MONTH_KEYS.map((k, idx) => ({ month: idx + 1, amount: num(amounts[k]) }));
+    const res = await redistributeProjectInvoicingSchedule({
+      projectId: row.projectId,
+      year,
+      months: monthsPayload,
+      carryoverAmount: num(carryover),
+      pendingTotal: pending,
+    });
+    setSaving(false);
+    if (res.success) { onSaved(); return; }
+    setError(res.unavailable ? (res.unavailableReason ?? 'This action is unavailable.') : (res.error ?? 'Could not save.'));
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="px-5 py-3.5 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <ReceiptText size={15} className="text-indigo-500" /> Redistribute Invoicing — {year}
+          </h3>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {row.customerName} · {row.projectCode} · pending{' '}
+            <span className="font-semibold text-indigo-700">{sar(pending)}</span> to distribute
+          </p>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+            {MONTH_KEYS.map((k) => (
+              <label key={k} className="block">
+                <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">{MONTH_LABELS[k]}</span>
+                <input
+                  type="number" min="0" inputMode="numeric"
+                  value={amounts[k]}
+                  onChange={(e) => setAmounts((p) => ({ ...p, [k]: e.target.value }))}
+                  className="mt-0.5 w-full px-2 py-1.5 text-sm text-right tabular-nums border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                  placeholder="0"
+                />
+              </label>
+            ))}
+            <label className="block">
+              <span className="text-[11px] font-medium text-amber-600 uppercase tracking-wide">Carry {year + 1}</span>
+              <input
+                type="number" min="0" inputMode="numeric"
+                value={carryover}
+                onChange={(e) => setCarryover(e.target.value)}
+                className="mt-0.5 w-full px-2 py-1.5 text-sm text-right tabular-nums border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                placeholder="0"
+              />
+            </label>
+          </div>
+
+          <div className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${balanced ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+            <span>Distributed <span className="font-semibold tabular-nums">{sar(distributed)}</span> of {sar(pending)}</span>
+            <span className="font-semibold tabular-nums">{balanced ? 'Balanced ✓' : `${balance > 0 ? 'Remaining' : 'Over'} ${sar(Math.abs(balance))}`}</span>
+          </div>
+
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 flex items-start gap-1.5">
+              <AlertCircle size={13} className="shrink-0 mt-0.5" /> {error}
+            </div>
+          )}
+        </div>
+
+        <div className="px-5 py-3.5 border-t border-gray-100 flex items-center justify-end gap-2">
+          <Button variant="secondary" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button size="sm" onClick={save} disabled={saving || !balanced}>
+            {saving ? 'Saving…' : 'Save distribution'}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

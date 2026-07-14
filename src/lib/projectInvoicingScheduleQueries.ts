@@ -502,6 +502,74 @@ export async function splitProjectInvoicingSchedule(
   return { success: true, unavailable: false, error: null };
 }
 
+// ── Redistribute the pending schedule across a year's months + carry-over ─────
+
+export interface RedistributeParams {
+  projectId: string;
+  year: number;
+  /** Amount per month, keyed 1–12. Zero/absent months are skipped. */
+  months: { month: number; amount: number }[];
+  carryoverAmount: number;
+  /** Total the redistribution must equal (the project's current pending total). */
+  pendingTotal: number;
+}
+
+export async function redistributeProjectInvoicingSchedule(
+  params: RedistributeParams,
+): Promise<ScheduleMutationResult> {
+  const { projectId, year, months, carryoverAmount, pendingTotal } = params;
+
+  if (!projectId) return { success: false, unavailable: false, error: 'Project is required.' };
+  for (const m of months) {
+    if (m.month < 1 || m.month > 12) return { success: false, unavailable: false, error: 'Month must be 1–12.' };
+    if (typeof m.amount !== 'number' || Number.isNaN(m.amount) || m.amount < 0) {
+      return { success: false, unavailable: false, error: 'Every month needs a valid, non-negative amount.' };
+    }
+  }
+  if (carryoverAmount < 0 || Number.isNaN(carryoverAmount)) {
+    return { success: false, unavailable: false, error: 'Carry-over must be a valid, non-negative amount.' };
+  }
+  const sum = months.reduce((s, m) => s + m.amount, 0) + carryoverAmount;
+  if (Math.round(sum * 100) !== Math.round(pendingTotal * 100)) {
+    return {
+      success: false,
+      unavailable: false,
+      error: `The distribution must sum to the pending total (${pendingTotal.toLocaleString()}). Current total: ${sum.toLocaleString()}.`,
+    };
+  }
+
+  if (!supabase) {
+    return {
+      success: false,
+      unavailable: true,
+      unavailableReason: 'Supabase is not configured in this environment.',
+      error: null,
+    };
+  }
+
+  const { error } = await supabase.rpc('redistribute_project_invoicing_schedule', {
+    p_project_id: projectId,
+    p_year: year,
+    p_months: months.filter((m) => m.amount > 0).map((m) => ({ month: m.month, amount: m.amount })),
+    p_carryover_amount: carryoverAmount,
+    p_carryover_date: null,
+  });
+
+  if (error) {
+    if (isMissingFunctionError(error) || isMissingRelationError(error)) {
+      return {
+        success: false,
+        unavailable: true,
+        unavailableReason: formatDeferredMigrationMessage('redistribute_project_invoicing_schedule', 113),
+        error: null,
+      };
+    }
+    return { success: false, unavailable: false, error: error.message };
+  }
+
+  return { success: true, unavailable: false, error: null };
+}
+
 // ── KPI summary (pure, from already-fetched rows) ─────────────────────────────
 
 export interface InvoicingScheduleKpis {
