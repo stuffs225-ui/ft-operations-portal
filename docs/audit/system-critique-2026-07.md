@@ -36,7 +36,7 @@ is correctness hardening and UX polish, catalogued below.
 | 1.1 | `FactorySendToQC` "Send to QC" was `onClick={() => {}}` — the page's primary action did nothing | Wired to transition `factory_records.production_status → 'sent_to_qc'` (RLS-scoped), with sending state + error surface | ✅ FIXED (PR #202) |
 | 1.2 | `FactoryRawMaterialRequests` "View" button had no destination (no RMR detail route) | Removed the misleading button + its empty column; row already surfaces status/next-action/dates | ✅ FIXED (PR #202) |
 | 1.3 | `PlaceholderPage.tsx` "Coming Soon" component — never routed, dead code | Removed | ✅ FIXED (this PR) |
-| 1.4 | 5 submit validations use blocking browser `alert()` (functional but thread-blocking, non-enterprise UX): `MaterialQcInspectionDetail:132`, `ProjectQcFindingDetail:148-149`, `MaterialNcrDetail:128-129`, `AfterSalesMaintenanceDetail:184`, `AfterSalesMaintenanceNew:62,92` | Replace with an inline field/error state near the action | ▢ OPEN (next) |
+| 1.4 | 5 submit validations used blocking browser `alert()` (functional but thread-blocking, non-enterprise UX): `MaterialQcInspectionDetail`, `ProjectQcFindingDetail`, `MaterialNcrDetail`, `AfterSalesMaintenanceDetail`, `AfterSalesMaintenanceNew` | Replaced all with inline `formError` state near the action (including the submit-failure path) | ✅ FIXED (this PR) |
 
 ## 2. Data-correctness errors (silently wrong, not visibly broken)
 
@@ -89,7 +89,7 @@ is correctness hardening and UX polish, catalogued below.
 
 ## Prioritised remediation plan (open items only)
 
-1. **P1 — `alert()` → inline errors** (5 files, §1.4/5.1). Small, contained, high polish.
+1. ~~**P1 — `alert()` → inline errors** (5 files, §1.4/5.1).~~ ✅ Done in this PR.
 2. **P1 — QC & AFS admin consoles** (§4.4). Same proven pattern as the other four.
 3. **P2 — Bundle split** (§5.2). `manualChunks` for exceljs + report export.
 4. **P2 — Exact counts on remaining list KPIs** (§5.3).
