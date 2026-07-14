@@ -110,20 +110,29 @@ export function StoreUnallocated() {
       return;
     }
 
-    setAssigning(true);
-    // project_id assignment updates the receipt so all its items inherit the project
     const item = unallocatedItems.find(i => i.id === itemId);
     const receiptId = item?.store_receipt_id;
-    const { error } = receiptId
-      ? await supabase
-          .from('store_receipts')
-          .update({ project_id: selectedProject })
-          .eq('id', receiptId)
-      : { error: new Error('Receipt not found') };
+    if (!receiptId) { setAssigningItemId(null); setSelectedProject(''); return; }
+
+    setAssigning(true);
+    // Allocation must land on BOTH the receipt and its items. store_receipt_items
+    // carries its own project_id (custody, QC, serials and Project Detail all read
+    // the item-level link), so updating only the receipt would leave every item
+    // orphaned with project_id = NULL. Update the receipt first, then its items.
+    const receiptRes = await supabase
+      .from('store_receipts')
+      .update({ project_id: selectedProject })
+      .eq('id', receiptId);
+    const itemsRes = receiptRes.error ? null : await supabase
+      .from('store_receipt_items')
+      .update({ project_id: selectedProject })
+      .eq('store_receipt_id', receiptId)
+      .is('project_id', null);
     setAssigning(false);
 
-    if (!error) {
-      setUnallocatedItems(prev => prev.filter(i => i.id !== itemId));
+    if (!receiptRes.error && !itemsRes?.error) {
+      // The whole receipt is now allocated — drop every item that shared it.
+      setUnallocatedItems(prev => prev.filter(i => i.store_receipt_id !== receiptId));
     }
     setAssigningItemId(null);
     setSelectedProject('');

@@ -120,12 +120,13 @@ export type Database = {
           name: string;
           code: string;
           description: string | null;
+          category: string | null;
           is_active: boolean;
           created_at: string;
           updated_at: string;
         };
-        Insert: { name: string; code: string; description?: string | null; is_active?: boolean };
-        Update: { name?: string; code?: string; description?: string | null; is_active?: boolean };
+        Insert: { name: string; code: string; description?: string | null; category?: string | null; is_active?: boolean };
+        Update: { name?: string; code?: string; description?: string | null; category?: string | null; is_active?: boolean };
         Relationships: [];
       };
       material_categories: {
@@ -1356,6 +1357,7 @@ export type Database = {
           storage_location?: string | null; condition?: string; remarks?: string | null;
         };
         Update: {
+          project_id?: string | null; project_vehicle_line_id?: string | null;
           item_name?: string; material_category?: string; quantity_received?: number;
           unit?: string; serial_required?: boolean;
           status?: 'received' | 'pending_qc' | 'accepted_by_qc' | 'rejected_by_qc' | 'in_store' | 'issued' | 'in_custody' | 'installed' | 'returned' | 'consumed' | 'lost_or_damaged';

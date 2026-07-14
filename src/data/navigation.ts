@@ -1077,6 +1077,13 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin'],
   },
   {
+    id: 'admin-store-console',
+    label: 'Store Admin Console',
+    path: '/admin/store-console',
+    icon: 'Warehouse',
+    roles: ['admin'],
+  },
+  {
     id: 'admin-invoicing-schedule',
     label: 'Invoicing Schedule',
     path: '/admin/invoicing-schedule',
