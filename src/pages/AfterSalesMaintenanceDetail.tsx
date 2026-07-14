@@ -44,6 +44,7 @@ export function AfterSalesMaintenanceDetail() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [devMessage, setDevMessage] = useState('');
   const [inspectionNotes, setInspectionNotes] = useState('');
   const [partsNotes, setPartsNotes] = useState('');
@@ -181,7 +182,8 @@ export function AfterSalesMaintenanceDetail() {
   async function handleComplete() {
     const currentRequest = request;
     if (!currentRequest) return;
-    if (!resolutionNotes.trim()) { alert('Resolution notes are required to complete the request.'); return; }
+    if (!resolutionNotes.trim()) { setFormError('Resolution notes are required to complete the request.'); return; }
+    setFormError(null);
     if (!isSupabaseConfigured || !supabase) {
       devUpdate({ maintenance_status: 'completed', resolution_notes: resolutionNotes, resolved_at: new Date().toISOString(), resolved_by: profile?.id ?? 'user' }, 'Dev: Request completed');
       return;
@@ -341,6 +343,7 @@ export function AfterSalesMaintenanceDetail() {
                 placeholder="Describe how the issue was resolved…"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
             </div>
+            {formError && <p className="mb-2 text-xs text-red-600">{formError}</p>}
             <Button variant="primary" size="sm" disabled={saving} onClick={handleComplete}>
               <CheckCircle size={14} className="mr-1" /> Mark Completed
             </Button>
