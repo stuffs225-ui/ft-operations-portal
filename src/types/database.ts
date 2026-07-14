@@ -1357,6 +1357,7 @@ export type Database = {
           storage_location?: string | null; condition?: string; remarks?: string | null;
         };
         Update: {
+          project_id?: string | null; project_vehicle_line_id?: string | null;
           item_name?: string; material_category?: string; quantity_received?: number;
           unit?: string; serial_required?: boolean;
           status?: 'received' | 'pending_qc' | 'accepted_by_qc' | 'rejected_by_qc' | 'in_store' | 'issued' | 'in_custody' | 'installed' | 'returned' | 'consumed' | 'lost_or_damaged';

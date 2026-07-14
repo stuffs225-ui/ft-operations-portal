@@ -113,18 +113,27 @@ export function Store() {
       }
 
       const sb = supabase;
-      const [receiptRes, itemsRes, custodyRes, inspectionsRes] = await Promise.all([
-        sb.from('store_receipts').select('id, project_id, status', { count: 'exact' }),
-        sb.from('store_receipt_items').select('status, serial_required', { count: 'exact' }),
-        sb.from('material_custody_records').select('receiver_decision, status, approval_status', { count: 'exact' }),
-        // Cross-module read-only visibility: QC inspection outcomes for store materials.
-        sb.from('material_qc_inspections').select('inspection_result'),
+      // Every KPI is a server-side COUNT (head:true), not a fetch-then-filter.
+      // PostgREST caps returned rows at 1000, so the old `.filter()`-over-data
+      // approach silently undercounts once the store passes 1000 items/receipts.
+      // head-counts stay exact at any scale. Live QC-inspection enum vocabulary
+      // (mock vocab is handled in the mock branch above).
+      const cnt = (res: { count: number | null }) => res.count ?? 0;
+      const [
+        receiptCountRes, unallocatedRes, pendingQcRes, inStoreRes, issuedRes,
+        missingSerialsRes, custodyAcceptRes, custodyApprovalRes, qcAcceptRes, qcRejectRes,
+      ] = await Promise.all([
+        sb.from('store_receipts').select('id', { count: 'exact', head: true }),
+        sb.from('store_receipts').select('id', { count: 'exact', head: true }).is('project_id', null),
+        sb.from('store_receipt_items').select('id', { count: 'exact', head: true }).eq('status', 'pending_qc'),
+        sb.from('store_receipt_items').select('id', { count: 'exact', head: true }).eq('status', 'in_store'),
+        sb.from('store_receipt_items').select('id', { count: 'exact', head: true }).in('status', ['issued', 'in_custody']),
+        sb.from('store_receipt_items').select('id', { count: 'exact', head: true }).eq('serial_required', true).eq('status', 'received'),
+        sb.from('material_custody_records').select('id', { count: 'exact', head: true }).eq('receiver_decision', 'pending').eq('status', 'issued'),
+        sb.from('material_custody_records').select('id', { count: 'exact', head: true }).eq('approval_status', 'pending_approval'),
+        sb.from('material_qc_inspections').select('id', { count: 'exact', head: true }).in('inspection_result', ['accepted', 'accepted_with_comments']),
+        sb.from('material_qc_inspections').select('id', { count: 'exact', head: true }).eq('inspection_result', 'rejected'),
       ]);
-
-      const receipts = receiptRes.data ?? [];
-      const items = itemsRes.data ?? [];
-      const custody = custodyRes.data ?? [];
-      const inspections = (inspectionsRes.data ?? []) as { inspection_result: string }[];
 
       // For vehicles missing photos we need a separate query
       const { data: photoDataRaw } = await sb
@@ -141,21 +150,17 @@ export function Store() {
       }).length;
 
       setKpi({
-        materialsReceived: receiptRes.count ?? receipts.length,
-        pendingQC: items.filter((i: { status: string }) => i.status === 'pending_qc').length,
-        inStore: items.filter((i: { status: string }) => i.status === 'in_store').length,
-        issuedInCustody: items.filter((i: { status: string }) => ['issued', 'in_custody'].includes(i.status)).length,
-        missingSerials: items.filter((i: { status: string; serial_required: boolean }) => i.serial_required && i.status === 'received').length,
+        materialsReceived: cnt(receiptCountRes),
+        pendingQC: cnt(pendingQcRes),
+        inStore: cnt(inStoreRes),
+        issuedInCustody: cnt(issuedRes),
+        missingSerials: cnt(missingSerialsRes),
         vehiclesMissingPhotos,
-        unallocated: receipts.filter((r: { project_id: string | null }) => !r.project_id).length,
-        custodyPendingAcceptance: custody.filter((c: { receiver_decision: string; status: string }) =>
-          c.receiver_decision === 'pending' && c.status === 'issued',
-        ).length,
-        qcAccepted: inspections.filter((i) => QC_ACCEPTED_RESULTS.includes(i.inspection_result)).length,
-        qcRejected: inspections.filter((i) => QC_REJECTED_RESULTS.includes(i.inspection_result)).length,
-        custodyPendingApproval: custody.filter((c: { approval_status?: string }) =>
-          c.approval_status === 'pending_approval',
-        ).length,
+        unallocated: cnt(unallocatedRes),
+        custodyPendingAcceptance: cnt(custodyAcceptRes),
+        qcAccepted: cnt(qcAcceptRes),
+        qcRejected: cnt(qcRejectRes),
+        custodyPendingApproval: cnt(custodyApprovalRes),
       });
       setLoading(false);
     })();

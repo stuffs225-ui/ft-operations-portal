@@ -26,12 +26,15 @@ interface QcHandoffItem {
   project?: { project_code: string } | null;
 }
 
+// material_inspection_result_enum (live): pending | accepted | accepted_with_comments
+// | rejected | pending_supplier_clarification | pending_rework.
 const RESULT_VARIANT: Record<string, 'neutral' | 'warning' | 'success' | 'critical'> = {
   pending: 'warning',
-  pass: 'success',
-  pass_with_observations: 'success',
-  fail: 'critical',
-  conditional_pass: 'warning',
+  accepted: 'success',
+  accepted_with_comments: 'success',
+  rejected: 'critical',
+  pending_supplier_clarification: 'warning',
+  pending_rework: 'warning',
 };
 
 const STATUS_VARIANT: Record<string, 'neutral' | 'info' | 'warning' | 'success' | 'critical'> = {
@@ -53,7 +56,7 @@ const MOCK_QC_HANDOFF: QcHandoffItem[] = [
     id: 'qci-001',
     inspection_number: 'QCI-2025-0001',
     inspection_status: 'completed',
-    inspection_result: 'pass',
+    inspection_result: 'accepted',
     store_receipt_item_id: 'rcpi-005',
     project_id: 'proj-005',
     created_at: '2025-03-20T10:00:00Z',
@@ -75,7 +78,7 @@ const MOCK_QC_HANDOFF: QcHandoffItem[] = [
     id: 'qci-003',
     inspection_number: 'QCI-2025-0003',
     inspection_status: 'completed',
-    inspection_result: 'fail',
+    inspection_result: 'rejected',
     store_receipt_item_id: 'rcpi-008',
     project_id: 'proj-006',
     created_at: '2025-04-08T14:00:00Z',
@@ -116,13 +119,17 @@ export function StoreQCHandoff() {
     setSearchParams(t === 'pending' ? {} : { status: t });
   }
 
+  // Terminal QC outcomes are accepted / accepted_with_comments (pass) and rejected
+  // (fail). Everything else — 'pending', an inspection still scheduled/in-progress,
+  // or awaiting supplier clarification / rework — is still open, so it lives under
+  // the Pending tab.
+  const isAccepted = (r: string) => r === 'accepted' || r === 'accepted_with_comments';
+  const isRejected = (r: string) => r === 'rejected';
   const pending = items.filter(
-    i => i.inspection_result === 'pending' || i.inspection_status === 'in_progress' || i.inspection_status === 'scheduled'
+    i => !isAccepted(i.inspection_result) && !isRejected(i.inspection_result)
   );
-  const accepted = items.filter(
-    i => i.inspection_result === 'pass' || i.inspection_result === 'pass_with_observations' || i.inspection_result === 'conditional_pass'
-  );
-  const rejected = items.filter(i => i.inspection_result === 'fail');
+  const accepted = items.filter(i => isAccepted(i.inspection_result));
+  const rejected = items.filter(i => isRejected(i.inspection_result));
 
   const tabItems = tab === 'pending' ? pending : tab === 'accepted' ? accepted : rejected;
 
