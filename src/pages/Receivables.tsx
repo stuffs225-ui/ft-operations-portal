@@ -10,12 +10,8 @@ import { Drawer } from '../components/ui/Drawer';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { MonthlyAgingReview } from '../components/features/MonthlyAgingReview';
+import { formatSAR } from '../lib/currency';
 import type { ReceivablesAgingRow, AgingBucket, MilestoneStatus } from '../types';
-
-function formatSAR(v: number | null | undefined) {
-  if (v == null) return '—';
-  return 'SAR ' + v.toLocaleString('en-SA', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-}
 
 function formatDate(iso: string | null | undefined) {
   if (!iso) return '—';

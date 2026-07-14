@@ -38,8 +38,11 @@ interface LiveSerial extends MedicalSerialNumber {
   project?: { project_code: string } | null;
 }
 
+interface SerialCounts { needsQc: number; failed: number; passed: number; total: number; }
+
 export function StoreSerials() {
   const [serials, setSerials] = useState<LiveSerial[]>([]);
+  const [counts, setCounts] = useState<SerialCounts | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [qcFilter, setQcFilter] = useState<'all' | SerialQcStatus>('all');
@@ -49,12 +52,22 @@ export function StoreSerials() {
     (async () => {
       setLoading(true);
       if (isSupabaseConfigured && supabase) {
-        const { data } = await supabase
+        const sb = supabase;
+        const { data } = await sb
           .from('medical_serial_numbers')
           .select('*, item:store_receipt_items(item_name, store_receipt_id), project:projects(project_code)')
           .order('created_at', { ascending: false })
           .limit(500);
         if (data) setSerials(data as unknown as LiveSerial[]);
+        // KPI cards use exact server-side counts (not the 500-row list).
+        const cnt = (res: { count: number | null }) => res.count ?? 0;
+        const [needsRes, failedRes, passedRes, totalRes] = await Promise.all([
+          sb.from('medical_serial_numbers').select('id', { count: 'exact', head: true }).in('qc_status', ['not_checked', 'pending_qc']),
+          sb.from('medical_serial_numbers').select('id', { count: 'exact', head: true }).eq('qc_status', 'failed'),
+          sb.from('medical_serial_numbers').select('id', { count: 'exact', head: true }).eq('qc_status', 'passed'),
+          sb.from('medical_serial_numbers').select('id', { count: 'exact', head: true }),
+        ]);
+        setCounts({ needsQc: cnt(needsRes), failed: cnt(failedRes), passed: cnt(passedRes), total: cnt(totalRes) });
       } else {
         setSerials(MOCK_MEDICAL_SERIALS as LiveSerial[]);
       }
@@ -77,9 +90,10 @@ export function StoreSerials() {
     return true;
   });
 
-  const needsQc = serials.filter(s => s.qc_status === 'not_checked' || s.qc_status === 'pending_qc').length;
-  const failed = serials.filter(s => s.qc_status === 'failed').length;
-  const passed = serials.filter(s => s.qc_status === 'passed').length;
+  // Live mode: exact server counts; mock mode: derive from the loaded set.
+  const needsQc = counts ? counts.needsQc : serials.filter(s => s.qc_status === 'not_checked' || s.qc_status === 'pending_qc').length;
+  const failed = counts ? counts.failed : serials.filter(s => s.qc_status === 'failed').length;
+  const passed = counts ? counts.passed : serials.filter(s => s.qc_status === 'passed').length;
 
   return (
     <div className="space-y-5">
@@ -103,7 +117,7 @@ export function StoreSerials() {
       {/* KPI strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'Total Serials', value: serials.length, color: 'border-l-gray-300' },
+          { label: 'Total Serials', value: counts ? counts.total : serials.length, color: 'border-l-gray-300' },
           { label: 'Awaiting QC', value: needsQc, color: needsQc > 0 ? 'border-l-amber-400' : 'border-l-gray-200' },
           { label: 'QC Failed', value: failed, color: failed > 0 ? 'border-l-red-500' : 'border-l-gray-200' },
           { label: 'QC Passed', value: passed, color: 'border-l-emerald-400' },

@@ -13,6 +13,7 @@ import { useAuth } from '../hooks/useAuth';
 import { sectorLabel } from '@/lib/commercialFields';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { isQuotationOverdue } from '../lib/quotationSla';
+import { formatSAR } from '../lib/currency';
 import { MOCK_QUOTATIONS } from '../data/mockQuotations';
 import type { QuotationRequest, QuotationStatus, QuotationPriority, UserRole } from '../types';
 
@@ -20,10 +21,6 @@ import type { QuotationRequest, QuotationStatus, QuotationPriority, UserRole } f
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-function formatSAR(n: number) {
-  return 'SAR ' + n.toLocaleString('en-SA', { minimumFractionDigits: 0 });
 }
 
 const STATUS_LABELS: Record<QuotationStatus, string> = {
