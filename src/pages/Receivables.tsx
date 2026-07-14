@@ -41,26 +41,52 @@ const MILESTONE_STATUS_CONFIG: Partial<Record<MilestoneStatus, { label: string; 
 const BUCKET_ORDER: AgingBucket[] = ['not_due', 'due_0_30', 'due_31_60', 'due_61_90', 'due_90_plus'];
 
 export function Receivables() {
-  const { profile } = useAuth();
+  const { role, profile } = useAuth();
+  const isBroadView = role === 'admin' || role === 'operations_manager';
   const [rows, setRows] = useState<ReceivablesAgingRow[]>([]);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [bucketFilter, setBucketFilter] = useState<AgingBucket | 'all'>('all');
+  const [ownerFilter, setOwnerFilter] = useState<string>('all');
+  const [ownerNames, setOwnerNames] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<ReceivablesAgingRow | null>(null);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
+    let cancelled = false;
     supabase!
       .from('receivables_aging_view')
       .select('*')
       .order('days_overdue', { ascending: false })
-      .then(({ data, error: err }) => {
-        if (err) setError(err.message);
-        else setRows((data ?? []) as unknown as ReceivablesAgingRow[]);
+      .then(async ({ data, error: err }) => {
+        if (cancelled) return;
+        if (err) { setError(err.message); setLoading(false); return; }
+        const list = (data ?? []) as unknown as ReceivablesAgingRow[];
+        setRows(list);
         setLoading(false);
+        // Broad view: resolve salesman names for the owner filter (owners present only).
+        if (isBroadView) {
+          const ids = Array.from(new Set(list.map(r => r.sales_owner_id).filter((v): v is string => !!v)));
+          if (ids.length > 0) {
+            const { data: profs } = await supabase!.from('profiles').select('id, full_name, email').in('id', ids);
+            if (cancelled) return;
+            const map: Record<string, string> = {};
+            for (const p of (profs ?? []) as { id: string; full_name: string | null; email: string | null }[]) {
+              map[p.id] = p.full_name || p.email || 'Unknown';
+            }
+            setOwnerNames(map);
+          }
+        }
       });
-  }, []);
+    return () => { cancelled = true; };
+  }, [isBroadView]);
+
+  const ownerOptions = useMemo(() => {
+    if (!isBroadView) return [] as { id: string; name: string }[];
+    const ids = Array.from(new Set(rows.map(r => r.sales_owner_id).filter((v): v is string => !!v)));
+    return ids.map(id => ({ id, name: ownerNames[id] ?? 'Unknown' })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [rows, ownerNames, isBroadView]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -73,19 +99,27 @@ export function Receivables() {
         r.milestone_name.toLowerCase().includes(q) ||
         (r.invoice_number ?? '').toLowerCase().includes(q);
       const matchBucket = bucketFilter === 'all' || r.aging_bucket === bucketFilter;
-      return matchSearch && matchBucket;
+      const matchOwner = ownerFilter === 'all' || r.sales_owner_id === ownerFilter;
+      return matchSearch && matchBucket && matchOwner;
     });
-  }, [rows, search, bucketFilter]);
+  }, [rows, search, bucketFilter, ownerFilter]);
+
+  // KPI + bucket strip follow the selected salesman (but ignore search/bucket so
+  // the headline totals stay stable while the operator drills the table).
+  const scopedRows = useMemo(
+    () => (ownerFilter === 'all' ? rows : rows.filter((r) => r.sales_owner_id === ownerFilter)),
+    [rows, ownerFilter],
+  );
 
   const kpis = useMemo(() => {
-    const totalOutstanding = rows.reduce((s, r) => s + r.outstanding_amount, 0);
-    const overdueRows = rows.filter((r) => r.aging_bucket !== 'not_due');
+    const totalOutstanding = scopedRows.reduce((s, r) => s + r.outstanding_amount, 0);
+    const overdueRows = scopedRows.filter((r) => r.aging_bucket !== 'not_due');
     const totalOverdue = overdueRows.reduce((s, r) => s + r.outstanding_amount, 0);
     const bucketTotals = Object.fromEntries(
-      BUCKET_ORDER.map((b) => [b, rows.filter((r) => r.aging_bucket === b).reduce((s, r) => s + r.outstanding_amount, 0)])
+      BUCKET_ORDER.map((b) => [b, scopedRows.filter((r) => r.aging_bucket === b).reduce((s, r) => s + r.outstanding_amount, 0)])
     ) as Record<AgingBucket, number>;
     return { totalOutstanding, totalOverdue, bucketTotals };
-  }, [rows]);
+  }, [scopedRows]);
 
   return (
     <div className="space-y-6">
@@ -99,19 +133,19 @@ export function Receivables() {
         <Card className="p-4">
           <div className="text-xs text-gray-500 uppercase tracking-[0.04em] mb-1">Total Outstanding</div>
           <div className="text-xl font-bold tabular-nums text-gray-900 truncate">{formatSAR(kpis.totalOutstanding)}</div>
-          <div className="text-xs text-gray-400 mt-1">{rows.length} open milestones</div>
+          <div className="text-xs text-gray-400 mt-1">{scopedRows.length} open milestones</div>
         </Card>
         <Card className="p-4 border-red-200 bg-red-50">
           <div className="text-xs text-red-600 uppercase tracking-[0.04em] mb-1">Overdue</div>
           <div className="text-xl font-bold tabular-nums text-red-700 truncate">{formatSAR(kpis.totalOverdue)}</div>
-          <div className="text-xs text-red-400 mt-1">{rows.filter((r) => r.aging_bucket !== 'not_due').length} milestones</div>
+          <div className="text-xs text-red-400 mt-1">{scopedRows.filter((r) => r.aging_bucket !== 'not_due').length} milestones</div>
         </Card>
         {/* Not-yet-due completes the split (Total = Not Yet Due + Overdue). The
             per-bucket breakdown lives in the filter strip below — not repeated here. */}
         <Card className="p-4 col-span-2 lg:col-span-1">
           <div className="text-xs text-gray-500 uppercase tracking-[0.04em] mb-1">Not Yet Due</div>
           <div className="text-xl font-bold tabular-nums text-gray-900 truncate">{formatSAR(kpis.bucketTotals['not_due'])}</div>
-          <div className="text-xs text-gray-400 mt-1">{rows.filter((r) => r.aging_bucket === 'not_due').length} milestones</div>
+          <div className="text-xs text-gray-400 mt-1">{scopedRows.filter((r) => r.aging_bucket === 'not_due').length} milestones</div>
         </Card>
       </div>
 
@@ -119,7 +153,7 @@ export function Receivables() {
       <div className="grid grid-cols-5 gap-2">
         {BUCKET_ORDER.map((b) => {
           const cfg = BUCKET_CONFIG[b];
-          const count = rows.filter((r) => r.aging_bucket === b).length;
+          const count = scopedRows.filter((r) => r.aging_bucket === b).length;
           const active = bucketFilter === b;
           return (
             <button
@@ -135,15 +169,30 @@ export function Receivables() {
         })}
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search customer, project, invoice…"
-          className="w-full pl-8 pr-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-600/30"
-        />
+      {/* Search + salesman filter */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 max-w-sm min-w-[200px]">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search customer, project, invoice…"
+            className="w-full pl-8 pr-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-600/30"
+          />
+        </div>
+        {/* Salesman filter — broad view only; scopes KPIs, buckets and the table. */}
+        {isBroadView && ownerOptions.length > 0 && (
+          <select
+            value={ownerFilter}
+            onChange={(e) => setOwnerFilter(e.target.value)}
+            className="text-sm bg-white border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-600/30"
+          >
+            <option value="all">All Salesmen</option>
+            {ownerOptions.map((o) => (
+              <option key={o.id} value={o.id}>{o.name}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Table */}
@@ -195,6 +244,7 @@ export function Receivables() {
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-[0.04em] text-gray-500">Project</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-[0.04em] text-gray-500">Customer</th>
+                {isBroadView && <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-[0.04em] text-gray-500 hidden lg:table-cell">Salesman</th>}
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-[0.04em] text-gray-500">Milestone</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-[0.04em] text-gray-500">Status</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-[0.04em] text-gray-500">Due Date</th>
@@ -213,6 +263,11 @@ export function Receivables() {
                       <div className="text-xs text-gray-400">{row.so_number}</div>
                     </td>
                     <td className="px-4 py-3 text-gray-600 max-w-[160px] truncate">{row.customer_name}</td>
+                    {isBroadView && (
+                      <td className="px-4 py-3 text-gray-600 text-sm hidden lg:table-cell">
+                        {row.sales_owner_id ? (ownerNames[row.sales_owner_id] ?? '—') : <span className="text-gray-400 italic">—</span>}
+                      </td>
+                    )}
                     <td className="px-4 py-3 text-gray-700">{row.milestone_name}</td>
                     <td className="px-4 py-3">
                       {sCfg ? <Badge variant={sCfg.variant} size="sm">{sCfg.label}</Badge> : <span className="text-xs text-gray-400">{row.milestone_status}</span>}

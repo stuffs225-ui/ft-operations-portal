@@ -126,6 +126,11 @@ const STATUS_TABS: { key: StatusGroup; label: string }[] = [
 
 const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'sales_user'];
 
+// Quotation lifecycle end-states — these sink below live requests when sorting.
+const CLOSED_QUOTATION_STATUSES: QuotationStatus[] = [
+  'converted_to_hot_project', 'converted_to_so', 'cancelled', 'closed_lost',
+];
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function Quotations() {
@@ -140,6 +145,9 @@ export function Quotations() {
   const isSalesUser = role === 'sales_user';
   const canCreate = role && CAN_CREATE.includes(role);
   const canSeeFinancials = role === 'admin' || role === 'operations_manager';
+  const isBroadView = role === 'admin' || role === 'operations_manager';
+  // Broad-view salesman filter (owners present in the list only).
+  const [ownerFilter, setOwnerFilter] = useState<string>('all');
 
   const accentActive = isCoordinator ? 'text-teal-700 border-b-2 border-teal-600' : 'text-emerald-700 border-b-2 border-emerald-600';
   const accentBadge = isCoordinator ? 'bg-teal-100 text-teal-700' : 'bg-emerald-100 text-emerald-700';
@@ -192,6 +200,18 @@ export function Quotations() {
     return counts;
   }, [quotations]);
 
+  // Salesmen present in the list (broad view) — for the owner filter dropdown.
+  const ownerOptions = useMemo(() => {
+    if (!isBroadView) return [] as { id: string; name: string }[];
+    const seen = new Map<string, string>();
+    for (const q of quotations) {
+      if (q.requested_by && !seen.has(q.requested_by)) {
+        seen.set(q.requested_by, q.requested_by_profile?.full_name || q.requested_by_profile?.email || 'Unknown');
+      }
+    }
+    return Array.from(seen, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [quotations, isBroadView]);
+
   const filtered = useMemo(() => {
     let list = quotations;
 
@@ -204,6 +224,10 @@ export function Quotations() {
       list = list.filter((q) => q.priority === priority);
     }
 
+    if (ownerFilter !== 'all') {
+      list = list.filter((q) => q.requested_by === ownerFilter);
+    }
+
     if (search.trim()) {
       const s = search.toLowerCase();
       list = list.filter(
@@ -214,8 +238,15 @@ export function Quotations() {
       );
     }
 
-    return list;
-  }, [quotations, statusGroup, priority, search]);
+    // Closed/converted quotations drop to the bottom; within each group the
+    // highest total value ranks first (null values sort last).
+    return [...list].sort((a, b) => {
+      const aClosed = CLOSED_QUOTATION_STATUSES.includes(a.quotation_status) ? 1 : 0;
+      const bClosed = CLOSED_QUOTATION_STATUSES.includes(b.quotation_status) ? 1 : 0;
+      if (aClosed !== bClosed) return aClosed - bClosed;
+      return (b.quotation_total_value ?? 0) - (a.quotation_total_value ?? 0);
+    });
+  }, [quotations, statusGroup, priority, ownerFilter, search]);
 
   const actionRequired = quotations.filter(q =>
     STATUS_GROUP_FILTER.action_required.includes(q.quotation_status)
@@ -311,6 +342,19 @@ export function Quotations() {
           <option value="medium">Medium</option>
           <option value="low">Low</option>
         </select>
+        {/* Salesman filter — broad view only; lists salesmen who raised quotations. */}
+        {isBroadView && ownerOptions.length > 0 && (
+          <select
+            value={ownerFilter}
+            onChange={(e) => setOwnerFilter(e.target.value)}
+            className={`text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${accentRing}`}
+          >
+            <option value="all">All Salesmen</option>
+            {ownerOptions.map((o) => (
+              <option key={o.id} value={o.id}>{o.name}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Table */}
@@ -350,7 +394,7 @@ export function Quotations() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Customer</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden sm:table-cell">Priority</th>
-                  {isCoordinator && (
+                  {(isCoordinator || isBroadView) && (
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Sales Owner</th>
                   )}
                   {!isSalesUser && (
@@ -402,7 +446,7 @@ export function Quotations() {
                           {q.priority}
                         </Badge>
                       </td>
-                      {isCoordinator && (
+                      {(isCoordinator || isBroadView) && (
                         <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">
                           {q.requested_by_profile?.full_name ?? (
                             <span className="text-gray-400 italic">Unknown</span>
