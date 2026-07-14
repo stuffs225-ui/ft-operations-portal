@@ -18,6 +18,7 @@ export function AfterSalesMaintenanceNew() {
   const [step, setStep] = useState(1);
   const [devMessage, setDevMessage] = useState('');
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [projects, setProjects] = useState<Pick<Project, 'id' | 'project_code' | 'customer_name' | 'project_status'>[]>([]);
 
@@ -59,7 +60,8 @@ export function AfterSalesMaintenanceNew() {
   const canSubmit = canProceedStep1 && canProceedStep2;
 
   async function handleSubmit() {
-    if (!canSubmit) { alert('Please fill in all required fields.'); return; }
+    if (!canSubmit) { setFormError('Please fill in all required fields.'); return; }
+    setFormError(null);
     if (!isSupabaseConfigured || !supabase) {
       setDevMessage('Dev Mode — maintenance request not persisted.');
       setTimeout(() => { navigate('/after-sales/maintenance'); }, 1500);
@@ -89,7 +91,7 @@ export function AfterSalesMaintenanceNew() {
     });
     setSaving(false);
     if (error) {
-      alert('Failed to submit request. Please try again.');
+      setFormError('Failed to submit request. Please try again.');
       return;
     }
     navigate('/after-sales/maintenance');
@@ -256,6 +258,7 @@ export function AfterSalesMaintenanceNew() {
               Dev Mode — request will not be persisted to database.
             </div>
           )}
+          {formError && <p className="text-xs text-red-600 text-right">{formError}</p>}
           <div className="flex gap-2 justify-between">
             <Button variant="ghost" size="sm" onClick={() => setStep(3)}><ArrowLeft size={14} className="mr-1" /> Back</Button>
             <Button variant="primary" size="sm" onClick={handleSubmit} disabled={!canSubmit || saving}>

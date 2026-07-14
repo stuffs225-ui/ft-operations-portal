@@ -51,6 +51,7 @@ export function MaterialQcInspectionDetail() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [remarks, setRemarks] = useState('');
   const [devMessage, setDevMessage] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -129,7 +130,8 @@ export function MaterialQcInspectionDetail() {
   async function handleReject() {
     const currentInspection = inspection;
     if (!currentInspection) return;
-    if (!rejectionReason.trim()) { alert('Rejection reason is required.'); return; }
+    if (!rejectionReason.trim()) { setFormError('Rejection reason is required.'); return; }
+    setFormError(null);
     if (!isSupabaseConfigured || !supabase) {
       devUpdate({ inspection_status: 'completed', inspection_result: 'rejected', rejection_reason: rejectionReason, inspected_at: new Date().toISOString() }, 'Dev: Rejected — NCR created');
       return;
@@ -264,6 +266,7 @@ export function MaterialQcInspectionDetail() {
                   <textarea value={rejectionReason} onChange={e => setRejectionReason(e.target.value)} rows={2}
                     placeholder="Required if rejecting. An NCR will be automatically created."
                     className="w-full border border-red-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" />
+                  {formError && <p className="mt-2 text-xs text-red-600">{formError}</p>}
                   <Button
                     variant="secondary"
                     size="sm"

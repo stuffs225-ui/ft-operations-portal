@@ -47,6 +47,7 @@ export function MaterialNcrDetail() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [correctiveAction, setCorrectiveAction] = useState('');
   const [preventiveAction, setPreventiveAction] = useState('');
   const [rootCause, setRootCause] = useState('');
@@ -125,8 +126,9 @@ export function MaterialNcrDetail() {
   async function handleClose() {
     const currentNcr = ncr;
     if (!currentNcr) return;
-    if (!correctiveAction.trim()) { alert('Corrective action is required to close the NCR.'); return; }
-    if (!closureRemarks.trim()) { alert('Closure remarks or evidence is required.'); return; }
+    if (!correctiveAction.trim()) { setFormError('Corrective action is required to close the NCR.'); return; }
+    if (!closureRemarks.trim()) { setFormError('Closure remarks or evidence is required.'); return; }
+    setFormError(null);
     if (!isSupabaseConfigured || !supabase) {
       devUpdate({ ncr_status: 'closed', corrective_action: correctiveAction, preventive_action: preventiveAction, closed_at: new Date().toISOString() }, 'Dev: NCR closed');
       return;
@@ -251,6 +253,7 @@ export function MaterialNcrDetail() {
             <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500">
               Document upload (NCR evidence) requires Supabase storage configuration.
             </div>
+            {formError && <p className="text-xs text-red-600">{formError}</p>}
             <Button variant="primary" size="sm" disabled={saving} onClick={handleClose}>
               <CheckCircle size={14} className="mr-1" /> Close NCR
             </Button>

@@ -46,6 +46,7 @@ export function ProjectQcFindingDetail() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [closureNotes, setClosureNotes] = useState('');
   const [ownerRole, setOwnerRole] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -145,8 +146,9 @@ export function ProjectQcFindingDetail() {
   async function handleClose() {
     const currentFinding = finding;
     if (!currentFinding) return;
-    if (!closureNotes.trim()) { alert('Closure notes are required.'); return; }
-    if (currentFinding.rework_required && !currentFinding.rework_completed_at) { alert('Rework must be completed before closing this finding.'); return; }
+    if (!closureNotes.trim()) { setFormError('Closure notes are required.'); return; }
+    if (currentFinding.rework_required && !currentFinding.rework_completed_at) { setFormError('Rework must be completed before closing this finding.'); return; }
+    setFormError(null);
     if (!isSupabaseConfigured || !supabase) {
       devUpdate({ finding_status: 'closed', closure_notes: closureNotes, closed_at: new Date().toISOString(), closed_by: profile?.id ?? 'user' }, 'Dev: Finding closed');
       return;
@@ -272,6 +274,7 @@ export function ProjectQcFindingDetail() {
                 placeholder="Describe how the finding was resolved."
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
             </div>
+            {formError && <p className="mb-2 text-xs text-red-600">{formError}</p>}
             <Button variant="primary" size="sm" disabled={saving} onClick={handleClose}>
               <CheckCircle size={14} className="mr-1" /> Close Finding
             </Button>
