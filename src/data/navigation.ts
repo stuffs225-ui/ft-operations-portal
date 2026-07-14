@@ -1087,6 +1087,20 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin'],
   },
   {
+    id: 'admin-qc-console',
+    label: 'QC Admin Console',
+    path: '/admin/qc-console',
+    icon: 'Microscope',
+    roles: ['admin'],
+  },
+  {
+    id: 'admin-afs-console',
+    label: 'Dubai / AFS Admin Console',
+    path: '/admin/afs-console',
+    icon: 'Plane',
+    roles: ['admin'],
+  },
+  {
     id: 'admin-invoicing-schedule',
     label: 'Invoicing Schedule',
     path: '/admin/invoicing-schedule',
