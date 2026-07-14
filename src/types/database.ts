@@ -2177,6 +2177,16 @@ export type Database = {
         };
         Returns: undefined;
       };
+      redistribute_project_invoicing_schedule: {
+        Args: {
+          p_project_id: string;
+          p_year: number;
+          p_months: { month: number; amount: number }[];
+          p_carryover_amount?: number;
+          p_carryover_date?: string | null;
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       user_role:
