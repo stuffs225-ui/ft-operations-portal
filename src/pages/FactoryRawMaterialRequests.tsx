@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Search, Plus, ChevronRight, AlertCircle } from 'lucide-react';
+import { Package, Search, Plus, AlertCircle } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -224,7 +224,6 @@ export function FactoryRawMaterialRequests() {
                   <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
                   <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide hidden lg:table-cell">Requested</th>
                   <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide hidden xl:table-cell">Next Action</th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -261,11 +260,6 @@ export function FactoryRawMaterialRequests() {
                         <span className={`text-xs font-medium ${next.warn ? 'text-amber-600' : 'text-gray-500'}`}>
                           {next.label}
                         </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Button variant="ghost" size="sm" onClick={() => {}}>
-                          View <ChevronRight size={14} />
-                        </Button>
                       </td>
                     </tr>
                   );

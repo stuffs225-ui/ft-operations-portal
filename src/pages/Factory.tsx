@@ -155,7 +155,8 @@ export function Factory() {
             <DataSourceBadge variant="auto" />
             {role && (
               <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
-                <FactoryIcon size={11} className="mr-1" /> Factory User
+                <FactoryIcon size={11} className="mr-1" />
+                {role === 'admin' ? 'Admin · Factory' : role === 'operations_manager' ? 'Operations' : 'Factory User'}
               </span>
             )}
           </div>

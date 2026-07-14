@@ -62,6 +62,28 @@ export function FactorySendToQC() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<FilterTab>('ready');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [sendingId, setSendingId] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+
+  // Send a completed production record to QC: transition its status to
+  // 'sent_to_qc'. QC then picks it up from their inbound queue. RLS scopes the
+  // update to records the factory user owns.
+  async function sendToQc(record: FactoryRecord) {
+    setSendingId(record.id);
+    setSendError(null);
+    if (!isSupabaseConfigured || !supabase) {
+      setRecords((prev) => prev.map((r) => r.id === record.id ? { ...r, production_status: 'sent_to_qc' } : r));
+      setSendingId(null);
+      return;
+    }
+    const { error } = await supabase
+      .from('factory_records')
+      .update({ production_status: 'sent_to_qc' })
+      .eq('id', record.id);
+    setSendingId(null);
+    if (error) { setSendError(`${record.project?.project_code ?? 'Record'}: ${error.message}`); return; }
+    setRecords((prev) => prev.map((r) => r.id === record.id ? { ...r, production_status: 'sent_to_qc' } : r));
+  }
 
   useEffect(() => {
     (async () => {
@@ -116,6 +138,12 @@ export function FactorySendToQC() {
         Production must be completed (100% progress, WO confirmed, monthly update submitted) before sending to QC.
         QC inspection is managed by the QC team — factory sends the handoff request only.
       </div>
+
+      {sendError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-3 text-sm text-red-700 flex items-start gap-2">
+          <AlertCircle size={15} className="shrink-0 mt-0.5" /> {sendError}
+        </div>
+      )}
 
       {readyCount > 0 && !loading && (
         <div className="bg-sky-50 border border-sky-200 rounded-xl px-5 py-3 flex items-center gap-3 text-sm text-sky-700">
@@ -229,9 +257,10 @@ export function FactorySendToQC() {
                           size="sm"
                           variant="secondary"
                           className="border-green-400 text-green-700 hover:bg-green-50"
-                          onClick={() => {}}
+                          onClick={() => sendToQc(record)}
+                          disabled={sendingId === record.id}
                         >
-                          <CheckCircle2 size={13} className="mr-1" /> Send to QC
+                          <CheckCircle2 size={13} className="mr-1" /> {sendingId === record.id ? 'Sending…' : 'Send to QC'}
                         </Button>
                       )}
                     </div>
