@@ -6,6 +6,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { nextDocNumber, insertWithDocNumberRetry } from '../lib/docNumbers';
 import { MOCK_PROJECTS } from '../data/mockProjects';
 import type { MaintenanceIssueType, MaintenancePriority, Project } from '../types';
 
@@ -68,27 +69,35 @@ export function AfterSalesMaintenanceNew() {
       return;
     }
     setSaving(true);
+    const sb = supabase;
     const year = new Date().getFullYear();
-    const { count } = await supabase.from('afs_maintenance_requests').select('*', { count: 'exact', head: true });
-    const seq = String((count ?? 0) + 1).padStart(4, '0');
-    const requestNumber = `MNT-${year}-${seq}`;
-    const { error } = await supabase.from('afs_maintenance_requests').insert({
-      maintenance_request_number: requestNumber,
-      customer_name: customerName,
-      project_id: projectId || null,
-      chassis_number: chassisNumber || null,
-      title,
-      issue_type: issueType,
-      priority,
-      reported_date: reportedDate,
-      description,
-      wo_reference: woReference || null,
-      pn_reference: pnReference || null,
-      parts_required: partsRequired,
-      parts_notes: partsNotes || null,
-      maintenance_status: 'open',
-      created_by: profile?.id ?? null,
-    });
+    // Number is MAX+1 within the current year (not an all-time count, which broke
+    // on year rollover) and retried once on a unique-violation race. Migration 114
+    // adds the definitive server-side trigger; this is the correct prefill either way.
+    const { error } = await insertWithDocNumberRetry(
+      () => nextDocNumber({
+        table: 'afs_maintenance_requests',
+        column: 'maintenance_request_number',
+        prefix: `MNT-${year}-`,
+      }),
+      (requestNumber) => sb.from('afs_maintenance_requests').insert({
+        maintenance_request_number: requestNumber,
+        customer_name: customerName,
+        project_id: projectId || null,
+        chassis_number: chassisNumber || null,
+        title,
+        issue_type: issueType,
+        priority,
+        reported_date: reportedDate,
+        description,
+        wo_reference: woReference || null,
+        pn_reference: pnReference || null,
+        parts_required: partsRequired,
+        parts_notes: partsNotes || null,
+        maintenance_status: 'open',
+        created_by: profile?.id ?? null,
+      }).select('id').single(),
+    );
     setSaving(false);
     if (error) {
       setFormError('Failed to submit request. Please try again.');

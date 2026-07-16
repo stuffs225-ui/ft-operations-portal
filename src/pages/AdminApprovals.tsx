@@ -13,6 +13,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { recordProjectEvent, recordAuditEntry } from '../lib/projectAudit';
 import { MOCK_PROJECTS } from '../data/mockProjects';
 import type { Project, ManufacturingLocation, MedicalItems } from '../types';
+import { formatSAR } from '../lib/currency';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -23,10 +24,6 @@ const TABS: { key: ApprovalTab; label: string; statuses: string[] }[] = [
   { key: 'sent_back', label: 'Sent Back',         statuses: ['sent_back_for_revision'] },
   { key: 'rejected',  label: 'Rejected',          statuses: ['rejected'] },
 ];
-
-function formatSAR(n: number) {
-  return 'SAR ' + n.toLocaleString('en-SA', { minimumFractionDigits: 0 });
-}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });

@@ -98,3 +98,40 @@ is correctness hardening and UX polish, catalogued below.
 Nothing in this plan required weakening RLS, and only the redistribution feature
 needed a migration (113). The system is structurally healthy — this was hardening
 and completeness work, not rescue work.
+
+---
+
+# Critique v2 — deeper pass (2026-07-16)
+
+A second, deeper audit after the dead-control layer was cleaned: race conditions,
+document-number integrity, and enum drift. New scans: client-side number
+generation patterns, status-map keys cross-checked against every DB enum, orphan
+pages, insert-error surfacing.
+
+## Findings & fixes
+
+| # | Finding | Class | Fix | Status |
+|---|---|---|---|---|
+| V2-1a | `afs_maintenance_requests.maintenance_request_number` generated in the browser via **count+1** against a `NOT NULL UNIQUE` column — two users submitting together collide ("Failed to submit"); the count spans ALL years while the label uses the current year (wrong sequence after year rollover) | Race / data error | `lib/docNumbers.ts`: per-year MAX+1 prefill + retry-once on unique violation; migration **114** adds the server-side trigger (same pattern as QC entities 035–038) | ✅ FIXED |
+| V2-1b | `po_number` generated via `Math.random()` — **900 possible values per month** (~50% collision by ~35 POs) and **no unique constraint** → silent duplicate PO numbers in a financial flow | Data integrity | Sequential MAX+1 prefill (field stays editable for external PO numbers) + explicit duplicate pre-check before insert + migration 114 trigger + **guarded** unique index (skips with a NOTICE if legacy duplicates exist) | ✅ FIXED |
+| V2-1c | `pr_number` — same random pattern; `UNIQUE(project_id, pr_number)` turned collisions into raw constraint errors | Data integrity | Sequential prefill + friendly regenerate-on-collision message + migration 114 trigger | ✅ FIXED |
+| V2-2 | `StoreQCHandoff` STATUS_VARIANT keyed `scheduled`/`on_hold` (values that don't exist in `inspection_status_enum`) and was **missing `pending`** — the most common live status fell to the neutral fallback | Enum drift | Map aligned to the real enum (`pending` = warning) | ✅ FIXED |
+| V2-3 | 7 remaining local `formatSAR` copies (P3 leftover): ProjectInvoicing, ReportsSales, ProjectDetail, Projects, AdminApprovals, HotProjectDetail, LineInvoicingPlanner | Duplication | Migrated to `lib/currency`. `ProjectNew`'s local helper intentionally kept — it is semantically different (no prefix, 2 decimals) | ✅ FIXED |
+
+## Verified clean in v2 (scans, no findings)
+
+- **Orphan pages**: none — every file in `src/pages/` is routed or imported.
+- **Status-map drift elsewhere**: `DEPT_LABELS`-style maps carry extra keys by
+  design (union labels); no other map is missing a live enum value.
+- **QC/RMR/NCR/finding/inspection numbers**: already trigger-generated server-side
+  (migrations 035–038) — the correct pattern the v2 fixes now extend to MNT/PO/PR.
+- **Insert-error surfacing**: PO/PR/MNT forms all show inline errors (no silent
+  failures).
+
+## Supervised migration
+
+`supabase/migrations/114_document_number_triggers.sql` (delivered in chat) —
+MNT/PO/PR BEFORE-INSERT number triggers (fire only when the client sends blank;
+user-typed numbers are never overridden) + guarded `po_number` unique index.
+The client prefill works correctly **before** the migration too; 114 is the
+server-side guarantee for any other insert path.
