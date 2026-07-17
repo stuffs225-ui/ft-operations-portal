@@ -60,6 +60,11 @@ export function ProcurementPurchaseOrderNew() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Line items carried from the linked PR → become purchase_order_items so the PO
+  // has a code/qty/description breakdown (the Store and PO detail need it). Price
+  // is not carried (PRs have none); it can be filled per line from PO detail.
+  const [prItems, setPrItems] = useState<{ id: string; item_code: string | null; item_name: string; description: string | null; quantity_required: number; unit: string }[]>([]);
+
   const numericValue = parseFloat(purchaseValue) || 0;
   const requiresApproval = currency === 'SAR' && numericValue > HIGH_VALUE_THRESHOLD_SAR;
 
@@ -92,6 +97,19 @@ export function ProcurementPurchaseOrderNew() {
       .then(({ data }) => setPrs((data as PROption[]) ?? []));
     return () => { cancelled = true; };
   }, []);
+
+  // Load the linked PR's line items to carry into the PO.
+  useEffect(() => {
+    if (!procurementRequestId || !isSupabaseConfigured || !supabase) {
+      void Promise.resolve().then(() => setPrItems([]));
+      return;
+    }
+    supabase
+      .from('procurement_request_items')
+      .select('id, item_code, item_name, description, quantity_required, unit')
+      .eq('procurement_request_id', procurementRequestId)
+      .then(({ data }) => setPrItems((data as typeof prItems) ?? []));
+  }, [procurementRequestId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -153,7 +171,34 @@ export function ProcurementPurchaseOrderNew() {
       return;
     }
 
-    navigate(`/procurement/purchase-orders/${(data as { id: string }).id}`);
+    const poId = (data as { id: string }).id;
+
+    // Carry the linked PR's lines into the PO as purchase_order_items so the PO
+    // has a real item breakdown (unit_price defaults to 0 — PRs carry no price).
+    if (prItems.length > 0) {
+      const { error: itemsError } = await supabase
+        .from('purchase_order_items')
+        .insert(
+          prItems.map((it) => ({
+            purchase_order_id: poId,
+            procurement_request_item_id: it.id,
+            item_code: it.item_code,
+            item_name: it.item_name,
+            description: it.description,
+            quantity_ordered: it.quantity_required,
+            unit: it.unit,
+            unit_price: 0,
+          })),
+        );
+      if (itemsError) {
+        setError(`PO created, but adding line items failed: ${itemsError.message}. Add them from the PO detail page.`);
+        setSaving(false);
+        navigate(`/procurement/purchase-orders/${poId}`);
+        return;
+      }
+    }
+
+    navigate(`/procurement/purchase-orders/${poId}`);
   }
 
   return (
@@ -328,6 +373,21 @@ export function ProcurementPurchaseOrderNew() {
               />
             )}
             <p className="text-xs text-gray-400 mt-1">Governance: always link a PO to its PR when one exists.</p>
+            {prItems.length > 0 && (
+              <div className="mt-2 rounded-lg border border-gray-100 bg-gray-50/60 px-3 py-2">
+                <p className="text-xs font-semibold text-gray-600 mb-1">
+                  {prItems.length} line{prItems.length === 1 ? '' : 's'} will be carried into this PO:
+                </p>
+                <ul className="text-xs text-gray-600 space-y-0.5 max-h-32 overflow-y-auto">
+                  {prItems.map((it) => (
+                    <li key={it.id}>
+                      {it.item_code ? <span className="font-mono">{it.item_code} · </span> : null}
+                      {it.item_name} — {it.quantity_required} {it.unit}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           <div>
