@@ -22,6 +22,7 @@ import {
   type ProjectFinancialsRow, type ProjectScheduleLine,
 } from '../lib/projectFinancialsQueries';
 import type { DeferredAvailability } from '../lib/deferredMigrationSafety';
+import { formatSAR } from '../lib/currency';
 
 
 interface ProjectMeta {
@@ -30,11 +31,6 @@ interface ProjectMeta {
   customer_name: string;
   so_number: string;
   total_sales_value: number;
-}
-
-function formatSAR(v: number | null | undefined) {
-  if (v == null) return '—';
-  return 'SAR ' + v.toLocaleString('en-SA', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 function formatDate(iso: string | null | undefined) {

@@ -15,6 +15,7 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import type { ProjectVehicleLine } from '../../types';
+import { formatSAR } from '../../lib/currency';
 
 interface Allocation {
   year: number;
@@ -41,10 +42,6 @@ interface LineInvoicingPlannerProps {
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = [CURRENT_YEAR - 1, CURRENT_YEAR, CURRENT_YEAR + 1, CURRENT_YEAR + 2];
-
-function formatSAR(v: number) {
-  return 'SAR ' + v.toLocaleString('en-SA', { maximumFractionDigits: 0 });
-}
 
 export function LineInvoicingPlanner({ projectId, lines, canPlan }: LineInvoicingPlannerProps) {
   const [planRows, setPlanRows] = useState<PlanRow[]>([]);

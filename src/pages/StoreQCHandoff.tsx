@@ -37,12 +37,15 @@ const RESULT_VARIANT: Record<string, 'neutral' | 'warning' | 'success' | 'critic
   pending_rework: 'warning',
 };
 
+// inspection_status_enum (live): pending | in_progress | completed | cancelled.
+// The previous map keyed 'scheduled'/'on_hold' (values that don't exist in the
+// enum) and was MISSING 'pending' — the most common live status fell through to
+// the neutral fallback.
 const STATUS_VARIANT: Record<string, 'neutral' | 'info' | 'warning' | 'success' | 'critical'> = {
-  scheduled: 'neutral',
+  pending: 'warning',
   in_progress: 'info',
   completed: 'success',
   cancelled: 'neutral',
-  on_hold: 'warning',
 };
 
 function formatDate(iso: string | null | undefined): string {
