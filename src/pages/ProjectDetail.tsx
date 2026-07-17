@@ -35,6 +35,7 @@ import { getMockMaterialQcForProject, getMockNcrsForProject, getMockProjectQcFor
 import { getMockDubaiFollowupsForProject, getMockArrivalReportsForProject, getMockPredeliveryReportsForProject, getMockMaintenanceRequestsForProject } from '../data/mockAfs';
 import { getHealthScoreForProject, getSlaEventsForProject, getIssuesForProject, getOpenSlaBreaches } from '../data/mockReports';
 import { DocumentPanel } from '../components/documents/DocumentPanel';
+import { formatSAR } from '../lib/currency';
 import type {
   Project, ProjectVehicleLine, ProjectDocument,
   ProjectTimelineEvent, ManufacturingLocation, MedicalItems, UserRole,
@@ -46,10 +47,6 @@ import type {
 } from '../types';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-function formatSAR(n: number) {
-  return 'SAR ' + n.toLocaleString('en-SA', { minimumFractionDigits: 0 });
-}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });

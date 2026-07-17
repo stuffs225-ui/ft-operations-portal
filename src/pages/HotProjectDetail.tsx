@@ -9,11 +9,7 @@ import { Card } from '../components/ui/Card';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { HotProject, HotProjectStage } from '../types';
-
-function formatSAR(v: number | null) {
-  if (v == null) return '—';
-  return 'SAR ' + v.toLocaleString('en-SA', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-}
+import { formatSAR } from '../lib/currency';
 
 function formatDate(iso: string | null) {
   if (!iso) return '—';

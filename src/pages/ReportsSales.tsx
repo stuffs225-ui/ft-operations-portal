@@ -16,6 +16,7 @@ import { ReportExportBar } from '../components/features/ReportExportBar';
 import { exportRowsToCsv } from '../lib/reportExport';
 import type { ReportColumn } from '../lib/reportExport';
 import type { QuotationRequest, Project, QuotationStatus, HotProject, HotProjectStage } from '../types';
+import { formatSAR } from '../lib/currency';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -56,11 +57,6 @@ const OPEN_STAGES: HotProjectStage[] = ['lead', 'qualified', 'proposal_required'
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-function formatSAR(v: number | null) {
-  if (v == null) return '—';
-  return 'SAR ' + v.toLocaleString('en-SA', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 function locationBadge(loc: string) {

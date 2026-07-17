@@ -20,6 +20,7 @@ import { exportRowsToCsv } from '@/lib/reportExport';
 import type { ReportColumn } from '@/lib/reportExport';
 import { MOCK_PROJECTS } from '@/data/mockProjects';
 import type { Project, ProjectStatus, ManufacturingLocation, MedicalItems, UserRole } from '@/types';
+import { formatSAR } from '../lib/currency';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -45,10 +46,6 @@ function locationBadge(loc: ManufacturingLocation) {
 function medicalBadge(med: MedicalItems) {
   if (med === 'not_set') return null;
   return <Badge variant={med === 'yes' ? 'warning' : 'neutral'}>{med === 'yes' ? 'Medical' : 'Non-Medical'}</Badge>;
-}
-
-function formatSAR(value: number) {
-  return 'SAR ' + value.toLocaleString('en-SA', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 function formatDate(iso: string) {

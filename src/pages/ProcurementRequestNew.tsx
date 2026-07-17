@@ -6,6 +6,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { nextDocNumber } from '../lib/docNumbers';
 
 interface ProjectOption {
   id: string;
@@ -23,12 +24,10 @@ const SOURCE_DEPT_OPTIONS = [
   'Manual / Other',
 ];
 
-function generatePRNumber(): string {
+// Month prefix for PR numbers, e.g. "PR-2607-".
+function prPrefix(): string {
   const now = new Date();
-  const yy = String(now.getFullYear()).slice(2);
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const seq = String(Math.floor(Math.random() * 900) + 100);
-  return `PR-${yy}${mm}-${seq}`;
+  return `PR-${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, '0')}-`;
 }
 
 export function ProcurementRequestNew() {
@@ -37,7 +36,7 @@ export function ProcurementRequestNew() {
 
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [projectId, setProjectId] = useState('');
-  const [prNumber, setPrNumber] = useState(generatePRNumber());
+  const [prNumber, setPrNumber] = useState('');
   const [receivedDate, setReceivedDate] = useState(new Date().toISOString().split('T')[0]);
   const [sourceDepartment, setSourceDepartment] = useState('');
   const [remarks, setRemarks] = useState('');
@@ -46,7 +45,14 @@ export function ProcurementRequestNew() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) return;
+    // Prefill the next sequential PR number for this month (MAX+1, not random —
+    // the old Math.random() 3-digit numbers collided within ~35 PRs/month).
+    // The field stays editable for externally-issued PR numbers.
+    let cancelled = false;
+    nextDocNumber({ table: 'procurement_requests', column: 'pr_number', prefix: prPrefix() })
+      .then((n) => { if (!cancelled) setPrNumber((prev) => prev || n); });
+
+    if (!isSupabaseConfigured || !supabase) return () => { cancelled = true; };
     supabase
       .from('projects')
       .select('id, project_code, so_number, customer_name')
@@ -56,6 +62,7 @@ export function ProcurementRequestNew() {
       .then(({ data }) => {
         setProjects((data as ProjectOption[]) ?? []);
       });
+    return () => { cancelled = true; };
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -92,7 +99,15 @@ export function ProcurementRequestNew() {
       .single();
 
     if (insertError) {
-      setError(insertError.message);
+      // Unique violation → another PR grabbed this number in the meantime.
+      // Refresh the suggestion instead of surfacing a raw constraint error.
+      if (insertError.code === '23505') {
+        const fresh = await nextDocNumber({ table: 'procurement_requests', column: 'pr_number', prefix: prPrefix() });
+        setPrNumber(fresh);
+        setError(`PR number was already taken — updated the suggestion to ${fresh}. Submit again.`);
+      } else {
+        setError(insertError.message);
+      }
       setSaving(false);
       return;
     }

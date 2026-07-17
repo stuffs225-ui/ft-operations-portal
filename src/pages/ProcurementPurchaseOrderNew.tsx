@@ -6,6 +6,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { nextDocNumber } from '../lib/docNumbers';
 
 const HIGH_VALUE_THRESHOLD_SAR = 10000;
 
@@ -29,12 +30,10 @@ interface PROption {
 
 const CURRENCY_OPTIONS = ['SAR', 'USD', 'EUR', 'AED', 'GBP'];
 
-function generatePONumber(): string {
+// Month prefix for PO numbers, e.g. "PO-2607-".
+function poPrefix(): string {
   const now = new Date();
-  const yy = String(now.getFullYear()).slice(2);
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const seq = String(Math.floor(Math.random() * 900) + 100);
-  return `PO-${yy}${mm}-${seq}`;
+  return `PO-${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, '0')}-`;
 }
 
 export function ProcurementPurchaseOrderNew() {
@@ -48,7 +47,7 @@ export function ProcurementPurchaseOrderNew() {
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
   const [prs, setPrs] = useState<PROption[]>([]);
 
-  const [poNumber, setPoNumber] = useState(generatePONumber());
+  const [poNumber, setPoNumber] = useState('');
   const [projectId, setProjectId] = useState('');
   const [supplierName, setSupplierName] = useState('');
   const [procurementRequestId, setProcurementRequestId] = useState(linkedPrId);
@@ -65,7 +64,15 @@ export function ProcurementPurchaseOrderNew() {
   const requiresApproval = currency === 'SAR' && numericValue > HIGH_VALUE_THRESHOLD_SAR;
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) return;
+    // Prefill the next sequential PO number for this month (MAX+1 — the old
+    // Math.random() 3-digit numbers could and did produce duplicate PO numbers,
+    // since po_number has no unique constraint). Field stays editable for
+    // externally-issued PO numbers.
+    let cancelled = false;
+    nextDocNumber({ table: 'purchase_orders_to_supplier', column: 'po_number', prefix: poPrefix() })
+      .then((n) => { if (!cancelled) setPoNumber((prev) => prev || n); });
+
+    if (!isSupabaseConfigured || !supabase) return () => { cancelled = true; };
     const sb = supabase;
     sb.from('projects').select('id, project_code, so_number, customer_name')
       .in('project_status', ['active', 'approved'])
@@ -83,6 +90,7 @@ export function ProcurementPurchaseOrderNew() {
       .order('created_at', { ascending: false })
       .limit(100)
       .then(({ data }) => setPrs((data as PROption[]) ?? []));
+    return () => { cancelled = true; };
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -100,6 +108,21 @@ export function ProcurementPurchaseOrderNew() {
 
     if (!projectId) {
       setError('Please select a linked project before creating the PO.');
+      setSaving(false);
+      return;
+    }
+
+    // po_number has no DB unique constraint (migration 114 adds a guarded one),
+    // so duplicates would be created SILENTLY — check explicitly before insert.
+    const { data: dup } = await supabase
+      .from('purchase_orders_to_supplier')
+      .select('id')
+      .eq('po_number', poNumber.trim())
+      .limit(1);
+    if (dup && dup.length > 0) {
+      const fresh = await nextDocNumber({ table: 'purchase_orders_to_supplier', column: 'po_number', prefix: poPrefix() });
+      setPoNumber(fresh);
+      setError(`PO number was already taken — updated the suggestion to ${fresh}. Submit again.`);
       setSaving(false);
       return;
     }
