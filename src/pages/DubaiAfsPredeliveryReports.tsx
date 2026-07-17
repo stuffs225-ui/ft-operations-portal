@@ -1,17 +1,168 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FileSearch, CheckCircle2, XCircle, AlertTriangle, ChevronRight } from 'lucide-react';
+import { FileSearch, CheckCircle2, XCircle, AlertTriangle, ChevronRight, Plus, X, Check } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
+import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { nextDocNumber, insertWithDocNumberRetry } from '../lib/docNumbers';
 import { MOCK_AFS_PREDELIVERY_REPORTS } from '../data/mockAfs';
 import { mockOrEmpty } from '../lib/dataMode';
-import type { AfsPredeliveryReport } from '../types';
+import type { AfsPredeliveryReport, UserRole } from '../types';
 
 type Tab = 'not_ready' | 'ready' | 'all';
+
+// Pre-delivery reports are written by AFS + QC (and admin/ops) — mirrors the
+// apdr_afs_write / apdr_admin_full INSERT policies in migration 045.
+const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'afs_user', 'qc_user'];
+
+interface ArrivalOption {
+  id: string;
+  project_id: string;
+  project_vehicle_line_id: string | null;
+  arrival_report_number: string;
+  project_code: string;
+  customer_name: string;
+}
+
+// ── New Pre-Delivery Report modal ───────────────────────────────────────────────
+// Built from an arrival report that has no pre-delivery report yet (the FK is
+// NOT NULL in migration 045). ready_for_delivery stays false: the QC Release Note
+// gate (migration 076, R-015) governs delivery readiness, not this creation step.
+function NewPredeliveryModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const { profile } = useAuth();
+  const [arrivals, setArrivals] = useState<ArrivalOption[]>([]);
+  const [loadingArrivals, setLoadingArrivals] = useState(isSupabaseConfigured);
+  const [arrivalId, setArrivalId] = useState('');
+  const [reportDate, setReportDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [chassisNumber, setChassisNumber] = useState('');
+  const [remarks, setRemarks] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+    const sb = supabase;
+    (async () => {
+      const [arrRes, pdrRes] = await Promise.all([
+        sb.from('afs_arrival_reports')
+          .select('id, project_id, project_vehicle_line_id, arrival_report_number, project:projects(project_code, customer_name)')
+          .order('arrival_date', { ascending: false }),
+        sb.from('afs_predelivery_reports').select('arrival_report_id'),
+      ]);
+      const used = new Set((pdrRes.data ?? []).map((r) => (r as { arrival_report_id: string }).arrival_report_id));
+      const rows = ((arrRes.data ?? []) as unknown as {
+        id: string; project_id: string; project_vehicle_line_id: string | null; arrival_report_number: string;
+        project?: { project_code: string; customer_name: string } | null;
+      }[])
+        .filter((a) => !used.has(a.id))
+        .map((a) => ({
+          id: a.id,
+          project_id: a.project_id,
+          project_vehicle_line_id: a.project_vehicle_line_id,
+          arrival_report_number: a.arrival_report_number,
+          project_code: a.project?.project_code ?? '—',
+          customer_name: a.project?.customer_name ?? '—',
+        }));
+      setArrivals(rows);
+      setLoadingArrivals(false);
+    })();
+  }, []);
+
+  const selected = arrivals.find((a) => a.id === arrivalId);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!isSupabaseConfigured || !supabase) { onSuccess(); onClose(); return; }
+    if (!arrivalId || !selected) { setError('Select an arrival report.'); return; }
+    const sb = supabase;
+
+    setSaving(true);
+    const year = new Date(reportDate).getFullYear();
+    const { error: insErr } = await insertWithDocNumberRetry(
+      () => nextDocNumber({ table: 'afs_predelivery_reports', column: 'predelivery_report_number', prefix: `PDR-${year}-` }),
+      (predelivery_report_number) => sb.from('afs_predelivery_reports').insert({
+        arrival_report_id: selected.id,
+        project_id: selected.project_id,
+        project_vehicle_line_id: selected.project_vehicle_line_id,
+        predelivery_report_number,
+        report_date: reportDate,
+        chassis_number: chassisNumber.trim() || null,
+        readiness_status: 'pending',
+        inspector_id: profile?.id ?? null,
+        created_by: profile?.id ?? null,
+        remarks: remarks.trim() || null,
+      }),
+    );
+    if (insErr) { setError(insErr.message); setSaving(false); return; }
+    setSaving(false);
+    onSuccess();
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-900">New Pre-Delivery Report</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {!isSupabaseConfigured && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">Dev mode — not persisted.</div>
+          )}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Arrival Report <span className="text-red-500">*</span></label>
+            {loadingArrivals ? (
+              <input disabled placeholder="Loading arrival reports…" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-400" />
+            ) : arrivals.length === 0 && isSupabaseConfigured ? (
+              <p className="text-sm text-gray-400 border border-dashed border-gray-200 rounded-lg px-3 py-2">
+                No arrival reports without a pre-delivery report. Register an arrival first.
+              </p>
+            ) : (
+              <select value={arrivalId} onChange={(e) => setArrivalId(e.target.value)} required
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                <option value="">Select arrival report…</option>
+                {arrivals.map((a) => (
+                  <option key={a.id} value={a.id}>{a.arrival_report_number} — {a.project_code} — {a.customer_name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Report Date <span className="text-red-500">*</span></label>
+              <input type="date" value={reportDate} onChange={(e) => setReportDate(e.target.value)} required
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-sky-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Chassis Number</label>
+              <input value={chassisNumber} onChange={(e) => setChassisNumber(e.target.value)} placeholder="Optional"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-sky-500" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Remarks</label>
+            <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} rows={2} placeholder="Optional"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-sky-500" />
+          </div>
+          <div className="rounded-lg border border-gray-100 bg-gray-50/60 px-3 py-2 text-xs text-gray-600">
+            Created as <span className="font-medium">Not Ready</span>. The QC Release Note is required before this report can be marked ready for delivery.
+          </div>
+          {error && <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-800">{error}</div>}
+          <div className="flex items-center gap-3 pt-1">
+            <Button type="submit" loading={saving} disabled={!arrivalId && isSupabaseConfigured} icon={<Check size={14} />}>Create Report</Button>
+            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'not_ready', label: 'Not Ready' },
@@ -31,9 +182,13 @@ function formatDate(iso: string | null | undefined) {
 }
 
 export function DubaiAfsPredeliveryReports() {
+  const { role } = useAuth();
+  const canCreate = role ? CAN_CREATE.includes(role as UserRole) : false;
   const [items, setItems] = useState<AfsPredeliveryReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('not_ready');
+  const [showCreate, setShowCreate] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -49,7 +204,7 @@ export function DubaiAfsPredeliveryReports() {
       setItems((data as unknown as AfsPredeliveryReport[]) ?? []);
       setLoading(false);
     })();
-  }, []);
+  }, [reloadKey]);
 
   const tabCounts = {
     not_ready: items.filter(r => !r.ready_for_delivery).length,
@@ -71,8 +226,19 @@ export function DubaiAfsPredeliveryReports() {
         title="Pre-Delivery Readiness"
         subtitle="AFS pre-delivery readiness checks and delivery approval. QC Release Note is required before marking ready for delivery."
         breadcrumb={[{ label: 'AFS Dashboard', href: '/dubai-afs' }, { label: 'Pre-Delivery Reports' }]}
-        actions={<DataSourceBadge variant="auto" />}
+        actions={
+          <div className="flex items-center gap-2">
+            {canCreate && (
+              <Button size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>New Report</Button>
+            )}
+            <DataSourceBadge variant="auto" />
+          </div>
+        }
       />
+
+      {showCreate && (
+        <NewPredeliveryModal onClose={() => setShowCreate(false)} onSuccess={() => setReloadKey((k) => k + 1)} />
+      )}
 
       {!loading && blockers.length > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-red-800">
