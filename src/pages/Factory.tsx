@@ -16,13 +16,12 @@ import {
   MOCK_FACTORY_REQUIREMENTS as MOCK_FACTORY_REQUIREMENTS_RAW,
   MOCK_RAW_MATERIAL_REQUESTS as MOCK_RAW_MATERIAL_REQUESTS_RAW,
 } from '../data/mockFactory';
-import { MOCK_PROJECTS as MOCK_PROJECTS_RAW } from '../data/mockProjects';
+import { fetchProjectsMissingReference } from '../lib/executionGate';
 import { mockOrEmpty } from '../lib/dataMode';
 
 const MOCK_FACTORY_RECORDS = mockOrEmpty(MOCK_FACTORY_RECORDS_RAW);
 const MOCK_FACTORY_REQUIREMENTS = mockOrEmpty(MOCK_FACTORY_REQUIREMENTS_RAW);
 const MOCK_RAW_MATERIAL_REQUESTS = mockOrEmpty(MOCK_RAW_MATERIAL_REQUESTS_RAW);
-const MOCK_PROJECTS = mockOrEmpty(MOCK_PROJECTS_RAW);
 
 interface FactoryKpis {
   missingWo: number;
@@ -49,13 +48,10 @@ export function Factory() {
     (async () => {
       setLoading(true);
       if (!isSupabaseConfigured || !supabase) {
-        const saudiApproved = MOCK_PROJECTS.filter(
-          (p) => p.project_status === 'approved' && p.manufacturing_location === 'saudi',
-        );
-        const projectsWithWo = new Set(
-          MOCK_FACTORY_RECORDS.filter((r) => r.wo_reference_id).map((r) => r.project_id),
-        );
-        const missingWo = saudiApproved.filter((p) => !projectsWithWo.has(p.id)).length;
+        // "Missing WO" = Saudi approved projects with no active WO in the
+        // execution-reference register (matches the WO/PN Gate). A WO counts as
+        // present the moment it is created — no separate confirmation is needed.
+        const missingWo = (await fetchProjectsMissingReference('wo')).length;
         const readyToStart = MOCK_FACTORY_RECORDS.filter((r) => r.production_status === 'not_started' && r.wo_reference_id).length;
         const inProduction = MOCK_FACTORY_RECORDS.filter((r) => r.production_status === 'in_production').length;
         const waitingMaterials = MOCK_FACTORY_RECORDS.filter((r) => r.production_status === 'pending_raw_materials').length;
@@ -75,19 +71,22 @@ export function Factory() {
         return;
       }
 
-      const [saudiProjRes, recordsRes, monthlyRes, rmrRes] = await Promise.all([
-        supabase.from('projects').select('id', { count: 'exact' }).eq('manufacturing_location', 'saudi').eq('project_status', 'approved'),
+      const [missingWoProjects, recordsRes, monthlyRes, rmrRes] = await Promise.all([
+        // "Missing WO" comes from the execution-reference register (same source as
+        // the WO/PN Gate). A created WO already counts as present — no confirmation
+        // step. This replaces the old factory_records-based count, which reported
+        // projects with a valid WO as "missing" until a production record existed.
+        fetchProjectsMissingReference('wo'),
         supabase.from('factory_records').select('production_status, monthly_update_required, last_updated_at, wo_reference_id'),
         supabase.from('factory_records').select('*', { count: 'exact', head: true }).eq('monthly_update_required', true),
         supabase.from('production_raw_material_requests').select('*', { count: 'exact', head: true }).not('status', 'in', '("fulfilled","rejected","cancelled")'),
       ]);
 
       const allRecords = (recordsRes.data ?? []) as { production_status: string; monthly_update_required: boolean; last_updated_at: string; wo_reference_id: string | null }[];
-      const projectsWithWo = new Set(allRecords.filter((r) => r.wo_reference_id).map((r) => (r as unknown as { project_id: string }).project_id));
       void rmrRes;
 
       setKpis({
-        missingWo: (saudiProjRes.count ?? 0) - projectsWithWo.size,
+        missingWo: missingWoProjects.length,
         readyToStart: allRecords.filter((r) => r.production_status === 'not_started' && r.wo_reference_id).length,
         inProduction: allRecords.filter((r) => r.production_status === 'in_production').length,
         waitingMaterials: allRecords.filter((r) => r.production_status === 'pending_raw_materials').length,
@@ -116,8 +115,8 @@ export function Factory() {
   type QueueVariant = 'critical' | 'warning' | 'clear';
 
   const workQueues: { label: string; count: number; description: string; link: string; action: string; variant: QueueVariant }[] = [
-    { label: 'Projects Missing WO', count: kpis.missingWo, description: 'Saudi projects cannot start without a confirmed Work Order', link: '/wo-pn-gate', action: 'Enter WO', variant: kpis.missingWo > 0 ? 'critical' : 'clear' },
-    { label: 'Ready to Start', count: kpis.readyToStart, description: 'WO confirmed — production can begin', link: '/factory/projects', action: 'View Projects', variant: kpis.readyToStart > 0 ? 'warning' : 'clear' },
+    { label: 'Projects Missing WO', count: kpis.missingWo, description: 'Saudi projects cannot start without a Work Order', link: '/wo-pn-gate', action: 'Enter WO', variant: kpis.missingWo > 0 ? 'critical' : 'clear' },
+    { label: 'Ready to Start', count: kpis.readyToStart, description: 'WO in place — production can begin', link: '/factory/projects', action: 'View Projects', variant: kpis.readyToStart > 0 ? 'warning' : 'clear' },
     { label: 'Waiting Raw Materials', count: kpis.waitingMaterials, description: 'Production on hold pending material delivery', link: '/factory/raw-material-requests', action: 'Check Status', variant: kpis.waitingMaterials > 0 ? 'warning' : 'clear' },
     { label: 'Monthly Updates Due', count: kpis.updateDue, description: 'Production records requiring a progress update', link: '/factory/monthly-updates', action: 'Submit Update', variant: kpis.updateDue > 0 ? 'warning' : 'clear' },
     { label: 'Updates Overdue', count: kpis.updateOverdue, description: 'No update submitted in over 30 days', link: '/factory/monthly-updates', action: 'Submit Now', variant: kpis.updateOverdue > 0 ? 'critical' : 'clear' },
