@@ -250,6 +250,7 @@ export function Store() {
   ];
 
   const modules = [
+    { label: 'Inbound POs', href: '/store/inbound-pos', icon: <Package size={18} />, desc: 'POs from Procurement expected at the store — ETA and quantities, no prices' },
     { label: 'Inventory', href: '/store/inventory', icon: <Layers size={18} />, desc: 'All received items and current status' },
     { label: 'Material Receiving', href: '/store/receipts', icon: <Package size={18} />, desc: 'Inbound receipts and delivery notes' },
     { label: 'Vehicle Receiving', href: '/store/vehicle-receiving', icon: <Truck size={18} />, desc: 'Vehicle intake, photos, and acceptance' },

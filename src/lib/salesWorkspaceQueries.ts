@@ -104,17 +104,23 @@ export interface ExecutionGlanceData {
   factory: GlanceSection;
   store: GlanceSection;
   qc: GlanceSection;
+  /**
+   * Materials availability flag for Sales — a yes/no shortage signal only.
+   * Counts PR lines and how many are still short of their required quantity;
+   * item names/details are never exposed here.
+   */
+  materials: GlanceSection;
 }
 
 const BLOCKED: GlanceSection = { count: null, latestStatus: null, latestDate: null };
 
 export async function getExecutionGlance(projectId: string): Promise<ExecutionGlanceData> {
   if (!isSupabaseConfigured || !supabase) {
-    return { procurement: BLOCKED, purchaseOrders: BLOCKED, factory: BLOCKED, store: BLOCKED, qc: BLOCKED };
+    return { procurement: BLOCKED, purchaseOrders: BLOCKED, factory: BLOCKED, store: BLOCKED, qc: BLOCKED, materials: BLOCKED };
   }
   const db = supabase;
 
-  const [pr, po, factory, store, qc] = await Promise.all([
+  const [pr, po, factory, store, qc, prItems] = await Promise.all([
     db.from('procurement_requests')
       .select('status, updated_at')
       .eq('project_id', projectId)
@@ -134,6 +140,9 @@ export async function getExecutionGlance(projectId: string): Promise<ExecutionGl
       .order('received_date', { ascending: false }),
     db.from('material_qc_inspections')
       .select('inspection_result')
+      .eq('project_id', projectId),
+    db.from('procurement_request_items')
+      .select('quantity_required, quantity_received, status')
       .eq('project_id', projectId),
   ]);
 
@@ -172,11 +181,26 @@ export async function getExecutionGlance(projectId: string): Promise<ExecutionGl
     };
   }
 
+  // Materials: shortage yes/no only — no item details leave this function.
+  let materialsSection: GlanceSection = BLOCKED;
+  if (!prItems.error) {
+    const rows = (prItems.data ?? []) as { quantity_required: number; quantity_received: number; status: string }[];
+    const active = rows.filter((r) => r.status !== 'cancelled');
+    const short = active.filter((r) => r.quantity_received < r.quantity_required).length;
+    materialsSection = {
+      count: active.length,
+      latestStatus: active.length === 0 ? null : short > 0 ? `${short} line${short === 1 ? '' : 's'} pending` : 'All received',
+      latestDate: null,
+      extra: active.length === 0 ? null : short > 0 ? 'Shortage' : 'Complete',
+    };
+  }
+
   return {
     procurement: section(pr, 'status', 'updated_at'),
     purchaseOrders: section(po, 'po_status', 'updated_at'),
     factory: factorySection,
     store: section(store, 'status', 'received_date'),
     qc: qcSection,
+    materials: materialsSection,
   };
 }

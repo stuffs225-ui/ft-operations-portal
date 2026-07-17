@@ -6,7 +6,7 @@
 // widened for this component.
 
 import { useEffect, useState } from 'react';
-import { ShoppingCart, Package, Factory, Warehouse, BadgeCheck } from 'lucide-react';
+import { ShoppingCart, Package, Factory, Warehouse, BadgeCheck, Boxes } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Skeleton } from '../ui/skeleton';
 import { getExecutionGlance, type ExecutionGlanceData, type GlanceSection } from '../../lib/salesWorkspaceQueries';
@@ -54,6 +54,34 @@ function GlanceChip({ icon, label, section, unit }: {
   );
 }
 
+// Materials availability — a shortage yes/no signal for Sales. Shows whether
+// any PR line is still short of its required quantity; never the item details.
+function MaterialsChip({ section }: { section: GlanceSection }) {
+  const blocked = section.count === null;
+  const empty = section.count === 0;
+  const shortage = section.extra === 'Shortage';
+  return (
+    <div className="flex items-start gap-2 border border-gray-100 rounded-lg px-3 py-2 min-w-0">
+      <span className={`mt-0.5 shrink-0 ${shortage ? 'text-red-400' : 'text-gray-300'}`}><Boxes size={14} /></span>
+      <div className="min-w-0">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-gray-400">Materials</div>
+        {blocked ? (
+          <div className="text-sm text-gray-300">—</div>
+        ) : empty ? (
+          <div className="text-sm text-gray-400">None requested</div>
+        ) : shortage ? (
+          <>
+            <div className="text-sm font-semibold text-red-700">Shortage</div>
+            {section.latestStatus && <div className="text-[11px] text-gray-500 truncate">{section.latestStatus}</div>}
+          </>
+        ) : (
+          <div className="text-sm font-semibold text-green-700">All received</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function ExecutionGlance({ projectId }: { projectId: string }) {
   const [data, setData] = useState<ExecutionGlanceData | null>(null);
 
@@ -72,14 +100,15 @@ export function ExecutionGlance({ projectId }: { projectId: string }) {
         <span className="text-[10px] text-gray-400 uppercase tracking-[0.05em]">Read-only overview</span>
       </div>
       {!data ? (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-          {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
           <GlanceChip icon={<ShoppingCart size={14} />} label="Procurement" section={data.procurement} unit="PR" />
           <GlanceChip icon={<Package size={14} />} label="Purchase Orders" section={data.purchaseOrders} unit="PO" />
           <GlanceChip icon={<Factory size={14} />} label="Factory" section={data.factory} unit="record" />
+          <MaterialsChip section={data.materials} />
           <GlanceChip icon={<Warehouse size={14} />} label="Store Receipts" section={data.store} unit="receipt" />
           <GlanceChip icon={<BadgeCheck size={14} />} label="Material QC" section={data.qc} unit="inspection" />
         </div>

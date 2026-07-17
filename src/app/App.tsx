@@ -44,6 +44,7 @@ const Store = lazy(() => import('../pages/Store').then((m) => ({ default: m.Stor
 const MaterialCustody = lazy(() => import('../pages/MaterialCustody').then((m) => ({ default: m.MaterialCustody })));
 const VehicleReceiving = lazy(() => import('../pages/VehicleReceiving').then((m) => ({ default: m.VehicleReceiving })));
 const StoreReceipts = lazy(() => import('../pages/StoreReceipts').then((m) => ({ default: m.StoreReceipts })));
+const StoreInboundPOs = lazy(() => import('../pages/StoreInboundPOs').then((m) => ({ default: m.StoreInboundPOs })));
 const StoreReceiptNew = lazy(() => import('../pages/StoreReceiptNew').then((m) => ({ default: m.StoreReceiptNew })));
 const StoreReceiptDetail = lazy(() => import('../pages/StoreReceiptDetail').then((m) => ({ default: m.StoreReceiptDetail })));
 const StoreVehicleReceiving = lazy(() => import('../pages/StoreVehicleReceiving').then((m) => ({ default: m.StoreVehicleReceiving })));
@@ -253,6 +254,7 @@ export function App() {
             {/* ── Store / Warehouse ── */}
             <Route path="store" element={<RequireRole roles={['store_user', 'operations_manager']}><Store /></RequireRole>} />
             <Route path="store/receipts" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreReceipts /></RequireRole>} />
+            <Route path="store/inbound-pos" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreInboundPOs /></RequireRole>} />
             <Route path="store/receipts/new" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreReceiptNew /></RequireRole>} />
             <Route path="store/receipts/:id" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreReceiptDetail /></RequireRole>} />
             <Route path="store/vehicle-receiving" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreVehicleReceiving /></RequireRole>} />

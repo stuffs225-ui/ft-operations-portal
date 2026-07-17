@@ -59,6 +59,8 @@ export function ProcurementRequests() {
   const [loading, setLoading] = useState(true);
   const [activeStatus, setActiveStatus] = useState<PRStatus>(initialStatus);
   const [search, setSearch] = useState('');
+  const [projectFilter, setProjectFilter] = useState(searchParams.get('project') ?? 'all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'local' | 'neg'>('all');
 
   useEffect(() => {
     (async () => {
@@ -77,8 +79,19 @@ export function ProcurementRequests() {
     })();
   }, []);
 
+  // Distinct projects for the per-project filter, derived from loaded PRs.
+  const projectOptions = Array.from(
+    new Map(
+      requests
+        .filter((pr) => pr.project?.project_code)
+        .map((pr) => [pr.project_id, `${pr.project!.project_code} — ${pr.project!.customer_name ?? ''}`]),
+    ).entries(),
+  ).sort((a, b) => a[1].localeCompare(b[1]));
+
   const filtered = requests.filter((pr) => {
     if (activeStatus !== 'all' && pr.status !== activeStatus) return false;
+    if (projectFilter !== 'all' && pr.project_id !== projectFilter) return false;
+    if (typeFilter !== 'all' && (pr.pr_type ?? 'local') !== typeFilter) return false;
     if (search) {
       const q = search.toLowerCase();
       return (
@@ -119,16 +132,37 @@ export function ProcurementRequests() {
         className="mb-6"
       />
 
-      {/* Search */}
-      <div className="relative mb-4">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search PR number, project code, customer…"
-          className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-        />
+      {/* Search + per-project + type filters */}
+      <div className="flex flex-col sm:flex-row gap-2 mb-4">
+        <div className="relative flex-1">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search PR number, project code, customer…"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+        </div>
+        <select
+          value={projectFilter}
+          onChange={(e) => setProjectFilter(e.target.value)}
+          className="sm:w-64 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+        >
+          <option value="all">All projects</option>
+          {projectOptions.map(([id, label]) => (
+            <option key={id} value={id}>{label}</option>
+          ))}
+        </select>
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value as 'all' | 'local' | 'neg')}
+          className="sm:w-40 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+        >
+          <option value="all">All types</option>
+          <option value="local">Local PR</option>
+          <option value="neg">NEG PR</option>
+        </select>
       </div>
 
       {/* Status filter tabs with counts */}
@@ -195,6 +229,7 @@ export function ProcurementRequests() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">PR Number</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Type</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Project</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Source Dept</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Status</th>
@@ -214,6 +249,11 @@ export function ProcurementRequests() {
                   >
                     <td className="px-4 py-3">
                       <span className="font-mono font-semibold text-gray-900">{pr.pr_number}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {pr.pr_type === 'neg'
+                        ? <Badge variant="info">NEG</Badge>
+                        : <Badge variant="neutral">Local</Badge>}
                     </td>
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900">{pr.project?.project_code ?? '—'}</div>

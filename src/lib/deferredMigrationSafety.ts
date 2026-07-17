@@ -76,9 +76,30 @@ export function isMissingFunctionError(error: unknown): boolean {
   );
 }
 
-/** True when the error is either a missing relation OR a missing function. */
+/**
+ * True when the error indicates a missing COLUMN on an existing table.
+ *
+ * Covers:
+ *   • Postgres 42703 — "column \"x\" does not exist"
+ *   • PostgREST PGRST204 — "Could not find the 'x' column of 'y' in the schema cache"
+ *   • Generic "column ... does not exist" phrasing
+ */
+export function isMissingColumnError(error: unknown): boolean {
+  const { message, code } = errorText(error);
+  if (!message && !code) return false;
+
+  if (code === '42703') return true;        // undefined_column
+  if (code === 'PGRST204') return true;     // column not found in schema cache
+
+  return (
+    (message.includes('column') && message.includes('does not exist')) ||
+    (message.includes('schema cache') && message.includes('column'))
+  );
+}
+
+/** True when the error is a missing relation, function, OR column. */
 export function isDeferredMigrationError(error: unknown): boolean {
-  return isMissingRelationError(error) || isMissingFunctionError(error);
+  return isMissingRelationError(error) || isMissingFunctionError(error) || isMissingColumnError(error);
 }
 
 /**

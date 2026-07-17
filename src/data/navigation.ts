@@ -186,6 +186,13 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['sales_coordinator'],
   },
   {
+    id: 'coord-new-quotation',
+    label: 'New Quotation',
+    path: '/quotations/new',
+    icon: 'FilePlus',
+    roles: ['sales_coordinator'],
+  },
+  {
     id: 'coord-queue',
     label: 'Coordinator Queue',
     path: '/coordinator-queue',
@@ -299,6 +306,13 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Inventory',
     path: '/store/inventory',
     icon: 'Layers',
+    roles: ['store_user'],
+  },
+  {
+    id: 'store-inbound-pos',
+    label: 'Inbound POs',
+    path: '/store/inbound-pos',
+    icon: 'PackageCheck',
     roles: ['store_user'],
   },
   {

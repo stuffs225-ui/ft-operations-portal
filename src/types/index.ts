@@ -282,6 +282,8 @@ export type SupplierProcurementStatus =
 export type SupplierQCStatus =
   | 'not_assessed' | 'assessed' | 'approved' | 'approved_with_conditions' | 'rejected';
 
+export type PRType = 'local' | 'neg';
+
 export interface ProcurementRequest {
   id: string;
   project_id: string;
@@ -290,6 +292,10 @@ export interface ProcurementRequest {
   requested_by: string | null;
   source_department: string | null;
   status: PRStatus;
+  /** Migration 115 — 'local' supplier PR or 'neg' (NAFFCO Dubai inter-company PR). */
+  pr_type?: PRType | null;
+  /** Migration 115 — NEG PO number that accompanies a NEG PR. */
+  neg_po_number?: string | null;
   remarks: string | null;
   created_by: string | null;
   created_at: string;
@@ -623,6 +629,8 @@ export interface StoreReceipt {
   delivery_note_number: string | null;
   status: ReceiptStatus;
   remarks: string | null;
+  /** Migration 115 — WO/PN assigned by Store at receipt time. */
+  execution_reference_id?: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -630,6 +638,22 @@ export interface StoreReceipt {
   project?: Pick<Project, 'project_code' | 'so_number' | 'customer_name'> | null;
   received_by_profile?: { full_name: string | null; email: string } | null;
   items?: StoreReceiptItem[];
+}
+
+export type StoreReceiptDocumentType = 'supplier_dn' | 'qc_report' | 'srv' | 'other';
+
+/** Migration 115 — Supplier DN / QC report / SRV attached to a store receipt. */
+export interface StoreReceiptDocument {
+  id: string;
+  store_receipt_id: string;
+  document_type: StoreReceiptDocumentType;
+  file_name: string;
+  storage_path: string | null;
+  file_size: number | null;
+  mime_type: string | null;
+  uploaded_by: string | null;
+  uploaded_at: string;
+  remarks: string | null;
 }
 
 export interface StoreReceiptItem {
