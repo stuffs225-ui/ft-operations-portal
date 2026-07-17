@@ -131,6 +131,8 @@ export function FactoryProjectWorkspace() {
   });
   const [lineSaving, setLineSaving] = useState(false);
   const [lineDevSuccess, setLineDevSuccess] = useState('');
+  const [creatingLineId, setCreatingLineId] = useState<string | null>(null);
+  const [lineError, setLineError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!projectId) { Promise.resolve().then(() => { setNotFound(true); setLoading(false); }); return; }
@@ -240,6 +242,63 @@ export function FactoryProjectWorkspace() {
       setLineSaving(false);
       setEditingLineId(null);
     });
+  }
+
+  // Create a production record for a vehicle line so the factory can start
+  // tracking it. The DB gate (R-005, migration 089) requires an active WO, which
+  // `canEdit` already guarantees (canEdit ⇒ hasWO). The record starts at
+  // 'not_started' / 0% and the line moves from "Not set up" to editable.
+  async function handleCreateRecord(line: ProjectVehicleLine) {
+    if (!activeWO || !projectId) return;
+    setCreatingLineId(line.id);
+    setLineError(null);
+    setLineDevSuccess('');
+
+    if (!isSupabaseConfigured || !supabase) {
+      const local = {
+        id: `dev-${line.id}`,
+        project_id: projectId,
+        project_vehicle_line_id: line.id,
+        wo_reference_id: activeWO.id,
+        production_status: 'not_started',
+        progress_percentage: 0,
+        expected_completion_date: null,
+        actual_completion_date: null,
+        monthly_update_required: false,
+        remarks: null,
+      } as unknown as FactoryRecord;
+      setFactoryRecords((prev) => [...prev, local]);
+      setCreatingLineId(null);
+      setLineDevSuccess('Dev mode — changes not persisted');
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('factory_records')
+      .insert({
+        project_id: projectId,
+        project_vehicle_line_id: line.id,
+        wo_reference_id: activeWO.id,
+        production_status: 'not_started',
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      setLineError(error.message);
+      setCreatingLineId(null);
+      return;
+    }
+    const created = data as unknown as FactoryRecord;
+    setFactoryRecords((prev) => [...prev, created]);
+    recordFactoryEvent(
+      'factory_record', created.id, projectId,
+      'factory_record_created',
+      `Production record created for ${line.vehicle_type}`,
+      null,
+      { project_vehicle_line_id: line.id, wo_reference_id: activeWO.id },
+    );
+    setCreatingLineId(null);
   }
 
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
@@ -410,6 +469,11 @@ export function FactoryProjectWorkspace() {
               {lineDevSuccess}
             </div>
           )}
+          {lineError && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-800">
+              {lineError}
+            </div>
+          )}
 
           {vehicleLines.length === 0 ? (
             <Card className="p-6 text-center text-sm text-gray-500">
@@ -445,7 +509,14 @@ export function FactoryProjectWorkspace() {
                             </td>
                             {canEdit && (
                               <td className="px-4 py-3">
-                                <Button variant="outline" size="sm" disabled>Create Record</Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  loading={creatingLineId === line.id}
+                                  onClick={() => void handleCreateRecord(line)}
+                                >
+                                  Create Record
+                                </Button>
                               </td>
                             )}
                           </tr>
