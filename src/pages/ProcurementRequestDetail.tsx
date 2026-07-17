@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   FileText, Package, ShoppingCart, Clock, ArrowLeft,
-  Loader2, Plus, Edit2, Check, X,
+  Loader2, Plus, Edit2, Check, X, CalendarClock, AlertTriangle,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
@@ -95,6 +95,20 @@ function formatDateTime(iso: string) {
 
 const CAN_UPDATE_STATUS: UserRole[] = ['admin', 'operations_manager', 'procurement_user'];
 
+// A PR line counts as covered once a PO to supplier exists for it — either the
+// ordered quantity meets the requirement or the line status shows a PO was cut.
+const COVERED_ITEM_STATUSES = [
+  'po_to_supplier_created', 'eta_confirmed', 'in_transit',
+  'partially_received', 'fully_received',
+];
+
+function isLineCovered(item: ProcurementRequestItem): boolean {
+  return item.status !== 'cancelled' && (
+    item.quantity_ordered >= item.quantity_required ||
+    COVERED_ITEM_STATUSES.includes(item.status)
+  );
+}
+
 export function ProcurementRequestDetail() {
   const { id } = useParams<{ id: string }>();
   const { role, profile } = useAuth();
@@ -102,6 +116,7 @@ export function ProcurementRequestDetail() {
   const [pr, setPr] = useState<ProcurementRequest | null>(null);
   const [items, setItems] = useState<ProcurementRequestItem[]>([]);
   const [relatedPOs, setRelatedPOs] = useState<PurchaseOrder[]>([]);
+  const [timeline, setTimeline] = useState<{ id: string; action: string; description: string | null; created_at: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
@@ -110,6 +125,20 @@ export function ProcurementRequestDetail() {
   const [newStatus, setNewStatus] = useState('');
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+
+  // Add-line form (Procurement enters only code + quantity + description)
+  const [lineCode, setLineCode] = useState('');
+  const [lineQty, setLineQty] = useState(1);
+  const [lineDesc, setLineDesc] = useState('');
+  const [lineSaving, setLineSaving] = useState(false);
+  const [lineError, setLineError] = useState<string | null>(null);
+
+  // Inline ETA edit per line (records into eta_change_history)
+  const [etaEditId, setEtaEditId] = useState<string | null>(null);
+  const [etaDate, setEtaDate] = useState('');
+  const [etaReason, setEtaReason] = useState('');
+  const [etaSaving, setEtaSaving] = useState(false);
+  const [etaError, setEtaError] = useState<string | null>(null);
 
   const canSeeCost = ['admin', 'operations_manager', 'procurement_user'].includes(role ?? '');
   const canUpdateStatus = role ? CAN_UPDATE_STATUS.includes(role as UserRole) : false;
@@ -142,21 +171,39 @@ export function ProcurementRequestDetail() {
       setPr(prData);
       setNewStatus(prData.status);
 
-      const [{ data: itemData }, { data: poData }] = await Promise.all([
+      const [{ data: itemData }, { data: poData }, { data: eventData }] = await Promise.all([
         sb.from('procurement_request_items').select('*').eq('procurement_request_id', id),
         sb
           .from('purchase_orders_to_supplier')
           .select('*, project:projects(project_code, so_number, customer_name)')
           .eq('procurement_request_id', id),
+        sb
+          .from('audit_log')
+          .select('id, action, description, created_at')
+          .eq('entity_type', 'procurement_request')
+          .eq('entity_id', id)
+          .order('created_at', { ascending: false })
+          .limit(100),
       ]);
       setItems((itemData as unknown as ProcurementRequestItem[]) ?? []);
       setRelatedPOs((poData as unknown as PurchaseOrder[]) ?? []);
+      setTimeline((eventData as { id: string; action: string; description: string | null; created_at: string }[]) ?? []);
       setLoading(false);
     })();
   }, [id]);
 
   function handleStatusSave() {
     if (!pr || !newStatus) return;
+
+    // The PR cannot be declared fully ordered while any line lacks a PO.
+    if (newStatus === 'fully_ordered') {
+      const uncovered = items.filter((i) => !isLineCovered(i)).length;
+      if (uncovered > 0) {
+        setStatusMsg(`Cannot mark as fully ordered — ${uncovered} line(s) still have no PO to supplier.`);
+        return;
+      }
+    }
+
     setStatusSaving(true);
     setStatusMsg(null);
 
@@ -189,6 +236,94 @@ export function ProcurementRequestDetail() {
         setStatusSaving(false);
         setStatusMsg('Status updated.');
       });
+  }
+
+  async function handleAddLine() {
+    if (!pr || !lineDesc.trim() || lineQty <= 0) return;
+    setLineSaving(true);
+    setLineError(null);
+
+    if (!isSupabaseConfigured || !supabase) {
+      setLineSaving(false);
+      setLineError('Dev mode — lines are not persisted.');
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('procurement_request_items')
+      .insert({
+        procurement_request_id: pr.id,
+        project_id: pr.project_id,
+        item_code: lineCode.trim() || null,
+        item_name: lineDesc.trim(),
+        description: lineDesc.trim(),
+        quantity_required: lineQty,
+        status: 'pending',
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      setLineError(error.message);
+      setLineSaving(false);
+      return;
+    }
+
+    recordProcurementEvent(
+      'procurement_request', pr.id, pr.project_id,
+      'line_added', `PR line added: ${lineDesc.trim()} × ${lineQty}`,
+      null, profile?.id ?? null, profile?.full_name ?? null,
+      { item_code: lineCode.trim() || null, quantity: lineQty },
+    );
+    setItems((prev) => [...prev, data as unknown as ProcurementRequestItem]);
+    setLineCode('');
+    setLineQty(1);
+    setLineDesc('');
+    setLineSaving(false);
+  }
+
+  async function handleEtaSave(item: ProcurementRequestItem) {
+    if (!pr || !etaDate) return;
+    if (!etaReason.trim()) {
+      setEtaError('A reason is required for every ETA change.');
+      return;
+    }
+    setEtaSaving(true);
+    setEtaError(null);
+
+    if (!isSupabaseConfigured || !supabase) {
+      setEtaSaving(false);
+      setEtaEditId(null);
+      return;
+    }
+
+    const { error } = await supabase
+      .from('procurement_request_items')
+      .update({ expected_arrival_date: etaDate })
+      .eq('id', item.id);
+
+    if (error) {
+      setEtaError(error.message);
+      setEtaSaving(false);
+      return;
+    }
+
+    // ETA follow-up trail — every change is recorded with its reason.
+    await supabase.from('eta_change_history').insert({
+      entity_type: 'pr_item',
+      entity_id: item.id,
+      project_id: pr.project_id,
+      old_eta: item.expected_arrival_date,
+      new_eta: etaDate,
+      changed_by: profile?.id ?? null,
+      reason: etaReason.trim(),
+    });
+
+    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, expected_arrival_date: etaDate } : i)));
+    setEtaEditId(null);
+    setEtaDate('');
+    setEtaReason('');
+    setEtaSaving(false);
   }
 
   if (loading) {
@@ -264,6 +399,20 @@ export function ProcurementRequestDetail() {
                 <dd className="text-right max-w-[200px]">{pr.project?.customer_name ?? '—'}</dd>
               </div>
               <div className="flex justify-between">
+                <dt className="text-gray-500">PR Type</dt>
+                <dd>
+                  {pr.pr_type === 'neg'
+                    ? <Badge variant="info">NEG — NAFFCO Dubai</Badge>
+                    : <Badge variant="neutral">Local</Badge>}
+                </dd>
+              </div>
+              {pr.pr_type === 'neg' && (
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">NEG PO Number</dt>
+                  <dd className="font-mono font-semibold">{pr.neg_po_number ?? '—'}</dd>
+                </div>
+              )}
+              <div className="flex justify-between">
                 <dt className="text-gray-500">Source Department</dt>
                 <dd>{pr.source_department ?? '—'}</dd>
               </div>
@@ -332,7 +481,69 @@ export function ProcurementRequestDetail() {
 
       {/* ── Items ── */}
       {activeTab === 'items' && (
-        <div>
+        <div className="space-y-4">
+          {/* PO coverage — the PR stays pending until every line has a PO */}
+          {items.length > 0 && (() => {
+            const covered = items.filter(isLineCovered).length;
+            const allCovered = covered === items.length;
+            return (
+              <div className={`rounded-lg border px-4 py-3 flex items-center gap-3 text-sm ${
+                allCovered ? 'bg-green-50 border-green-200 text-green-800' : 'bg-amber-50 border-amber-200 text-amber-800'
+              }`}>
+                {allCovered ? <Check size={15} className="shrink-0" /> : <AlertTriangle size={15} className="shrink-0" />}
+                <span>
+                  <strong>{covered} of {items.length}</strong> line{items.length === 1 ? '' : 's'} covered by a PO to supplier.
+                  {!allCovered && ' The PR stays pending until every line has a PO.'}
+                </span>
+              </div>
+            );
+          })()}
+
+          {/* Add line — code + quantity + description only */}
+          {canUpdateStatus && (
+            <Card className="p-4">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Add Line</h3>
+              <div className="grid grid-cols-12 gap-2">
+                <input
+                  type="text"
+                  value={lineCode}
+                  onChange={(e) => setLineCode(e.target.value)}
+                  placeholder="Code"
+                  className="col-span-3 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+                <input
+                  type="number"
+                  min={1}
+                  value={lineQty}
+                  onChange={(e) => setLineQty(Number(e.target.value))}
+                  placeholder="Qty"
+                  className="col-span-2 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+                <input
+                  type="text"
+                  value={lineDesc}
+                  onChange={(e) => setLineDesc(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleAddLine(); } }}
+                  placeholder="Description"
+                  className="col-span-5 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+                <Button
+                  size="sm"
+                  className="col-span-2"
+                  onClick={() => void handleAddLine()}
+                  loading={lineSaving}
+                  disabled={!lineDesc.trim() || lineQty <= 0}
+                  icon={<Plus size={14} />}
+                >
+                  Add
+                </Button>
+              </div>
+              {lineError && (
+                <p className="text-xs text-red-600 mt-2">{lineError}</p>
+              )}
+            </Card>
+          )}
+
           {items.length === 0 ? (
             <Card className="p-8 text-center text-gray-500 text-sm">No items on this purchase request.</Card>
           ) : (
@@ -347,7 +558,8 @@ export function ProcurementRequestDetail() {
                       <th className="text-right px-4 py-3 font-semibold text-gray-700">Qty Ordered</th>
                       <th className="text-right px-4 py-3 font-semibold text-gray-700">Qty Received</th>
                       <th className="text-left px-4 py-3 font-semibold text-gray-700">Status</th>
-                      <th className="text-left px-4 py-3 font-semibold text-gray-700">Expected Arrival</th>
+                      <th className="text-left px-4 py-3 font-semibold text-gray-700">PO Coverage</th>
+                      <th className="text-left px-4 py-3 font-semibold text-gray-700">ETA</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -356,14 +568,64 @@ export function ProcurementRequestDetail() {
                         <td className="px-4 py-3 font-mono text-xs text-gray-700">{item.item_code ?? '—'}</td>
                         <td className="px-4 py-3">
                           <div className="font-medium text-gray-900">{item.item_name}</div>
-                          {item.description && <div className="text-xs text-gray-500 mt-0.5">{item.description}</div>}
+                          {item.description && item.description !== item.item_name && (
+                            <div className="text-xs text-gray-500 mt-0.5">{item.description}</div>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-right">{item.quantity_required} {item.unit}</td>
                         <td className="px-4 py-3 text-right">{item.quantity_ordered}</td>
                         <td className="px-4 py-3 text-right">{item.quantity_received}</td>
                         <td className="px-4 py-3">{prItemStatusBadge(item.status)}</td>
+                        <td className="px-4 py-3">
+                          {isLineCovered(item)
+                            ? <Badge variant="success">PO raised</Badge>
+                            : <Badge variant="warning">No PO yet</Badge>}
+                        </td>
                         <td className="px-4 py-3 text-gray-700">
-                          {item.expected_arrival_date ? formatDate(item.expected_arrival_date) : '—'}
+                          {etaEditId === item.id ? (
+                            <div className="space-y-1.5 min-w-[220px]">
+                              <input
+                                type="date"
+                                value={etaDate}
+                                onChange={(e) => setEtaDate(e.target.value)}
+                                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                              />
+                              <input
+                                type="text"
+                                value={etaReason}
+                                onChange={(e) => setEtaReason(e.target.value)}
+                                placeholder="Reason for ETA change"
+                                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                              />
+                              {etaError && <p className="text-[11px] text-red-600">{etaError}</p>}
+                              <div className="flex items-center gap-1.5">
+                                <Button size="sm" onClick={() => void handleEtaSave(item)} loading={etaSaving} disabled={!etaDate} icon={<Check size={12} />}>
+                                  Save
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => { setEtaEditId(null); setEtaError(null); }} disabled={etaSaving} icon={<X size={12} />}>
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span>{item.expected_arrival_date ? formatDate(item.expected_arrival_date) : '—'}</span>
+                              {canUpdateStatus && (
+                                <button
+                                  onClick={() => {
+                                    setEtaEditId(item.id);
+                                    setEtaDate(item.expected_arrival_date ?? '');
+                                    setEtaReason('');
+                                    setEtaError(null);
+                                  }}
+                                  className="text-gray-400 hover:text-brand-600 transition-colors"
+                                  title="Set / update ETA"
+                                >
+                                  <CalendarClock size={14} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -440,9 +702,23 @@ export function ProcurementRequestDetail() {
 
       {/* ── Timeline ── */}
       {activeTab === 'timeline' && (
-        <Card className="p-8 text-center text-gray-500 text-sm">
-          Timeline events will appear here.
-        </Card>
+        timeline.length === 0 ? (
+          <Card className="p-8 text-center text-gray-500 text-sm">
+            No activity recorded yet. Status changes, added lines, and ETA updates appear here.
+          </Card>
+        ) : (
+          <Card className="p-5">
+            <ol className="relative border-l border-gray-200 ml-3 space-y-5">
+              {timeline.map((ev) => (
+                <li key={ev.id} className="ml-4">
+                  <div className="absolute -left-1.5 mt-1 h-3 w-3 rounded-full bg-brand-200 border-2 border-brand-500" />
+                  <p className="text-xs text-gray-400 mb-0.5">{formatDateTime(ev.created_at)}</p>
+                  <p className="text-sm font-medium text-gray-900">{ev.description ?? ev.action.replace(/_/g, ' ')}</p>
+                </li>
+              ))}
+            </ol>
+          </Card>
+        )
       )}
     </div>
   );

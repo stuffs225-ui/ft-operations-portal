@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ReceiptText, ArrowLeft, CalendarClock, Info } from 'lucide-react';
+import { ReceiptText, ArrowLeft, CalendarClock, Info, Printer } from 'lucide-react';
 import { PageLoader } from '../components/ui/PageLoader';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
@@ -105,12 +105,15 @@ export function ProjectInvoicing() {
   const invoicedTotal = activeLines.filter((l) => l.status === 'invoiced').reduce((s, l) => s + l.invoiceAmount, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 report-print-root">
       <PageHeader
         title="Invoicing Schedule"
         subtitle={project ? `${project.project_code} · ${project.customer_name}` : 'Project Invoicing'}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 no-print">
+            <Button variant="secondary" icon={<Printer size={14} />} size="sm" onClick={() => window.print()}>
+              Print
+            </Button>
             {role === 'admin' && (
               <Link to="/admin/invoicing-schedule">
                 <Button variant="secondary" icon={<CalendarClock size={14} />} size="sm">Manage Schedules</Button>

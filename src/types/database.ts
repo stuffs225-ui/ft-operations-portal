@@ -1054,16 +1054,19 @@ export type Database = {
           id: string; project_id: string; pr_number: string;
           received_date: string | null; requested_by: string | null;
           source_department: string | null; status: string; remarks: string | null;
+          pr_type: 'local' | 'neg' | null; neg_po_number: string | null;
           created_by: string | null; created_at: string; updated_at: string;
         };
         Insert: {
           project_id: string; pr_number: string; received_date?: string | null;
           requested_by?: string | null; source_department?: string | null;
           status?: string; remarks?: string | null; created_by?: string | null;
+          pr_type?: 'local' | 'neg' | null; neg_po_number?: string | null;
         };
         Update: {
           pr_number?: string; received_date?: string | null; requested_by?: string | null;
           source_department?: string | null; status?: string; remarks?: string | null;
+          pr_type?: 'local' | 'neg' | null; neg_po_number?: string | null;
         };
         Relationships: [];
       };
@@ -1081,7 +1084,7 @@ export type Database = {
           procurement_request_id: string; project_id: string;
           project_vehicle_line_id?: string | null; item_code?: string | null;
           item_name: string; description?: string | null; material_category?: string | null;
-          quantity_required: number; unit?: string; remarks?: string | null;
+          quantity_required: number; unit?: string; status?: string; remarks?: string | null;
         };
         Update: {
           item_code?: string | null; item_name?: string; description?: string | null;
@@ -1317,7 +1320,8 @@ export type Database = {
           receipt_type: 'material' | 'vehicle' | 'mixed'; received_date: string;
           received_by: string; supplier_name: string | null; delivery_note_number: string | null;
           status: 'draft' | 'received' | 'partially_received' | 'pending_material_qc' | 'accepted' | 'rejected' | 'closed';
-          remarks: string | null; created_by: string | null; created_at: string; updated_at: string;
+          remarks: string | null; execution_reference_id: string | null;
+          created_by: string | null; created_at: string; updated_at: string;
         };
         Insert: {
           project_id?: string | null; purchase_order_id?: string | null;
@@ -1325,14 +1329,34 @@ export type Database = {
           receipt_type?: 'material' | 'vehicle' | 'mixed'; received_date: string;
           received_by: string; supplier_name?: string | null; delivery_note_number?: string | null;
           status?: 'draft' | 'received' | 'partially_received' | 'pending_material_qc' | 'accepted' | 'rejected' | 'closed';
-          remarks?: string | null; created_by?: string | null;
+          remarks?: string | null; execution_reference_id?: string | null; created_by?: string | null;
         };
         Update: {
           project_id?: string | null; purchase_order_id?: string | null;
           received_date?: string; received_by?: string; supplier_name?: string | null;
           delivery_note_number?: string | null;
           status?: 'draft' | 'received' | 'partially_received' | 'pending_material_qc' | 'accepted' | 'rejected' | 'closed';
-          remarks?: string | null;
+          remarks?: string | null; execution_reference_id?: string | null;
+        };
+        Relationships: [];
+      };
+      store_receipt_documents: {
+        Row: {
+          id: string; store_receipt_id: string;
+          document_type: 'supplier_dn' | 'qc_report' | 'srv' | 'other';
+          file_name: string; storage_path: string | null; file_size: number | null;
+          mime_type: string | null; uploaded_by: string | null; uploaded_at: string;
+          remarks: string | null;
+        };
+        Insert: {
+          store_receipt_id: string;
+          document_type?: 'supplier_dn' | 'qc_report' | 'srv' | 'other';
+          file_name: string; storage_path?: string | null; file_size?: number | null;
+          mime_type?: string | null; uploaded_by?: string | null; remarks?: string | null;
+        };
+        Update: {
+          document_type?: 'supplier_dn' | 'qc_report' | 'srv' | 'other';
+          file_name?: string; storage_path?: string | null; remarks?: string | null;
         };
         Relationships: [];
       };

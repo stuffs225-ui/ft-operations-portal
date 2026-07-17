@@ -166,6 +166,26 @@ function NextActionBanner({
     );
   }
 
+  // Sales-side view of a returned quotation: SO authoring is Admin/Ops only, so
+  // sales gets a clear "handed off, awaiting SO registration" signal instead of
+  // an empty banner with no next step.
+  if (s === 'returned_to_sales' && !canConvert) {
+    return (
+      <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+        <div className="flex items-start gap-3">
+          <CheckCircle2 size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-emerald-900">Quotation Returned — Ready for Sales Order Registration</p>
+            <p className="text-xs text-emerald-700">
+              The coordinator has returned the completed quotation. Registering the Sales Order is handled by Admin / Operations —
+              they will pick this up from here. No further action is needed from you until the SO is created.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (s === 'need_clarification') {
     return (
       <div className="p-4 bg-red-50 border border-red-200 rounded-xl">

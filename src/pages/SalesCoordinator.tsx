@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   ClipboardList, Clock, AlertTriangle, Send,
   RotateCcw, ChevronRight, UserCheck,
-  CheckCircle2, RefreshCw, FileText,
+  CheckCircle2, RefreshCw, FileText, FilePlus, MessageSquare,
 } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
 import { PageHeader } from '@/components/common/page-header';
@@ -20,9 +20,21 @@ import {
   getQuotationSlaDue,
 } from '../lib/quotationSla';
 import { ROLE_MATRIX } from '../lib/roleMatrix';
+import { isMissingRelationError } from '../lib/deferredMigrationSafety';
 import { MOCK_QUOTATIONS as MOCK_QUOTATIONS_RAW } from '../data/mockQuotations';
 import { mockOrEmpty } from '../lib/dataMode';
 import type { QuotationRequest, QuotationStatus, QuotationPriority } from '../types';
+
+// One row per quotation that has a clarification thread — the coordinator's
+// "requests to Sales" follow-up list (latest message decides the state).
+interface ClarificationThreadSummary {
+  quotation_id: string;
+  quotation_code: string;
+  customer_name: string;
+  lastBody: string;
+  lastAt: string;
+  awaitingSales: boolean;
+}
 
 const MOCK_QUOTATIONS = mockOrEmpty(MOCK_QUOTATIONS_RAW);
 
@@ -124,6 +136,8 @@ export function SalesCoordinator() {
   const [quotations, setQuotations] = useState<QuotationRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
+  const [threads, setThreads] = useState<ClarificationThreadSummary[]>([]);
+  const [threadsUnavailable, setThreadsUnavailable] = useState(false);
 
   const canView = role === 'admin' || role === 'operations_manager' || role === 'sales_coordinator';
 
@@ -148,14 +162,49 @@ export function SalesCoordinator() {
         return;
       }
 
-      const { data } = await supabase
-        .from('quotation_requests')
-        .select('*, requested_by_profile:profiles!quotation_requests_requested_by_fkey(full_name, email), assigned_coordinator:profiles!quotation_requests_assigned_coordinator_id_fkey(full_name, email)')
-        .in('quotation_status', ACTIVE_STATUSES)
-        .order('created_at', { ascending: false });
+      const [{ data }, clarRes] = await Promise.all([
+        supabase
+          .from('quotation_requests')
+          .select('*, requested_by_profile:profiles!quotation_requests_requested_by_fkey(full_name, email), assigned_coordinator:profiles!quotation_requests_assigned_coordinator_id_fkey(full_name, email)')
+          .in('quotation_status', ACTIVE_STATUSES)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('quotation_clarifications')
+          .select('quotation_id, direction, body, created_at, quotation:quotation_requests(quotation_code, customer_name)')
+          .order('created_at', { ascending: false })
+          .limit(100),
+      ]);
+
+      // Requests to Sales — one entry per quotation, driven by the latest
+      // clarification message. Deferred-safe: migration 106 pending → notice.
+      let threadSummaries: ClarificationThreadSummary[] = [];
+      let unavailable = false;
+      if (clarRes.error) {
+        unavailable = isMissingRelationError(clarRes.error);
+      } else {
+        const seen = new Set<string>();
+        for (const row of (clarRes.data ?? []) as unknown as {
+          quotation_id: string; direction: string; body: string; created_at: string;
+          quotation?: { quotation_code: string; customer_name: string } | null;
+        }[]) {
+          if (seen.has(row.quotation_id)) continue;
+          seen.add(row.quotation_id);
+          threadSummaries.push({
+            quotation_id: row.quotation_id,
+            quotation_code: row.quotation?.quotation_code ?? '—',
+            customer_name: row.quotation?.customer_name ?? '—',
+            lastBody: row.body,
+            lastAt: row.created_at,
+            awaitingSales: row.direction === 'coordinator_request',
+          });
+        }
+        threadSummaries = threadSummaries.slice(0, 6);
+      }
 
       if (!cancelled) {
         setQuotations((data as unknown as QuotationRequest[]) ?? []);
+        setThreads(threadSummaries);
+        setThreadsUnavailable(unavailable);
         setLoading(false);
       }
     }
@@ -320,6 +369,11 @@ export function SalesCoordinator() {
               <ClipboardList size={13} className="mr-1" /> Open Coordinator Queue
             </Button>
           </Link>
+          <Link to="/quotations/new">
+            <Button variant="secondary" size="sm">
+              <FilePlus size={13} className="mr-1" /> New Quotation Request
+            </Button>
+          </Link>
           <Link to="/quotations">
             <Button variant="secondary" size="sm">
               <FileText size={13} className="mr-1" /> All Quotation Requests
@@ -328,6 +382,48 @@ export function SalesCoordinator() {
           <Link to="/reports/sales">
             <Button variant="ghost" size="sm">Coordination Reports</Button>
           </Link>
+        </div>
+      )}
+
+      {/* Requests to Sales — clarification threads raised by the coordinator */}
+      {!loading && (
+        <div>
+          <SectionHeader title="Requests to Sales" accent="bg-violet-500" />
+          <p className="text-sm text-gray-500 mb-3">
+            Clarification threads with the sales team — ask for documents, specs, or anything else from a quotation's page.
+          </p>
+          {threadsUnavailable ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-xs text-amber-800">
+              Migration 106 is pending — clarification threads will appear here once applied.
+            </div>
+          ) : threads.length === 0 ? (
+            <div className="bg-white rounded-lg border border-gray-200/80 px-4 py-6 text-center text-sm text-gray-400">
+              No clarification threads yet. Open a quotation and use its clarification thread to request anything from Sales.
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg border border-gray-200/80 overflow-hidden">
+              {threads.map((t) => (
+                <div key={t.quotation_id} className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
+                  <MessageSquare size={14} className={`shrink-0 ${t.awaitingSales ? 'text-amber-500' : 'text-green-500'}`} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-xs font-semibold text-teal-700">{t.quotation_code}</span>
+                      <span className="text-sm text-gray-700 truncate">{t.customer_name}</span>
+                      {t.awaitingSales
+                        ? <Badge variant="warning" size="sm">Awaiting sales reply</Badge>
+                        : <Badge variant="success" size="sm">Sales replied</Badge>}
+                    </div>
+                    <p className="text-xs text-gray-400 truncate mt-0.5">
+                      {t.lastBody} · {fmtDate(t.lastAt)}
+                    </p>
+                  </div>
+                  <Link to={`/quotations/${t.quotation_id}`} className="shrink-0">
+                    <Button variant="ghost" size="sm">Open <ChevronRight size={12} /></Button>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

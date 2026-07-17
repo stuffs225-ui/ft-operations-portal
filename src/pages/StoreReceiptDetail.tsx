@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Package, ArrowLeft, Tag } from 'lucide-react';
+import { Package, ArrowLeft, Tag, Paperclip, Download } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageLoader } from '../components/ui/PageLoader';
 import { Badge } from '../components/ui/Badge';
@@ -11,7 +11,18 @@ import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_STORE_RECEIPTS, MOCK_MEDICAL_SERIALS, getMockReceiptItems } from '../data/mockStore';
 import { recordStoreAudit } from '../lib/storeAudit';
-import type { StoreReceipt, StoreReceiptItem, MedicalSerialNumber, ReceiptStatus, ItemStatus, UserRole } from '../types';
+import { isMissingRelationError } from '../lib/deferredMigrationSafety';
+import type {
+  StoreReceipt, StoreReceiptItem, StoreReceiptDocument, MedicalSerialNumber,
+  ReceiptStatus, ItemStatus, UserRole,
+} from '../types';
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  supplier_dn: 'Supplier Delivery Note',
+  qc_report: 'QC Report',
+  srv: 'SRV',
+  other: 'Other',
+};
 
 const RECEIPT_STATUS_VARIANT: Record<ReceiptStatus, 'neutral' | 'info' | 'warning' | 'success' | 'critical' | 'default'> = {
   draft: 'neutral', received: 'info', partially_received: 'warning',
@@ -37,6 +48,9 @@ export function StoreReceiptDetail() {
   const [receipt, setReceipt] = useState<StoreReceipt | null>(null);
   const [items, setItems] = useState<StoreReceiptItem[]>([]);
   const [serials, setSerials] = useState<MedicalSerialNumber[]>([]);
+  const [docs, setDocs] = useState<StoreReceiptDocument[]>([]);
+  const [docsUnavailable, setDocsUnavailable] = useState(false);
+  const [execRefLabel, setExecRefLabel] = useState<string | null>(null);
   const [loading, setLoading] = useState(Boolean(id));
   const [notFound, setNotFound] = useState(!id);
   const [tab, setTab] = useState<'items' | 'serials'>('items');
@@ -88,9 +102,43 @@ export function StoreReceiptDetail() {
         setSerials((serialData as unknown as MedicalSerialNumber[]) ?? []);
       }
 
+      // Attached documents (Supplier DN / QC report / SRV) — migration 115.
+      const { data: docData, error: docError } = await supabase
+        .from('store_receipt_documents')
+        .select('*')
+        .eq('store_receipt_id', id)
+        .order('uploaded_at', { ascending: true });
+      if (docError) {
+        if (isMissingRelationError(docError)) setDocsUnavailable(true);
+      } else {
+        setDocs((docData as unknown as StoreReceiptDocument[]) ?? []);
+      }
+
+      // WO/PN assigned at receipt time — migration 115.
+      const execRefId = (data as { execution_reference_id?: string | null }).execution_reference_id;
+      if (execRefId) {
+        const { data: refData } = await supabase
+          .from('project_execution_references')
+          .select('reference_type, reference_number')
+          .eq('id', execRefId)
+          .single();
+        if (refData) {
+          const r = refData as { reference_type: string; reference_number: string };
+          setExecRefLabel(`${r.reference_type.toUpperCase()} ${r.reference_number}`);
+        }
+      }
+
       setLoading(false);
     })();
   }, [id]);
+
+  async function handleDownloadDoc(doc: StoreReceiptDocument) {
+    if (!supabase || !doc.storage_path) return;
+    const { data } = await supabase.storage
+      .from('store-documents')
+      .createSignedUrl(doc.storage_path, 60);
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank', 'noopener');
+  }
 
   async function handleAction(action: string) {
     if (!isSupabaseConfigured || !supabase) {
@@ -189,6 +237,12 @@ export function StoreReceiptDetail() {
             <p className="text-xs text-gray-500 mb-1">Delivery Note</p>
             <p>{receipt.delivery_note_number ?? '—'}</p>
           </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">WO / PN</p>
+            {execRefLabel
+              ? <Badge variant="info">{execRefLabel}</Badge>
+              : <p className="text-gray-400">Not assigned</p>}
+          </div>
           <div className="col-span-2 md:col-span-3">
             <p className="text-xs text-gray-500 mb-1">Remarks</p>
             <p>{receipt.remarks ?? '—'}</p>
@@ -208,6 +262,39 @@ export function StoreReceiptDetail() {
             )}
           </div>
         )}
+      </Card>
+
+      {/* Receipt documents — Supplier DN / QC report / SRV (migration 115) */}
+      <Card>
+        <div className="p-5">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Receipt Documents</h3>
+          {docsUnavailable ? (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              Migration 115 is pending — receipt attachments (Supplier DN / QC report / SRV) will appear here once applied.
+            </p>
+          ) : docs.length === 0 ? (
+            <p className="text-sm text-gray-400">No documents attached to this receipt.</p>
+          ) : (
+            <ul className="divide-y divide-gray-50 border border-gray-100 rounded-lg overflow-hidden">
+              {docs.map(doc => (
+                <li key={doc.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Paperclip size={14} className="text-gray-300 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{doc.file_name}</p>
+                      <p className="text-xs text-gray-400">{DOC_TYPE_LABELS[doc.document_type] ?? doc.document_type}</p>
+                    </div>
+                  </div>
+                  {doc.storage_path && (
+                    <Button variant="ghost" size="sm" onClick={() => void handleDownloadDoc(doc)} icon={<Download size={13} />}>
+                      Download
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </Card>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">

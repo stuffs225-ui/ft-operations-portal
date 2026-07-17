@@ -159,3 +159,7 @@ numbered files stay as the archive.
 | 109 | `109_quotation_document_type_clarification.sql` | quotation document type clarification |  |
 | 110 | `110_quotation_document_type_customer_docs.sql` | quotation document type customer docs |  |
 | 111 | `111_split_invoicing_schedule.sql` | split invoicing schedule |  |
+| 112 | `112_vehicle_types_catalog.sql` | NAFFCO vehicle types catalog |  |
+| 113 | `113_redistribute_invoicing_schedule.sql` | redistribute invoicing schedule RPC |  |
+| 114 | `114_doc_number_triggers.sql` | MNT/PO/PR doc-number triggers + po_number unique (on PR #206) |  |
+| 115 | `115_role_enhancements_pr_store.sql` | PR type (local/NEG) + store receipt docs (DN/QC/SRV) + WO/PN on receipts |  |
