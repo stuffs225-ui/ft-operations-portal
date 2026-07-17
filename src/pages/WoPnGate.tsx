@@ -26,7 +26,11 @@ type RouteFilter = 'all' | 'saudi' | 'dubai';
 
 const CAN_CREATE_WO: UserRole[] = ['admin', 'operations_manager', 'factory_user'];
 const CAN_CREATE_PN: UserRole[] = ['admin', 'operations_manager'];
-const CAN_CONFIRM: UserRole[] = ['admin', 'operations_manager'];
+// Confirmation was removed by product decision: a WO/PN is active the moment it
+// is created — there is no separate "confirm" step. No role can confirm, so the
+// confirm actions never render. The DB gate (project_has_wo / project_has_pn)
+// already accepts a 'created' reference, so nothing downstream requires it.
+const CAN_CONFIRM: UserRole[] = [];
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', {
@@ -771,7 +775,7 @@ export function WoPnGate() {
         <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
           <Info size={15} className="text-amber-600 shrink-0 mt-0.5" />
           <p className="text-xs text-amber-800">
-            <strong>Dev Mode</strong> — Showing mock data. Add / Confirm actions succeed but are not persisted.
+            <strong>Dev Mode</strong> — Showing mock data. Add actions succeed but are not persisted.
           </p>
         </div>
       )}
