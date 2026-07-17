@@ -1,16 +1,170 @@
 import { useState, useEffect } from 'react';
-import { Hash, Search, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Hash, Search, ShieldCheck, AlertCircle, Plus, X, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
+import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { mockOrEmpty } from '../lib/dataMode';
 import { MOCK_MEDICAL_SERIALS as MOCK_MEDICAL_SERIALS_RAW } from '../data/mockStore';
-import type { MedicalSerialNumber, SerialQcStatus, SerialCurrentStatus } from '../types';
+import type { MedicalSerialNumber, SerialQcStatus, SerialCurrentStatus, UserRole } from '../types';
 
 const MOCK_MEDICAL_SERIALS = mockOrEmpty(MOCK_MEDICAL_SERIALS_RAW);
+
+// store_user / admin / operations_manager may register serials (qc_user is
+// SELECT+UPDATE only — mirrors the RLS from migration 082).
+const CAN_REGISTER: UserRole[] = ['store_user', 'admin', 'operations_manager'];
+
+interface SerialItemOption {
+  id: string;
+  item_name: string;
+  item_code: string | null;
+  project_id: string | null;
+  store_receipt_id: string;
+  receipt_number?: string | null;
+  project_code?: string | null;
+}
+
+// ── Register Serial modal ──────────────────────────────────────────────────────
+function RegisterSerialModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const { profile } = useAuth();
+  const [items, setItems] = useState<SerialItemOption[]>([]);
+  const [loadingItems, setLoadingItems] = useState(isSupabaseConfigured);
+  const [itemId, setItemId] = useState('');
+  const [serialNumber, setSerialNumber] = useState('');
+  const [batchNumber, setBatchNumber] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [manufacturer, setManufacturer] = useState('');
+  const [supplierName, setSupplierName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+    (async () => {
+      const { data } = await supabase
+        .from('store_receipt_items')
+        .select('id, item_name, item_code, project_id, store_receipt_id, store_receipt:store_receipts(receipt_number), project:projects(project_code)')
+        .eq('serial_required', true)
+        .order('created_at', { ascending: false })
+        .limit(300);
+      const rows = ((data ?? []) as unknown as (SerialItemOption & {
+        store_receipt?: { receipt_number: string | null } | null;
+        project?: { project_code: string | null } | null;
+      })[]).map((r) => ({ ...r, receipt_number: r.store_receipt?.receipt_number ?? null, project_code: r.project?.project_code ?? null }));
+      setItems(rows);
+      setLoadingItems(false);
+    })();
+  }, []);
+
+  const selected = items.find((i) => i.id === itemId);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!serialNumber.trim()) { setError('Serial number is required.'); return; }
+
+    if (!isSupabaseConfigured || !supabase) {
+      onSuccess();
+      onClose();
+      return;
+    }
+    if (!itemId || !selected) { setError('Select the received item this serial belongs to.'); return; }
+
+    setSaving(true);
+    const { error: insErr } = await supabase.from('medical_serial_numbers').insert({
+      store_receipt_item_id: selected.id,
+      project_id: selected.project_id,
+      serial_number: serialNumber.trim(),
+      batch_number: batchNumber.trim() || null,
+      expiry_date: expiryDate || null,
+      manufacturer: manufacturer.trim() || null,
+      supplier_name: supplierName.trim() || null,
+      created_by: profile?.id ?? null,
+    });
+
+    if (insErr) {
+      // Unique serial number → friendly message instead of a raw constraint error.
+      setError(insErr.code === '23505' ? `Serial "${serialNumber.trim()}" is already registered.` : insErr.message);
+      setSaving(false);
+      return;
+    }
+    setSaving(false);
+    onSuccess();
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-900">Register Serial Number</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {!isSupabaseConfigured && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
+              Dev mode — registration is not persisted.
+            </div>
+          )}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Serialized / Medical Item <span className="text-red-500">*</span></label>
+            {loadingItems ? (
+              <input disabled placeholder="Loading items…" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-400" />
+            ) : items.length === 0 && isSupabaseConfigured ? (
+              <p className="text-sm text-gray-400 border border-dashed border-gray-200 rounded-lg px-3 py-2">No serial-required items received yet.</p>
+            ) : (
+              <select value={itemId} onChange={(e) => setItemId(e.target.value)} required
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <option value="">Select item…</option>
+                {items.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {i.item_code ? `${i.item_code} — ` : ''}{i.item_name}{i.project_code ? ` · ${i.project_code}` : ''}{i.receipt_number ? ` · ${i.receipt_number}` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Serial Number <span className="text-red-500">*</span></label>
+              <input type="text" value={serialNumber} onChange={(e) => setSerialNumber(e.target.value)} required
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Batch Number</label>
+              <input type="text" value={batchNumber} onChange={(e) => setBatchNumber(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Expiry Date</label>
+              <input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Manufacturer</label>
+              <input type="text" value={manufacturer} onChange={(e) => setManufacturer(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Supplier</label>
+              <input type="text" value={supplierName} onChange={(e) => setSupplierName(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+          </div>
+          {error && <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-800">{error}</div>}
+          <div className="flex items-center gap-3 pt-1">
+            <Button type="submit" loading={saving} icon={<Check size={14} />}>Register Serial</Button>
+            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 const QC_VARIANT: Record<SerialQcStatus, 'neutral' | 'warning' | 'success' | 'critical'> = {
   not_checked: 'neutral',
@@ -41,12 +195,16 @@ interface LiveSerial extends MedicalSerialNumber {
 interface SerialCounts { needsQc: number; failed: number; passed: number; total: number; }
 
 export function StoreSerials() {
+  const { role } = useAuth();
+  const canRegister = role ? CAN_REGISTER.includes(role as UserRole) : false;
   const [serials, setSerials] = useState<LiveSerial[]>([]);
   const [counts, setCounts] = useState<SerialCounts | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [qcFilter, setQcFilter] = useState<'all' | SerialQcStatus>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | SerialCurrentStatus>('all');
+  const [showRegister, setShowRegister] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -73,7 +231,7 @@ export function StoreSerials() {
       }
       setLoading(false);
     })();
-  }, []);
+  }, [reloadKey]);
 
   const filtered = serials.filter(s => {
     if (qcFilter !== 'all' && s.qc_status !== qcFilter) return false;
@@ -101,8 +259,22 @@ export function StoreSerials() {
         title="Serial Register"
         subtitle="Serialized and medical items tracked by serial number"
         breadcrumb={[{ label: 'Store', href: '/store' }, { label: 'Serial Register' }]}
-        actions={<DataSourceBadge variant="auto" />}
+        actions={
+          <div className="flex items-center gap-2">
+            {canRegister && (
+              <Button size="sm" icon={<Plus size={14} />} onClick={() => setShowRegister(true)}>Register Serial</Button>
+            )}
+            <DataSourceBadge variant="auto" />
+          </div>
+        }
       />
+
+      {showRegister && (
+        <RegisterSerialModal
+          onClose={() => setShowRegister(false)}
+          onSuccess={() => setReloadKey((k) => k + 1)}
+        />
+      )}
 
       {needsQc > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 flex items-start gap-3">
@@ -255,8 +427,8 @@ export function StoreSerials() {
         <ShieldCheck size={16} className="text-gray-400 mt-0.5 shrink-0" />
         <p className="text-sm text-gray-600">
           Medical and serialized items must be tracked by serial number before issuance.
-          Serial numbers are registered from the{' '}
-          <Link to="/store/receipts" className="underline font-medium text-gray-700 hover:text-gray-900">Material Receiving</Link> detail page.
+          Use <span className="font-medium text-gray-700">Register Serial</span> above to record a serial against a received
+          serial-tracked item{canRegister ? '' : ' (Store, Admin, or Operations)'}.
         </p>
       </div>
     </div>

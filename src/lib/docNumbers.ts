@@ -22,7 +22,10 @@ import { supabase, isSupabaseConfigured } from './supabase';
 type DocNumberTable =
   | 'afs_maintenance_requests'
   | 'purchase_orders_to_supplier'
-  | 'procurement_requests';
+  | 'procurement_requests'
+  | 'afs_arrival_reports'
+  | 'afs_predelivery_reports'
+  | 'afs_condition_reports';
 
 interface NextDocNumberOpts {
   /** Table to scan, e.g. 'afs_maintenance_requests' */
