@@ -130,6 +130,9 @@ export function ProcurementPODetail() {
   const canSeeCost = ['admin', 'operations_manager', 'procurement_user'].includes(role ?? '');
   const canUpdateStatus = role ? CAN_UPDATE_STATUS.includes(role as UserRole) : false;
   const canApprove = role ? CAN_APPROVE.includes(role as UserRole) : false;
+  // Self-approval guard (mirrors DB migration 061): the creator of a PO can never
+  // approve it. Hide the Approve action for them rather than let the DB reject it.
+  const isOwnPo = !!po && !!profile?.id && po.created_by === profile.id;
 
   useEffect(() => {
     (async () => {
@@ -800,13 +803,20 @@ export function ProcurementPODetail() {
                 </div>
               )}
               <div className="flex gap-3 flex-wrap mb-4">
-                <Button
-                  onClick={handleApprove}
-                  loading={approvalSaving}
-                  icon={<Check size={14} />}
-                >
-                  Approve PO
-                </Button>
+                {isOwnPo ? (
+                  <div className="flex items-start gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-600">
+                    <AlertTriangle size={14} className="text-gray-400 shrink-0 mt-0.5" />
+                    <span>You created this PO, so you cannot approve it. Another Admin or Operations Manager must approve. You can still reject it below.</span>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={handleApprove}
+                    loading={approvalSaving}
+                    icon={<Check size={14} />}
+                  >
+                    Approve PO
+                  </Button>
+                )}
               </div>
 
               <div className="space-y-2">

@@ -62,15 +62,18 @@ const QCWorkQueue = lazy(() => import('../pages/QCWorkQueue').then((m) => ({ def
 const QCRework = lazy(() => import('../pages/QCRework').then((m) => ({ default: m.QCRework })));
 const MaterialQC = lazy(() => import('../pages/MaterialQC').then((m) => ({ default: m.MaterialQC })));
 const MaterialQcInspections = lazy(() => import('../pages/MaterialQcInspections').then((m) => ({ default: m.MaterialQcInspections })));
+const MaterialQcInspectionNew = lazy(() => import('../pages/MaterialQcInspectionNew').then((m) => ({ default: m.MaterialQcInspectionNew })));
 const MaterialQcInspectionDetail = lazy(() => import('../pages/MaterialQcInspectionDetail').then((m) => ({ default: m.MaterialQcInspectionDetail })));
 const MaterialNcrs = lazy(() => import('../pages/MaterialNcrs').then((m) => ({ default: m.MaterialNcrs })));
 const MaterialNcrDetail = lazy(() => import('../pages/MaterialNcrDetail').then((m) => ({ default: m.MaterialNcrDetail })));
 const ProjectQC = lazy(() => import('../pages/ProjectQC').then((m) => ({ default: m.ProjectQC })));
 const ProjectQcInspections = lazy(() => import('../pages/ProjectQcInspections').then((m) => ({ default: m.ProjectQcInspections })));
+const ProjectQcInspectionNew = lazy(() => import('../pages/ProjectQcInspectionNew').then((m) => ({ default: m.ProjectQcInspectionNew })));
 const ProjectQcInspectionDetail = lazy(() => import('../pages/ProjectQcInspectionDetail').then((m) => ({ default: m.ProjectQcInspectionDetail })));
 const ProjectQcFindings = lazy(() => import('../pages/ProjectQcFindings').then((m) => ({ default: m.ProjectQcFindings })));
 const ProjectQcFindingDetail = lazy(() => import('../pages/ProjectQcFindingDetail').then((m) => ({ default: m.ProjectQcFindingDetail })));
 const ProjectQcReleaseNotes = lazy(() => import('../pages/ProjectQcReleaseNotes').then((m) => ({ default: m.ProjectQcReleaseNotes })));
+const ProjectQcReleaseNoteNew = lazy(() => import('../pages/ProjectQcReleaseNoteNew').then((m) => ({ default: m.ProjectQcReleaseNoteNew })));
 const ProjectQcReleaseNoteDetail = lazy(() => import('../pages/ProjectQcReleaseNoteDetail').then((m) => ({ default: m.ProjectQcReleaseNoteDetail })));
 const DubaiAFS = lazy(() => import('../pages/DubaiAFS').then((m) => ({ default: m.DubaiAFS })));
 const AFSPnGate = lazy(() => import('../pages/AFSPnGate').then((m) => ({ default: m.AFSPnGate })));
@@ -276,15 +279,18 @@ export function App() {
             <Route path="qc/rework" element={<RequireRole roles={['qc_user', 'operations_manager']}><QCRework /></RequireRole>} />
             <Route path="material-qc" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialQC /></RequireRole>} />
             <Route path="material-qc/inspections" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialQcInspections /></RequireRole>} />
+            <Route path="material-qc/inspections/new" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialQcInspectionNew /></RequireRole>} />
             <Route path="material-qc/inspections/:id" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialQcInspectionDetail /></RequireRole>} />
             <Route path="material-qc/ncrs" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialNcrs /></RequireRole>} />
             <Route path="material-qc/ncrs/:id" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialNcrDetail /></RequireRole>} />
             <Route path="project-qc" element={<RequireRole roles={['qc_user', 'operations_manager']}><ProjectQC /></RequireRole>} />
             <Route path="project-qc/inspections" element={<RequireRole roles={['qc_user', 'operations_manager']}><ProjectQcInspections /></RequireRole>} />
+            <Route path="project-qc/inspections/new" element={<RequireRole roles={['qc_user', 'operations_manager']}><ProjectQcInspectionNew /></RequireRole>} />
             <Route path="project-qc/inspections/:id" element={<RequireRole roles={['qc_user', 'operations_manager']}><ProjectQcInspectionDetail /></RequireRole>} />
             <Route path="project-qc/findings" element={<RequireRole roles={['qc_user', 'operations_manager']}><ProjectQcFindings /></RequireRole>} />
             <Route path="project-qc/findings/:id" element={<RequireRole roles={['qc_user', 'operations_manager']}><ProjectQcFindingDetail /></RequireRole>} />
             <Route path="project-qc/release-notes" element={<RequireRole roles={['qc_user', 'operations_manager']}><ProjectQcReleaseNotes /></RequireRole>} />
+            <Route path="project-qc/release-notes/new" element={<RequireRole roles={['qc_user', 'operations_manager']}><ProjectQcReleaseNoteNew /></RequireRole>} />
             <Route path="project-qc/release-notes/:id" element={<RequireRole roles={['qc_user', 'operations_manager']}><ProjectQcReleaseNoteDetail /></RequireRole>} />
 
             {/* ── Dubai / AFS ── */}

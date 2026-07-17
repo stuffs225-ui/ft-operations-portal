@@ -116,6 +116,7 @@ export function ProcurementRequestDetail() {
   const [pr, setPr] = useState<ProcurementRequest | null>(null);
   const [items, setItems] = useState<ProcurementRequestItem[]>([]);
   const [relatedPOs, setRelatedPOs] = useState<PurchaseOrder[]>([]);
+  const [timeline, setTimeline] = useState<{ id: string; action: string; description: string | null; created_at: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
@@ -170,15 +171,23 @@ export function ProcurementRequestDetail() {
       setPr(prData);
       setNewStatus(prData.status);
 
-      const [{ data: itemData }, { data: poData }] = await Promise.all([
+      const [{ data: itemData }, { data: poData }, { data: eventData }] = await Promise.all([
         sb.from('procurement_request_items').select('*').eq('procurement_request_id', id),
         sb
           .from('purchase_orders_to_supplier')
           .select('*, project:projects(project_code, so_number, customer_name)')
           .eq('procurement_request_id', id),
+        sb
+          .from('audit_log')
+          .select('id, action, description, created_at')
+          .eq('entity_type', 'procurement_request')
+          .eq('entity_id', id)
+          .order('created_at', { ascending: false })
+          .limit(100),
       ]);
       setItems((itemData as unknown as ProcurementRequestItem[]) ?? []);
       setRelatedPOs((poData as unknown as PurchaseOrder[]) ?? []);
+      setTimeline((eventData as { id: string; action: string; description: string | null; created_at: string }[]) ?? []);
       setLoading(false);
     })();
   }, [id]);
@@ -693,9 +702,23 @@ export function ProcurementRequestDetail() {
 
       {/* ── Timeline ── */}
       {activeTab === 'timeline' && (
-        <Card className="p-8 text-center text-gray-500 text-sm">
-          Timeline events will appear here.
-        </Card>
+        timeline.length === 0 ? (
+          <Card className="p-8 text-center text-gray-500 text-sm">
+            No activity recorded yet. Status changes, added lines, and ETA updates appear here.
+          </Card>
+        ) : (
+          <Card className="p-5">
+            <ol className="relative border-l border-gray-200 ml-3 space-y-5">
+              {timeline.map((ev) => (
+                <li key={ev.id} className="ml-4">
+                  <div className="absolute -left-1.5 mt-1 h-3 w-3 rounded-full bg-brand-200 border-2 border-brand-500" />
+                  <p className="text-xs text-gray-400 mb-0.5">{formatDateTime(ev.created_at)}</p>
+                  <p className="text-sm font-medium text-gray-900">{ev.description ?? ev.action.replace(/_/g, ' ')}</p>
+                </li>
+              ))}
+            </ol>
+          </Card>
+        )
       )}
     </div>
   );
