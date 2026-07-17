@@ -15,6 +15,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { isMissingRelationError } from '../lib/deferredMigrationSafety';
 import { recordProjectEvent, recordAuditEntry } from '../lib/projectAudit';
 import { notifyUser } from '../lib/workflowNotifications';
 import { LineInvoicingPlanner } from '../components/features/LineInvoicingPlanner';
@@ -269,8 +270,15 @@ function RoutingSummaryCard({ projectId, refreshKey }: { projectId: string; refr
       .eq('project_id', projectId)
       .order('department')
       .then(({ data, error }) => {
-        setRoutingLoadError(error ? error.message : null);
-        if (!error) setRouting((data as unknown as Array<{ department: string }>)?.map((r) => r.department) ?? []);
+        // If the routing table isn't applied yet (migration 090 pending), show a
+        // clean empty state rather than an alarming "could not load" error.
+        if (error && isMissingRelationError(error)) {
+          setRoutingLoadError(null);
+          setRouting([]);
+        } else {
+          setRoutingLoadError(error ? error.message : null);
+          if (!error) setRouting((data as unknown as Array<{ department: string }>)?.map((r) => r.department) ?? []);
+        }
         setLoadingRouting(false);
       });
   }, [projectId, refreshKey]);

@@ -97,7 +97,7 @@ function WoGateAlert() {
       <div>
         <p className="text-sm font-semibold text-amber-900">WO Required — Factory execution is blocked</p>
         <p className="text-xs text-amber-700 mt-1">
-          A confirmed Work Order (WO) must be created before any factory actions can proceed.
+          A Work Order (WO) must be created for this project before any factory actions can proceed.
         </p>
         <Link to="/wo-pn-gate" className="text-xs font-medium text-amber-800 underline mt-1 inline-block">
           Go to WO / PN Gate →
@@ -175,10 +175,16 @@ export function FactoryProjectWorkspace() {
     });
   }, [projectId]);
 
-  const confirmedWO = references.find(
-    (r) => r.reference_type === 'wo' && r.status === 'confirmed',
+  // A WO unblocks the factory as soon as it exists and is not cancelled/superseded
+  // — i.e. status 'created' OR 'confirmed'. This matches the DB rule that actually
+  // enforces R-005 (project_has_wo, migration 014, accepts 'created','confirmed')
+  // and the project Execution Gate (executionGate.ts). Requiring 'confirmed' here
+  // made the factory stricter than the enforced rule, so a valid 'created' WO
+  // showed as "No WO — blocked".
+  const activeWO = references.find(
+    (r) => r.reference_type === 'wo' && r.status !== 'cancelled' && r.status !== 'superseded',
   );
-  const hasWO = !!confirmedWO;
+  const hasWO = !!activeWO;
   const canEdit = !!role && FACTORY_EDIT_ROLES.includes(role) && hasWO;
 
   function startEditLine(record: FactoryRecord) {
@@ -355,7 +361,7 @@ export function FactoryProjectWorkspace() {
                 <p className="text-gray-500">WO Status</p>
                 <div className="mt-0.5">
                   {hasWO ? (
-                    <Badge variant="success">WO: {confirmedWO?.reference_number}</Badge>
+                    <Badge variant="success">WO: {activeWO?.reference_number}</Badge>
                   ) : (
                     <Badge variant="critical">No WO — blocked</Badge>
                   )}
