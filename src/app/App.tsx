@@ -111,6 +111,7 @@ const ReportsIssues = lazy(() => import('../pages/ReportsIssues').then((m) => ({
 const ReportsCapa = lazy(() => import('../pages/ReportsCapa').then((m) => ({ default: m.ReportsCapa })));
 const Settings = lazy(() => import('../pages/Settings').then((m) => ({ default: m.Settings })));
 const ReferenceLists = lazy(() => import('../pages/ReferenceLists').then((m) => ({ default: m.ReferenceLists })));
+const CustomFieldsAdmin = lazy(() => import('../pages/CustomFieldsAdmin').then((m) => ({ default: m.CustomFieldsAdmin })));
 const AdminDashboard = lazy(() => import('../pages/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
 const ManagementDashboard = lazy(() => import('../pages/ManagementDashboard').then((m) => ({ default: m.ManagementDashboard })));
 const AdminUsers = lazy(() => import('../pages/AdminUsers').then((m) => ({ default: m.AdminUsers })));
@@ -321,6 +322,7 @@ export function App() {
             <Route path="management-dashboard" element={<RequireRole roles={['viewer']}><ManagementDashboard /></RequireRole>} />
             <Route path="settings" element={<RequireRole roles={['admin']}><Settings /></RequireRole>} />
             <Route path="reference-lists" element={<RequireRole roles={REFERENCE_LIST_ROLES}><ReferenceLists /></RequireRole>} />
+            <Route path="custom-fields" element={<RequireRole roles={['admin', 'operations_manager']}><CustomFieldsAdmin /></RequireRole>} />
             <Route path="admin/users" element={<RequireRole roles={['admin']}><AdminUsers /></RequireRole>} />
             <Route path="audit-log" element={<RequireRole roles={['admin']}><AuditLog /></RequireRole>} />
 

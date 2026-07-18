@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { CustomFields } from '../components/features/CustomFields';
 import {
   FolderOpen, ArrowLeft, Calendar, User, MapPin,
   AlertCircle, Info, FileText, List, Clock,
@@ -1524,6 +1525,12 @@ export function ProjectDetail() {
           </div>
         }
       />
+
+      {id && (
+        <div className="mb-6">
+          <CustomFields entityType="project" entityId={id} />
+        </div>
+      )}
 
       {/* Tabs — role-filtered (UI display only; does not restrict direct route access) */}
       <div className="border-b border-gray-200 mb-6 overflow-x-auto">
