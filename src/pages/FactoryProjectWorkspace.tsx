@@ -26,6 +26,7 @@ import type {
   ProjectVehicleLine,
   FactoryRecord,
   FactoryItemRequirement,
+  FactoryRequirementType,
   RawMaterialRequest,
   ExecutionReference,
   FactoryProductionStatus,
@@ -115,9 +116,13 @@ export function FactoryProjectWorkspace() {
   const [vehicleLines, setVehicleLines] = useState<ProjectVehicleLine[]>([]);
   const [factoryRecords, setFactoryRecords] = useState<FactoryRecord[]>([]);
   const [requirements, setRequirements] = useState<FactoryItemRequirement[]>([]);
+  const [reqTypes, setReqTypes] = useState<FactoryRequirementType[]>([]);
   const [rmrs, setRmrs] = useState<RawMaterialRequest[]>([]);
   const [references, setReferences] = useState<ExecutionReference[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [generatingReqs, setGeneratingReqs] = useState(false);
+  const [reqError, setReqError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
 
@@ -149,6 +154,7 @@ export function FactoryProjectWorkspace() {
         setVehicleLines(MOCK_VEHICLE_LINES[projectId] ?? []);
         setFactoryRecords(getMockFactoryRecordsForProject(projectId));
         setRequirements(getMockRequirementsForProject(projectId));
+        setReqTypes(MOCK_REQUIREMENT_TYPES as FactoryRequirementType[]);
         setRmrs(getMockRMRsForProject(projectId));
         fetchProjectReferences(projectId).then((refs) => { setReferences(refs ?? []); });
         setLoading(false);
@@ -163,7 +169,8 @@ export function FactoryProjectWorkspace() {
       supabase!.from('factory_records').select('*').eq('project_id', projectId),
       supabase!.from('factory_item_requirements').select('*, requirement_type:factory_requirement_types(*)').eq('project_id', projectId),
       supabase!.from('production_raw_material_requests').select('*').eq('project_id', projectId),
-    ]).then(([projRes, linesRes, recordsRes, reqsRes, rmrsRes]) => {
+      supabase!.from('factory_requirement_types').select('*').eq('is_active', true).order('sort_order'),
+    ]).then(([projRes, linesRes, recordsRes, reqsRes, rmrsRes, typesRes]) => {
       if (projRes.error || !projRes.data) { setNotFound(true); setLoading(false); return; }
       const p = projRes.data as unknown as Project;
       if (p.manufacturing_location !== 'saudi') { setNotFound(true); setLoading(false); return; }
@@ -172,10 +179,11 @@ export function FactoryProjectWorkspace() {
       setFactoryRecords((recordsRes.data as unknown as FactoryRecord[]) ?? []);
       setRequirements((reqsRes.data as unknown as FactoryItemRequirement[]) ?? []);
       setRmrs((rmrsRes.data as unknown as RawMaterialRequest[]) ?? []);
+      setReqTypes((typesRes.data as unknown as FactoryRequirementType[]) ?? []);
       fetchProjectReferences(projectId).then((refs) => { setReferences(refs ?? []); });
       setLoading(false);
     });
-  }, [projectId]);
+  }, [projectId, reloadKey]);
 
   // A WO unblocks the factory as soon as it exists and is not cancelled/superseded
   // — i.e. status 'created' OR 'confirmed'. This matches the DB rule that actually
@@ -299,6 +307,56 @@ export function FactoryProjectWorkspace() {
       { project_vehicle_line_id: line.id, wo_reference_id: activeWO.id },
     );
     setCreatingLineId(null);
+  }
+
+  // Seed the project's requirements checklist (BOQ / BOM / GA / Detail / Manhours…)
+  // from the active requirement types. These rows are read across the Factory module
+  // but were never created anywhere — the list stayed permanently empty. Idempotent:
+  // only the requirement types not already present (project-level) are inserted, so
+  // the button is safe to press again to pick up newly added types. `canEdit`
+  // already guarantees a factory role + an active WO (the R-005 governance).
+  async function handleGenerateRequirements() {
+    if (!projectId) return;
+    setGeneratingReqs(true);
+    setReqError(null);
+
+    const existingTypeIds = new Set(
+      requirements.filter((r) => !r.project_vehicle_line_id).map((r) => r.requirement_type_id),
+    );
+    const missing = reqTypes.filter((t) => !existingTypeIds.has(t.id));
+    if (missing.length === 0) { setGeneratingReqs(false); return; }
+
+    if (!isSupabaseConfigured || !supabase) {
+      const local = missing.map((t) => ({
+        id: `dev-req-${t.id}`,
+        project_id: projectId,
+        project_vehicle_line_id: null,
+        requirement_type_id: t.id,
+        status: 'pending',
+        requirement_type: t,
+      })) as unknown as FactoryItemRequirement[];
+      setRequirements((prev) => [...prev, ...local]);
+      setGeneratingReqs(false);
+      return;
+    }
+
+    const { error } = await supabase.from('factory_item_requirements').insert(
+      missing.map((t) => ({
+        project_id: projectId,
+        requirement_type_id: t.id,
+        status: 'pending' as FactoryReqStatus,
+      })),
+    );
+    if (error) { setReqError(error.message); setGeneratingReqs(false); return; }
+    recordFactoryEvent(
+      'factory_item_requirement', projectId, projectId,
+      'requirements_checklist_generated',
+      `Generated ${missing.length} requirement${missing.length !== 1 ? 's' : ''} for the project checklist`,
+      null,
+      { requirement_type_ids: missing.map((t) => t.id) },
+    );
+    setGeneratingReqs(false);
+    setReloadKey((k) => k + 1);
   }
 
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
@@ -638,6 +696,39 @@ export function FactoryProjectWorkspace() {
         <div className="space-y-4">
           {!hasWO && <WoGateAlert />}
 
+          {canEdit && (() => {
+            const existingProjectTypes = new Set(
+              requirements.filter((r) => !r.project_vehicle_line_id).map((r) => r.requirement_type_id),
+            );
+            const missingCount = reqTypes.filter((t) => !existingProjectTypes.has(t.id)).length;
+            return (
+              <Card className="p-4 flex items-center justify-between gap-4">
+                <div className="text-xs text-gray-600">
+                  {requirements.length === 0
+                    ? 'No requirements checklist yet. Generate the standard checklist to start tracking readiness.'
+                    : missingCount > 0
+                      ? `${missingCount} requirement type${missingCount !== 1 ? 's are' : ' is'} not on this project's checklist yet.`
+                      : 'All standard requirement types are on the checklist.'}
+                </div>
+                <Button
+                  size="sm"
+                  icon={<List size={14} />}
+                  loading={generatingReqs}
+                  disabled={missingCount === 0}
+                  onClick={() => void handleGenerateRequirements()}
+                >
+                  {requirements.length === 0 ? 'Generate Checklist' : 'Add Missing'}
+                </Button>
+              </Card>
+            );
+          })()}
+
+          {reqError && (
+            <Card className="p-3 bg-red-50 border border-red-200">
+              <p className="text-xs text-red-800">{reqError}</p>
+            </Card>
+          )}
+
           <Card className="p-4 bg-sky-50 border border-sky-200">
             <p className="text-xs text-sky-800">
               Document upload requires Supabase Storage.{' '}
@@ -708,7 +799,7 @@ export function FactoryProjectWorkspace() {
           <Card className="p-4">
             <p className="text-xs text-gray-500 font-semibold mb-2">Requirement Types Reference</p>
             <div className="flex flex-wrap gap-2">
-              {MOCK_REQUIREMENT_TYPES.map((rt) => (
+              {(reqTypes.length > 0 ? reqTypes : MOCK_REQUIREMENT_TYPES).map((rt) => (
                 <Badge key={rt.id} variant="neutral">{rt.name}</Badge>
               ))}
             </div>
