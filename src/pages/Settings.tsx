@@ -138,8 +138,8 @@ type Tab = (typeof TABS)[number];
 
 // ── Editable master-data config ───────────────────────────────────────────────
 
-type FieldType = 'text' | 'number' | 'boolean' | 'textarea' | 'select';
-interface FieldDef {
+export type FieldType = 'text' | 'number' | 'boolean' | 'textarea' | 'select';
+export interface FieldDef {
   key: string;
   label: string;
   type: FieldType;
@@ -319,7 +319,7 @@ function renderCell(f: FieldDef, row: Record<string, unknown>) {
   return <span className={cn('text-xs', f.key === 'code' ? 'font-mono text-brand-700' : 'text-gray-600')}>{text}</span>;
 }
 
-function EditableTable({
+export function EditableTable({
   title, table, fields, rows, loading, canEdit, onChanged,
 }: {
   title: string;

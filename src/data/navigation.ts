@@ -1172,6 +1172,13 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin'],
   },
   {
+    id: 'reference-lists',
+    label: 'Manage Lists',
+    path: '/reference-lists',
+    icon: 'ListChecks',
+    roles: ['operations_manager', 'factory_user', 'procurement_user', 'store_user', 'qc_user'],
+  },
+  {
     id: 'templates',
     label: 'Document Templates',
     path: '/templates',

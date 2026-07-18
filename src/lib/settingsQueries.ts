@@ -19,7 +19,8 @@ export type SettingsTable =
   | 'root_cause_categories'
   | 'store_locations'
   | 'wo_statuses'
-  | 'pn_statuses';
+  | 'pn_statuses'
+  | 'factory_requirement_types';
 
 export interface SettingsMutationResult {
   ok: boolean;
