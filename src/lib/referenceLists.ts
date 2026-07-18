@@ -50,6 +50,20 @@ export const REFERENCE_LISTS: ReferenceListDef[] = [
     owners: ['factory_user'],
   },
   {
+    key: 'factory_process_steps',
+    title: 'Factory Process Steps',
+    blurb: 'The weighted production steps used to compute a project’s progress %. Weights are relative — a step’s share of total progress. Editing here affects new set-ups only; projects already in progress keep their snapshot.',
+    table: 'factory_process_steps',
+    select: 'id,name,weight,sort_order',
+    orderBy: 'sort_order',
+    fields: [
+      { key: 'name', label: 'Step Name', type: 'text', required: true },
+      { key: 'weight', label: 'Weight', type: 'number', required: true },
+      { key: 'sort_order', label: 'Order', type: 'number' },
+    ],
+    owners: ['factory_user'],
+  },
+  {
     key: 'supplier_categories',
     title: 'Supplier Categories',
     blurb: 'How suppliers are classified during procurement.',

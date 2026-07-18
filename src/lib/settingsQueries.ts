@@ -20,7 +20,8 @@ export type SettingsTable =
   | 'store_locations'
   | 'wo_statuses'
   | 'pn_statuses'
-  | 'factory_requirement_types';
+  | 'factory_requirement_types'
+  | 'factory_process_steps';
 
 export interface SettingsMutationResult {
   ok: boolean;
