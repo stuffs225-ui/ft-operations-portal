@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { ClipboardCheck, CheckCircle, XCircle, Wrench, AlertTriangle, Plus, FileText } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { PageLoader } from '../components/ui/PageLoader';
+import { QcInspectionChecklist } from '../components/features/QcInspectionChecklist';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -204,6 +205,8 @@ export function ProjectQcInspectionDetail() {
         subtitle={`Project QC — ${inspection.project?.project_code ?? 'Unknown project'}`}
         breadcrumb={[{ label: 'Project QC', href: '/project-qc' }, { label: 'Inspections', href: '/project-qc/inspections' }, { label: inspection.inspection_number }]}
       />
+
+      {id && <QcInspectionChecklist inspectionType="project" inspectionId={id} />}
 
       {devMessage && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-3 text-sm text-green-700">{devMessage}</div>

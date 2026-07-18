@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ClipboardCheck, CheckCircle, XCircle, AlertTriangle, FileText } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { PageLoader } from '../components/ui/PageLoader';
+import { QcInspectionChecklist } from '../components/features/QcInspectionChecklist';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -171,6 +172,8 @@ export function MaterialQcInspectionDetail() {
         subtitle={`Material QC Inspection — ${inspection.item?.item_name ?? 'Unknown item'}`}
         breadcrumb={[{ label: 'Material QC', href: '/material-qc' }, { label: 'Inspections', href: '/material-qc/inspections' }, { label: inspection.inspection_number }]}
       />
+
+      {id && <QcInspectionChecklist inspectionType="material" inspectionId={id} />}
 
       {devMessage && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-3 text-sm text-green-700">

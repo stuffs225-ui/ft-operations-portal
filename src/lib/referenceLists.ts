@@ -91,6 +91,24 @@ export const REFERENCE_LISTS: ReferenceListDef[] = [
     owners: ['procurement_user', 'store_user'],
   },
   {
+    key: 'qc_checklist_items',
+    title: 'QC Checklist Items',
+    blurb: 'The inspection checklist QC ticks off on each inspection. Category scopes an item to material inspections, project inspections, or both.',
+    table: 'qc_checklist_items',
+    select: 'id,name,category,sort_order',
+    orderBy: 'sort_order',
+    fields: [
+      { key: 'name', label: 'Item', type: 'text', required: true },
+      { key: 'category', label: 'Applies To', type: 'select', options: [
+        { value: 'both', label: 'Both' },
+        { value: 'material', label: 'Material inspections' },
+        { value: 'project', label: 'Project inspections' },
+      ] },
+      { key: 'sort_order', label: 'Order', type: 'number' },
+    ],
+    owners: ['qc_user'],
+  },
+  {
     key: 'root_cause_categories',
     title: 'Root Cause Categories',
     blurb: 'The root-cause options selectable when investigating an NCR.',

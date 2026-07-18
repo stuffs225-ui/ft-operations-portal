@@ -21,7 +21,8 @@ export type SettingsTable =
   | 'wo_statuses'
   | 'pn_statuses'
   | 'factory_requirement_types'
-  | 'factory_process_steps';
+  | 'factory_process_steps'
+  | 'qc_checklist_items';
 
 export interface SettingsMutationResult {
   ok: boolean;
