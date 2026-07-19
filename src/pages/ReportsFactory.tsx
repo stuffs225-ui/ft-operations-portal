@@ -14,6 +14,7 @@ import {
   MOCK_RAW_MATERIAL_REQUESTS as MOCK_RAW_MATERIAL_REQUESTS_RAW,
 } from '../data/mockFactory';
 import { mockOrEmpty } from '../lib/dataMode';
+import { fetchProjectIdsWithActiveReference } from '../lib/executionGate';
 import type { FactoryRecord, FactoryItemRequirement, RawMaterialRequest } from '../types';
 
 const MOCK_FACTORY_RECORDS = mockOrEmpty(MOCK_FACTORY_RECORDS_RAW);
@@ -115,6 +116,7 @@ export function ReportsFactory() {
   const [factoryRecords, setFactoryRecords] = useState<FactoryRecord[]>([]);
   const [requirements, setRequirements] = useState<FactoryItemRequirement[]>([]);
   const [rmrs, setRmrs] = useState<RawMaterialRequest[]>([]);
+  const [woProjectIds, setWoProjectIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -124,11 +126,12 @@ export function ReportsFactory() {
         setFactoryRecords(MOCK_FACTORY_RECORDS);
         setRequirements(MOCK_FACTORY_REQUIREMENTS as FactoryItemRequirement[]);
         setRmrs(MOCK_RAW_MATERIAL_REQUESTS);
+        setWoProjectIds(await fetchProjectIdsWithActiveReference('wo'));
         setLoading(false);
         return;
       }
 
-      const [frRes, reqRes, rmrRes] = await Promise.all([
+      const [frRes, reqRes, rmrRes, woIds] = await Promise.all([
         supabase
           .from('factory_records')
           .select('*, project:projects(project_code, so_number, customer_name), vehicle_line:project_vehicle_lines(vehicle_type, description)')
@@ -141,17 +144,23 @@ export function ReportsFactory() {
           .from('production_raw_material_requests')
           .select('*, project:projects(project_code, so_number, customer_name)')
           .order('requested_at', { ascending: false }),
+        fetchProjectIdsWithActiveReference('wo'),
       ]);
 
       setFactoryRecords((frRes.data as unknown as FactoryRecord[]) ?? []);
       setRequirements((reqRes.data as unknown as FactoryItemRequirement[]) ?? []);
       setRmrs((rmrRes.data as unknown as RawMaterialRequest[]) ?? []);
+      setWoProjectIds(woIds);
       setLoading(false);
     })();
   }, []);
 
   // Derived report datasets
-  const missingWo = factoryRecords.filter((fr) => !fr.wo_reference_id);
+  // "Missing WO" is judged against the execution-reference register (the same
+  // source as the WO/PN gate), not factory_records.wo_reference_id — otherwise a
+  // production record on a project that already has a confirmed WO would be
+  // reported as missing just because its own WO column was never populated.
+  const missingWo = factoryRecords.filter((fr) => !woProjectIds.has(fr.project_id));
 
   const missingBoq = factoryRecords.filter((fr) => {
     return !requirements.some(
