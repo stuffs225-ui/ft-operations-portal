@@ -10,10 +10,12 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import {
   fetchPlanTasks, generatePlanFromTemplate, addPlanTask, updatePlanTask, deletePlanTask,
   reorderPlanTasks, fetchProductionDetails, saveProductionDetails,
-  PRODUCTION_DEPARTMENTS, TASK_STATUS_LABEL,
+  fetchChassisUnits, addChassisUnit, updateChassisUnit, deleteChassisUnit,
+  PRODUCTION_DEPARTMENTS, TASK_STATUS_LABEL, CHASSIS_STATUS_LABEL,
 } from '../lib/productionPlanQueries';
 import type {
-  ProjectProductionPlanTask, ProjectProductionDetails, ProductionTaskStatus, Project, UserRole,
+  ProjectProductionPlanTask, ProjectProductionDetails, ProductionTaskStatus,
+  ProjectChassisUnit, ChassisStatus, Project, UserRole,
 } from '../types';
 
 const CAN_EDIT: UserRole[] = ['admin', 'operations_manager', 'factory_user'];
@@ -35,6 +37,7 @@ export function ProductionPlan() {
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<ProjectProductionPlanTask[]>([]);
   const [details, setDetails] = useState<ProjectProductionDetails>({ ...EMPTY_DETAILS, project_id: projectId ?? '' });
+  const [chassis, setChassis] = useState<ProjectChassisUnit[]>([]);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [busy, setBusy] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -46,15 +49,17 @@ export function ProductionPlan() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [projRes, t, d] = await Promise.all([
+      const [projRes, t, d, ch] = await Promise.all([
         sb.from('projects').select('*').eq('id', projectId).maybeSingle(),
         fetchPlanTasks(projectId),
         fetchProductionDetails(projectId),
+        fetchChassisUnits(projectId),
       ]);
       if (cancelled) return;
       setProject((projRes.data as unknown as Project) ?? null);
       setTasks(t);
       if (d) setDetails(d);
+      setChassis(ch);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -92,6 +97,33 @@ export function ProductionPlan() {
     setDetails((prev) => ({ ...prev, ...patch }));
     if (projectId) await saveProductionDetails(projectId, patch, uid);
   }
+
+  async function addChassis() {
+    if (!projectId) return;
+    const res = await addChassisUnit(projectId, chassis, uid);
+    if (res.data) {
+      const next = [...chassis, res.data];
+      setChassis(next);
+      setDetails((prev) => ({ ...prev, chassis_total: next.length }));
+    }
+  }
+  async function patchChassis(id: string, patch: Partial<ProjectChassisUnit>) {
+    const next = chassis.map((u) => (u.id === id ? { ...u, ...patch } : u));
+    setChassis(next);
+    if (projectId) await updateChassisUnit(projectId, id, patch, chassis, uid);
+    const received = next.filter((u) => u.status === 'received' || u.status === 'allocated').length;
+    setDetails((prev) => ({ ...prev, chassis_received: received, chassis_total: next.length }));
+  }
+  async function removeChassis(id: string) {
+    const next = chassis.filter((u) => u.id !== id);
+    setChassis(next);
+    if (projectId) await deleteChassisUnit(projectId, id, chassis, uid);
+    const received = next.filter((u) => u.status === 'received' || u.status === 'allocated').length;
+    setDetails((prev) => ({ ...prev, chassis_received: received, chassis_total: next.length }));
+  }
+
+  const chassisReceived = chassis.filter((u) => u.status === 'received' || u.status === 'allocated').length;
+  const CHASSIS_STATUSES: ChassisStatus[] = ['ordered', 'in_transit', 'received', 'allocated', 'rejected'];
 
   async function exportExcel() {
     const wb = new ExcelJS.Workbook();
@@ -182,6 +214,57 @@ export function ProductionPlan() {
               onChange={(e) => void patchDetails({ online_notes: e.target.value })} className={inputCls} />
           </div>
         </div>
+      </Card>
+
+      {/* Chassis units */}
+      <Card className="overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-800">
+            Chassis <span className="text-xs font-normal text-gray-500">({chassisReceived}/{chassis.length} received)</span>
+          </h3>
+          {canEdit && <Button size="sm" variant="outline" icon={<Plus size={14} />} onClick={() => void addChassis()} className="no-print">Add Chassis</Button>}
+        </div>
+        {chassis.length === 0 ? (
+          <div className="px-4 py-6 text-center text-sm text-gray-400">No chassis units yet.{canEdit ? ' Add each chassis to track it.' : ''}</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-100">
+                <tr>{['Chassis #', 'Status', 'PO#', 'Received', 'Remarks', ''].map((h) => (
+                  <th key={h} className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
+                ))}</tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {chassis.map((u) => (
+                  <tr key={u.id} className="hover:bg-gray-50">
+                    <td className="px-3 py-2 min-w-[140px]">
+                      {canEdit ? <input value={u.chassis_number ?? ''} placeholder="VIN / chassis #" onChange={(e) => void patchChassis(u.id, { chassis_number: e.target.value || null })} className={inputCls} /> : (u.chassis_number ?? '—')}
+                    </td>
+                    <td className="px-3 py-2">
+                      {canEdit ? (
+                        <select value={u.status} onChange={(e) => void patchChassis(u.id, { status: e.target.value as ChassisStatus })} className={inputCls}>
+                          {CHASSIS_STATUSES.map((s) => <option key={s} value={s}>{CHASSIS_STATUS_LABEL[s]}</option>)}
+                        </select>
+                      ) : CHASSIS_STATUS_LABEL[u.status]}
+                    </td>
+                    <td className="px-3 py-2 w-28">
+                      {canEdit ? <input value={u.po_number ?? ''} onChange={(e) => void patchChassis(u.id, { po_number: e.target.value || null })} className={inputCls} /> : (u.po_number ?? '—')}
+                    </td>
+                    <td className="px-3 py-2 w-36">
+                      {canEdit ? <input type="date" value={u.received_date ?? ''} onChange={(e) => void patchChassis(u.id, { received_date: e.target.value || null })} className={inputCls} /> : fmt(u.received_date)}
+                    </td>
+                    <td className="px-3 py-2 min-w-[120px]">
+                      {canEdit ? <input value={u.remarks ?? ''} onChange={(e) => void patchChassis(u.id, { remarks: e.target.value || null })} className={inputCls} /> : (u.remarks ?? '—')}
+                    </td>
+                    <td className="px-3 py-2 text-right no-print">
+                      {canEdit && <button onClick={() => void removeChassis(u.id)} className="p-1 text-gray-400 hover:text-red-600"><Trash2 size={13} /></button>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
 
       {/* Tasks */}

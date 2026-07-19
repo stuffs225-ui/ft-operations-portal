@@ -453,6 +453,18 @@ export interface FactoryRequirementType {
   is_active: boolean;
 }
 
+export type ChassisStatus = 'ordered' | 'in_transit' | 'received' | 'allocated' | 'rejected';
+
+export interface ProjectChassisUnit {
+  id: string;
+  project_id: string;
+  chassis_number: string | null;
+  status: ChassisStatus;
+  po_number: string | null;
+  received_date: string | null;
+  remarks: string | null;
+}
+
 export type ProductionTaskStatus = 'pending' | 'in_progress' | 'done' | 'blocked' | 'skipped';
 
 export interface ProductionPlanTemplateTask {

@@ -5,7 +5,7 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import type {
   ProductionPlanTemplateTask, ProjectProductionPlanTask, ProjectProductionDetails,
-  ProductionTaskStatus,
+  ProductionTaskStatus, ProjectChassisUnit, ChassisStatus,
 } from '../types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -88,3 +88,49 @@ export async function saveProductionDetails(projectId: string, patch: Partial<Pr
 export const TASK_STATUS_LABEL: Record<ProductionTaskStatus, string> = {
   pending: 'Pending', in_progress: 'In Progress', done: 'Done', blocked: 'Blocked', skipped: 'Skipped',
 };
+
+// ── Chassis units ─────────────────────────────────────────────────────────────
+export const CHASSIS_STATUS_LABEL: Record<ChassisStatus, string> = {
+  ordered: 'Ordered', in_transit: 'In Transit', received: 'Received', allocated: 'Allocated', rejected: 'Rejected',
+};
+
+export async function fetchChassisUnits(projectId: string): Promise<ProjectChassisUnit[]> {
+  if (!isSupabaseConfigured || !supabase) return [];
+  const { data, error } = await db().from('project_chassis_units')
+    .select('*').eq('project_id', projectId).order('created_at');
+  return error ? [] : (data as ProjectChassisUnit[]) ?? [];
+}
+
+// Keep the production-details summary (chassis_received / chassis_total) in sync
+// with the detailed units, so the board and spine reflect them automatically.
+async function syncChassisSummary(projectId: string, units: ProjectChassisUnit[], userId: string | null) {
+  const total = units.length;
+  const received = units.filter((u) => u.status === 'received' || u.status === 'allocated').length;
+  await saveProductionDetails(projectId, { chassis_received: received, chassis_total: total }, userId);
+}
+
+export async function addChassisUnit(projectId: string, existing: ProjectChassisUnit[], userId: string | null): Promise<{ data: ProjectChassisUnit | null; error: string | null }> {
+  if (!isSupabaseConfigured || !supabase) return { data: null, error: 'Supabase not configured.' };
+  const { data, error } = await db().from('project_chassis_units')
+    .insert({ project_id: projectId, status: 'ordered', created_by: userId }).select('*').single();
+  if (error) return { data: null, error: error.message };
+  const unit = data as ProjectChassisUnit;
+  await syncChassisSummary(projectId, [...existing, unit], userId);
+  return { data: unit, error: null };
+}
+
+export async function updateChassisUnit(projectId: string, id: string, patch: Partial<ProjectChassisUnit>, all: ProjectChassisUnit[], userId: string | null): Promise<string | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  const { error } = await db().from('project_chassis_units').update(patch).eq('id', id);
+  if (error) return error.message;
+  await syncChassisSummary(projectId, all.map((u) => (u.id === id ? { ...u, ...patch } : u)), userId);
+  return null;
+}
+
+export async function deleteChassisUnit(projectId: string, id: string, all: ProjectChassisUnit[], userId: string | null): Promise<string | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  const { error } = await db().from('project_chassis_units').delete().eq('id', id);
+  if (error) return error.message;
+  await syncChassisSummary(projectId, all.filter((u) => u.id !== id), userId);
+  return null;
+}
