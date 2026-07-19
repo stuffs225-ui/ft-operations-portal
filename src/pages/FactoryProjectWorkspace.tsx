@@ -12,6 +12,7 @@ import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { recordFactoryEvent } from '../lib/factoryAudit';
 import { FactoryRecordSteps } from '../components/features/FactoryRecordSteps';
+import { deriveProductionStatus, statusReason } from '../lib/factoryStatus';
 import {
   getMockFactoryRecordsForProject,
   getMockRequirementsForProject,
@@ -73,14 +74,6 @@ const REQ_STATUS_MAP: Record<FactoryReqStatus, { label: string; variant: 'neutra
   not_applicable: { label: 'N/A',         variant: 'neutral' },
 };
 
-const ALL_PROD_STATUSES: FactoryProductionStatus[] = [
-  'not_started', 'details_requested', 'boq_pending', 'boq_uploaded',
-  'ga_drawing_pending', 'ga_drawing_uploaded', 'detail_drawings_pending',
-  'detail_drawings_uploaded', 'manhours_pending', 'manhours_added',
-  'pending_raw_materials', 'in_production', 'monthly_update_required',
-  'production_completed', 'sent_to_qc', 'on_hold',
-];
-
 type TabKey = 'overview' | 'lines' | 'requirements' | 'rmr' | 'timeline';
 
 const FACTORY_EDIT_ROLES: UserRole[] = ['admin', 'operations_manager', 'factory_user'];
@@ -111,7 +104,7 @@ function WoGateAlert() {
 
 export function FactoryProjectWorkspace() {
   const { projectId } = useParams<{ projectId: string }>();
-  const { role } = useAuth();
+  const { role, profile } = useAuth();
 
   const [project, setProject] = useState<Project | null>(null);
   const [vehicleLines, setVehicleLines] = useState<ProjectVehicleLine[]>([]);
@@ -224,8 +217,6 @@ export function FactoryProjectWorkspace() {
           r.id === record.id
             ? {
                 ...r,
-                production_status: lineEditState.production_status,
-                progress_percentage: lineEditState.progress_percentage,
                 expected_completion_date: lineEditState.expected_completion_date || null,
                 remarks: lineEditState.remarks || null,
               }
@@ -237,9 +228,9 @@ export function FactoryProjectWorkspace() {
       setEditingLineId(null);
       return;
     }
+    // Status and progress are derived automatically (requirements + steps); this
+    // manual save only carries the planning fields.
     const updates = {
-      production_status: lineEditState.production_status,
-      progress_percentage: lineEditState.progress_percentage,
       expected_completion_date: lineEditState.expected_completion_date || null,
       remarks: lineEditState.remarks || null,
     };
@@ -359,6 +350,57 @@ export function FactoryProjectWorkspace() {
     );
     setGeneratingReqs(false);
     setReloadKey((k) => k + 1);
+  }
+
+  // Requirements that gate a given record: project-level ones + any for its own line.
+  function requirementsForRecord(record: FactoryRecord): FactoryItemRequirement[] {
+    return requirements.filter(
+      (r) => !r.project_vehicle_line_id || r.project_vehicle_line_id === record.project_vehicle_line_id,
+    );
+  }
+
+  // Recompute the record's production_status from real facts (requirements + progress)
+  // and persist it if it changed. This is what makes the status automatic — there is
+  // no manual status control any more.
+  async function persistDerivedStatus(record: FactoryRecord, progressOverride?: number) {
+    const progress = progressOverride ?? record.progress_percentage;
+    const next = deriveProductionStatus(progress, requirementsForRecord(record), record.production_status);
+    if (next === record.production_status && progressOverride === undefined) return;
+    setFactoryRecords((prev) =>
+      prev.map((r) => (r.id === record.id ? { ...r, production_status: next, progress_percentage: progress } : r)));
+    if (!isSupabaseConfigured || !supabase) return;
+    await supabase.from('factory_records')
+      .update({ production_status: next, progress_percentage: progress })
+      .eq('id', record.id);
+  }
+
+  // Factory user records a requirement's state/value; the record's status re-derives.
+  async function handleSetRequirement(req: FactoryItemRequirement, patch: Partial<FactoryItemRequirement>) {
+    const updated = { ...req, ...patch };
+    setRequirements((prev) => prev.map((r) => (r.id === req.id ? updated : r)));
+    if (isSupabaseConfigured && supabase) {
+      const payload = {
+        ...patch,
+        uploaded_at: patch.status === 'uploaded' || patch.status === 'approved' ? new Date().toISOString() : req.uploaded_at,
+        uploaded_by: profile?.id ?? null,
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await supabase.from('factory_item_requirements').update(payload as any).eq('id', req.id);
+    }
+    // Re-derive status for records this requirement gates.
+    const affected = factoryRecords.filter(
+      (rec) => !req.project_vehicle_line_id || rec.project_vehicle_line_id === req.project_vehicle_line_id,
+    );
+    for (const rec of affected) {
+      const nextReqs = requirementsForRecord(rec).map((r) => (r.id === req.id ? updated : r));
+      const next = deriveProductionStatus(rec.progress_percentage, nextReqs, rec.production_status);
+      if (next !== rec.production_status) {
+        setFactoryRecords((prev) => prev.map((r) => (r.id === rec.id ? { ...r, production_status: next } : r)));
+        if (isSupabaseConfigured && supabase) {
+          await supabase.from('factory_records').update({ production_status: next }).eq('id', rec.id);
+        }
+      }
+    }
   }
 
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
@@ -639,8 +681,7 @@ export function FactoryProjectWorkspace() {
                                   recordId={record.id}
                                   projectId={record.project_id}
                                   canEdit={canEdit}
-                                  onProgress={(pct) => setFactoryRecords((prev) =>
-                                    prev.map((r) => (r.id === record.id ? { ...r, progress_percentage: pct } : r)))}
+                                  onProgress={(pct) => { void persistDerivedStatus(record, pct); }}
                                 />
                               </td>
                             </tr>
@@ -648,30 +689,13 @@ export function FactoryProjectWorkspace() {
                           {isEditing && (
                             <tr key={`${line.id}-edit`}>
                               <td colSpan={canEdit ? 10 : 9} className="px-4 py-4 bg-gray-50 border-t border-gray-100">
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                                  <div>
-                                    <label className="text-xs text-gray-600 mb-1 block">Production Status</label>
-                                    <select
-                                      value={lineEditState.production_status}
-                                      onChange={(e) => setLineEditState((s) => ({ ...s, production_status: e.target.value as FactoryProductionStatus }))}
-                                      className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                                    >
-                                      {ALL_PROD_STATUSES.map((st) => (
-                                        <option key={st} value={st}>{PROD_STATUS_MAP[st].label}</option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                  <div>
-                                    <label className="text-xs text-gray-600 mb-1 block">Progress %</label>
-                                    <input
-                                      type="number"
-                                      min={0}
-                                      max={100}
-                                      value={lineEditState.progress_percentage}
-                                      onChange={(e) => setLineEditState((s) => ({ ...s, progress_percentage: Number(e.target.value) }))}
-                                      className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                                    />
-                                  </div>
+                                <div className="rounded-lg border border-sky-100 bg-sky-50/60 px-3 py-2 mb-3 text-xs text-sky-900">
+                                  <span className="font-semibold">Status &amp; progress are automatic.</span>{' '}
+                                  Status: <Badge variant={PROD_STATUS_MAP[record.production_status].variant}>{PROD_STATUS_MAP[record.production_status].label}</Badge>
+                                  {' '}· {record.progress_percentage}% · {statusReason(record.production_status)}
+                                  <div className="mt-1 text-sky-700">Update the <strong>Requirements</strong> and <strong>Steps</strong> tabs — the status and progress follow them.</div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 mb-3">
                                   <div>
                                     <label className="text-xs text-gray-600 mb-1 block">Expected Completion</label>
                                     <input
@@ -750,14 +774,14 @@ export function FactoryProjectWorkspace() {
             </Card>
           )}
 
-          <Card className="p-4 bg-sky-50 border border-sky-200">
-            <p className="text-xs text-sky-800">
-              Document upload requires Supabase Storage.{' '}
-              <Button variant="outline" size="sm" disabled className="ml-2 text-xs">
-                Upload
-              </Button>
-            </p>
-          </Card>
+          {canEdit && (
+            <Card className="p-3 bg-sky-50 border border-sky-200">
+              <p className="text-xs text-sky-800">
+                Set each requirement to <strong>Approved</strong> once its document/value is ready. Production status advances
+                automatically as requirements are approved and process steps progress.
+              </p>
+            </Card>
+          )}
 
           {Object.entries(reqsByLine).map(([lineKey, reqs]) => {
             const lineLabel =
@@ -793,9 +817,30 @@ export function FactoryProjectWorkspace() {
                           <tr key={req.id} className="hover:bg-gray-50">
                             <td className="px-4 py-3 text-xs font-medium text-gray-800">{reqTypeName}</td>
                             <td className="px-4 py-3">
-                              <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                              {canEdit ? (
+                                <select
+                                  value={req.status}
+                                  onChange={(e) => void handleSetRequirement(req, { status: e.target.value as FactoryReqStatus })}
+                                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                                >
+                                  {(['pending', 'in_progress', 'uploaded', 'approved', 'rejected', 'not_applicable'] as FactoryReqStatus[]).map((st) => (
+                                    <option key={st} value={st}>{REQ_STATUS_MAP[st].label}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                              )}
                             </td>
-                            <td className="px-4 py-3 text-xs text-gray-700">{value}</td>
+                            <td className="px-4 py-3 text-xs text-gray-700">
+                              {canEdit ? (
+                                <input
+                                  defaultValue={req.value_text ?? ''}
+                                  placeholder="value / ref"
+                                  onBlur={(e) => { const v = e.target.value.trim() || null; if (v !== (req.value_text ?? null)) void handleSetRequirement(req, { value_text: v }); }}
+                                  className="w-28 text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                                />
+                              ) : value}
+                            </td>
                             <td className="px-4 py-3 text-xs text-gray-500">
                               {req.uploaded_at ? formatDateTime(req.uploaded_at) : '—'}
                             </td>
