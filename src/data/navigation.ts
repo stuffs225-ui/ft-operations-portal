@@ -251,6 +251,13 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['procurement_user'],
   },
   {
+    id: 'proc-pipeline',
+    label: 'Pipeline',
+    path: '/procurement/pipeline',
+    icon: 'GitBranch',
+    roles: ['admin', 'operations_manager', 'procurement_user'],
+  },
+  {
     id: 'proc-requests',
     label: 'Purchase Requests',
     path: '/procurement/requests',

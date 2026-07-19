@@ -24,6 +24,7 @@ const ProjectDetail = lazy(() => import('../pages/ProjectDetail').then((m) => ({
 const AdminApprovals = lazy(() => import('../pages/AdminApprovals').then((m) => ({ default: m.AdminApprovals })));
 const WoPnGate = lazy(() => import('../pages/WoPnGate').then((m) => ({ default: m.WoPnGate })));
 const Procurement = lazy(() => import('../pages/Procurement').then((m) => ({ default: m.Procurement })));
+const ProcurementPipeline = lazy(() => import('../pages/ProcurementPipeline').then((m) => ({ default: m.ProcurementPipeline })));
 const ProcurementRequests = lazy(() => import('../pages/ProcurementRequests').then((m) => ({ default: m.ProcurementRequests })));
 const ProcurementRequestDetail = lazy(() => import('../pages/ProcurementRequestDetail').then((m) => ({ default: m.ProcurementRequestDetail })));
 const ProcurementPurchaseOrders = lazy(() => import('../pages/ProcurementPurchaseOrders').then((m) => ({ default: m.ProcurementPurchaseOrders })));
@@ -238,6 +239,7 @@ export function App() {
 
             {/* ── Procurement ── */}
             <Route path="procurement" element={<RequireRole roles={['procurement_user', 'operations_manager']}><Procurement /></RequireRole>} />
+            <Route path="procurement/pipeline" element={<RequireRole roles={['admin', 'operations_manager', 'procurement_user']}><ProcurementPipeline /></RequireRole>} />
             <Route path="procurement/requests" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementRequests /></RequireRole>} />
             <Route path="procurement/requests/new" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementRequestNew /></RequireRole>} />
             <Route path="procurement/requests/:id" element={<RequireRole roles={['procurement_user', 'operations_manager']}><ProcurementRequestDetail /></RequireRole>} />
