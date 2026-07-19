@@ -129,11 +129,14 @@ export function FactoryMonthlyUpdates() {
     setSubmitting(true);
     setSaveError(null);
 
+    // Progress is derived from the process steps — the monthly update is a status
+    // NARRATIVE only. It records remarks and clears the "update due" flag; it never
+    // writes progress_percentage (that would re-introduce a second source of truth).
     if (!isSupabaseConfigured || !supabase) {
       setRecords((prev) =>
         prev.map((r) =>
           r.id === record.id
-            ? { ...r, progress_percentage: Number(formState.progress), monthly_update_required: false, remarks: formState.remarks || r.remarks }
+            ? { ...r, monthly_update_required: false, remarks: formState.remarks || r.remarks }
             : r,
         ),
       );
@@ -146,7 +149,6 @@ export function FactoryMonthlyUpdates() {
     const { error } = await supabase
       .from('factory_records')
       .update({
-        progress_percentage: Number(formState.progress),
         remarks: formState.remarks.trim() || record.remarks || null,
         monthly_update_required: false,
         last_updated_by: user?.id ?? null,
@@ -161,20 +163,20 @@ export function FactoryMonthlyUpdates() {
     }
 
     void recordFactoryEvent(
-      'factory_record', record.id, record.project_id, 'factory_progress_updated',
-      `Monthly progress updated to ${Number(formState.progress)}%.`,
-      user?.id ?? null, { progress_percentage: Number(formState.progress) },
+      'factory_record', record.id, record.project_id, 'factory_monthly_update',
+      'Monthly status update submitted.',
+      user?.id ?? null, { remarks: formState.remarks.trim() || null },
     );
 
     setRecords((prev) =>
       prev.map((r) =>
         r.id === record.id
-          ? { ...r, progress_percentage: Number(formState.progress), monthly_update_required: false }
+          ? { ...r, monthly_update_required: false, remarks: formState.remarks.trim() || r.remarks }
           : r,
       ),
     );
     setSubmitting(false);
-    setSuccessMsg('Progress updated successfully.');
+    setSuccessMsg('Monthly update submitted.');
     setExpandedId(null);
   }
 
@@ -325,29 +327,18 @@ export function FactoryMonthlyUpdates() {
                       {isExpanded && (
                         <tr key={`${record.id}-form`}>
                           <td colSpan={7} className="px-4 py-4 bg-orange-50/40 border-t border-orange-100">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
-                              <div>
-                                <label className="text-xs font-medium text-gray-700 mb-1 block">
-                                  Progress % (current: {record.progress_percentage}%)
-                                </label>
-                                <input
-                                  type="number"
-                                  min={0} max={100}
-                                  value={formState.progress}
-                                  onChange={(e) => setFormState((s) => ({ ...s, progress: e.target.value }))}
-                                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-300"
-                                />
+                            <div className="mb-3">
+                              <div className="text-xs text-gray-500 mb-2">
+                                Progress ({record.progress_percentage}%) is derived from the process steps — this is a monthly status note.
                               </div>
-                              <div>
-                                <label className="text-xs font-medium text-gray-700 mb-1 block">Remarks</label>
-                                <textarea
-                                  rows={2}
-                                  placeholder="Progress notes, blockers, next milestone…"
-                                  value={formState.remarks}
-                                  onChange={(e) => setFormState((s) => ({ ...s, remarks: e.target.value }))}
-                                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
-                                />
-                              </div>
+                              <label className="text-xs font-medium text-gray-700 mb-1 block">Monthly status update</label>
+                              <textarea
+                                rows={3}
+                                placeholder="Progress notes, blockers, next milestone…"
+                                value={formState.remarks}
+                                onChange={(e) => setFormState((s) => ({ ...s, remarks: e.target.value }))}
+                                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
+                              />
                             </div>
                             {saveError && <p className="text-xs text-red-600 mb-2">{saveError}</p>}
                             <Button

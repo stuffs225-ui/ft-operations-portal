@@ -35,24 +35,22 @@ interface ReadinessCheck {
 function getReadinessChecks(record: FactoryRecord): ReadinessCheck[] {
   return [
     {
-      label: 'Work Order confirmed',
+      label: 'Active Work Order',
       passed: !!record.wo_reference_id,
-      blocker: 'WO must be confirmed before QC handoff.',
+      blocker: 'An active Work Order is required before QC handoff.',
     },
     {
-      label: 'Production completed',
+      // Production is complete when the derived status reaches 100% — a single
+      // check (the old separate "Progress ≥ 100%" duplicated this, since progress
+      // is now derived from the process steps).
+      label: 'Production complete (100%)',
       passed: record.production_status === 'production_completed' || record.production_status === 'sent_to_qc',
-      blocker: 'Production status must reach "Completed" before sending to QC.',
+      blocker: `Production is at ${record.progress_percentage}% — complete the process steps before QC.`,
     },
     {
       label: 'Monthly update submitted',
       passed: !record.monthly_update_required,
       blocker: 'Submit the latest monthly update before QC handoff.',
-    },
-    {
-      label: 'Progress ≥ 100%',
-      passed: record.progress_percentage >= 100,
-      blocker: `Current progress is ${record.progress_percentage}% — update to 100% before QC.`,
     },
   ];
 }
