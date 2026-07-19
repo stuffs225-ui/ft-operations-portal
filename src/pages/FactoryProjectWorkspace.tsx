@@ -11,6 +11,7 @@ import { Card } from '../components/ui/Card';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { recordFactoryEvent } from '../lib/factoryAudit';
+import { FactoryRecordSteps } from '../components/features/FactoryRecordSteps';
 import {
   getMockFactoryRecordsForProject,
   getMockRequirementsForProject,
@@ -138,6 +139,7 @@ export function FactoryProjectWorkspace() {
   const [lineDevSuccess, setLineDevSuccess] = useState('');
   const [creatingLineId, setCreatingLineId] = useState<string | null>(null);
   const [lineError, setLineError] = useState<string | null>(null);
+  const [stepsRecordId, setStepsRecordId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!projectId) { Promise.resolve().then(() => { setNotFound(true); setLoading(false); }); return; }
@@ -616,14 +618,33 @@ export function FactoryProjectWorkspace() {
                             </td>
                             {canEdit && (
                               <td className="px-4 py-3">
-                                {isEditing ? (
-                                  <Button variant="ghost" size="sm" onClick={cancelEditLine}>Cancel</Button>
-                                ) : (
-                                  <Button variant="outline" size="sm" onClick={() => startEditLine(record)}>Edit</Button>
-                                )}
+                                <div className="flex items-center gap-1.5">
+                                  {isEditing ? (
+                                    <Button variant="ghost" size="sm" onClick={cancelEditLine}>Cancel</Button>
+                                  ) : (
+                                    <Button variant="outline" size="sm" onClick={() => startEditLine(record)}>Edit</Button>
+                                  )}
+                                  <Button variant="ghost" size="sm"
+                                    onClick={() => setStepsRecordId((id) => (id === record.id ? null : record.id))}>
+                                    {stepsRecordId === record.id ? 'Hide Steps' : 'Steps'}
+                                  </Button>
+                                </div>
                               </td>
                             )}
                           </tr>
+                          {stepsRecordId === record.id && (
+                            <tr key={`${line.id}-steps`}>
+                              <td colSpan={canEdit ? 10 : 9} className="px-4 py-4 bg-brand-50/30 border-t border-gray-100">
+                                <FactoryRecordSteps
+                                  recordId={record.id}
+                                  projectId={record.project_id}
+                                  canEdit={canEdit}
+                                  onProgress={(pct) => setFactoryRecords((prev) =>
+                                    prev.map((r) => (r.id === record.id ? { ...r, progress_percentage: pct } : r)))}
+                                />
+                              </td>
+                            </tr>
+                          )}
                           {isEditing && (
                             <tr key={`${line.id}-edit`}>
                               <td colSpan={canEdit ? 10 : 9} className="px-4 py-4 bg-gray-50 border-t border-gray-100">

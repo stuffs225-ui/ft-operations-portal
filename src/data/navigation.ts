@@ -1179,6 +1179,13 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['operations_manager', 'factory_user', 'procurement_user', 'store_user', 'qc_user'],
   },
   {
+    id: 'custom-fields',
+    label: 'Custom Fields',
+    path: '/custom-fields',
+    icon: 'SlidersHorizontal',
+    roles: ['admin', 'operations_manager', 'procurement_user', 'store_user', 'sales_user', 'sales_coordinator'],
+  },
+  {
     id: 'templates',
     label: 'Document Templates',
     path: '/templates',

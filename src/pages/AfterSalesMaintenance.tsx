@@ -11,7 +11,9 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MOCK_AFS_MAINTENANCE_REQUESTS } from '../data/mockAfs';
 import type { AfsMaintenanceRequest, MaintenanceStatus, UserRole } from '../types';
 
-const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'sales_user', 'afs_user'];
+// Mirrors the afs_maintenance_requests write RLS (migration 047) and the
+// /after-sales/maintenance/new route guard. sales_user is read-only here.
+const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'afs_user'];
 
 type Tab = 'open' | 'critical' | 'in_progress' | 'completed' | 'closed' | 'all';
 

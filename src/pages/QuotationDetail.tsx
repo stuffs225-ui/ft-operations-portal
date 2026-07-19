@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { CustomFields } from '../components/features/CustomFields';
 import {
   FileText, ArrowLeft, Loader2, Clock, ChevronDown,
   Send, CheckCircle2, AlertTriangle, Upload, ArrowRight,
@@ -637,6 +638,12 @@ export function QuotationDetail() {
           </div>
         }
       />
+
+      {id && (
+        <div className="mb-6">
+          <CustomFields entityType="quotation_request" entityId={id} />
+        </div>
+      )}
 
       {/* ── Alert banners ── */}
       {actionMsg && (

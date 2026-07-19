@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { AfsPredeliveryChecklist } from '../components/features/AfsPredeliveryChecklist';
 import { ArrowLeft, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { PageLoader } from '../components/ui/PageLoader';
@@ -132,6 +133,13 @@ export function DubaiAfsPredeliveryReportDetail() {
           {report.ready_for_delivery ? 'Ready for Delivery' : 'Not Ready'}
         </Badge>
       </div>
+
+      {id && (
+        <AfsPredeliveryChecklist
+          reportId={id}
+          onCountsChange={(passed, total) => setReport((r) => (r ? { ...r, checklist_items_passed: passed, checklist_items_total: total } : r))}
+        />
+      )}
 
       {devMessage && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-3 text-sm text-green-700">{devMessage}</div>

@@ -453,6 +453,24 @@ export interface FactoryRequirementType {
   is_active: boolean;
 }
 
+export interface FactoryProcessStep {
+  id: string;
+  name: string;
+  weight: number;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export interface FactoryRecordStep {
+  id: string;
+  factory_record_id: string;
+  project_id: string | null;
+  step_name: string;
+  weight: number;
+  sort_order: number;
+  completion_pct: number;
+}
+
 export interface FactoryItemRequirement {
   id: string;
   project_id: string;

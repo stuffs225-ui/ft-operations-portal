@@ -9,6 +9,7 @@ import { RequireRole } from '../components/auth/RequireRole';
 import { Login } from '../pages/Login';
 import { ROLE_MATRIX } from '../lib/roleMatrix';
 import { REFERENCE_LIST_ROLES } from '../lib/referenceLists';
+import { CUSTOM_FIELD_ADMIN_ROLES } from '../lib/customFieldsQueries';
 const Dashboard = lazy(() => import('../pages/Dashboard').then((m) => ({ default: m.Dashboard })));
 const ActionInbox = lazy(() => import('../pages/ActionInbox').then((m) => ({ default: m.ActionInbox })));
 const Quotations = lazy(() => import('../pages/Quotations').then((m) => ({ default: m.Quotations })));
@@ -111,6 +112,7 @@ const ReportsIssues = lazy(() => import('../pages/ReportsIssues').then((m) => ({
 const ReportsCapa = lazy(() => import('../pages/ReportsCapa').then((m) => ({ default: m.ReportsCapa })));
 const Settings = lazy(() => import('../pages/Settings').then((m) => ({ default: m.Settings })));
 const ReferenceLists = lazy(() => import('../pages/ReferenceLists').then((m) => ({ default: m.ReferenceLists })));
+const CustomFieldsAdmin = lazy(() => import('../pages/CustomFieldsAdmin').then((m) => ({ default: m.CustomFieldsAdmin })));
 const AdminDashboard = lazy(() => import('../pages/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
 const ManagementDashboard = lazy(() => import('../pages/ManagementDashboard').then((m) => ({ default: m.ManagementDashboard })));
 const AdminUsers = lazy(() => import('../pages/AdminUsers').then((m) => ({ default: m.AdminUsers })));
@@ -271,7 +273,11 @@ export function App() {
             <Route path="store/qc-handoff" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreQCHandoff /></RequireRole>} />
             <Route path="store/unallocated" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreUnallocated /></RequireRole>} />
             <Route path="custody" element={<RequireRole roles={['store_user', 'factory_user', 'afs_user', 'operations_manager']}><MaterialCustody /></RequireRole>} />
-            <Route path="custody/new" element={<RequireRole roles={['store_user', 'factory_user', 'afs_user', 'operations_manager']}><CustodyNew /></RequireRole>} />
+            {/* Issuing custody is store/ops only (material_custody_records INSERT RLS,
+                migration 034). factory_user / afs_user are RECEIVERS — they accept via
+                the custody detail page (UPDATE), so they must not reach the issue form
+                where their submit would 403. */}
+            <Route path="custody/new" element={<RequireRole roles={['store_user', 'operations_manager']}><CustodyNew /></RequireRole>} />
             <Route path="custody/:id" element={<RequireRole roles={['store_user', 'factory_user', 'afs_user', 'operations_manager']}><CustodyDetail /></RequireRole>} />
             <Route path="vehicle-receiving" element={<RequireRole roles={['store_user', 'operations_manager']}><VehicleReceiving /></RequireRole>} />
 
@@ -321,6 +327,7 @@ export function App() {
             <Route path="management-dashboard" element={<RequireRole roles={['viewer']}><ManagementDashboard /></RequireRole>} />
             <Route path="settings" element={<RequireRole roles={['admin']}><Settings /></RequireRole>} />
             <Route path="reference-lists" element={<RequireRole roles={REFERENCE_LIST_ROLES}><ReferenceLists /></RequireRole>} />
+            <Route path="custom-fields" element={<RequireRole roles={CUSTOM_FIELD_ADMIN_ROLES}><CustomFieldsAdmin /></RequireRole>} />
             <Route path="admin/users" element={<RequireRole roles={['admin']}><AdminUsers /></RequireRole>} />
             <Route path="audit-log" element={<RequireRole roles={['admin']}><AuditLog /></RequireRole>} />
 

@@ -50,6 +50,20 @@ export const REFERENCE_LISTS: ReferenceListDef[] = [
     owners: ['factory_user'],
   },
   {
+    key: 'factory_process_steps',
+    title: 'Factory Process Steps',
+    blurb: 'The weighted production steps used to compute a project’s progress %. Weights are relative — a step’s share of total progress. Editing here affects new set-ups only; projects already in progress keep their snapshot.',
+    table: 'factory_process_steps',
+    select: 'id,name,weight,sort_order',
+    orderBy: 'sort_order',
+    fields: [
+      { key: 'name', label: 'Step Name', type: 'text', required: true },
+      { key: 'weight', label: 'Weight', type: 'number', required: true },
+      { key: 'sort_order', label: 'Order', type: 'number' },
+    ],
+    owners: ['factory_user'],
+  },
+  {
     key: 'supplier_categories',
     title: 'Supplier Categories',
     blurb: 'How suppliers are classified during procurement.',
@@ -75,6 +89,37 @@ export const REFERENCE_LISTS: ReferenceListDef[] = [
       { key: 'description', label: 'Description', type: 'textarea' },
     ],
     owners: ['procurement_user', 'store_user'],
+  },
+  {
+    key: 'qc_checklist_items',
+    title: 'QC Checklist Items',
+    blurb: 'The inspection checklist QC ticks off on each inspection. Category scopes an item to material inspections, project inspections, or both.',
+    table: 'qc_checklist_items',
+    select: 'id,name,category,sort_order',
+    orderBy: 'sort_order',
+    fields: [
+      { key: 'name', label: 'Item', type: 'text', required: true },
+      { key: 'category', label: 'Applies To', type: 'select', options: [
+        { value: 'both', label: 'Both' },
+        { value: 'material', label: 'Material inspections' },
+        { value: 'project', label: 'Project inspections' },
+      ] },
+      { key: 'sort_order', label: 'Order', type: 'number' },
+    ],
+    owners: ['qc_user'],
+  },
+  {
+    key: 'afs_predelivery_checklist_items',
+    title: 'AFS Pre-Delivery Checklist',
+    blurb: 'The pre-delivery readiness checklist AFS ticks off before a vehicle is released for delivery.',
+    table: 'afs_predelivery_checklist_items',
+    select: 'id,name,sort_order',
+    orderBy: 'sort_order',
+    fields: [
+      { key: 'name', label: 'Item', type: 'text', required: true },
+      { key: 'sort_order', label: 'Order', type: 'number' },
+    ],
+    owners: ['afs_user'],
   },
   {
     key: 'root_cause_categories',
