@@ -273,7 +273,11 @@ export function App() {
             <Route path="store/qc-handoff" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreQCHandoff /></RequireRole>} />
             <Route path="store/unallocated" element={<RequireRole roles={['store_user', 'operations_manager']}><StoreUnallocated /></RequireRole>} />
             <Route path="custody" element={<RequireRole roles={['store_user', 'factory_user', 'afs_user', 'operations_manager']}><MaterialCustody /></RequireRole>} />
-            <Route path="custody/new" element={<RequireRole roles={['store_user', 'factory_user', 'afs_user', 'operations_manager']}><CustodyNew /></RequireRole>} />
+            {/* Issuing custody is store/ops only (material_custody_records INSERT RLS,
+                migration 034). factory_user / afs_user are RECEIVERS — they accept via
+                the custody detail page (UPDATE), so they must not reach the issue form
+                where their submit would 403. */}
+            <Route path="custody/new" element={<RequireRole roles={['store_user', 'operations_manager']}><CustodyNew /></RequireRole>} />
             <Route path="custody/:id" element={<RequireRole roles={['store_user', 'factory_user', 'afs_user', 'operations_manager']}><CustodyDetail /></RequireRole>} />
             <Route path="vehicle-receiving" element={<RequireRole roles={['store_user', 'operations_manager']}><VehicleReceiving /></RequireRole>} />
 

@@ -12,7 +12,11 @@ import { MOCK_AFS_MAINTENANCE_REQUESTS } from '../data/mockAfs';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
 import type { AfsMaintenanceRequest, UserRole } from '../types';
 
-const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'sales_user', 'afs_user'];
+// Create is admin/ops/afs_user — matches the afs_maintenance_requests write RLS
+// (migration 047) and the [admin, ops, <domain>] convention used across modules.
+// sales_user has read-only access (amr_sales_select) and can't reach the after-sales
+// pages, so it must not be offered a create it can't perform.
+const CAN_CREATE: UserRole[] = ['admin', 'operations_manager', 'afs_user'];
 
 function priorityVariant(s: string): 'neutral' | 'warning' | 'critical' | 'info' | 'default' {
   if (s === 'critical') return 'critical';
