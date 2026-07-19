@@ -453,6 +453,41 @@ export interface FactoryRequirementType {
   is_active: boolean;
 }
 
+export type ProductionTaskStatus = 'pending' | 'in_progress' | 'done' | 'blocked' | 'skipped';
+
+export interface ProductionPlanTemplateTask {
+  id: string;
+  name: string;
+  department: string;
+  default_duration_days: number;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export interface ProjectProductionPlanTask {
+  id: string;
+  project_id: string;
+  name: string;
+  department: string;
+  sort_order: number;
+  duration_days: number;
+  planned_start_date: string | null;
+  status: ProductionTaskStatus;
+  assignee: string | null;
+  remarks: string | null;
+}
+
+export interface ProjectProductionDetails {
+  project_id: string;
+  chassis_status: string | null;
+  chassis_received: number;
+  chassis_total: number;
+  manhours_needed: number;
+  offline_notes: string | null;
+  online_notes: string | null;
+  delivery_schedule: string | null;
+}
+
 export interface FactoryProcessStep {
   id: string;
   name: string;

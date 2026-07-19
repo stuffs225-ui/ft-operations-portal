@@ -465,6 +465,11 @@ export function FactoryProjectWorkspace() {
           { label: 'Projects', path: '/factory/projects' },
           { label: project.project_code },
         ]}
+        action={
+          <Link to={`/factory/projects/${projectId}/plan`}>
+            <Button size="sm" variant="secondary" icon={<List size={14} />}>Production Plan</Button>
+          </Link>
+        }
       />
 
       {!isSupabaseConfigured && (

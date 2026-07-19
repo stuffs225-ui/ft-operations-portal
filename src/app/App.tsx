@@ -37,6 +37,7 @@ const ProcurementPrItemsWithoutPo = lazy(() => import('../pages/ProcurementPrIte
 const Factory = lazy(() => import('../pages/Factory').then((m) => ({ default: m.Factory })));
 const FactoryProjects = lazy(() => import('../pages/FactoryProjects').then((m) => ({ default: m.FactoryProjects })));
 const FactoryProjectWorkspace = lazy(() => import('../pages/FactoryProjectWorkspace').then((m) => ({ default: m.FactoryProjectWorkspace })));
+const ProductionPlan = lazy(() => import('../pages/ProductionPlan').then((m) => ({ default: m.ProductionPlan })));
 const FactoryRequirements = lazy(() => import('../pages/FactoryRequirements').then((m) => ({ default: m.FactoryRequirements })));
 const FactoryRawMaterialRequests = lazy(() => import('../pages/FactoryRawMaterialRequests').then((m) => ({ default: m.FactoryRawMaterialRequests })));
 const FactoryRawMaterialRequestNew = lazy(() => import('../pages/FactoryRawMaterialRequestNew').then((m) => ({ default: m.FactoryRawMaterialRequestNew })));
@@ -251,6 +252,7 @@ export function App() {
             <Route path="factory" element={<RequireRole roles={['factory_user', 'operations_manager']}><Factory /></RequireRole>} />
             <Route path="factory/projects" element={<RequireRole roles={['factory_user', 'operations_manager']}><FactoryProjects /></RequireRole>} />
             <Route path="factory/projects/:projectId" element={<RequireRole roles={['factory_user', 'operations_manager']}><FactoryProjectWorkspace /></RequireRole>} />
+            <Route path="factory/projects/:projectId/plan" element={<RequireRole roles={['admin', 'factory_user', 'operations_manager']}><ProductionPlan /></RequireRole>} />
             <Route path="factory/requirements" element={<RequireRole roles={['factory_user', 'operations_manager']}><FactoryRequirements /></RequireRole>} />
             <Route path="factory/raw-material-requests" element={<RequireRole roles={['factory_user', 'operations_manager']}><FactoryRawMaterialRequests /></RequireRole>} />
             <Route path="factory/raw-material-requests/new" element={<RequireRole roles={['factory_user', 'operations_manager']}><FactoryRawMaterialRequestNew /></RequireRole>} />
