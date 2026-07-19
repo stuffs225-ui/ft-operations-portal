@@ -68,7 +68,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
         setProfile(DEV_PROFILE);
-        setRole('admin');
+        // Dev-only: allow overriding the mock role via localStorage('ft_dev_role')
+        // so every role can be exercised locally (and by the E2E smoke matrix).
+        // Only ever runs in the non-production mock branch — production uses real
+        // Supabase auth + RLS and never reaches here.
+        const DEV_ROLES: UserRole[] = [
+          'admin', 'operations_manager', 'sales_user', 'sales_coordinator',
+          'procurement_user', 'factory_user', 'store_user', 'qc_user', 'afs_user', 'viewer',
+        ];
+        let devRole: UserRole = 'admin';
+        try {
+          const stored = localStorage.getItem('ft_dev_role');
+          if (stored && DEV_ROLES.includes(stored as UserRole)) devRole = stored as UserRole;
+        } catch { /* localStorage unavailable — keep admin */ }
+        setRole(devRole);
         setLoading(false);
       });
       return;
