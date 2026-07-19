@@ -518,6 +518,13 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['factory_user'],
   },
   {
+    id: 'factory-production-board',
+    label: 'Production Board',
+    path: '/factory/board',
+    icon: 'LayoutDashboard',
+    roles: ['admin', 'operations_manager', 'factory_user'],
+  },
+  {
     id: 'factory-production-lines',
     label: 'Production Lines',
     path: '/factory/projects',
