@@ -9,6 +9,7 @@ import { RequireRole } from '../components/auth/RequireRole';
 import { Login } from '../pages/Login';
 import { ROLE_MATRIX } from '../lib/roleMatrix';
 import { REFERENCE_LIST_ROLES } from '../lib/referenceLists';
+import { CUSTOM_FIELD_ADMIN_ROLES } from '../lib/customFieldsQueries';
 const Dashboard = lazy(() => import('../pages/Dashboard').then((m) => ({ default: m.Dashboard })));
 const ActionInbox = lazy(() => import('../pages/ActionInbox').then((m) => ({ default: m.ActionInbox })));
 const Quotations = lazy(() => import('../pages/Quotations').then((m) => ({ default: m.Quotations })));
@@ -322,7 +323,7 @@ export function App() {
             <Route path="management-dashboard" element={<RequireRole roles={['viewer']}><ManagementDashboard /></RequireRole>} />
             <Route path="settings" element={<RequireRole roles={['admin']}><Settings /></RequireRole>} />
             <Route path="reference-lists" element={<RequireRole roles={REFERENCE_LIST_ROLES}><ReferenceLists /></RequireRole>} />
-            <Route path="custom-fields" element={<RequireRole roles={['admin', 'operations_manager']}><CustomFieldsAdmin /></RequireRole>} />
+            <Route path="custom-fields" element={<RequireRole roles={CUSTOM_FIELD_ADMIN_ROLES}><CustomFieldsAdmin /></RequireRole>} />
             <Route path="admin/users" element={<RequireRole roles={['admin']}><AdminUsers /></RequireRole>} />
             <Route path="audit-log" element={<RequireRole roles={['admin']}><AuditLog /></RequireRole>} />
 

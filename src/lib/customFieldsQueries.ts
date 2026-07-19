@@ -4,6 +4,7 @@
 
 import { supabase, isSupabaseConfigured } from './supabase';
 import { isMissingRelationError } from './deferredMigrationSafety';
+import type { UserRole } from '../types';
 
 export type CustomFieldType = 'text' | 'number' | 'date' | 'select' | 'boolean';
 
@@ -32,6 +33,35 @@ export const CUSTOM_FIELD_ENTITIES: { value: string; label: string }[] = [
   { value: 'store_receipt', label: 'Store Receipt' },
   { value: 'quotation_request', label: 'Quotation' },
 ];
+
+// Which domain role owns each entity's field definitions (besides admin/ops).
+// Mirrors the RLS in migration 121. 'project' is cross-cutting → admin/ops only.
+const ENTITY_OWNERS: Record<string, UserRole[]> = {
+  project: [],
+  purchase_order: ['procurement_user'],
+  store_receipt: ['store_user'],
+  quotation_request: ['sales_user', 'sales_coordinator'],
+};
+
+const SUPER_OWNERS: UserRole[] = ['admin', 'operations_manager'];
+
+/** Roles that may reach the Custom Fields page (own at least one entity). */
+export const CUSTOM_FIELD_ADMIN_ROLES: UserRole[] = Array.from(
+  new Set<UserRole>([...SUPER_OWNERS, ...Object.values(ENTITY_OWNERS).flat()]),
+);
+
+/** Can this role define fields for this entity? (mirrors migration-121 RLS.) */
+export function canManageEntity(role: UserRole | null | undefined, entityType: string): boolean {
+  if (!role) return false;
+  return SUPER_OWNERS.includes(role) || (ENTITY_OWNERS[entityType] ?? []).includes(role);
+}
+
+/** Entities this role may define fields for. */
+export function entitiesForRole(role: UserRole | null | undefined): { value: string; label: string }[] {
+  if (!role) return [];
+  if (SUPER_OWNERS.includes(role)) return CUSTOM_FIELD_ENTITIES;
+  return CUSTOM_FIELD_ENTITIES.filter((e) => (ENTITY_OWNERS[e.value] ?? []).includes(role));
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function db(): any { return supabase; }

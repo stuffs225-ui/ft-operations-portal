@@ -1183,7 +1183,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Custom Fields',
     path: '/custom-fields',
     icon: 'SlidersHorizontal',
-    roles: ['admin', 'operations_manager'],
+    roles: ['admin', 'operations_manager', 'procurement_user', 'store_user', 'sales_user', 'sales_coordinator'],
   },
   {
     id: 'templates',

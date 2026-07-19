@@ -8,9 +8,10 @@ import { useAuth } from '../hooks/useAuth';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
   fetchAllDefinitions, saveDefinition, deactivateDefinition, slugify,
-  CUSTOM_FIELD_ENTITIES,
+  CUSTOM_FIELD_ENTITIES, entitiesForRole, canManageEntity,
   type CustomFieldDefinition, type CustomFieldType,
 } from '../lib/customFieldsQueries';
+import type { UserRole } from '../types';
 
 const FIELD_TYPES: { value: CustomFieldType; label: string }[] = [
   { value: 'text', label: 'Text' },
@@ -24,13 +25,14 @@ function entityLabel(v: string) {
   return CUSTOM_FIELD_ENTITIES.find((e) => e.value === v)?.label ?? v;
 }
 
-function DefinitionModal({ row, onClose, onDone }: {
+function DefinitionModal({ row, allowedEntities, onClose, onDone }: {
   row: CustomFieldDefinition | null;
+  allowedEntities: { value: string; label: string }[];
   onClose: () => void;
   onDone: () => void;
 }) {
   const { profile } = useAuth();
-  const [entityType, setEntityType] = useState(row?.entity_type ?? CUSTOM_FIELD_ENTITIES[0].value);
+  const [entityType, setEntityType] = useState(row?.entity_type ?? allowedEntities[0]?.value ?? CUSTOM_FIELD_ENTITIES[0].value);
   const [label, setLabel] = useState(row?.label ?? '');
   const [fieldType, setFieldType] = useState<CustomFieldType>(row?.field_type ?? 'text');
   const [optionsText, setOptionsText] = useState((row?.options ?? []).join(', '));
@@ -66,9 +68,9 @@ function DefinitionModal({ row, onClose, onDone }: {
         <div className="px-5 py-4 space-y-3">
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">Attach to <span className="text-red-500">*</span></label>
-            <select value={entityType} onChange={(e) => setEntityType(e.target.value)} disabled={!!row}
+            <select value={entityType} onChange={(e) => setEntityType(e.target.value)} disabled={!!row || allowedEntities.length <= 1}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white disabled:bg-gray-50">
-              {CUSTOM_FIELD_ENTITIES.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}
+              {allowedEntities.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}
             </select>
           </div>
           <div>
@@ -107,6 +109,8 @@ function DefinitionModal({ row, onClose, onDone }: {
 }
 
 export function CustomFieldsAdmin() {
+  const { role } = useAuth();
+  const allowedEntities = entitiesForRole(role as UserRole | null);
   const [defs, setDefs] = useState<CustomFieldDefinition[]>([]);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [modal, setModal] = useState<{ row: CustomFieldDefinition | null } | null>(null);
@@ -135,7 +139,7 @@ export function CustomFieldsAdmin() {
     if (res.ok) reload();
   }
 
-  const byEntity = CUSTOM_FIELD_ENTITIES
+  const byEntity = allowedEntities
     .map((e) => ({ entity: e, rows: defs.filter((d) => d.entity_type === e.value) }))
     .filter((g) => g.rows.length > 0);
 
@@ -145,7 +149,7 @@ export function CustomFieldsAdmin() {
         title="Custom Fields"
         subtitle="Add your own typed fields to records — the safe, reportable version of extra spreadsheet columns."
         breadcrumb={[{ label: 'Custom Fields' }]}
-        actions={<Button size="sm" icon={<Plus size={14} />} onClick={() => setModal({ row: null })} disabled={!isSupabaseConfigured}>Add field</Button>}
+        actions={<Button size="sm" icon={<Plus size={14} />} onClick={() => setModal({ row: null })} disabled={!isSupabaseConfigured || allowedEntities.length === 0}>Add field</Button>}
       />
 
       {!isSupabaseConfigured && (
@@ -178,10 +182,12 @@ export function CustomFieldsAdmin() {
                       <span className="text-[11px] text-gray-400 ml-2">{d.options.join(' · ')}</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={() => setModal({ row: d })} className="p-1 rounded text-gray-400 hover:text-brand-600" title="Edit"><Pencil size={13} /></button>
-                    <button onClick={() => void deactivate(d)} disabled={busyId === d.id} className="p-1 rounded text-gray-400 hover:text-red-600 disabled:opacity-40" title="Deactivate"><Power size={13} /></button>
-                  </div>
+                  {canManageEntity(role as UserRole | null, d.entity_type) && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button onClick={() => setModal({ row: d })} className="p-1 rounded text-gray-400 hover:text-brand-600" title="Edit"><Pencil size={13} /></button>
+                      <button onClick={() => void deactivate(d)} disabled={busyId === d.id} className="p-1 rounded text-gray-400 hover:text-red-600 disabled:opacity-40" title="Deactivate"><Power size={13} /></button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -189,7 +195,7 @@ export function CustomFieldsAdmin() {
         ))
       )}
 
-      {modal && <DefinitionModal row={modal.row} onClose={() => setModal(null)} onDone={() => { setModal(null); reload(); }} />}
+      {modal && <DefinitionModal row={modal.row} allowedEntities={allowedEntities} onClose={() => setModal(null)} onDone={() => { setModal(null); reload(); }} />}
     </div>
   );
 }
