@@ -115,9 +115,15 @@ export function FactoryProjects() {
         const saudiApproved = MOCK_PROJECTS.filter(
           (p) => p.project_status === 'approved' && p.manufacturing_location === 'saudi',
         );
+        const { MOCK_EXECUTION_REFERENCES } = await import('../data/mockExecutionReferences');
+        const woProjectIds = new Set(
+          MOCK_EXECUTION_REFERENCES
+            .filter((r) => r.reference_type === 'wo' && r.status !== 'cancelled' && r.status !== 'superseded')
+            .map((r) => r.project_id),
+        );
         const result: ProjectWithRecords[] = saudiApproved.map((p) => {
           const records = MOCK_FACTORY_RECORDS.filter((r) => r.project_id === p.id);
-          const hasWo = records.some((r) => r.wo_reference_id);
+          const hasWo = woProjectIds.has(p.id);
           const overallStatus = getOverallStatus(records);
           const avgProgress = records.length > 0
             ? Math.round(records.reduce((s, r) => s + r.progress_percentage, 0) / records.length)
@@ -132,17 +138,24 @@ export function FactoryProjects() {
         return;
       }
 
-      const [projRes, recordsRes] = await Promise.all([
+      const [projRes, recordsRes, woRefRes] = await Promise.all([
         supabase.from('projects').select('*').eq('manufacturing_location', 'saudi').eq('project_status', 'approved').order('project_code'),
         supabase.from('factory_records').select('*'),
+        // A project "has a WO" when it has an active WO in the execution register —
+        // NOT when a factory record happens to reference one. A fresh project can
+        // have an approved WO with no factory record yet (this was the "Missing WO"
+        // bug where the list disagreed with the project page).
+        supabase.from('project_execution_references').select('project_id')
+          .eq('reference_type', 'wo').not('status', 'in', '("cancelled","superseded")'),
       ]);
 
       const projects = (projRes.data as unknown as Project[]) ?? [];
       const allRecords = (recordsRes.data as unknown as FactoryRecord[]) ?? [];
+      const woProjectIds = new Set(((woRefRes.data as { project_id: string }[]) ?? []).map((r) => r.project_id));
 
       const result: ProjectWithRecords[] = projects.map((p) => {
         const records = allRecords.filter((r) => r.project_id === p.id);
-        const hasWo = records.some((r) => r.wo_reference_id);
+        const hasWo = woProjectIds.has(p.id);
         const overallStatus = getOverallStatus(records);
         const avgProgress = records.length > 0
           ? Math.round(records.reduce((s, r) => s + r.progress_percentage, 0) / records.length)

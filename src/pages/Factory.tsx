@@ -16,7 +16,7 @@ import {
   MOCK_FACTORY_REQUIREMENTS as MOCK_FACTORY_REQUIREMENTS_RAW,
   MOCK_RAW_MATERIAL_REQUESTS as MOCK_RAW_MATERIAL_REQUESTS_RAW,
 } from '../data/mockFactory';
-import { fetchProjectsMissingReference } from '../lib/executionGate';
+import { fetchProjectsMissingReference, fetchProjectIdsWithActiveReference } from '../lib/executionGate';
 import { mockOrEmpty } from '../lib/dataMode';
 
 const MOCK_FACTORY_RECORDS = mockOrEmpty(MOCK_FACTORY_RECORDS_RAW);
@@ -52,7 +52,17 @@ export function Factory() {
         // execution-reference register (matches the WO/PN Gate). A WO counts as
         // present the moment it is created — no separate confirmation is needed.
         const missingWo = (await fetchProjectsMissingReference('wo')).length;
-        const readyToStart = MOCK_FACTORY_RECORDS.filter((r) => r.production_status === 'not_started' && r.wo_reference_id).length;
+        // "Ready to Start" = approved Saudi projects that HAVE an active WO but
+        // whose production has not begun yet. WO presence comes from the
+        // execution-reference register (same source as the gate), not from
+        // factory_records — a project with a valid WO is ready even before any
+        // production record exists. A project counts as "started" once it has a
+        // record beyond not_started.
+        const woProjectIds = await fetchProjectIdsWithActiveReference('wo');
+        const startedProjectIds = new Set(
+          MOCK_FACTORY_RECORDS.filter((r) => r.production_status !== 'not_started').map((r) => r.project_id),
+        );
+        const readyToStart = [...woProjectIds].filter((id) => !startedProjectIds.has(id)).length;
         const inProduction = MOCK_FACTORY_RECORDS.filter((r) => r.production_status === 'in_production').length;
         const waitingMaterials = MOCK_FACTORY_RECORDS.filter((r) => r.production_status === 'pending_raw_materials').length;
         const updateDue = MOCK_FACTORY_RECORDS.filter((r) => r.monthly_update_required).length;
@@ -71,23 +81,34 @@ export function Factory() {
         return;
       }
 
-      const [missingWoProjects, recordsRes, monthlyRes, rmrRes] = await Promise.all([
+      const [missingWoProjects, woProjectIds, recordsRes, monthlyRes, rmrRes] = await Promise.all([
         // "Missing WO" comes from the execution-reference register (same source as
         // the WO/PN Gate). A created WO already counts as present — no confirmation
         // step. This replaces the old factory_records-based count, which reported
         // projects with a valid WO as "missing" until a production record existed.
         fetchProjectsMissingReference('wo'),
-        supabase.from('factory_records').select('production_status, monthly_update_required, last_updated_at, wo_reference_id'),
+        // "Ready to Start" is the positive counterpart: approved Saudi projects
+        // that already have an active WO. Deriving this from the register (not
+        // factory_records) fixes the contradiction where a project with a
+        // confirmed WO showed 0 "ready" until a production record existed.
+        fetchProjectIdsWithActiveReference('wo'),
+        supabase.from('factory_records').select('project_id, production_status, monthly_update_required, last_updated_at, wo_reference_id'),
         supabase.from('factory_records').select('*', { count: 'exact', head: true }).eq('monthly_update_required', true),
         supabase.from('production_raw_material_requests').select('*', { count: 'exact', head: true }).not('status', 'in', '("fulfilled","rejected","cancelled")'),
       ]);
 
-      const allRecords = (recordsRes.data ?? []) as { production_status: string; monthly_update_required: boolean; last_updated_at: string; wo_reference_id: string | null }[];
+      const allRecords = (recordsRes.data ?? []) as { project_id: string; production_status: string; monthly_update_required: boolean; last_updated_at: string; wo_reference_id: string | null }[];
       void rmrRes;
+
+      // A project has "started" once it has any record beyond not_started; the
+      // rest of its WO-cleared peers are still ready to start.
+      const startedProjectIds = new Set(
+        allRecords.filter((r) => r.production_status !== 'not_started').map((r) => r.project_id),
+      );
 
       setKpis({
         missingWo: missingWoProjects.length,
-        readyToStart: allRecords.filter((r) => r.production_status === 'not_started' && r.wo_reference_id).length,
+        readyToStart: [...woProjectIds].filter((id) => !startedProjectIds.has(id)).length,
         inProduction: allRecords.filter((r) => r.production_status === 'in_production').length,
         waitingMaterials: allRecords.filter((r) => r.production_status === 'pending_raw_materials').length,
         updateDue: monthlyRes.count ?? 0,
