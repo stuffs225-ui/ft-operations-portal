@@ -22,7 +22,8 @@ export type SettingsTable =
   | 'pn_statuses'
   | 'factory_requirement_types'
   | 'factory_process_steps'
-  | 'qc_checklist_items';
+  | 'qc_checklist_items'
+  | 'afs_predelivery_checklist_items';
 
 export interface SettingsMutationResult {
   ok: boolean;

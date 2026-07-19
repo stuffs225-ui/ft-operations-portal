@@ -109,6 +109,19 @@ export const REFERENCE_LISTS: ReferenceListDef[] = [
     owners: ['qc_user'],
   },
   {
+    key: 'afs_predelivery_checklist_items',
+    title: 'AFS Pre-Delivery Checklist',
+    blurb: 'The pre-delivery readiness checklist AFS ticks off before a vehicle is released for delivery.',
+    table: 'afs_predelivery_checklist_items',
+    select: 'id,name,sort_order',
+    orderBy: 'sort_order',
+    fields: [
+      { key: 'name', label: 'Item', type: 'text', required: true },
+      { key: 'sort_order', label: 'Order', type: 'number' },
+    ],
+    owners: ['afs_user'],
+  },
+  {
     key: 'root_cause_categories',
     title: 'Root Cause Categories',
     blurb: 'The root-cause options selectable when investigating an NCR.',
