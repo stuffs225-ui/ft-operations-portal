@@ -28,7 +28,6 @@ export interface CustomFieldValue {
 // the entity's uuid, so any table with a uuid primary key works.
 export const CUSTOM_FIELD_ENTITIES: { value: string; label: string }[] = [
   { value: 'project', label: 'Project' },
-  { value: 'factory_record', label: 'Factory Record' },
   { value: 'purchase_order', label: 'Purchase Order' },
   { value: 'store_receipt', label: 'Store Receipt' },
   { value: 'quotation_request', label: 'Quotation' },

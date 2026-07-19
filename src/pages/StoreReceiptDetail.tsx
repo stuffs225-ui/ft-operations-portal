@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { CustomFields } from '../components/features/CustomFields';
 import { Package, ArrowLeft, Tag, Paperclip, Download } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageLoader } from '../components/ui/PageLoader';
@@ -207,6 +208,12 @@ export function StoreReceiptDetail() {
           </Link>
         }
       />
+
+      {id && (
+        <div>
+          <CustomFields entityType="store_receipt" entityId={id} />
+        </div>
+      )}
 
       {devMsg && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 text-sm text-amber-700">{devMsg}</div>

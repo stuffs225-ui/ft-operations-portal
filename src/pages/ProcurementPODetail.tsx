@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { CustomFields } from '../components/features/CustomFields';
 import {
   ShoppingCart, Package, Clock, Shield, ArrowLeft,
   Edit2, Check, X, AlertTriangle, FileText,
@@ -413,6 +414,12 @@ export function ProcurementPODetail() {
         actions={poStatusBadge(po.po_status)}
         className="mb-6"
       />
+
+      {id && (
+        <div className="mb-6">
+          <CustomFields entityType="purchase_order" entityId={id} />
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-6 overflow-x-auto">
