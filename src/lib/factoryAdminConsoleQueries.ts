@@ -12,6 +12,7 @@
 // or blocked read → that section is empty, never a hard error).
 
 import { supabase, isSupabaseConfigured } from './supabase';
+import { fetchProjectIdsWithActiveReference } from './executionGate';
 
 function daysSince(iso: string | null | undefined): number {
   if (!iso) return 0;
@@ -54,7 +55,7 @@ export async function getFactoryAdminConsole(): Promise<FactoryConsoleResult> {
   if (!isSupabaseConfigured || !supabase) return empty;
   const db = supabase;
 
-  const [saudiProjRes, recordsRes, rmrRes, inProdRes] = await Promise.all([
+  const [saudiProjRes, recordsRes, rmrRes, inProdRes, woProjectIds] = await Promise.all([
     db.from('projects')
       .select('id, project_code, customer_name, created_at')
       .eq('manufacturing_location', 'saudi')
@@ -68,6 +69,10 @@ export async function getFactoryAdminConsole(): Promise<FactoryConsoleResult> {
       .order('requested_at', { ascending: true })
       .limit(100),
     db.from('factory_records').select('id', { count: 'exact', head: true }).eq('production_status', 'in_production'),
+    // Authoritative WO presence: the execution-reference register (same source as
+    // the WO/PN gate), NOT factory_records.wo_reference_id — a project with a
+    // confirmed WO but no production record yet must not read as "missing WO".
+    fetchProjectIdsWithActiveReference('wo'),
   ]);
 
   type RecRow = {
@@ -76,16 +81,16 @@ export async function getFactoryAdminConsole(): Promise<FactoryConsoleResult> {
   };
   const records: RecRow[] = recordsRes.error ? [] : ((recordsRes.data ?? []) as unknown as RecRow[]);
 
-  // 1. Projects missing a Work Order — Saudi approved projects with no factory
-  //    record carrying a confirmed WO reference.
-  const projectsWithWo = new Set(records.filter(r => r.wo_reference_id).map(r => r.project_id));
+  // 1. Projects missing a Work Order — Saudi approved projects with no active WO
+  //    in the execution-reference register (matches the WO/PN gate). Derived from
+  //    the register, not factory_records, so a project with a confirmed WO but no
+  //    production record yet is correctly treated as having its WO.
   const missingWo: MissingWoRow[] = saudiProjRes.error ? [] : (saudiProjRes.data ?? [])
     .map((p) => {
       const row = p as unknown as { id: string; project_code: string; customer_name: string; created_at: string };
-      return { id: row.id, projectCode: row.project_code, customerName: row.customer_name, daysWaiting: daysSince(row.created_at), _hasWo: projectsWithWo.has(row.id) };
+      return { id: row.id, projectCode: row.project_code, customerName: row.customer_name, daysWaiting: daysSince(row.created_at) };
     })
-    .filter((p) => !p._hasWo)
-    .map(({ _hasWo, ...rest }) => { void _hasWo; return rest; })
+    .filter((p) => !woProjectIds.has(p.id))
     .sort((a, b) => b.daysWaiting - a.daysWaiting);
 
   // 2. Stalled production — on hold, or overdue for a required monthly update.

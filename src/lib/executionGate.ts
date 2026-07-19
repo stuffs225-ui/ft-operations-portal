@@ -160,3 +160,57 @@ export async function fetchProjectsMissingReference(
   const withRef = new Set((existingRefs ?? []).map((r) => r.project_id));
   return (allProjects as unknown as Project[]).filter((p) => !withRef.has(p.id));
 }
+
+/**
+ * Returns the ids of approved projects (for the given route) that DO have an
+ * active execution reference — i.e. the projects that are cleared to start
+ * factory execution. This is the positive counterpart of
+ * fetchProjectsMissingReference, and shares the same execution-reference source
+ * as the WO/PN gate. Use it for "ready to start" counts instead of deriving WO
+ * presence from factory_records (which under-counts projects that have a WO but
+ * no production record yet).
+ */
+export async function fetchProjectIdsWithActiveReference(
+  type: 'wo' | 'pn',
+): Promise<Set<string>> {
+  const location = type === 'wo' ? 'saudi' : 'dubai';
+
+  if (!isSupabaseConfigured || !supabase) {
+    const { MOCK_PROJECTS } = await import('../data/mockProjects');
+    const { MOCK_EXECUTION_REFERENCES } = await import('../data/mockExecutionReferences');
+    const haveRef = new Set(
+      MOCK_EXECUTION_REFERENCES
+        .filter((r) => r.reference_type === type && r.status !== 'cancelled' && r.status !== 'superseded')
+        .map((r) => r.project_id),
+    );
+    return new Set(
+      MOCK_PROJECTS
+        .filter(
+          (p) =>
+            p.project_status === 'approved' &&
+            p.manufacturing_location === location &&
+            haveRef.has(p.id),
+        )
+        .map((p) => p.id),
+    );
+  }
+
+  const { data: allProjects } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('project_status', 'approved')
+    .eq('manufacturing_location', location);
+
+  if (!allProjects || allProjects.length === 0) return new Set();
+
+  const projectIds = allProjects.map((p) => p.id);
+  const { data: existingRefs } = await supabase
+    .from('project_execution_references')
+    .select('project_id')
+    .in('project_id', projectIds)
+    .eq('reference_type', type)
+    .not('status', 'in', '("cancelled","superseded")');
+
+  const withRef = new Set((existingRefs ?? []).map((r) => r.project_id));
+  return new Set(projectIds.filter((id) => withRef.has(id)));
+}

@@ -34,6 +34,7 @@ interface InboundPO {
 }
 
 interface InboundPOItem {
+  id: string;
   purchase_order_id: string;
   item_code: string | null;
   item_name: string;
@@ -41,6 +42,16 @@ interface InboundPOItem {
   quantity_ordered: number;
   unit: string;
   expected_arrival_date: string | null;
+}
+
+// Per-PO receiving reconciliation, derived from what has actually been booked in
+// against each PO line (store_receipt_items.purchase_order_item_id).
+interface PoProgress {
+  ordered: number;
+  received: number;
+  outstanding: number;
+  linesOutstanding: number;
+  fullyReceived: boolean;
 }
 
 interface ProjectRef {
@@ -79,10 +90,12 @@ function etaBadge(eta: string | null) {
 export function StoreInboundPOs() {
   const [pos, setPos] = useState<InboundPO[]>([]);
   const [itemsByPo, setItemsByPo] = useState<Record<string, InboundPOItem[]>>({});
+  const [receivedByItem, setReceivedByItem] = useState<Record<string, number>>({});
   const [projects, setProjects] = useState<Record<string, ProjectRef>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [outstandingOnly, setOutstandingOnly] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   // Snapshot of "now" taken once on mount so render stays pure.
   const [loadedAt] = useState(() => Date.now());
@@ -115,18 +128,36 @@ export function StoreInboundPOs() {
         const projectIds = Array.from(new Set(poList.map((p) => p.project_id)));
         const [{ data: itemData }, { data: projData }] = await Promise.all([
           sb.from('purchase_order_items_safe')
-            .select('purchase_order_id, item_code, item_name, description, quantity_ordered, unit, expected_arrival_date')
+            .select('id, purchase_order_id, item_code, item_name, description, quantity_ordered, unit, expected_arrival_date')
             .in('purchase_order_id', poIds),
           sb.from('projects')
             .select('id, project_code, so_number, customer_name')
             .in('id', projectIds),
         ]);
 
+        const items = (itemData ?? []) as InboundPOItem[];
         const grouped: Record<string, InboundPOItem[]> = {};
-        for (const item of (itemData ?? []) as InboundPOItem[]) {
+        for (const item of items) {
           (grouped[item.purchase_order_id] ??= []).push(item);
         }
         setItemsByPo(grouped);
+
+        // Reconcile against what has actually been received: sum
+        // store_receipt_items.quantity_received per PO line. Deferred-migration
+        // safe — if the link column/table is absent we simply show 0 received.
+        const itemIds = items.map((i) => i.id).filter(Boolean);
+        if (itemIds.length > 0) {
+          const { data: recvData } = await sb
+            .from('store_receipt_items')
+            .select('purchase_order_item_id, quantity_received')
+            .in('purchase_order_item_id', itemIds);
+          const recvMap: Record<string, number> = {};
+          for (const r of (recvData ?? []) as { purchase_order_item_id: string | null; quantity_received: number | null }[]) {
+            if (!r.purchase_order_item_id) continue;
+            recvMap[r.purchase_order_item_id] = (recvMap[r.purchase_order_item_id] ?? 0) + Number(r.quantity_received ?? 0);
+          }
+          setReceivedByItem(recvMap);
+        }
 
         const projMap: Record<string, ProjectRef> = {};
         for (const p of (projData ?? []) as ProjectRef[]) projMap[p.id] = p;
@@ -145,7 +176,22 @@ export function StoreInboundPOs() {
     });
   }
 
-  const filtered = pos.filter((po) => {
+  // Per-PO ordered/received/outstanding, derived purely from loaded data.
+  function progressFor(poId: string): PoProgress {
+    const items = itemsByPo[poId] ?? [];
+    let ordered = 0, received = 0, linesOutstanding = 0;
+    for (const it of items) {
+      const ord = Number(it.quantity_ordered ?? 0);
+      const rec = Math.min(receivedByItem[it.id] ?? 0, ord); // cap so over-receipts don't skew the bar
+      ordered += ord;
+      received += rec;
+      if (rec < ord) linesOutstanding += 1;
+    }
+    const outstanding = Math.max(ordered - received, 0);
+    return { ordered, received, outstanding, linesOutstanding, fullyReceived: items.length > 0 && outstanding === 0 };
+  }
+
+  const searched = pos.filter((po) => {
     if (!search) return true;
     const q = search.toLowerCase();
     const proj = projects[po.project_id];
@@ -159,6 +205,7 @@ export function StoreInboundPOs() {
       )
     );
   });
+  const filtered = outstandingOnly ? searched.filter((po) => !progressFor(po.id).fullyReceived) : searched;
 
   const overdue = pos.filter((po) => po.eta_date && new Date(po.eta_date).getTime() < loadedAt).length;
   const thisWeek = pos.filter((po) => {
@@ -166,6 +213,10 @@ export function StoreInboundPOs() {
     const days = (new Date(po.eta_date).getTime() - loadedAt) / (1000 * 60 * 60 * 24);
     return days >= 0 && days <= 7;
   }).length;
+  // POs whose lines are all fully received but whose status still shows them as
+  // inbound — these are ready for the store to close out.
+  const fullyReceivedCount = pos.filter((po) => progressFor(po.id).fullyReceived).length;
+  const outstandingLines = pos.reduce((sum, po) => sum + progressFor(po.id).linesOutstanding, 0);
 
   if (loading) return <PageLoader />;
 
@@ -192,28 +243,36 @@ export function StoreInboundPOs() {
       )}
 
       {/* KPI strip */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
         {[
           { label: 'Expected POs', value: pos.length, critical: false },
           { label: 'Arriving This Week', value: thisWeek, critical: false },
           { label: 'ETA Overdue', value: overdue, critical: overdue > 0 },
+          { label: 'Lines Outstanding', value: outstandingLines, critical: false },
+          { label: 'Ready to Close', value: fullyReceivedCount, critical: false },
         ].map((k) => (
-          <div key={k.label} className={`bg-white rounded-lg border px-3 py-2.5 ${k.critical ? 'border-gray-200 border-l-4 border-l-red-500' : 'border-gray-200/80'}`}>
-            <div className={`text-xl font-bold tabular-nums ${k.critical ? 'text-red-700' : 'text-gray-900'}`}>{k.value}</div>
+          <div key={k.label} className={`bg-white rounded-lg border px-3 py-2.5 ${k.critical && k.value > 0 ? 'border-gray-200 border-l-4 border-l-red-500' : 'border-gray-200/80'}`}>
+            <div className={`text-xl font-bold tabular-nums ${k.critical && k.value > 0 ? 'text-red-700' : 'text-gray-900'}`}>{k.value}</div>
             <div className="text-[11px] text-gray-500 mt-0.5">{k.label}</div>
           </div>
         ))}
       </div>
 
-      <div className="relative">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search PO number, project, SO, supplier, item code…"
-          className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-sky-300"
-        />
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        <div className="relative flex-1">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search PO number, project, SO, supplier, item code…"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-sky-300"
+          />
+        </div>
+        <label className="inline-flex items-center gap-2 text-sm text-gray-600 select-none px-1 shrink-0">
+          <input type="checkbox" checked={outstandingOnly} onChange={(e) => setOutstandingOnly(e.target.checked)} className="rounded border-gray-300 text-sky-600 focus:ring-sky-300" />
+          Outstanding only
+        </label>
       </div>
 
       {filtered.length === 0 ? (
@@ -234,7 +293,7 @@ export function StoreInboundPOs() {
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Supplier</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Status</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">ETA</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Lines</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em] w-44">Received</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-[0.04em]">Actions</th>
                 </tr>
               </thead>
@@ -243,6 +302,8 @@ export function StoreInboundPOs() {
                   const proj = projects[po.project_id];
                   const items = itemsByPo[po.id] ?? [];
                   const isOpen = expanded.has(po.id);
+                  const prog = progressFor(po.id);
+                  const pct = prog.ordered > 0 ? Math.round((prog.received / prog.ordered) * 100) : 0;
                   return (
                     <Fragment key={po.id}>
                       <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => toggle(po.id)}>
@@ -257,7 +318,23 @@ export function StoreInboundPOs() {
                         <td className="px-4 py-3 text-gray-700">{po.supplier_name}</td>
                         <td className="px-4 py-3">{statusBadge(po.po_status)}</td>
                         <td className="px-4 py-3">{etaBadge(po.eta_date)}</td>
-                        <td className="px-4 py-3 text-right tabular-nums">{items.length}</td>
+                        <td className="px-4 py-3">
+                          {prog.ordered === 0 ? (
+                            <span className="text-xs text-gray-400">{items.length} line{items.length === 1 ? '' : 's'}</span>
+                          ) : (
+                            <div className="w-40">
+                              <div className="flex items-center justify-between text-[11px] mb-0.5">
+                                <span className="tabular-nums text-gray-600">{prog.received} / {prog.ordered}</span>
+                                {prog.fullyReceived
+                                  ? <span className="font-medium text-green-600">Complete</span>
+                                  : <span className="font-medium text-amber-600">{prog.outstanding} left</span>}
+                              </div>
+                              <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                                <div className={`h-full rounded-full ${prog.fullyReceived ? 'bg-green-500' : 'bg-sky-500'}`} style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                          )}
+                        </td>
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           <Link to={`/store/receipts/new?po=${po.id}`}>
                             <Button size="sm" variant="secondary" icon={<Truck size={13} />}>Receive</Button>
@@ -276,24 +353,33 @@ export function StoreInboundPOs() {
                                   <tr>
                                     <th className="text-left px-3 py-2 font-medium text-gray-500">Code</th>
                                     <th className="text-left px-3 py-2 font-medium text-gray-500">Description</th>
-                                    <th className="text-right px-3 py-2 font-medium text-gray-500">Qty</th>
+                                    <th className="text-right px-3 py-2 font-medium text-gray-500">Ordered</th>
+                                    <th className="text-right px-3 py-2 font-medium text-gray-500">Received</th>
+                                    <th className="text-right px-3 py-2 font-medium text-gray-500">Outstanding</th>
                                     <th className="text-left px-3 py-2 font-medium text-gray-500">Line ETA</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
-                                  {items.map((item, idx) => (
-                                    <tr key={idx}>
-                                      <td className="px-3 py-2 font-mono text-gray-700">{item.item_code ?? '—'}</td>
-                                      <td className="px-3 py-2 text-gray-800">
-                                        {item.item_name}
-                                        {item.description && item.description !== item.item_name && (
-                                          <span className="text-gray-400"> — {item.description}</span>
-                                        )}
-                                      </td>
-                                      <td className="px-3 py-2 text-right tabular-nums">{item.quantity_ordered} {item.unit}</td>
-                                      <td className="px-3 py-2 text-gray-600">{formatDate(item.expected_arrival_date)}</td>
-                                    </tr>
-                                  ))}
+                                  {items.map((item) => {
+                                    const ord = Number(item.quantity_ordered ?? 0);
+                                    const rec = receivedByItem[item.id] ?? 0;
+                                    const out = Math.max(ord - rec, 0);
+                                    return (
+                                      <tr key={item.id}>
+                                        <td className="px-3 py-2 font-mono text-gray-700">{item.item_code ?? '—'}</td>
+                                        <td className="px-3 py-2 text-gray-800">
+                                          {item.item_name}
+                                          {item.description && item.description !== item.item_name && (
+                                            <span className="text-gray-400"> — {item.description}</span>
+                                          )}
+                                        </td>
+                                        <td className="px-3 py-2 text-right tabular-nums text-gray-700">{ord} {item.unit}</td>
+                                        <td className="px-3 py-2 text-right tabular-nums text-gray-700">{rec}{rec > ord ? ' ⚠' : ''}</td>
+                                        <td className={`px-3 py-2 text-right tabular-nums font-medium ${out > 0 ? 'text-amber-600' : 'text-green-600'}`}>{out > 0 ? out : '✓'}</td>
+                                        <td className="px-3 py-2 text-gray-600">{formatDate(item.expected_arrival_date)}</td>
+                                      </tr>
+                                    );
+                                  })}
                                 </tbody>
                               </table>
                             )}
