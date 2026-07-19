@@ -13,6 +13,10 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { recordFactoryEvent } from '../lib/factoryAudit';
 import { FactoryRecordSteps } from '../components/features/FactoryRecordSteps';
 import { deriveProductionStatus, statusReason } from '../lib/factoryStatus';
+import { ProjectSpine } from '../components/features/ProjectSpine';
+import { deriveProjectStages } from '../lib/projectSpine';
+import { fetchProductionDetails } from '../lib/productionPlanQueries';
+import type { ProjectProductionDetails } from '../types';
 import {
   getMockFactoryRecordsForProject,
   getMockRequirementsForProject,
@@ -111,6 +115,7 @@ export function FactoryProjectWorkspace() {
   const [factoryRecords, setFactoryRecords] = useState<FactoryRecord[]>([]);
   const [requirements, setRequirements] = useState<FactoryItemRequirement[]>([]);
   const [reqTypes, setReqTypes] = useState<FactoryRequirementType[]>([]);
+  const [prodDetails, setProdDetails] = useState<ProjectProductionDetails | null>(null);
   const [rmrs, setRmrs] = useState<RawMaterialRequest[]>([]);
   const [references, setReferences] = useState<ExecutionReference[]>([]);
   const [loading, setLoading] = useState(true);
@@ -178,6 +183,17 @@ export function FactoryProjectWorkspace() {
       fetchProjectReferences(projectId).then((refs) => { setReferences(refs ?? []); });
       setLoading(false);
     });
+  }, [projectId, reloadKey]);
+
+  // Production details (chassis / manhours) for the Production Journey spine.
+  useEffect(() => {
+    if (!projectId) return;
+    let cancelled = false;
+    (async () => {
+      const d = await fetchProductionDetails(projectId);
+      if (!cancelled) setProdDetails(d);
+    })();
+    return () => { cancelled = true; };
   }, [projectId, reloadKey]);
 
   // A WO unblocks the factory as soon as it exists and is not cancelled/superseded
@@ -440,6 +456,19 @@ export function FactoryProjectWorkspace() {
 
   const monthlyUpdateCount = factoryRecords.filter((r) => r.monthly_update_required).length;
 
+  // Unified production journey (WO → Chassis → Engineering → Materials → Production → QC).
+  const spineStages = deriveProjectStages({
+    projectId: projectId ?? '',
+    hasActiveWO: hasWO,
+    chassisReceived: prodDetails?.chassis_received ?? 0,
+    chassisTotal: prodDetails?.chassis_total ?? 0,
+    requirements: requirements.map((r) => ({ status: r.status })),
+    rmrs: rmrs.map((r) => ({ status: r.status })),
+    progressPct: avgProgress,
+    anyRecord: factoryRecords.length > 0,
+    sentToQc: factoryRecords.some((r) => r.production_status === 'sent_to_qc'),
+  });
+
   // Group requirements by vehicle line
   const reqsByLine: Record<string, FactoryItemRequirement[]> = {};
   requirements.forEach((req) => {
@@ -478,6 +507,9 @@ export function FactoryProjectWorkspace() {
           Dev mode — using mock factory data. Changes will not be persisted.
         </div>
       )}
+
+      {/* Production journey spine — always visible orientation */}
+      <ProjectSpine stages={spineStages} />
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">
