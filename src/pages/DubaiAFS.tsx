@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Plane, Clock, AlertTriangle, CheckCircle2, Package, FileSearch,
-  Wrench, TrendingUp, ShieldCheck, PackageCheck, Plus, ChevronRight,
+  Wrench, TrendingUp, ShieldCheck, PackageCheck, Plus, ChevronRight, LayoutDashboard,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Card } from '../components/ui/Card';
@@ -116,6 +116,7 @@ export function DubaiAFS() {
 
       {/* Top actions */}
       <div className="flex flex-wrap gap-2">
+        <Link to="/dubai-afs/board"><Button variant="primary" size="sm"><LayoutDashboard size={13} className="mr-1" /> Delivery Board</Button></Link>
         <Link to="/dubai-afs/eta"><Button variant="secondary" size="sm"><Clock size={13} className="mr-1" /> Update Dubai ETA</Button></Link>
         <Link to="/dubai-afs/arrival-reports"><Button variant="secondary" size="sm"><Plane size={13} className="mr-1" /> Register Arrival</Button></Link>
         <Link to="/dubai-afs/missing-items"><Button variant="secondary" size="sm"><Package size={13} className="mr-1" /> Add Missing Item</Button></Link>

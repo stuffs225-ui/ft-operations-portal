@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ShieldCheck, ClipboardCheck, AlertTriangle, FileCheck, Wrench,
-  Microscope, AlertOctagon, CheckCircle2, XCircle, Clock, ChevronRight, Plus,
+  Microscope, AlertOctagon, CheckCircle2, XCircle, Clock, ChevronRight, Plus, TrendingUp,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '../components/ui/Button';
@@ -204,6 +204,11 @@ export function QC() {
             <FileCheck size={13} className="mr-1" /> Release Notes
           </Button>
         </Link>
+        <Link to="/qc/quality-intelligence">
+          <Button size="sm" variant="ghost">
+            <TrendingUp size={13} className="mr-1" /> Quality Intelligence
+          </Button>
+        </Link>
       </div>
 
       {/* KPI Cards */}
@@ -271,6 +276,7 @@ export function QC() {
           { label: 'Rework', href: '/qc/rework', icon: <Wrench size={20} className="text-orange-500" />, desc: 'Rework requested, in progress, and pending QC confirmation' },
           { label: 'Release Notes', href: '/project-qc/release-notes', icon: <FileCheck size={20} className="text-green-500" />, desc: 'Issue release notes when all checks pass' },
           { label: 'QC Work Queue', href: '/qc/work-queue', icon: <Plus size={20} className="text-violet-500" />, desc: 'Consolidated daily quality work queue' },
+          { label: 'Quality Intelligence', href: '/qc/quality-intelligence', icon: <TrendingUp size={20} className="text-violet-500" />, desc: 'Pass rates, supplier defect trends, and root-cause analysis' },
         ].map(tile => (
           <Link key={tile.label} to={tile.href}>
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:border-violet-300 hover:shadow-md transition-all">

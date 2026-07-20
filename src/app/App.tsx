@@ -65,6 +65,7 @@ const CustodyDetail = lazy(() => import('../pages/CustodyDetail').then((m) => ({
 const QC = lazy(() => import('../pages/QC').then((m) => ({ default: m.QC })));
 const QCWorkQueue = lazy(() => import('../pages/QCWorkQueue').then((m) => ({ default: m.QCWorkQueue })));
 const QCRework = lazy(() => import('../pages/QCRework').then((m) => ({ default: m.QCRework })));
+const QCQualityIntelligence = lazy(() => import('../pages/QCQualityIntelligence').then((m) => ({ default: m.QCQualityIntelligence })));
 const MaterialQC = lazy(() => import('../pages/MaterialQC').then((m) => ({ default: m.MaterialQC })));
 const MaterialQcInspections = lazy(() => import('../pages/MaterialQcInspections').then((m) => ({ default: m.MaterialQcInspections })));
 const MaterialQcInspectionNew = lazy(() => import('../pages/MaterialQcInspectionNew').then((m) => ({ default: m.MaterialQcInspectionNew })));
@@ -85,6 +86,7 @@ const AFSPnGate = lazy(() => import('../pages/AFSPnGate').then((m) => ({ default
 const AFSReadyForDelivery = lazy(() => import('../pages/AFSReadyForDelivery').then((m) => ({ default: m.AFSReadyForDelivery })));
 const AFSMaterials = lazy(() => import('../pages/AFSMaterials').then((m) => ({ default: m.AFSMaterials })));
 const DubaiAfsProjects = lazy(() => import('../pages/DubaiAfsProjects').then((m) => ({ default: m.DubaiAfsProjects })));
+const AFSDeliveryBoard = lazy(() => import('../pages/AFSDeliveryBoard').then((m) => ({ default: m.AFSDeliveryBoard })));
 const DubaiAfsProjectDetail = lazy(() => import('../pages/DubaiAfsProjectDetail').then((m) => ({ default: m.DubaiAfsProjectDetail })));
 const DubaiAfsEta = lazy(() => import('../pages/DubaiAfsEta').then((m) => ({ default: m.DubaiAfsEta })));
 const DubaiAfsArrivalReports = lazy(() => import('../pages/DubaiAfsArrivalReports').then((m) => ({ default: m.DubaiAfsArrivalReports })));
@@ -291,6 +293,7 @@ export function App() {
             <Route path="qc" element={<RequireRole roles={['qc_user', 'operations_manager']}><QC /></RequireRole>} />
             <Route path="qc/work-queue" element={<RequireRole roles={['qc_user', 'operations_manager']}><QCWorkQueue /></RequireRole>} />
             <Route path="qc/rework" element={<RequireRole roles={['qc_user', 'operations_manager']}><QCRework /></RequireRole>} />
+            <Route path="qc/quality-intelligence" element={<RequireRole roles={['qc_user', 'operations_manager']}><QCQualityIntelligence /></RequireRole>} />
             <Route path="material-qc" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialQC /></RequireRole>} />
             <Route path="material-qc/inspections" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialQcInspections /></RequireRole>} />
             <Route path="material-qc/inspections/new" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialQcInspectionNew /></RequireRole>} />
@@ -309,6 +312,7 @@ export function App() {
 
             {/* ── Dubai / AFS ── */}
             <Route path="dubai-afs" element={<RequireRole roles={['afs_user', 'operations_manager']}><DubaiAFS /></RequireRole>} />
+            <Route path="dubai-afs/board" element={<RequireRole roles={['afs_user', 'operations_manager']}><AFSDeliveryBoard /></RequireRole>} />
             <Route path="dubai-afs/projects" element={<RequireRole roles={['afs_user', 'operations_manager']}><DubaiAfsProjects /></RequireRole>} />
             <Route path="dubai-afs/projects/:id" element={<RequireRole roles={['afs_user', 'operations_manager']}><DubaiAfsProjectDetail /></RequireRole>} />
             <Route path="dubai-afs/eta" element={<RequireRole roles={['afs_user', 'operations_manager']}><DubaiAfsEta /></RequireRole>} />

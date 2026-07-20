@@ -473,6 +473,13 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['qc_user'],
   },
   {
+    id: 'qc-quality-intelligence',
+    label: 'Quality Intelligence',
+    path: '/qc/quality-intelligence',
+    icon: 'TrendingUp',
+    roles: ['qc_user'],
+  },
+  {
     id: 'qc-release-notes',
     label: 'Release Notes',
     path: '/project-qc/release-notes',
@@ -682,6 +689,13 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'PN Gate / Missing PN',
     path: '/afs/pn-gate',
     icon: 'ShieldCheck',
+    roles: ['afs_user'],
+  },
+  {
+    id: 'afs-delivery-board',
+    label: 'Delivery Board',
+    path: '/dubai-afs/board',
+    icon: 'LayoutDashboard',
     roles: ['afs_user'],
   },
   {
