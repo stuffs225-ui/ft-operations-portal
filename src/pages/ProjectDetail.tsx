@@ -1434,7 +1434,29 @@ export function ProjectDetail() {
       supabase.from('purchase_orders_to_supplier_safe').select('*').eq('project_id', id),
       supabase.from('factory_records').select('*').eq('project_id', id),
       supabase.from('production_raw_material_requests').select('*').eq('project_id', id),
-    ]).then(([{ data: proj, error: projErr }, { data: pvl }, { data: docs }, { data: events }, refs, { data: prs }, { data: pos }, { data: frs }, { data: frmrs }]) => {
+      // Store / QC / Release / AFS live reads (closes GAP-03) — every table below
+      // carries project_id, so the project page is the one place that shows the
+      // whole chain: procurement → store → factory → QC → release → delivery.
+      // A blocked or failed read degrades to an empty section, never an error.
+      supabase.from('store_receipts').select('*').eq('project_id', id).order('received_date', { ascending: false }),
+      supabase.from('vehicle_receipts').select('*').eq('project_id', id).order('created_at', { ascending: false }),
+      supabase.from('material_custody_records').select('*').eq('project_id', id).order('created_at', { ascending: false }),
+      supabase.from('material_qc_inspections').select('*').eq('project_id', id).order('created_at', { ascending: false }),
+      supabase.from('material_ncrs').select('*').eq('project_id', id).order('created_at', { ascending: false }),
+      supabase.from('project_qc_inspections').select('*').eq('project_id', id).order('created_at', { ascending: false }),
+      supabase.from('project_qc_findings').select('*').eq('project_id', id).order('created_at', { ascending: false }),
+      supabase.from('release_notes').select('*').eq('project_id', id).order('created_at', { ascending: false }),
+      supabase.from('dubai_project_followups').select('*').eq('project_id', id),
+      supabase.from('afs_arrival_reports').select('*').eq('project_id', id).order('arrival_date', { ascending: false }),
+      supabase.from('afs_predelivery_reports').select('*').eq('project_id', id).order('report_date', { ascending: false }),
+      supabase.from('afs_maintenance_requests').select('*').eq('project_id', id).order('created_at', { ascending: false }),
+    ]).then(([
+      { data: proj, error: projErr }, { data: pvl }, { data: docs }, { data: events }, refs,
+      { data: prs }, { data: pos }, { data: frs }, { data: frmrs },
+      { data: receipts }, { data: vReceipts }, { data: custody },
+      { data: matQc }, { data: ncrs }, { data: projQc }, { data: findings }, { data: rns },
+      { data: dubaiFus }, { data: arrivals }, { data: predeliveries }, { data: maint },
+    ]) => {
       if (projErr || !proj) { setNotFound(true); setLoading(false); return; }
       setProject(proj as unknown as Project);
       setLines(pvl as unknown as ProjectVehicleLine[] ?? []);
@@ -1445,20 +1467,18 @@ export function ProjectDetail() {
       setProcurementPOs((pos as unknown as PurchaseOrder[]) ?? []);
       setFactoryRecords((frs as unknown as FactoryRecord[]) ?? []);
       setFactoryRmrs((frmrs as unknown as RawMaterialRequest[]) ?? []);
-      // Store / QC sub-modules have no wired live read yet (GAP-03). Never show
-      // mock records in live mode — present empty until those reads are built.
-      setStoreReceipts([]);
-      setStoreVehicleReceipts([]);
-      setStoreCustody([]);
-      setQcInspections([]);
-      setQcNcrs([]);
-      setProjectQcInspections([]);
-      setQcFindings([]);
-      setReleaseNotes([]);
-      setDubaiFollowups(getMockDubaiFollowupsForProject(id ?? ''));
-      setAfsArrivalReports(getMockArrivalReportsForProject(id ?? ''));
-      setAfsPredeliveryReports(getMockPredeliveryReportsForProject(id ?? ''));
-      setAfsMaintenanceRequests(getMockMaintenanceRequestsForProject(id ?? ''));
+      setStoreReceipts((receipts as unknown as StoreReceipt[]) ?? []);
+      setStoreVehicleReceipts((vReceipts as unknown as VehicleReceipt[]) ?? []);
+      setStoreCustody((custody as unknown as MaterialCustodyRecord[]) ?? []);
+      setQcInspections((matQc as unknown as MaterialQcInspection[]) ?? []);
+      setQcNcrs((ncrs as unknown as MaterialNcr[]) ?? []);
+      setProjectQcInspections((projQc as unknown as ProjectQcInspection[]) ?? []);
+      setQcFindings((findings as unknown as ProjectQcFinding[]) ?? []);
+      setReleaseNotes((rns as unknown as ReleaseNote[]) ?? []);
+      setDubaiFollowups((dubaiFus as unknown as DubaiProjectFollowup[]) ?? []);
+      setAfsArrivalReports((arrivals as unknown as AfsArrivalReport[]) ?? []);
+      setAfsPredeliveryReports((predeliveries as unknown as AfsPredeliveryReport[]) ?? []);
+      setAfsMaintenanceRequests((maint as unknown as AfsMaintenanceRequest[]) ?? []);
       setLoading(false);
     });
   }, [id]);

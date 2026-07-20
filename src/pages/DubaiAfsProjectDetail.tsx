@@ -99,7 +99,7 @@ export function DubaiAfsProjectDetail() {
     if (error) { setSaveError(error.message); return; }
 
     if (profile?.id) {
-      await supabase.from('dubai_eta_history').insert({
+      const { error: histErr } = await supabase.from('dubai_eta_history').insert({
         dubai_followup_id: id!,
         project_id: followup.project_id,
         new_eta: newEta,
@@ -108,6 +108,11 @@ export function DubaiAfsProjectDetail() {
         changed_at: new Date().toISOString(),
         reason: etaReason,
       });
+      if (histErr) {
+        // The reason lives only in this history row (governance: every ETA change
+        // needs a documented reason) — losing it silently is not acceptable.
+        setSaveError(`ETA saved, but the change reason could not be recorded: ${histErr.message}`);
+      }
     }
 
     void recordAfsEvent(followup.project_id, 'eta_changed', `ETA updated for ${followup.project?.project_code}`, etaReason, profile?.id ?? null, profile?.full_name ?? null, { old_eta: followup.eta_date, new_eta: newEta });

@@ -49,6 +49,7 @@ export function FactoryRawMaterialRequestNew() {
   const [fileType, setFileType] = useState('excel_bom');
   const [fileRemarks, setFileRemarks] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [devSuccess, setDevSuccess] = useState('');
   const [saudiProjects, setSaudiProjects] = useState<Project[]>([]);
 
@@ -74,6 +75,7 @@ export function FactoryRawMaterialRequestNew() {
 
   function handleSubmit(action: 'draft' | 'submit' | 'procurement') {
     setSubmitting(true);
+    setSubmitError(null);
     setDevSuccess('');
 
     if (!isSupabaseConfigured || !supabase) {
@@ -103,6 +105,7 @@ export function FactoryRawMaterialRequestNew() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     supabase.from('production_raw_material_requests').insert(newRmr as any).select().then(({ data, error }) => {
       if (error || !data || data.length === 0) {
+        setSubmitError(error?.message ?? 'The request could not be created.');
         setSubmitting(false);
         return;
       }
@@ -414,6 +417,11 @@ export function FactoryRawMaterialRequestNew() {
               </div>
             </Card>
 
+            {submitError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-800 mt-4">
+                {submitError}
+              </div>
+            )}
             <div className="flex flex-wrap gap-3 justify-between mt-6">
               <Button variant="secondary" onClick={() => setStep(2)} icon={<ChevronLeft size={14} />}>
                 Back

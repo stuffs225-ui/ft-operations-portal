@@ -537,7 +537,12 @@ export function QuotationDetail() {
     for (const line of lines) {
       const val = lineValues[line.id];
       if (val !== undefined) {
-        await supabase.from('quotation_request_lines').update({ final_quotation_unit_value: val }).eq('id', line.id);
+        const { error: lineErr } = await supabase.from('quotation_request_lines').update({ final_quotation_unit_value: val }).eq('id', line.id);
+        if (lineErr) {
+          setActionMsg(`Could not save line ${line.line_number}: ${lineErr.message}`);
+          setSavingResponse(false);
+          return;
+        }
       }
     }
     const total = lines.reduce((s, l) => s + (lineValues[l.id] ?? l.final_quotation_unit_value ?? 0) * l.quantity, 0);
@@ -573,12 +578,19 @@ export function QuotationDetail() {
       setPdfFile(null);
     }
 
-    await supabase.from('quotation_requests').update({
+    const { error: qErr } = await supabase.from('quotation_requests').update({
       quotation_number: quotationNumber || null,
       quotation_total_value: total > 0 ? total : null,
       quotation_status: 'quotation_received',
       quotation_received_at: new Date().toISOString(),
     }).eq('id', id);
+    if (qErr) {
+      // The status transition is the point of this action — surface the failure
+      // instead of silently refetching the old state.
+      setActionMsg(`Could not record the quotation: ${qErr.message}`);
+      setSavingResponse(false);
+      return;
+    }
 
     await recordQuotationEvent(id, 'quotation_pdf_uploaded', 'Quotation values entered', null, profile?.id ?? null, profile?.full_name ?? null, { quotation_number: quotationNumber });
     await recordQuotationAuditEntry('quotation_values_updated', id, 'Quotation values entered', null, { quotation_number: quotationNumber, total }, profile?.id ?? null, profile?.email ?? null, role);

@@ -251,12 +251,18 @@ export function FactoryProjectWorkspace() {
       remarks: lineEditState.remarks || null,
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    supabase.from('factory_records').update(updates as any).eq('id', record.id).then(() => {
+    supabase.from('factory_records').update(updates as any).eq('id', record.id).then(({ error }) => {
+      setLineSaving(false);
+      if (error) {
+        // Keep the edit form open and show why — a silent failure here would
+        // display "saved" values that revert on reload.
+        setLineError(error.message);
+        return;
+      }
       setFactoryRecords((prev) =>
         prev.map((r) => (r.id === record.id ? { ...r, ...updates } : r)),
       );
       recordFactoryEvent('factory_record', record.id, record.project_id, 'factory_record_updated', 'Factory record updated', null, updates);
-      setLineSaving(false);
       setEditingLineId(null);
     });
   }
@@ -382,12 +388,19 @@ export function FactoryProjectWorkspace() {
     const progress = progressOverride ?? record.progress_percentage;
     const next = deriveProductionStatus(progress, requirementsForRecord(record), record.production_status);
     if (next === record.production_status && progressOverride === undefined) return;
+    const before = { production_status: record.production_status, progress_percentage: record.progress_percentage };
     setFactoryRecords((prev) =>
       prev.map((r) => (r.id === record.id ? { ...r, production_status: next, progress_percentage: progress } : r)));
     if (!isSupabaseConfigured || !supabase) return;
-    await supabase.from('factory_records')
+    const { error } = await supabase.from('factory_records')
       .update({ production_status: next, progress_percentage: progress })
       .eq('id', record.id);
+    if (error) {
+      // Roll the optimistic status back — otherwise the screen shows a state the
+      // DB rejected and it silently reverts on the next load.
+      setFactoryRecords((prev) => prev.map((r) => (r.id === record.id ? { ...r, ...before } : r)));
+      setLineError(`Status update failed: ${error.message}`);
+    }
   }
 
   // Factory user records a requirement's state/value; the record's status re-derives.
@@ -401,7 +414,14 @@ export function FactoryProjectWorkspace() {
         uploaded_by: profile?.id ?? null,
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await supabase.from('factory_item_requirements').update(payload as any).eq('id', req.id);
+      const { error } = await supabase.from('factory_item_requirements').update(payload as any).eq('id', req.id);
+      if (error) {
+        // Revert the optimistic change and stop — cascading the derived status
+        // from a write the DB rejected would compound the lie.
+        setRequirements((prev) => prev.map((r) => (r.id === req.id ? req : r)));
+        setReqError(`Could not save requirement: ${error.message}`);
+        return;
+      }
     }
     // Re-derive status for records this requirement gates.
     const affected = factoryRecords.filter(
