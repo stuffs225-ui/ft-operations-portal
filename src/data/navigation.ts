@@ -692,6 +692,13 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['afs_user'],
   },
   {
+    id: 'afs-delivery-board',
+    label: 'Delivery Board',
+    path: '/dubai-afs/board',
+    icon: 'LayoutDashboard',
+    roles: ['afs_user'],
+  },
+  {
     id: 'afs-followups',
     label: 'Dubai Follow-ups',
     path: '/dubai-afs/projects',
