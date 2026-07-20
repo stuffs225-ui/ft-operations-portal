@@ -281,19 +281,12 @@ export function Store() {
         className="mb-6"
       />
 
-      {/* Top quick actions */}
+      {/* Top quick actions — only actions NOT already in the header (the header
+          carries Receive Material / Receive Vehicle). The old "Return Material"
+          chip linked to the receipts list where no return flow exists — removed
+          rather than pointing users at a dead end. */}
       {canCreate && (
         <div className="flex flex-wrap gap-2">
-          <Link to="/store/receipts/new">
-            <Button variant="ghost" size="sm" icon={<Package size={13} />} className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-700">
-              Receive Material
-            </Button>
-          </Link>
-          <Link to="/store/vehicle-receiving/new">
-            <Button variant="ghost" size="sm" icon={<Truck size={13} />} className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-700">
-              Receive Vehicle
-            </Button>
-          </Link>
           <Link to="/store/issuance">
             <Button variant="ghost" size="sm" icon={<ArrowUpRight size={13} />} className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-700">
               Issue Material
@@ -302,11 +295,6 @@ export function Store() {
           <Link to="/store/serials">
             <Button variant="ghost" size="sm" icon={<Hash size={13} />} className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-700">
               Register Serial
-            </Button>
-          </Link>
-          <Link to="/store/receipts">
-            <Button variant="ghost" size="sm" icon={<Package size={13} />} className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-700">
-              Return Material
             </Button>
           </Link>
         </div>
