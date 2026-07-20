@@ -65,6 +65,7 @@ const CustodyDetail = lazy(() => import('../pages/CustodyDetail').then((m) => ({
 const QC = lazy(() => import('../pages/QC').then((m) => ({ default: m.QC })));
 const QCWorkQueue = lazy(() => import('../pages/QCWorkQueue').then((m) => ({ default: m.QCWorkQueue })));
 const QCRework = lazy(() => import('../pages/QCRework').then((m) => ({ default: m.QCRework })));
+const QCQualityIntelligence = lazy(() => import('../pages/QCQualityIntelligence').then((m) => ({ default: m.QCQualityIntelligence })));
 const MaterialQC = lazy(() => import('../pages/MaterialQC').then((m) => ({ default: m.MaterialQC })));
 const MaterialQcInspections = lazy(() => import('../pages/MaterialQcInspections').then((m) => ({ default: m.MaterialQcInspections })));
 const MaterialQcInspectionNew = lazy(() => import('../pages/MaterialQcInspectionNew').then((m) => ({ default: m.MaterialQcInspectionNew })));
@@ -291,6 +292,7 @@ export function App() {
             <Route path="qc" element={<RequireRole roles={['qc_user', 'operations_manager']}><QC /></RequireRole>} />
             <Route path="qc/work-queue" element={<RequireRole roles={['qc_user', 'operations_manager']}><QCWorkQueue /></RequireRole>} />
             <Route path="qc/rework" element={<RequireRole roles={['qc_user', 'operations_manager']}><QCRework /></RequireRole>} />
+            <Route path="qc/quality-intelligence" element={<RequireRole roles={['qc_user', 'operations_manager']}><QCQualityIntelligence /></RequireRole>} />
             <Route path="material-qc" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialQC /></RequireRole>} />
             <Route path="material-qc/inspections" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialQcInspections /></RequireRole>} />
             <Route path="material-qc/inspections/new" element={<RequireRole roles={['qc_user', 'operations_manager']}><MaterialQcInspectionNew /></RequireRole>} />

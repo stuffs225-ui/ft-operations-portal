@@ -473,6 +473,13 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['qc_user'],
   },
   {
+    id: 'qc-quality-intelligence',
+    label: 'Quality Intelligence',
+    path: '/qc/quality-intelligence',
+    icon: 'TrendingUp',
+    roles: ['qc_user'],
+  },
+  {
     id: 'qc-release-notes',
     label: 'Release Notes',
     path: '/project-qc/release-notes',
